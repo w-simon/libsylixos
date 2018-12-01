@@ -22,6 +22,7 @@
 2015.05.15  加入 CPU_ulSpinNesting 处理.
 2015.05.16  加入 Task 型自旋锁, 此类型锁允许任务调用阻塞函数.
 2016.04.26  加入 raw 型自旋锁, 此类型用于 atomic 变量处理.
+2018.11.29  raw 加锁解锁操作针对一些特殊处理器不允许发生中断 (可能会有加锁递归触发处理器设计缺陷).
 *********************************************************************************************************/
 #define  __SYLIXOS_SMPFMB
 #define  __SYLIXOS_KERNEL
@@ -405,11 +406,25 @@ VOID  _SmpSpinUnlockIrqQuick (spinlock_t *psl, INTREG  iregInterLevel)
 *********************************************************************************************************/
 VOID  _SmpSpinLockTask (spinlock_t *psl)
 {
-    _BugHandle(LW_CPU_GET_CUR_NESTING(), LW_TRUE, "called from ISR.\r\n");
+    INTREG          iregInterLevel;
+    PLW_CLASS_CPU   pcpuCur;
     
-    LW_THREAD_LOCK();
+    iregInterLevel = KN_INT_DISABLE();
+    
+    pcpuCur = LW_CPU_GET_CUR();
+    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
+    __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                         /*  锁定任务在当前 CPU          */
+    
+#if defined(LW_CFG_CPU_ARCH_MIPS) && (LW_CFG_MIPS_NEST_LLSC_BUG > 0)
     __ARCH_SPIN_LOCK_RAW(psl);                                          /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
+    KN_INT_ENABLE(iregInterLevel);
+    
+#else                                                                   /*  LW_CFG_MIPS_CPU_LOONGSON2K  */
+    KN_INT_ENABLE(iregInterLevel);
+    __ARCH_SPIN_LOCK_RAW(psl);                                          /*  驱动保证锁定必须成功        */
+    KN_SMP_MB();
+#endif                                                                  /*  !LW_CFG_MIPS_CPU_LOONGSON2K */
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpSpinTryLockTask
@@ -421,17 +436,24 @@ VOID  _SmpSpinLockTask (spinlock_t *psl)
 *********************************************************************************************************/
 BOOL  _SmpSpinTryLockTask (spinlock_t *psl)
 {
-    INT     iRet;
-
-    _BugHandle(LW_CPU_GET_CUR_NESTING(), LW_TRUE, "called from ISR.\r\n");
+    INTREG          iregInterLevel;
+    PLW_CLASS_CPU   pcpuCur;
+    INT             iRet;
     
-    LW_THREAD_LOCK();
-    iRet = __ARCH_SPIN_TRYLOCK_RAW(psl);
+    iregInterLevel = KN_INT_DISABLE();
+    
+    pcpuCur = LW_CPU_GET_CUR();
+    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
+    __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                         /*  锁定任务在当前 CPU          */
+    
+    iRet = __ARCH_SPIN_TRYLOCK_RAW(psl);                                /*  不会产生循环等待            */
     KN_SMP_MB();
-    
+
     if (iRet != LW_SPIN_OK) {
-        LW_THREAD_UNLOCK();
+        __THREAD_LOCK_DEC(pcpuCur->CPU_ptcbTCBCur);                     /*  解锁失败, 解除任务锁定      */
     }
+
+    KN_INT_ENABLE(iregInterLevel);
     
     return  ((iRet == LW_SPIN_OK) ? (LW_TRUE) : (LW_FALSE));
 }
@@ -445,13 +467,42 @@ BOOL  _SmpSpinTryLockTask (spinlock_t *psl)
 *********************************************************************************************************/
 INT  _SmpSpinUnlockTask (spinlock_t *psl)
 {
-    _BugHandle(LW_CPU_GET_CUR_NESTING(), LW_TRUE, "called from ISR.\r\n");
+    INTREG          iregInterLevel;
+    PLW_CLASS_CPU   pcpuCur;
+    PLW_CLASS_TCB   ptcbCur;
+    BOOL            bTrySched = LW_FALSE;
     
+#if defined(LW_CFG_CPU_ARCH_MIPS) && (LW_CFG_MIPS_NEST_LLSC_BUG > 0)
+    iregInterLevel = KN_INT_DISABLE();
     KN_SMP_MB();
     __ARCH_SPIN_UNLOCK_RAW(psl);
-    LW_THREAD_UNLOCK();
+    
+#else                                                                   /*  LW_CFG_MIPS_CPU_LOONGSON2K  */
+    KN_SMP_MB();
+    __ARCH_SPIN_UNLOCK_RAW(psl);
+    iregInterLevel = KN_INT_DISABLE();
+#endif                                                                  /*  !LW_CFG_MIPS_CPU_LOONGSON2K */
 
-    return  (ERROR_NONE);
+    pcpuCur = LW_CPU_GET_CUR();
+    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
+    
+    ptcbCur = pcpuCur->CPU_ptcbTCBCur;
+    if (__THREAD_LOCK_GET(ptcbCur)) {                                   /*  应用使用需要判断有效性      */
+        __THREAD_LOCK_DEC(ptcbCur);                                     /*  解除任务锁定                */
+    }
+    
+    if (__ISNEED_SCHED(pcpuCur, 0)) {
+        bTrySched = LW_TRUE;                                            /*  需要尝试调度                */
+    }
+    
+    KN_INT_ENABLE(iregInterLevel);
+    
+    if (bTrySched) {
+        return  (_ThreadSched(ptcbCur));
+    
+    } else {
+        return  (ERROR_NONE);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: _SmpSpinLockRaw

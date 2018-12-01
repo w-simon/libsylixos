@@ -536,6 +536,7 @@ VOID  x86CpuIdShow (VOID)
     extendedFeaturesC.value = pcpuid->ext.featuresExtEcx;
 
     printf("\nX86 CPU probe report\n\n");
+    printf("      vendorId: %12.12s\n", (CHAR *)pcpuid->std.vendorId);
     printf("     signature: 0x%X\n", pcpuid->std.signature);
     printf("   featuresEbx: 0x%X\n", pcpuid->std.featuresEbx);
     printf("   featuresEcx: 0x%X\n", pcpuid->std.featuresEcx);

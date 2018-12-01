@@ -267,6 +267,77 @@ VOID  _UpSpinUnlockIrqQuick (spinlock_t *psl, INTREG  iregInterLevel)
     KN_INT_ENABLE(iregInterLevel);
 }
 /*********************************************************************************************************
+** 函数名称: _UpSpinLockTask
+** 功能描述: 自旋锁加锁操作
+** 输　入  : psl           自旋锁
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  _UpSpinLockTask (spinlock_t *psl)
+{
+    PLW_CLASS_CPU   pcpuCur = LW_CPU_GET_CUR();
+    
+    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
+    
+    __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                         /*  锁定任务在当前 CPU          */
+}
+/*********************************************************************************************************
+** 函数名称: _UpSpinTryLockTask
+** 功能描述: 自旋锁尝试加锁操作
+** 输　入  : psl           自旋锁
+** 输　出  : LW_TRUE 加锁正常 LW_FALSE 加锁失败
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+BOOL  _UpSpinTryLockTask (spinlock_t *psl)
+{
+    PLW_CLASS_CPU   pcpuCur = LW_CPU_GET_CUR();
+    
+    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
+
+    __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                         /*  锁定任务在当前 CPU          */
+    
+    return  (LW_TRUE);
+}
+/*********************************************************************************************************
+** 函数名称: _UpSpinUnlockTask
+** 功能描述: 自旋锁解锁操作
+** 输　入  : psl           自旋锁
+** 输　出  : 调度器返回值
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+INT  _UpSpinUnlockTask (spinlock_t *psl)
+{
+    INTREG          iregInterLevel;
+    PLW_CLASS_CPU   pcpuCur   = LW_CPU_GET_CUR();
+    BOOL            bTrySched = LW_FALSE;
+    
+    iregInterLevel = KN_INT_DISABLE();
+    
+    _BugHandle(pcpuCur->CPU_ulInterNesting, LW_TRUE, "called from ISR.\r\n");
+    
+    if (__THREAD_LOCK_GET(pcpuCur->CPU_ptcbTCBCur)) {                   /*  应用使用需要判断有效性      */
+        __THREAD_LOCK_DEC(pcpuCur->CPU_ptcbTCBCur);                     /*  解除任务锁定                */
+    }
+    
+    if (__COULD_SCHED(pcpuCur, 0)) {
+        bTrySched = LW_TRUE;                                            /*  需要尝试调度                */
+    }
+    
+    KN_INT_ENABLE(iregInterLevel);
+    
+    if (bTrySched) {
+        return  (_ThreadSched(pcpuCur->CPU_ptcbTCBCur));
+    
+    } else {
+        return  (ERROR_NONE);
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: _UpSpinLockRaw
 ** 功能描述: 自旋锁原始加锁操作.
 ** 输　入  : psl               自旋锁

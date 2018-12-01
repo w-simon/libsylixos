@@ -84,10 +84,12 @@ INT             _IosFileRefDec(INT  iFd);
 INT             _IosFileRefGet(INT  iFd);
 PLW_FD_ENTRY    _IosFileNew(PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName);
 VOID            _IosFileDelete(PLW_FD_ENTRY    pfdentry);
-VOID            _IosFileSet(PLW_FD_ENTRY   pfdentry, PLW_DEV_HDR  pdevhdrHdr, LONG  lValue, INT  iFlag);
+VOID            _IosFileSet(PLW_FD_ENTRY   pfdentry, PLW_DEV_HDR  pdevhdrHdr, 
+                            LONG  lValue, INT  iFlag, LW_FD_STATE    state);
 INT             _IosFileRealName(PLW_FD_ENTRY   pfdentry, CPCHAR  pcRealName);
 INT             _IosFileClose(PLW_FD_ENTRY   pfdentry);
 INT             _IosFileIoctl(PLW_FD_ENTRY   pfdentry, INT  iCmd, LONG  lArg);
+INT             _IosFileSync(PLW_FD_ENTRY   pfdentry);
 
 /*********************************************************************************************************
   lock file
@@ -145,14 +147,15 @@ LW_API PLW_DEV_HDR  API_IosFdDevFind(INT  iFd);
 #define iosFdDevFind                             API_IosFdDevFind
 
 LW_API VOID         API_IosFdFree(INT  iFd);
-LW_API INT          API_IosFdSet(INT            iFd,
-                                 PLW_DEV_HDR    pdevhdrHdr,
-                                 LONG           lValue,
-                                 INT            iFlag);
 LW_API INT          API_IosFdNew(PLW_DEV_HDR    pdevhdrHdr,
                                  CPCHAR         pcName,
                                  LONG           lValue,
                                  INT            iFlag);
+LW_API INT          API_IosFdSet(INT            iFd,
+                                 PLW_DEV_HDR    pdevhdrHdr,
+                                 LONG           lValue,
+                                 INT            iFlag,
+                                 LW_FD_STATE    state);
 LW_API INT          API_IosFdRealName(INT  iFd, CPCHAR  pcRealName);
 LW_API INT          API_IosFdLock(INT  iFd);
 LW_API INT          API_IosFdGetType(INT  iFd, INT *piType);

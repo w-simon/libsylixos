@@ -430,6 +430,21 @@ typedef struct {
 typedef LW_FD_NODE            *PLW_FD_NODE;
 
 /*********************************************************************************************************
+  文件状态
+*********************************************************************************************************/
+
+typedef enum {
+    FDSTAT_OK = 0,                                                      /*  文件正常                    */
+    FDSTAT_SYNC = 1,                                                    /*  文件正在执行 sync 操作      */
+    FDSTAT_REQCLOSE = 2,                                                /*  请求执行驱动 close 操作     */
+    FDSTAT_CLOSING = 3,                                                 /*  正在执行驱动 close 操作     */
+    FDSTAT_CLOSED = 4                                                   /*  文件已关闭 (驱动已不可用)   */
+} LW_FD_STATE;
+
+#define LW_FD_STATE_IS_ABNORMITY(state) \
+        ((state) >= FDSTAT_CLOSING)
+
+/*********************************************************************************************************
   文件结构 (文件表)
   FDENTRY_ulCounter 计数器是所有对应的 LW_FD_DESC 计数器总和. 
   如果没有 dup 过, 则 FDENTRY_ulCounter 应该与 FDDESC_ulRef 相同.
@@ -451,10 +466,9 @@ typedef struct {
 #define FDENTRY_pfdnode        FDENTRY_lValue
     LONG                       FDENTRY_lValue;                          /*  驱动程序内部数据            */
                                                                         /*  如果为 NEW_1 驱动则为fd_node*/
-                                                                        
     INT                        FDENTRY_iType;                           /*  文件类型 (根据驱动判断)     */
     INT                        FDENTRY_iFlag;                           /*  文件属性                    */
-    INT                        FDENTRY_iAbnormity;                      /*  文件异常                    */
+    LW_FD_STATE                FDENTRY_state;                           /*  文件状态                    */
     ULONG                      FDENTRY_ulCounter;                       /*  总引用计数器                */
     off_t                      FDENTRY_oftPtr;                          /*  文件当前指针                */
                                                                         /*  只有 NEW_1 或更高级驱动使用 */

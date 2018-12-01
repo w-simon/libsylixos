@@ -105,7 +105,7 @@ OS_STATUS  unregister_driver (dev_t  major)
         return  (PX_ERROR);
     }
 
-    if (API_IosDrvRemove((INT)major, LW_TRUE)) {
+    if (API_IosDrvRemove((INT)major, LW_FALSE)) {
         return  (PX_ERROR);
     
     } else {

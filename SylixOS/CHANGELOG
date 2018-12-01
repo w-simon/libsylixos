@@ -72,6 +72,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2018-12-01: han.hui
+    使用文件描述符状态机解决并行关闭错误.
+
     2018-11-21: han.hui
     修正对 mkfifo 后 open 时的阻塞功能支持.
 

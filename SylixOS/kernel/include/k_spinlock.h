@@ -175,6 +175,10 @@ INT     _UpSpinUnlockIrq(spinlock_t *psl, INTREG  iregInterLevel);
 VOID    _UpSpinLockIrqQuick(spinlock_t *psl, INTREG  *piregInterLevel);
 VOID    _UpSpinUnlockIrqQuick(spinlock_t *psl, INTREG  iregInterLevel);
 
+VOID    _UpSpinLockTask(spinlock_t *psl);
+BOOL    _UpSpinTryLockTask(spinlock_t *psl);
+INT     _UpSpinUnlockTask(spinlock_t *psl);
+
 VOID    _UpSpinLockRaw(spinlock_t *psl, INTREG  *piregInterLevel);
 BOOL    _UpSpinTryLockRaw(spinlock_t *psl, INTREG  *piregInterLevel);
 VOID    _UpSpinUnlockRaw(spinlock_t *psl, INTREG  iregInterLevel);
@@ -196,9 +200,9 @@ VOID    _UpSpinUnlockRaw(spinlock_t *psl, INTREG  iregInterLevel);
 #define LW_SPIN_LOCK_QUICK(psl, pireg)      _UpSpinLockIrqQuick(psl, pireg)
 #define LW_SPIN_UNLOCK_QUICK(psl, ireg)     _UpSpinUnlockIrqQuick(psl, ireg)
 
-#define LW_SPIN_LOCK_TASK(psl)              _UpSpinLock(psl)
-#define LW_SPIN_TRYLOCK_TASK(psl)           _UpSpinTryLock(psl)
-#define LW_SPIN_UNLOCK_TASK(psl)            _UpSpinUnlock(psl)
+#define LW_SPIN_LOCK_TASK(psl)              _UpSpinLockTask(psl)
+#define LW_SPIN_TRYLOCK_TASK(psl)           _UpSpinTryLockTask(psl)
+#define LW_SPIN_UNLOCK_TASK(psl)            _UpSpinUnlockTask(psl)
 
 #define LW_SPIN_LOCK_RAW(psl, pireg)        _UpSpinLockRaw(psl, pireg)
 #define LW_SPIN_TRYLOCK_RAW(psl, pireg)     _UpSpinTryLockRaw(psl, pireg)

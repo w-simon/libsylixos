@@ -21,9 +21,23 @@
 ** BUG:
 2013.03.30  加入 API_AtomicSwp 操作.
 2014.05.05  将原子操作锁引出, 为 Qt4.8.6 等特定系统提供服务.
+2018.11.30  加入 LLSC Nesting CPU bug 修正.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
+/*********************************************************************************************************
+  CPU ATOMIC BUG 探测
+*********************************************************************************************************/
+#if (LW_CFG_CPU_ATOMIC_EN > 0) && defined(LW_CFG_CPU_ARCH_MIPS) && (LW_CFG_MIPS_NEST_LLSC_BUG > 0)
+#define __LW_ATOMIC_INTREG(ireg)    INTREG  ireg
+#define __LW_ATOMIC_INTDIS(ireg)    ireg = KN_INT_DISABLE()
+#define __LW_ATOMIC_INTEN(ireg)     KN_INT_ENABLE(ireg)
+
+#else                                                                   /*  LW_CFG_MIPS_NEST_LLSC_BUG   */
+#define __LW_ATOMIC_INTREG(ireg)
+#define __LW_ATOMIC_INTDIS(ireg)
+#define __LW_ATOMIC_INTEN(ireg)
+#endif                                                                  /*  !LW_CFG_MIPS_NEST_LLSC_BUG  */
 /*********************************************************************************************************
 ** 函数名称: API_AtomicAdd
 ** 功能描述: 原子 + 操作
@@ -37,8 +51,14 @@
 LW_API  
 INT  API_AtomicAdd (INT  iVal, atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_ADD(iVal, patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_ADD(iVal, patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -58,8 +78,14 @@ INT  API_AtomicAdd (INT  iVal, atomic_t  *patomic)
 LW_API  
 INT  API_AtomicSub (INT  iVal, atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_SUB(iVal, patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_SUB(iVal, patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -78,8 +104,14 @@ INT  API_AtomicSub (INT  iVal, atomic_t  *patomic)
 LW_API  
 INT  API_AtomicInc (atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_INC(patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_INC(patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -98,8 +130,14 @@ INT  API_AtomicInc (atomic_t  *patomic)
 LW_API  
 INT  API_AtomicDec (atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_DEC(patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_DEC(patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -119,8 +157,14 @@ INT  API_AtomicDec (atomic_t  *patomic)
 LW_API  
 INT  API_AtomicAnd (INT  iVal, atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_AND(iVal, patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_AND(iVal, patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -140,8 +184,14 @@ INT  API_AtomicAnd (INT  iVal, atomic_t  *patomic)
 LW_API  
 INT  API_AtomicNand (INT  iVal, atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_NAND(iVal, patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_NAND(iVal, patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -161,8 +211,14 @@ INT  API_AtomicNand (INT  iVal, atomic_t  *patomic)
 LW_API  
 INT  API_AtomicOr (INT  iVal, atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_OR(iVal, patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_OR(iVal, patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -182,8 +238,14 @@ INT  API_AtomicOr (INT  iVal, atomic_t  *patomic)
 LW_API  
 INT  API_AtomicXor (INT  iVal, atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_XOR(iVal, patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_XOR(iVal, patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -240,8 +302,14 @@ INT  API_AtomicGet (atomic_t  *patomic)
 LW_API  
 INT  API_AtomicSwp (INT  iVal, atomic_t  *patomic)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_SWP(iVal, patomic));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_SWP(iVal, patomic);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);
@@ -262,8 +330,14 @@ INT  API_AtomicSwp (INT  iVal, atomic_t  *patomic)
 LW_API  
 INT  API_AtomicCas (atomic_t  *patomic, INT  iOldVal, INT  iNewVal)
 {
+    REGISTER INT  iRet;
+
     if (patomic) {
-        return  (__LW_ATOMIC_CAS(patomic, iOldVal, iNewVal));
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        iRet = __LW_ATOMIC_CAS(patomic, iOldVal, iNewVal);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (iRet);
     
     } else {
         _ErrorHandle(EINVAL);

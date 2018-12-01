@@ -167,7 +167,7 @@ PLW_FD_ENTRY  _IosFileGetKernel (INT  iFd, BOOL  bIsIgnAbn)
         if (bIsIgnAbn) {                                                /*  忽略异常文件                */
             return  (pfddesc->FDDESC_pfdentry);
         
-        } else if (!pfddesc->FDDESC_pfdentry->FDENTRY_iAbnormity) {
+        } else if (!LW_FD_STATE_IS_ABNORMITY(pfddesc->FDDESC_pfdentry->FDENTRY_state)) {
             return  (pfddesc->FDDESC_pfdentry);
         }
     }
@@ -209,7 +209,7 @@ PLW_FD_ENTRY  _IosFileGet (INT  iFd, BOOL  bIsIgnAbn)
             if (bIsIgnAbn) {                                            /*  忽略异常文件                */
                 return  (pfddesc->FDDESC_pfdentry);
             
-            } else if (!pfddesc->FDDESC_pfdentry->FDENTRY_iAbnormity) {
+            } else if (!LW_FD_STATE_IS_ABNORMITY(pfddesc->FDDESC_pfdentry->FDENTRY_state)) {
                 return  (pfddesc->FDDESC_pfdentry);
             }
         }
@@ -253,7 +253,7 @@ PLW_FD_DESC  _IosFileDescGet (INT  iFd, BOOL  bIsIgnAbn)
             if (bIsIgnAbn) {                                            /*  忽略异常文件                */
                 return  (pfddesc);
             
-            } else if (!pfddesc->FDDESC_pfdentry->FDENTRY_iAbnormity) {
+            } else if (!LW_FD_STATE_IS_ABNORMITY(pfddesc->FDDESC_pfdentry->FDENTRY_state)) {
                 return  (pfddesc);
             }
         }
@@ -509,10 +509,10 @@ PLW_FD_ENTRY  _IosFileNew (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
     }
     lib_bzero(pfdentry, sizeof(LW_FD_ENTRY));                           /*  结构清零                    */
     
-    pfdentry->FDENTRY_lValue      = PX_ERROR;                           /*  不存在驱动信息              */
-    pfdentry->FDENTRY_ulCounter   = 0;                                  /*  如果 dup 成功则引用为 1     */
-    pfdentry->FDENTRY_iAbnormity  = 1;                                  /*  异常文件 (还不允许操作)     */
-    pfdentry->FDENTRY_bRemoveReq  = LW_FALSE;
+    pfdentry->FDENTRY_lValue     = PX_ERROR;                            /*  不存在驱动信息              */
+    pfdentry->FDENTRY_ulCounter  = 0;                                   /*  如果 dup 成功则引用为 1     */
+    pfdentry->FDENTRY_state      = FDSTAT_CLOSED;                       /*  异常文件 (还不允许操作)     */
+    pfdentry->FDENTRY_bRemoveReq = LW_FALSE;
     
     if (pcName == LW_NULL) {
         pfdentry->FDENTRY_pcName = LW_NULL;
@@ -568,6 +568,7 @@ VOID  _IosFileDelete (PLW_FD_ENTRY    pfdentry)
 **           pdevhdrHdr        设备头
 **           lValue            文件底层信息
 **           iFlag             打开标志
+**           state             fdentry 状态 (lValue != PX_ERROR 时有效) 
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -575,7 +576,8 @@ VOID  _IosFileDelete (PLW_FD_ENTRY    pfdentry)
 VOID  _IosFileSet (PLW_FD_ENTRY   pfdentry,
                    PLW_DEV_HDR    pdevhdrHdr,
                    LONG           lValue,
-                   INT            iFlag)
+                   INT            iFlag,
+                   LW_FD_STATE    state)
 {
     pfdentry->FDENTRY_pdevhdrHdr = pdevhdrHdr;
     pfdentry->FDENTRY_lValue     = lValue;
@@ -585,7 +587,8 @@ VOID  _IosFileSet (PLW_FD_ENTRY   pfdentry,
                   &pfdentry->FDENTRY_iType);                            /*  获得驱动程序的类型          */
     
     if (lValue != PX_ERROR) {                                           /*  正常打开                    */
-        pfdentry->FDENTRY_iAbnormity = 0;                               /*  回归正常文件, 允许用户操作  */
+        pfdentry->FDENTRY_state = state;
+        KN_SMP_WMB();
     }
 }
 /*********************************************************************************************************
@@ -659,7 +662,7 @@ INT  _IosFileClose (PLW_FD_ENTRY   pfdentry)
     REGISTER INT        iErrCode  = ERROR_NONE;
     REGISTER FUNCPTR    pfuncDrvClose;
 
-    if (pfdentry->FDENTRY_iAbnormity == 0) {
+    if (pfdentry->FDENTRY_state == FDSTAT_CLOSING) {                    /*  必须为 closeing 状态        */
         if ((pfdentry->FDENTRY_lValue != PX_ERROR)         &&
             (pfdentry->FDENTRY_lValue != FOLLOW_LINK_FILE) &&
             (pfdentry->FDENTRY_lValue != FOLLOW_LINK_TAIL)) {           /*  必须含有驱动信息            */
@@ -676,11 +679,9 @@ INT  _IosFileClose (PLW_FD_ENTRY   pfdentry)
                 iErrCode = ERROR_NONE;
             }
         }
-        /*
-         *  这里必须设置为异常状态, 否则 unlink() 可能造成设备驱动调用 API_IosDevFileAbnormal()
-         *  可能造成错误.
-         */
-        pfdentry->FDENTRY_iAbnormity = 1;                               /*  设置为异常状态              */
+        
+        pfdentry->FDENTRY_state = FDSTAT_CLOSED;                        /*  设置为异常状态              */
+        KN_SMP_WMB();
     }
     
     return  (iErrCode);
@@ -740,6 +741,30 @@ INT  _IosFileIoctl (PLW_FD_ENTRY   pfdentry, INT  iCmd, LONG  lArg)
         }
         return  (iErrCode);
     }
+}
+/*********************************************************************************************************
+** 函数名称: _IosFileIoctl
+** 功能描述: 使一个 fd_entry 调用驱动 close 操作
+** 输　入  : pfdentry          fd_entry
+** 输　出  : 驱动返回值
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  _IosFileSync (PLW_FD_ENTRY   pfdentry)
+{
+    REGISTER FUNCPTR       pfuncDrvIoctl;
+    REGISTER INT           iErrCode = 0;
+    
+    pfuncDrvIoctl = _S_deventryTbl[__LW_FD_MAINDRV].DEVENTRY_pfuncDevIoctl;
+    if (pfuncDrvIoctl) {
+        PVOID       pvArg = __GET_DRV_ARG(pfdentry);                    /*  根据驱动程序版本类型选择参数*/
+        
+        __KERNEL_SPACE_ENTER();
+        iErrCode = pfuncDrvIoctl(pvArg, FIOSYNC);
+        __KERNEL_SPACE_EXIT();
+    }
+    
+    return  (iErrCode);
 }
 /*********************************************************************************************************
 ** 函数名称: API_IosFdValue
@@ -806,6 +831,7 @@ VOID  API_IosFdFree (INT  iFd)
 **           pdevhdrHdr                    设备头
 **           lValue                        设备相关的值
 **           iFlag                         文件打开标志
+**           state                         fdentry 状态 (lValue != PX_ERROR 时有效) 
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
@@ -815,7 +841,8 @@ LW_API
 INT  API_IosFdSet (INT            iFd,
                    PLW_DEV_HDR    pdevhdrHdr,
                    LONG           lValue,
-                   INT            iFlag)
+                   INT            iFlag,
+                   LW_FD_STATE    state)
 {
     REGISTER PLW_FD_ENTRY    pfdentry;
     
@@ -825,7 +852,7 @@ INT  API_IosFdSet (INT            iFd,
         return  (PX_ERROR);
     }
     
-    _IosFileSet(pfdentry, pdevhdrHdr, lValue, iFlag);
+    _IosFileSet(pfdentry, pdevhdrHdr, lValue, iFlag, state);
     
     return  (ERROR_NONE);
 }
@@ -895,8 +922,8 @@ INT  API_IosFdNew (PLW_DEV_HDR    pdevhdrHdr,
 {
     REGISTER INT             iFd;
     REGISTER PLW_FD_ENTRY    pfdentry;
-    REGISTER INT             iError;
-             
+             LW_FD_STATE     state;
+    
     pfdentry = _IosFileNew(pdevhdrHdr, pcName);                         /*  创建一个 fd_entry 结构      */
     if (pfdentry == LW_NULL) {
         return  (PX_ERROR);
@@ -909,19 +936,12 @@ INT  API_IosFdNew (PLW_DEV_HDR    pdevhdrHdr,
         _IosFileDelete(pfdentry);                                       /*  删除 fd_entry               */
         return  (PX_ERROR);
     }
-    __LW_FD_CREATE_HOOK(iFd, __PROC_GET_PID_CUR());
+    state = (lValue == PX_ERROR) ? FDSTAT_CLOSED : FDSTAT_OK;
+    _IosFileSet(pfdentry, pdevhdrHdr, lValue, iFlag, state);
     _IosUnlock();                                                       /*  退出 IO 临界区              */
 
-    iError = API_IosFdSet(iFd, pdevhdrHdr, lValue, iFlag);              /*  设置文件描述块              */
-    if (iError != ERROR_NONE) {
-        _IosLock();                                                     /*  进入 IO 临界区              */
-        _IosFileRefDec(iFd);                                            /*  释放文件描述符              */
-        __LW_FD_DELETE_HOOK(iFd, __PROC_GET_PID_CUR());
-        _IosUnlock();                                                   /*  退出 IO 临界区              */
-        _IosFileDelete(pfdentry);                                       /*  删除 fd_entry               */
-        return  (PX_ERROR);
-    }
-    
+    __LW_FD_CREATE_HOOK(iFd, __PROC_GET_PID_CUR());
+
 	return  (iFd);
 }
 /*********************************************************************************************************
@@ -961,7 +981,7 @@ INT  API_IosFdUnlink (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
          plineFdEntry  = _list_line_get_next(plineFdEntry)) {           /*  删除使用该驱动文件          */
         
         pfdentry = _LIST_ENTRY(plineFdEntry, LW_FD_ENTRY, FDENTRY_lineManage);
-        if ((pfdentry->FDENTRY_iAbnormity == 0) && 
+        if ((pfdentry->FDENTRY_state != FDSTAT_CLOSED) && 
             (pfdentry->FDENTRY_pdevhdrHdr == pdevhdrHdr)) {             /*  文件正常, 且为同一设备      */
             
             if (pfdentry->FDENTRY_pcRealName &&
@@ -1262,6 +1282,13 @@ INT  API_IosFdRefDec (INT  iFd)
         MONITOR_EVT_INT1(MONITOR_EVENT_ID_IO, MONITOR_EVENT_IO_CLOSE, iFd, LW_NULL);
         
         if (pfdentry->FDENTRY_ulCounter == 0) {                         /*  没有描述符引用此 fd_entry   */
+            if (pfdentry->FDENTRY_state == FDSTAT_SYNC) {
+                pfdentry->FDENTRY_state =  FDSTAT_REQCLOSE;
+                bCallFunc = LW_FALSE;
+            
+            } else if (bCallFunc) {
+                pfdentry->FDENTRY_state = FDSTAT_CLOSING;               /*  准备调用驱动 close 函数     */
+            }
             _IosUnlock();                                               /*  退出 IO 临界区              */
             
             _FdLockfClearFdEntry(pfdentry, __PROC_GET_PID_CUR());       /*  回收记录锁                  */
@@ -1306,7 +1333,7 @@ INT  API_IosFdEntryReclaim (PLW_FD_ENTRY  pfdentry, ULONG  ulRefDec, pid_t  pid)
     REGISTER BOOL       bCallFunc = LW_TRUE;
 
     _IosLock();                                                         /*  进入 IO 临界区              */
-    if (pfdentry->FDENTRY_iAbnormity) {
+    if (LW_FD_STATE_IS_ABNORMITY(pfdentry->FDENTRY_state)) {
         bCallFunc = LW_FALSE;
     }
     if (pfdentry->FDENTRY_ulCounter >  ulRefDec) {
@@ -1315,6 +1342,13 @@ INT  API_IosFdEntryReclaim (PLW_FD_ENTRY  pfdentry, ULONG  ulRefDec, pid_t  pid)
         
     } else {                                                            /*  需要回收 pfdentry           */
         pfdentry->FDENTRY_ulCounter = 0;                                /*  不允许再次进行操作          */
+        if (pfdentry->FDENTRY_state == FDSTAT_SYNC) {                   /*  正在执行同步操作            */
+            pfdentry->FDENTRY_state =  FDSTAT_REQCLOSE;
+            bCallFunc = LW_FALSE;
+        
+        } else if (bCallFunc) {
+            pfdentry->FDENTRY_state = FDSTAT_CLOSING;                   /*  准备调用驱动 close 函数     */
+        }
         _IosUnlock();                                                   /*  退出 IO 临界区              */
         
         _FdLockfClearFdEntry(pfdentry, pid);                            /*  回收指定进程创建的记录锁    */

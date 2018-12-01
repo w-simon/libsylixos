@@ -202,18 +202,6 @@ FUNC_DEF(x86CpuIdProbeHw)
     MOVL    $0 , %EAX                                   ;/*  Set EAX 0                                   */
     CPUID                                               ;/*  Execute CPUID                               */
 
-    ;/*
-    ; * Check the vendor ID
-    ; */
-    CMPL    %EBX , _G_x86VendorIdIntel + 0              ;/*  Compare vendor id[0]                        */
-    JNE     x86CpuProbeExit
-
-    CMPL    %EDX , _G_x86VendorIdIntel + 4              ;/*  Compare vendor id[1]                        */
-    JNE     x86CpuProbeExit
-
-    CMPL    %ECX , _G_x86VendorIdIntel + 8              ;/*  Compare vendor id[2]                        */
-    JNE     x86CpuProbeExit
-
     MOVL    %EAX , X86_CPUID_HIGHVALUE(%ESI)            ;/*  Save high value                             */
     MOVL    %EBX , X86_CPUID_VENDORID(%ESI)             ;/*  Save vendor id[0]                           */
     MOVL    %EDX , X86_CPUID_VENDORID + 4(%ESI)         ;/*  Save vendor id[1]                           */
@@ -557,13 +545,6 @@ LINE_LABEL(x86CpuProbeExit)
     LEAVE
     RET
     FUNC_END(x86CpuIdProbeHw)
-
-;/*********************************************************************************************************
-;  CPUID vendor ID - Intel
-;*********************************************************************************************************/
-
-FUNC_LABEL(_G_x86VendorIdIntel)
-    .ascii  "GenuineIntel"
 
     FILE_END()
 

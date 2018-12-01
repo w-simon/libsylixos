@@ -363,7 +363,8 @@ ULONG  API_IosDrvRemove (INT  iDrvNum, BOOL  bForceClose)
                 _ErrorHandle(ERROR_IO_FILE_EXIST);
                 return  (ERROR_IO_FILE_EXIST);
             
-            } else {
+            } else if (!LW_FD_STATE_IS_ABNORMITY(pfdentry->FDENTRY_state)) {
+                pfdentry->FDENTRY_state = FDSTAT_CLOSING;
                 _IosUnlock();                                           /*  退出 IO 临界区              */
                 _IosFileClose(pfdentry);                                /*  调用驱动程序关闭            */
                 _IosLock();                                             /*  进入 IO 临界区              */
@@ -428,6 +429,7 @@ ULONG  API_IosDrvGetType (INT  iDrvNum, INT  *piType)
 ** 输　出  : 文件数量, 错误返回 PX_ERROR
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : sync() 不能与此参数同时执行.
                                            API 函数
 *********************************************************************************************************/
 LW_API  
@@ -457,7 +459,8 @@ INT     API_IosDevFileAbnormal (PLW_DEV_HDR    pdevhdrHdr)
         plineFdEntry = _list_line_get_next(plineFdEntry);
         
         if ((pfdentry->FDENTRY_pdevhdrHdr == pdevhdrHdr) &&
-            (pfdentry->FDENTRY_iAbnormity == 0)) {                      /*  被设备相关正常文件          */
+            !LW_FD_STATE_IS_ABNORMITY(pfdentry->FDENTRY_state)) {       /*  被设备相关正常文件          */
+            pfdentry->FDENTRY_state = FDSTAT_CLOSING;
             _IosUnlock();                                               /*  退出 IO 临界区              */
             
 #if LW_CFG_NET_EN > 0

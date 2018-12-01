@@ -473,7 +473,7 @@ PLW_FD_ENTRY  vprocIoFileGet (INT  iFd, BOOL  bIsIgnAbn)
         if (bIsIgnAbn) {                                                /*  忽略异常文件               */
             return  (pfddesc->FDDESC_pfdentry);
         
-        } else if (!pfddesc->FDDESC_pfdentry->FDENTRY_iAbnormity) {
+        } else if (!LW_FD_STATE_IS_ABNORMITY(pfddesc->FDDESC_pfdentry->FDENTRY_state)) {
             return  (pfddesc->FDDESC_pfdentry);
         }
     }
@@ -504,7 +504,7 @@ PLW_FD_ENTRY  vprocIoFileGetEx (LW_LD_VPROC *pvproc, INT  iFd, BOOL  bIsIgnAbn)
         if (bIsIgnAbn) {                                                /*  忽略异常文件               */
             return  (pfddesc->FDDESC_pfdentry);
         
-        } else if (!pfddesc->FDDESC_pfdentry->FDENTRY_iAbnormity) {
+        } else if (!LW_FD_STATE_IS_ABNORMITY(pfddesc->FDDESC_pfdentry->FDENTRY_state)) {
             return  (pfddesc->FDDESC_pfdentry);
         }
     }
@@ -532,8 +532,8 @@ static PLW_FD_ENTRY  vprocIoFileGetInherit (LW_LD_VPROC *pvproc, INT  iFd, BOOL 
     
     pfddesc = &pvproc->VP_fddescTbl[iFd];
     
-    if (pfddesc->FDDESC_pfdentry && pfddesc->FDDESC_ulRef) {
-        if (!pfddesc->FDDESC_pfdentry->FDENTRY_iAbnormity) {            /*  不继承异常文件              */
+    if (pfddesc->FDDESC_pfdentry && pfddesc->FDDESC_ulRef) {            /*  不继承异常文件              */
+        if (!LW_FD_STATE_IS_ABNORMITY(pfddesc->FDDESC_pfdentry->FDENTRY_state)) {
             *pbIsCloExec = pfddesc->FDDESC_bCloExec;
             return  (pfddesc->FDDESC_pfdentry);
         }
@@ -564,7 +564,7 @@ PLW_FD_DESC  vprocIoFileDescGet (INT  iFd, BOOL  bIsIgnAbn)
         if (bIsIgnAbn) {                                                /*  忽略异常文件               */
             return  (pfddesc);
         
-        } else if (!pfddesc->FDDESC_pfdentry->FDENTRY_iAbnormity) {
+        } else if (!LW_FD_STATE_IS_ABNORMITY(pfddesc->FDDESC_pfdentry->FDENTRY_state)) {
             return  (pfddesc);
         }
     }

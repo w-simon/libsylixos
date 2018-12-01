@@ -331,7 +331,7 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
     }
     
     if ((lValue != PX_ERROR) && (lValue != FOLLOW_LINK_FILE)) {
-        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY);
+        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY, FDSTAT_CLOSING);
         _IosFileClose(pfdentry);                                        /*  关闭                        */
     }
     
@@ -778,13 +778,27 @@ VOID  sync (VOID)
             continue;
         }
         
-        if (pfdentry->FDENTRY_iAbnormity) {
+        if (pfdentry->FDENTRY_state != FDSTAT_OK) {
             continue;
         }
         
+        pfdentry->FDENTRY_state = FDSTAT_SYNC;                          /*  不允许调用 close 函数       */
         _IosUnlock();                                                   /*  退出 IO 临界区              */
-        _IosFileIoctl(pfdentry, FIOSYNC, 0);                            /*  调用驱动同步数据            */
+        
+        _IosFileSync(pfdentry);                                         /*  调用驱动同步数据            */
+        
         _IosLock();                                                     /*  进入 IO 临界区              */
+        if (pfdentry->FDENTRY_state == FDSTAT_REQCLOSE) {
+            pfdentry->FDENTRY_state =  FDSTAT_CLOSING;
+            _IosUnlock();                                               /*  退出 IO 临界区              */
+            
+            _IosFileClose(pfdentry);                                    /*  调用驱动关闭文件            */
+            
+            _IosLock();                                                 /*  进入 IO 临界区              */
+        
+        } else if (pfdentry->FDENTRY_state == FDSTAT_SYNC) {
+            pfdentry->FDENTRY_state = FDSTAT_OK;
+        }
     }
     
     _IosUnlock();                                                       /*  退出 IO 临界区              */

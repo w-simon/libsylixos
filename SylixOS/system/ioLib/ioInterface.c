@@ -206,7 +206,7 @@ static INT _IoOpen (PCHAR            pcName,
         }
     }
 
-    if (iosFdSet(iFd, pdevhdrHdr, lValue, iFlag) != ERROR_NONE) {
+    if (iosFdSet(iFd, pdevhdrHdr, lValue, iFlag, FDSTAT_OK) != ERROR_NONE) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "file can not config.\r\n");
         ulError   = API_GetLastError();
         iErrLevel = 3;
@@ -522,7 +522,7 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
     }
     
     if (lValue != PX_ERROR) {
-        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY);
+        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY, FDSTAT_CLOSING);
         _IosFileClose(pfdentry);                                        /*  ¹Ø±Õ                        */
     }
     

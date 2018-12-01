@@ -266,7 +266,7 @@ VOID    API_IoFdShow (VOID)
                 break;
             }
             
-            if (pfdentry->FDENTRY_iAbnormity) {
+            if (LW_FD_STATE_IS_ABNORMITY(pfdentry->FDENTRY_state)) {
                 pcAbnormal = "yes";
             } else {
                 pcAbnormal = "";
@@ -340,7 +340,7 @@ VOID    API_IoFdentryShow (VOID)
             break;
         }
         
-        if (pfdentry->FDENTRY_iAbnormity) {
+        if (LW_FD_STATE_IS_ABNORMITY(pfdentry->FDENTRY_state)) {
             pcAbnormal = "yes";
         } else {
             pcAbnormal = "";

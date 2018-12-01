@@ -105,7 +105,7 @@ INT  symlink (CPCHAR  pcLinkDst, CPCHAR  pcSymPath)
     }
     
     if (lValue != PX_ERROR) {
-        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY);
+        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY, FDSTAT_CLOSING);
         _IosFileClose(pfdentry);                                        /*  ¹Ø±Õ                        */
     }
     
@@ -204,7 +204,7 @@ ssize_t  readlink (CPCHAR  pcSymPath, PCHAR  pcLinkDst, size_t  stMaxSize)
     }
     
     if ((lValue != PX_ERROR) && (lValue != FOLLOW_LINK_FILE)) {
-        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY);
+        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY, FDSTAT_CLOSING);
         _IosFileClose(pfdentry);                                        /*  ¹Ø±Õ                        */
     }
     
