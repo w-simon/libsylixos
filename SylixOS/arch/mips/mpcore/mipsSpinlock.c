@@ -101,7 +101,11 @@ static LW_INLINE UINT32  mipsSpinTryLock (SPINLOCKTYPE *psld)
         "   li      %[ticket],     0                        \n"
         "2:                                                 \n"
         "   .subsection 2                                   \n"
-        "3: b       2b                                      \n"
+        "3:                                                 \n"
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || defined(_MIPS_ARCH_HR2)
+        "   sync                                            \n"
+#endif
+        "   b       2b                                      \n"
         "   li      %[ticket],     1                        \n"
         "   .previous                                       \n"
         "   .set pop                                        \n"

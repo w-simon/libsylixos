@@ -44,10 +44,10 @@ VOIDFUNCPTR  mipsIdleHookGet (CPCHAR  pcMachineName)
         ARCH_REG_T  ulPrid = mipsCp0PRIdRead();
 
         if (((ulPrid & 0xf) == PRID_REV_LOONGSON2K_R1) ||
-            ((ulPrid & 0xf) == PRID_REV_LOONGSON2K_R2)) {
-            return  (mipsWaitInstruction);
+            ((ulPrid & 0xf) == PRID_REV_LOONGSON2K_R2)) {               /*  根据龙芯2K 手册描述支持 wait*/
+            return  (mipsWaitInstruction);                              /*  但龙芯 Linux 却没有使用!    */
 
-        } else if ((ulPrid & 0xf) != PRID_REV_LOONGSON3A_R1) {
+        } else if ((ulPrid & 0xf) >= PRID_REV_LOONGSON3A_R2) {          /*  和龙芯 Linux 相同           */
             return  (mipsWaitInstruction);
         }
 
