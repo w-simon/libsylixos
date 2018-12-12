@@ -61,10 +61,19 @@
                 (tod)->tv_sec++;                        \
             }                                           \
         } while (0)
+        
+#if LW_CFG_CPU_ATOMIC64_EN > 0
 #define TICK_UPDATE()                                   \
         do {                                            \
-            _K_i64KernelTime++;                         \
+            __LW_ATOMIC64_INC(&_K_atomic64KernelTime);  \
         } while (0)
+        
+#else                                                                   /*  LW_CFG_CPU_ATOMIC64_EN      */
+#define TICK_UPDATE()                                   \
+        do {                                            \
+            _K_atomic64KernelTime.counter++;            \
+        } while (0)
+#endif                                                                  /*  !LW_CFG_CPU_ATOMIC64_EN     */
 /*********************************************************************************************************
 ** 函数名称: __kernelTODUpdate
 ** 功能描述: 通知一个时钟到达, 更新 TOD 时间
@@ -111,8 +120,8 @@ static LW_INLINE VOID  __kernelTickUpdate (VOID)
     TICK_UPDATE();
     
 #if LW_CFG_TIME_TICK_HOOK_EN > 0
-    bspTickHook(_K_i64KernelTime);                                      /*  调用系统时钟钩子函数        */
-    __LW_THREAD_TICK_HOOK(_K_i64KernelTime);
+    bspTickHook(_K_atomic64KernelTime.counter);                         /*  调用系统时钟钩子函数        */
+    __LW_THREAD_TICK_HOOK(_K_atomic64KernelTime.counter);
 #endif
 }
 /*********************************************************************************************************

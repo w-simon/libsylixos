@@ -439,7 +439,7 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
            
     if (iCmd == FIOFSTATGET) {
         pstatGet = (struct stat *)pvArg;
-        pstatGet->st_dev     = (dev_t)&_G_devhdrSocket;
+        pstatGet->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrSocket);
         pstatGet->st_ino     = (ino_t)0;                                /*  相当于唯一节点              */
         pstatGet->st_mode    = 0666 | S_IFSOCK;
         pstatGet->st_nlink   = 1;

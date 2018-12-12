@@ -165,7 +165,11 @@ int     mcast_sock_join_leave_source_group(struct ip_mc *ipmc, int optname, cons
 int     mcast_sock_block_unblock_source_group(struct ip_mc *ipmc, int optname, const struct group_source_req *gsr);
 int     mcast_sock_set_groupfilter(struct ip_mc *ipmc, int optname, const struct group_filter *gf);
 int     mcast_sock_get_groupfilter(struct ip_mc *ipmc, int optname, struct group_filter *gf, socklen_t *size);
+
+#if LWIP_IPV6
 int     mcast_sock_ipv6_add_drop_membership(struct ip_mc *ipmc, int optname, const struct ipv6_mreq *imr);
+#endif /* LWIP_IPV6 */
+
 #endif /* LWIP_SOCKET */
 
 #endif /* (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD) */

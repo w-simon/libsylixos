@@ -128,6 +128,101 @@ static LW_INLINE addr_t  archAtomicAddrCas (volatile addr_t *p, addr_t  ulOld, a
     return  (ulOldVal);
 }
 
+/*********************************************************************************************************
+  ATOMIC64
+*********************************************************************************************************/
+#if LW_CFG_CPU_ATOMIC64_EN > 0
+
+#define ATOMIC64_OP_RETURN(op, c_op, asm_op1, asm_op2)                      \
+static LW_INLINE INT64  archAtomic64##op (INT64  i, atomic64_t  *v)         \
+{                                                                           \
+    ULONG   ulTemp;                                                         \
+    INT64   i64Result;                                                      \
+                                                                            \
+    ARM_PREFETCH_W(&v->counter);                                            \
+                                                                            \
+    __asm__ __volatile__(                                                   \
+        "1: ldrexd          %0, %H0, [%3]       \n"                         \
+        "   " #asm_op1 "    %Q0, %Q0, %Q4       \n"                         \
+        "   " #asm_op2 "    %R0, %R0, %R4       \n"                         \
+        "   strexd          %1, %0, %H0, [%3]   \n"                         \
+        "   teq             %1, #0              \n"                         \
+        "   bne             1b"                                             \
+           : "=&r" (i64Result), "=&r" (ulTemp), "+Qo" (v->counter)          \
+           : "r" (&v->counter), "r" (i)                                     \
+           : "cc");                                                         \
+                                                                            \
+    return  (i64Result);                                                    \
+}
+
+ATOMIC64_OP_RETURN(Add,  +=,  adds, adc)
+ATOMIC64_OP_RETURN(Sub,  -=,  subs, sbc)
+ATOMIC64_OP_RETURN(And,  &=,  and,  and)
+ATOMIC64_OP_RETURN(Or,   |=,  orr,  orr)
+ATOMIC64_OP_RETURN(Xor,  ^=,  eor,  eor)
+
+/*********************************************************************************************************
+  On ARM, ordinary assignment (str instruction) doesn't clear the local
+  strexd/ldrexd monitor on some implementations. The reason we can use it for
+  archAtomic64Set() is the clrexd or dummy strexd done on every exception return.
+*********************************************************************************************************/
+
+static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
+{
+    INT64  i64Temp;
+
+    ARM_PREFETCH_W(&v->counter);
+
+    __asm__ __volatile__(
+        "1: ldrexd      %0, %H0, [%2]       \n"
+        "   strexd      %0, %3, %H3, [%2]   \n"
+        "   teq         %0, #0              \n"
+        "   bne         1b"
+            : "=&r" (i64Temp), "=Qo" (v->counter)
+            : "r" (&v->counter), "r" (i)
+            : "cc");
+}
+
+static LW_INLINE INT64  archAtomic64Get (atomic64_t  *v)
+{
+    INT64  i64Result;
+
+    __asm__ __volatile__(
+        "ldrexd         %0, %H0, [%1]"
+            : "=&r" (i64Result)
+            : "r" (&v->counter), "Qo" (v->counter)
+            );
+
+    return  (i64Result);
+}
+
+/*********************************************************************************************************
+  atomic64 cas op
+*********************************************************************************************************/
+
+static LW_INLINE INT64  archAtomic64Cas (atomic64_t  *v, INT64  i64Old, INT64  i64New)
+{
+    INT64    i64OldVal;
+    ULONG    ulRes;
+
+    ARM_PREFETCH_W(&v->counter);
+
+    do {
+        __asm__ __volatile__(
+            "ldrexd     %1, %H1, [%3]   \n"
+            "mov        %0, #0          \n"
+            "teq        %1, %4          \n"
+            "teqeq      %H1, %H4        \n"
+            "strexdeq   %0, %5, %H5, [%3]"
+                : "=&r" (ulRes), "=&r" (i64OldVal), "+Qo" (v->counter)
+                : "r" (&v->counter), "r" (i64Old), "r" (i64New)
+                : "cc");
+    } while (ulRes);
+
+    return  (i64OldVal);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC64_EN      */
 #endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN        */
 #endif                                                                  /*  __ARCH_ARM_ATOMIC_H         */
 /*********************************************************************************************************

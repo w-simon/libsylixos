@@ -93,6 +93,14 @@ __PRE_STRIP_CMD  = $($(@F)_PRE_STRIP_CMD)
 __POST_STRIP_CMD = $($(@F)_POST_STRIP_CMD)
 
 #*********************************************************************************************************
+# Do not export the following environment variables 
+#*********************************************************************************************************
+unexport C_INCLUDE_PATH
+unexport CPLUS_INCLUDE_PATH
+unexport LIBRARY_PATH
+unexport LD_LIBRARY_PATH
+
+#*********************************************************************************************************
 # Include toolchain mk
 #*********************************************************************************************************
 ifneq (,$(findstring cl6x,$(TOOLCHAIN_PREFIX)))

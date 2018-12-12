@@ -662,7 +662,8 @@ static LONG  __tpsFsOpen (PTPS_VOLUME     ptpsvol,
     if (iErr != ERROR_NONE) {
         if (__STR_IS_ROOT(pcName)) {                                    /*  未格式化设备根路径          */
             ptpsfile->TPSFIL_iFileType = __TPS_FILE_TYPE_DEV;           /*  仅仅打开设备, 未格式化      */
-            tpsFsStat(ptpsvol->TPSVOL_tpsFsVol, ptpsfile->TPSFIL_pinode, &statGet);
+            tpsFsStat(&ptpsvol->TPSVOL_devhdrHdr, ptpsvol->TPSVOL_tpsFsVol, 
+                      ptpsfile->TPSFIL_pinode, &statGet);
             goto    __file_open_ok;
             
         } else {
@@ -673,7 +674,8 @@ static LONG  __tpsFsOpen (PTPS_VOLUME     ptpsvol,
         }
     }
 
-    tpsFsStat(ptpsvol->TPSVOL_tpsFsVol, ptpsfile->TPSFIL_pinode, &statGet);
+    tpsFsStat(&ptpsvol->TPSVOL_devhdrHdr, ptpsvol->TPSVOL_tpsFsVol,
+              ptpsfile->TPSFIL_pinode, &statGet);
 
     if (S_ISLNK(statGet.st_mode) && pcTail) {
         INT     iFollowLinkType;
@@ -1415,10 +1417,10 @@ static INT  __tpsFsLStat (PTPS_VOLUME  ptpsfs, PCHAR  pcName, struct stat *pstat
     iErr = tpsFsOpen(ptpsfs->TPSVOL_tpsFsVol, pcName,
                      0, 0, LW_NULL, &ptpsinode);
     if (iErr == ERROR_NONE) {
-        tpsFsStat(LW_NULL, ptpsinode, pstat);
+        tpsFsStat(&ptpsfs->TPSVOL_devhdrHdr, LW_NULL, ptpsinode, pstat);
 
     } else if (__STR_IS_ROOT(pcName)) {
-        tpsFsStat(psb, LW_NULL, pstat);
+        tpsFsStat(&ptpsfs->TPSVOL_devhdrHdr, psb, LW_NULL, pstat);
 
     } else {
         __TPS_VOL_UNLOCK(ptpsfs);
@@ -1458,10 +1460,10 @@ static INT  __tpsFsStatGet (PLW_FD_ENTRY  pfdentry, struct stat *pstat)
     }
 
     if (__STR_IS_ROOT(ptpsfile->TPSFIL_cName)) {                        /*  为根目录                    */
-        tpsFsStat(psb, LW_NULL, pstat);
+        tpsFsStat(pfdentry->FDENTRY_pdevhdrHdr, psb, LW_NULL, pstat);
 
     } else {
-        tpsFsStat(LW_NULL, ptpsinode, pstat);
+        tpsFsStat(pfdentry->FDENTRY_pdevhdrHdr, LW_NULL, ptpsinode, pstat);
     }
 
     __TPS_FILE_UNLOCK(ptpsfile);

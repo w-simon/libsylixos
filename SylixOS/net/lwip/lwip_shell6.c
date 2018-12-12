@@ -32,6 +32,7 @@
 /*********************************************************************************************************
   ipv6 °ïÖúÐÅÏ¢
 *********************************************************************************************************/
+#if LWIP_IPV6
 static const CHAR   _G_cIpv6Help[] = {
     "set/get IPv6 status\n"
     "address,               [ifname [address%prefixlen]] set/add an ipv6 address for given if\n"
@@ -193,6 +194,7 @@ VOID  __tshellNet6Init (VOID)
     API_TShellHelpAdd("ipv6",    _G_cIpv6Help);
 }
 
+#endif                                                                  /*  LWIP_IPV6                   */
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************

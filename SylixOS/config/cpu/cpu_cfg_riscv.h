@@ -91,8 +91,16 @@
 
 #ifdef __riscv_atomic
 #define LW_CFG_CPU_ATOMIC_EN            1
+
+#if LW_CFG_CPU_WORD_LENGHT == 64
+#define LW_CFG_CPU_ATOMIC64_EN          1
+#else
+#define LW_CFG_CPU_ATOMIC64_EN          0
+#endif
+
 #else
 #define LW_CFG_CPU_ATOMIC_EN            0
+#define LW_CFG_CPU_ATOMIC64_EN          0
 #endif                                                                  /*  defined(__riscv_atomic)     */
 
 #endif                                                                  /*  __CPU_CFG_RISCV_H           */

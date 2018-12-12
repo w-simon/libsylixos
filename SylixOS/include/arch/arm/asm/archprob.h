@@ -115,9 +115,16 @@
 *********************************************************************************************************/
 
 #if __SYLIXOS_ARM_ARCH__ >= 6
-#define LW_CFG_CPU_ATOMIC_EN        1
+#  define LW_CFG_CPU_ATOMIC_EN      1
+#  ifndef __SYLIXOS_ARM_ARCH_M__
+#    define LW_CFG_CPU_ATOMIC64_EN  1                                   /*  Only for A, R               */
+#  else
+#    define LW_CFG_CPU_ATOMIC64_EN  0
+#  endif
+
 #else
-#define LW_CFG_CPU_ATOMIC_EN        0
+#  define LW_CFG_CPU_ATOMIC_EN      0
+#  define LW_CFG_CPU_ATOMIC64_EN    0
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 6   */
 
 #endif                                                                  /*  __ARCHPROB_H                */

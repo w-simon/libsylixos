@@ -293,6 +293,11 @@ err_t ip_input(struct pbuf *p, struct netif *inp);
         ip4_output(p, src, dest, ttl, tos, proto)
 #define ip_output_if(p, src, dest, ttl, tos, proto, netif) \
         ip4_output_if(p, src, dest, ttl, tos, proto, netif)
+/* SylixOS Add 'IP_OPTIONS' support for raw */
+#ifdef SYLIXOS
+#define ip_output_if_opt(p, src, dest, ttl, tos, proto, netif, ip_options, optlen) \
+        ip4_output_if_opt(p, src, dest, ttl, tos, proto, netif, ip_options, optlen)
+#endif /* SYLIXOS */
 #define ip_output_if_src(p, src, dest, ttl, tos, proto, netif) \
         ip4_output_if_src(p, src, dest, ttl, tos, proto, netif)
 #define ip_output_hinted(p, src, dest, ttl, tos, proto, netif_hint) \
@@ -313,6 +318,11 @@ err_t ip_input(struct pbuf *p, struct netif *inp);
         ip6_output(p, src, dest, ttl, tos, proto)
 #define ip_output_if(p, src, dest, ttl, tos, proto, netif) \
         ip6_output_if(p, src, dest, ttl, tos, proto, netif)
+/* SylixOS Add 'IP_OPTIONS' support for raw */
+#ifdef SYLIXOS
+#define ip_output_if_opt(p, src, dest, ttl, tos, proto, netif, ip_options, optlen) \
+        ip6_output_if(p, src, dest, ttl, tos, proto, netif)
+#endif /* SYLIXOS */
 #define ip_output_if_src(p, src, dest, ttl, tos, proto, netif) \
         ip6_output_if_src(p, src, dest, ttl, tos, proto, netif)
 #define ip_output_hinted(p, src, dest, ttl, tos, proto, netif_hint) \

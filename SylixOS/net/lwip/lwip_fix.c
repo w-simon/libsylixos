@@ -386,12 +386,14 @@ u32_t  sys_arch_sem_wait (sys_sem_t *psem, u32_t timeout)
     ULONG       ulError;
     ULONG       ulTimeout = (ULONG)((timeout * LW_TICK_HZ) / 1000);
                                                                         /*  转为 TICK 数                */
-    ULONG       ulOldTime = API_TimeGet();
+    ULONG       ulOldTime;
     ULONG       ulNowTime;
     
     if (psem == LW_NULL) {
         return  (SYS_ARCH_TIMEOUT);
     }
+    
+    __KERNEL_TIME_GET(ulOldTime, ULONG);
     
     if (timeout == 0) {
         ulTimeout =  LW_OPTION_WAIT_INFINITE;
@@ -405,12 +407,13 @@ u32_t  sys_arch_sem_wait (sys_sem_t *psem, u32_t timeout)
         return  (SYS_ARCH_TIMEOUT);
     
     } else {
-        ulNowTime = API_TimeGet();
+        __KERNEL_TIME_GET(ulNowTime, ULONG);
+        
         ulNowTime = (ulNowTime >= ulOldTime) 
                   ? (ulNowTime -  ulOldTime) 
                   : (__ARCH_ULONG_MAX - ulOldTime + ulNowTime + 1);     /*  计算 TICK 时差              */
     
-        timeout   = (u32_t)((ulNowTime * 1000) / LW_TICK_HZ);           /*  转为毫秒数                  */
+        timeout = (u32_t)((ulNowTime * 1000) / LW_TICK_HZ);             /*  转为毫秒数                  */
         
         return  (timeout);
     }
@@ -710,12 +713,14 @@ u32_t   sys_arch_mbox_fetch (sys_mbox_t *pmbox, void  **msg, u32_t  timeout)
     size_t      stMsgLen  = 0;
     PVOID       pvMsg;
     
-    ULONG       ulOldTime = API_TimeGet();
+    ULONG       ulOldTime;
     ULONG       ulNowTime;
     
     if (pmbox == LW_NULL) {
         return  (SYS_ARCH_TIMEOUT);
     }
+    
+    __KERNEL_TIME_GET(ulOldTime, ULONG);
     
     if (timeout == 0) {
         ulTimeout =  LW_OPTION_WAIT_INFINITE;
@@ -729,12 +734,13 @@ u32_t   sys_arch_mbox_fetch (sys_mbox_t *pmbox, void  **msg, u32_t  timeout)
         return  (SYS_ARCH_TIMEOUT);
     
     } else {
-        ulNowTime = API_TimeGet();
+        __KERNEL_TIME_GET(ulNowTime, ULONG);
+        
         ulNowTime = (ulNowTime >= ulOldTime) 
                   ? (ulNowTime -  ulOldTime) 
                   : (__ARCH_ULONG_MAX - ulOldTime + ulNowTime + 1);     /*  计算 TICK 时差              */
     
-        timeout   = (u32_t)((ulNowTime * 1000) / LW_TICK_HZ);           /*  转为毫秒数                  */
+        timeout = (u32_t)((ulNowTime * 1000) / LW_TICK_HZ);             /*  转为毫秒数                  */
         if (msg) {
             *msg = pvMsg;                                               /*  需要保存消息                */
         }

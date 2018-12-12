@@ -576,7 +576,7 @@ static INT  __rootFsStatGet (LW_DEV_HDR *pdevhdr, struct stat *pstat)
     }
     
     if (prfsn) {
-        pstat->st_dev     = (dev_t)&_G_devhdrRoot;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrRoot);
         pstat->st_ino     = (ino_t)prfsn;
         pstat->st_mode    = prfsn->RFSN_mode;
         pstat->st_nlink   = 1;
@@ -600,7 +600,7 @@ static INT  __rootFsStatGet (LW_DEV_HDR *pdevhdr, struct stat *pstat)
             pstat->st_ctime = prfsn->RFSN_time;
         }
     } else {
-        pstat->st_dev     = (dev_t)&_G_devhdrRoot;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrRoot);
         pstat->st_ino     = (ino_t)0;                                   /*  根目录                      */
         pstat->st_mode    = (DEFAULT_FILE_PERM | S_IFDIR);              /*  默认属性                    */
         pstat->st_nlink   = 1;
@@ -621,7 +621,7 @@ static INT  __rootFsStatGet (LW_DEV_HDR *pdevhdr, struct stat *pstat)
         return  (PX_ERROR);
     }
 
-    pstat->st_dev     = (dev_t)&_G_devhdrRoot;
+    pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrRoot);
     pstat->st_ino     = (ino_t)0;                                       /*  根目录                      */
     pstat->st_mode    = (0444 | S_IFDIR);                               /*  默认属性                    */
     pstat->st_nlink   = 1;
@@ -670,7 +670,7 @@ static INT  __rootFsLStatGet (LW_DEV_HDR *pdevhdr, PCHAR  pcName, struct stat *p
     prfsn = __rootFsFindNode(pcName, &prfsnFather, &bIsRoot, LW_NULL, &pcTail);
                                                                         /*  查询设备                    */
     if (prfsn) {                                                        /*  一定不是 FOLLOW_LINK_TAIL   */
-        pstat->st_dev     = (dev_t)&_G_devhdrRoot;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrRoot);
         pstat->st_ino     = (ino_t)prfsn;
         pstat->st_mode    = prfsn->RFSN_mode;
         pstat->st_nlink   = 1;
@@ -708,7 +708,7 @@ static INT  __rootFsLStatGet (LW_DEV_HDR *pdevhdr, PCHAR  pcName, struct stat *p
         return  (PX_ERROR);
     }
 
-    pstat->st_dev     = (dev_t)&_G_devhdrRoot;
+    pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrRoot);
     pstat->st_ino     = (dev_t)0;                                       /*  根目录                      */
     pstat->st_mode    = (0666 | S_IFDIR);                               /*  默认属性                    */
     pstat->st_nlink   = 1;

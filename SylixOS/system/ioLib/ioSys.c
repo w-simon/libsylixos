@@ -97,8 +97,9 @@
 /*********************************************************************************************************
   缩写宏定义
 *********************************************************************************************************/
-#define __LW_FD_MAINDRV     (pfdentry->FDENTRY_pdevhdrHdr->DEVHDR_usDrvNum)
-#define __LW_DEV_MAINDRV    (pdevhdrHdr->DEVHDR_usDrvNum)
+#define __LW_FD_MAINDRV         (pfdentry->FDENTRY_pdevhdrHdr->DEVHDR_usDrvNum)
+#define __LW_DEV_MAINDRV        (pdevhdrHdr->DEVHDR_usDrvNum)
+#define __LW_DEV_NUMINIT(drv)   (_S_deventryTbl[drv].DEVENTRY_usDevNum)
 /*********************************************************************************************************
 ** 函数名称: API_IosDrvInstall
 ** 功能描述: 注册设备驱动程序
@@ -141,8 +142,9 @@ INT  API_IosDrvInstall (LONGFUNCPTR    pfuncCreate,
         return  (PX_ERROR);
     }
     
-    pdeventry->DEVENTRY_bInUse = LW_TRUE;                               /*  填写驱动程序表              */
-    pdeventry->DEVENTRY_iType  = LW_DRV_TYPE_ORIG;                      /*  默认为 VxWorks 兼容驱动     */
+    pdeventry->DEVENTRY_bInUse   = LW_TRUE;                             /*  填写驱动程序表              */
+    pdeventry->DEVENTRY_iType    = LW_DRV_TYPE_ORIG;                    /*  默认为 VxWorks 兼容驱动     */
+    pdeventry->DEVENTRY_usDevNum = 0;
     
     pdeventry->DEVENTRY_pfuncDevCreate = pfuncCreate;
     pdeventry->DEVENTRY_pfuncDevDelete = pfuncDelete;
@@ -211,9 +213,10 @@ INT  API_IosDrvInstallEx (struct file_operations  *pfileop)
         return  (PX_ERROR);
     }
     
-    pdeventry->DEVENTRY_bInUse = LW_TRUE;                               /*  填写驱动程序表              */
-    pdeventry->DEVENTRY_iType  = LW_DRV_TYPE_ORIG;                      /*  默认为 VxWorks 兼容驱动     */
-     
+    pdeventry->DEVENTRY_bInUse   = LW_TRUE;                             /*  填写驱动程序表              */
+    pdeventry->DEVENTRY_iType    = LW_DRV_TYPE_ORIG;                    /*  默认为 VxWorks 兼容驱动     */
+    pdeventry->DEVENTRY_usDevNum = 0;
+    
     pdeventry->DEVENTRY_pfuncDevCreate  = pfileop->fo_create;
     pdeventry->DEVENTRY_pfuncDevDelete  = pfileop->fo_release;
     pdeventry->DEVENTRY_pfuncDevOpen    = pfileop->fo_open;
@@ -289,8 +292,9 @@ INT  API_IosDrvInstallEx2 (struct file_operations  *pfileop, INT  iType)
         return  (PX_ERROR);
     }
     
-    pdeventry->DEVENTRY_bInUse = LW_TRUE;                               /*  填写驱动程序表              */
-    pdeventry->DEVENTRY_iType  = iType;
+    pdeventry->DEVENTRY_bInUse   = LW_TRUE;                             /*  填写驱动程序表              */
+    pdeventry->DEVENTRY_iType    = iType;
+    pdeventry->DEVENTRY_usDevNum = 0;
     
     pdeventry->DEVENTRY_pfuncDevCreate  = pfileop->fo_create;
     pdeventry->DEVENTRY_pfuncDevDelete  = pfileop->fo_release;
@@ -500,9 +504,12 @@ ULONG  API_IosDevAddEx (PLW_DEV_HDR    pdevhdrHdr,
                         INT            iDrvNum,
                         UCHAR          ucType)
 {
+    REGISTER PLW_LIST_LINE  plineTemp;
+    REGISTER PLW_DEV_HDR    pdevhdrTemp;
     REGISTER PLW_DEV_HDR    pdevhdrMatch;
     REGISTER size_t         stNameLen;
     
+             UINT16         usDevNum;
              CHAR           cNameBuffer[MAX_FILENAME_LENGTH];
              CPCHAR         pcName;
     
@@ -510,6 +517,16 @@ ULONG  API_IosDevAddEx (PLW_DEV_HDR    pdevhdrHdr,
         _DebugHandle(__ERRORMESSAGE_LEVEL, "device name error.\r\n");
         _ErrorHandle(EFAULT);                                           /*  Bad address                 */
         return  (EFAULT);
+    }
+    
+    if ((iDrvNum < 0) || (iDrvNum >= LW_CFG_MAX_DRIVERS)) {
+        _ErrorHandle(EINVAL);                                           /*  Driver number error         */
+        return  (EINVAL);
+    }
+    
+    if (!_S_deventryTbl[iDrvNum].DEVENTRY_bInUse) {
+        _ErrorHandle(ENXIO);                                            /*  No such driver              */
+        return  (ENXIO);
     }
     
     _PathGetFull(cNameBuffer, MAX_FILENAME_LENGTH, pcDevName);
@@ -536,21 +553,40 @@ ULONG  API_IosDevAddEx (PLW_DEV_HDR    pdevhdrHdr,
     pdevhdrHdr->DEVHDR_usDrvNum = (UINT16)iDrvNum;
     pdevhdrHdr->DEVHDR_ucType   = ucType;                               /*  设备 d_type                 */
     pdevhdrHdr->DEVHDR_atomicOpenNum.counter = 0;                       /*  没有被打开过                */
+    lib_strcpy(pdevhdrHdr->DEVHDR_pcName, pcName);                      /*  拷贝名字                    */
+    
+    _IosLock();                                                         /*  进入 IO 临界区              */
+    
+    usDevNum = __LW_DEV_NUMINIT(iDrvNum);
+__again:                                                                /*  分配子设备号                */
+    for (plineTemp  = _S_plineDevHdrHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        
+        pdevhdrTemp = _LIST_ENTRY(plineTemp, LW_DEV_HDR, DEVHDR_lineManage);
+        if (pdevhdrTemp->DEVHDR_usDrvNum == (UINT16)iDrvNum) {
+            if (usDevNum == pdevhdrTemp->DEVHDR_usDevNum) {
+                usDevNum++;
+                goto    __again;
+            }
+        }
+    }
+    
+    pdevhdrHdr->DEVHDR_usDevNum = usDevNum;
+    __LW_DEV_NUMINIT(iDrvNum)   = usDevNum + 1;                         /*  添加如设备头链表            */
+    _List_Line_Add_Ahead(&pdevhdrHdr->DEVHDR_lineManage, &_S_plineDevHdrHeader);
+    
+    _IosUnlock();                                                       /*  退出 IO 临界区              */
     
 #if LW_CFG_PATH_VXWORKS == 0                                            /*  是否分级目录管理            */
     if (rootFsMakeDev(pcName, pdevhdrHdr) < ERROR_NONE) {               /*  创建根目录节点              */
+        _IosLock();                                                     /*  进入 IO 临界区              */
+        _List_Line_Del(&pdevhdrHdr->DEVHDR_lineManage, &_S_plineDevHdrHeader);
+        _IosUnlock();                                                   /*  退出 IO 临界区              */
         __SHEAP_FREE(pdevhdrHdr->DEVHDR_pcName);                        /*  释放设备名缓冲              */
         return  (API_GetLastError());
     }
 #endif                                                                  /*  LW_CFG_PATH_VXWORKS == 0    */
-    
-    lib_strcpy(pdevhdrHdr->DEVHDR_pcName, pcName);                      /*  拷贝名字                    */
-    
-    _IosLock();                                                         /*  进入 IO 临界区              */
-                                                                        /*  添加如设备头链表            */
-    _List_Line_Add_Ahead(&pdevhdrHdr->DEVHDR_lineManage, &_S_plineDevHdrHeader);        
-    
-    _IosUnlock();                                                       /*  退出 IO 临界区              */
     
     return  (ERROR_NONE);
 }

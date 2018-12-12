@@ -389,15 +389,15 @@ static LONG __romFsOpen (PROM_VOLUME     promfs,
 __file_open_ok:
         pstat   = &promfile->ROMFIL_romfsdnt.ROMFSDNT_stat;
         pfdnode = API_IosFdNodeAdd(&promfs->ROMFS_plineFdNodeHeader,
-                                    pstat->st_dev,
-                                    (ino64_t)pstat->st_ino,
-                                    iFlags,
-                                    iMode,
-                                    pstat->st_uid,
-                                    pstat->st_gid,
-                                    pstat->st_size,
-                                    (PVOID)promfile,
-                                    &bIsNew);                           /*  添加文件节点                */
+                                   pstat->st_dev,
+                                   (ino64_t)pstat->st_ino,
+                                   iFlags,
+                                   iMode,
+                                   pstat->st_uid,
+                                   pstat->st_gid,
+                                   pstat->st_size,
+                                   (PVOID)promfile,
+                                   &bIsNew);                            /*  添加文件节点                */
         if (pfdnode == LW_NULL) {                                       /*  无法创建 fd_node 节点       */
             __ROMFS_VOL_UNLOCK(promfs);
             __SHEAP_FREE(promfile);
@@ -827,7 +827,7 @@ static INT  __romFsStat (PLW_FD_ENTRY  pfdentry, struct stat *pstat)
     }
 
     if (promfile->ROMFIL_iFileType == __ROMFS_FILE_TYPE_DEV) {
-        pstat->st_dev     = (dev_t)promfile->ROMFIL_promfs;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&promfs->ROMFS_devhdrHdr);
         pstat->st_ino     = (ino_t)0;                                   /*  绝不会与文件重复(根目录)    */
         pstat->st_mode    = (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH | S_IFDIR);
         pstat->st_nlink   = 1;
@@ -880,7 +880,7 @@ static INT  __romFsLStat (PROM_VOLUME     promfs, PCHAR  pcName, struct stat *ps
         __ROMFS_VOL_UNLOCK(promfs);
         
         if (__STR_IS_ROOT(pcName)) {
-            pstat->st_dev     = (dev_t)promfs;
+            pstat->st_dev     = LW_DEV_MAKE_STDEV(&promfs->ROMFS_devhdrHdr);
             pstat->st_ino     = (ino_t)0;                               /*  绝不会与文件重复(根目录)    */
             pstat->st_mode    = (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH | S_IFDIR);
             pstat->st_nlink   = 1;

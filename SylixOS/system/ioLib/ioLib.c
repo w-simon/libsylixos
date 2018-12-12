@@ -251,7 +251,7 @@ static INT  _IosNullIoctl (LW_DEV_HDR *pdevhdr,
             return  (PX_ERROR);
         }
         if (pdevhdr == &_G_devhdrNull) {
-            pstat->st_dev     = (dev_t)pdevhdr;
+            pstat->st_dev     = LW_DEV_MAKE_STDEV(pdevhdr);
             pstat->st_ino     = 0;
             pstat->st_mode    = S_IWUSR | S_IWGRP | S_IWOTH | S_IFCHR;  /*  默认属性                    */
             pstat->st_nlink   = 0;
@@ -266,7 +266,7 @@ static INT  _IosNullIoctl (LW_DEV_HDR *pdevhdr,
             pstat->st_ctime   = API_RootFsTime(LW_NULL);
         
         } else {
-            pstat->st_dev     = (dev_t)pdevhdr;
+            pstat->st_dev     = LW_DEV_MAKE_STDEV(pdevhdr);
             pstat->st_ino     = 0;
             pstat->st_mode    = S_IRUSR | S_IRGRP | S_IROTH | S_IFCHR;  /*  默认属性                    */
             pstat->st_nlink   = 0;

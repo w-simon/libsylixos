@@ -251,7 +251,7 @@ INT  __randIoctl (PLW_RAND_FIL  prandfil, INT  iRequest, LONG  lArg)
     
     case FIOFSTATGET:                                                   /*  获得文件属性                */
         pstat = (struct stat *)lArg;
-        pstat->st_dev     = (dev_t)pranddev;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&pranddev->RANDDEV_devhdr);
         pstat->st_ino     = (ino_t)pranddev->RANDDEV_bIsURand;
         pstat->st_mode    = 0444 | S_IFCHR;                             /*  默认属性                    */
         pstat->st_nlink   = 1;

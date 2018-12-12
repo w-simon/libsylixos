@@ -1700,12 +1700,14 @@ mcast_sock_join_leave_group(struct ip_mc *ipmc, int optname, const struct group_
       return EADDRNOTAVAIL;
     }
   
+#if LWIP_IPV6
   } else if (gr->gr_group.ss_family == AF_INET6) {
     inet6_addr_to_ip6addr(ip_2_ip6(&multi_addr), &(((struct sockaddr_in6 *)&(gr->gr_group))->sin6_addr));
     IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V6);
     if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr))) {
       return EADDRNOTAVAIL;
     }
+#endif /* LWIP_IPV6 */
 
   } else {
     return EADDRNOTAVAIL;
@@ -1749,6 +1751,7 @@ mcast_sock_join_leave_source_group(struct ip_mc *ipmc, int optname, const struct
       return EADDRNOTAVAIL;
     }
   
+#if LWIP_IPV6
   } else if (gsr->gsr_group.ss_family == AF_INET6) {
     inet6_addr_to_ip6addr(ip_2_ip6(&multi_addr), &(((struct sockaddr_in6 *)&(gsr->gsr_group))->sin6_addr));
     inet6_addr_to_ip6addr(ip_2_ip6(&src_addr), &(((struct sockaddr_in6 *)&(gsr->gsr_source))->sin6_addr));
@@ -1757,6 +1760,7 @@ mcast_sock_join_leave_source_group(struct ip_mc *ipmc, int optname, const struct
     if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr)) || ip6_addr_isany(ip_2_ip6(&src_addr))) {
       return EADDRNOTAVAIL;
     }
+#endif /* LWIP_IPV6 */
   
   } else {
     return EADDRNOTAVAIL;
@@ -1800,6 +1804,7 @@ mcast_sock_block_unblock_source_group(struct ip_mc *ipmc, int optname, const str
       return EADDRNOTAVAIL;
     }
   
+#if LWIP_IPV6
   } else if (gsr->gsr_group.ss_family == AF_INET6) {
     inet6_addr_to_ip6addr(ip_2_ip6(&multi_addr), &(((struct sockaddr_in6 *)&(gsr->gsr_group))->sin6_addr));
     inet6_addr_to_ip6addr(ip_2_ip6(&blk_addr), &(((struct sockaddr_in6 *)&(gsr->gsr_source))->sin6_addr));
@@ -1808,6 +1813,7 @@ mcast_sock_block_unblock_source_group(struct ip_mc *ipmc, int optname, const str
     if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr)) || ip6_addr_isany(ip_2_ip6(&blk_addr))) {
       return EADDRNOTAVAIL;
     }
+#endif /* LWIP_IPV6 */
   
   } else {
     return EADDRNOTAVAIL;
@@ -1847,12 +1853,14 @@ mcast_sock_set_groupfilter(struct ip_mc *ipmc, int optname, const struct group_f
       return EADDRNOTAVAIL;
     }
   
+#if LWIP_IPV6
   } else if (gf->gf_group.ss_family == AF_INET6) {
     inet6_addr_to_ip6addr(ip_2_ip6(&multi_addr), &(((struct sockaddr_in6 *)&(gf->gf_group))->sin6_addr));
     IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V6);
     if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr))) {
       return EADDRNOTAVAIL;
     }
+#endif /* LWIP_IPV6 */
   
   } else {
     return EADDRNOTAVAIL;
@@ -1886,13 +1894,15 @@ mcast_sock_get_groupfilter(struct ip_mc *ipmc, int optname, struct group_filter 
       return EADDRNOTAVAIL;
     }
   
+#if LWIP_IPV6
   } else if (gf->gf_group.ss_family == AF_INET6) {
     inet6_addr_to_ip6addr(ip_2_ip6(&multi_addr), &(((struct sockaddr_in6 *)&(gf->gf_group))->sin6_addr));
     IP_SET_TYPE_VAL(multi_addr, IPADDR_TYPE_V6);
     if (!ip6_addr_ismulticast(ip_2_ip6(&multi_addr))) {
       return EADDRNOTAVAIL;
     }
-  
+#endif /* LWIP_IPV6 */
+
   } else {
     return EADDRNOTAVAIL;
   }
@@ -1909,6 +1919,7 @@ mcast_sock_get_groupfilter(struct ip_mc *ipmc, int optname, struct group_filter 
   return err_to_errno(mcast_get_groupfilter_netif(ipmc, netif, &multi_addr, gf, size));
 }
 
+#if LWIP_IPV6
 /**
  * setsockopt() IPV6_JOIN_GROUP / IPV6_LEAVE_GROUP command
  */
@@ -1943,6 +1954,8 @@ mcast_sock_ipv6_add_drop_membership(struct ip_mc *ipmc, int optname, const struc
   
   return err_to_errno(err);
 }
+
+#endif /* LWIP_IPV6 */
 
 #endif /* LWIP_SOCKET */
 

@@ -493,7 +493,7 @@ INT  __rfs_getfile (PROM_VOLUME  promfs, UINT32  uiAddr, PROMFS_DIRENT promdnt)
         break;
     }
     
-    promdnt->ROMFSDNT_stat.st_dev     = (dev_t)promfs;
+    promdnt->ROMFSDNT_stat.st_dev     = LW_DEV_MAKE_STDEV(&promfs->ROMFS_devhdrHdr);
     promdnt->ROMFSDNT_stat.st_ino     = (ino_t)promdnt->ROMFSDNT_uiMe;
     promdnt->ROMFSDNT_stat.st_mode   |= S_IRUSR | S_IRGRP | S_IROTH;
     promdnt->ROMFSDNT_stat.st_nlink   = 1;

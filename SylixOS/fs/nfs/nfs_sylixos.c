@@ -329,7 +329,7 @@ static VOID  __nfsAttr2Stat (PNFS_FS  pnfsfs, fattr3  *pattr, struct stat *pstat
         return;
     }
     
-    pstat->st_dev = (dev_t)pnfsfs;
+    pstat->st_dev = LW_DEV_MAKE_STDEV(&pnfsfs->NFSFS_devhdrHdr);
     
     if (sizeof(fileid3) == sizeof(ino_t)) {
         pstat->st_ino = (ino_t)pattr->fileid;
@@ -1747,15 +1747,15 @@ __file_open_ok:
             inode64 = (ino64_t)(((ino64_t)ulLow) + ((ino64_t)ulHigh << 32));
         }
         pfdnode = API_IosFdNodeAdd(&pnfsfs->NFSFS_plineFdNodeHeader,
-                                    pnfsfile->NFSFIL_stat.st_dev,
-                                    inode64,                            /*  NFS 使用 64bit inode        */
-                                    iFlags,
-                                    iMode,
-                                    pnfsfile->NFSFIL_stat.st_uid,
-                                    pnfsfile->NFSFIL_stat.st_gid,
-                                    pnfsfile->NFSFIL_stat.st_size,
-                                    (PVOID)pnfsfile,
-                                    &bIsNew);                           /*  添加文件节点                */
+                                   pnfsfile->NFSFIL_stat.st_dev,
+                                   inode64,                             /*  NFS 使用 64bit inode        */
+                                   iFlags,
+                                   iMode,
+                                   pnfsfile->NFSFIL_stat.st_uid,
+                                   pnfsfile->NFSFIL_stat.st_gid,
+                                   pnfsfile->NFSFIL_stat.st_size,
+                                   (PVOID)pnfsfile,
+                                   &bIsNew);                            /*  添加文件节点                */
         if (pfdnode == LW_NULL) {                                       /*  无法创建 fd_node 节点       */
             __NFS_FILE_UNLOCK(pnfsfile);
             __nfsCloseFile(pnfsfile);

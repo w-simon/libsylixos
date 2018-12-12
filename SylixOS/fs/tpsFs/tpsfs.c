@@ -1061,7 +1061,8 @@ errno_t  tpsFsVolSync (PTPS_SUPER_BLOCK psb)
 /*********************************************************************************************************
 ** 函数名称: tpsFsStat
 ** 功能描述: tpsfs 获得文件 stat
-** 输　入  : psb              文件系统超级块
+** 输　入  : pvDevHdr         设备头
+**           psb              文件系统超级块
 **           pinode           inode指针
 **           pstat            获得的 stat
 ** 输　出  : 创建结果
@@ -1070,14 +1071,18 @@ errno_t  tpsFsVolSync (PTPS_SUPER_BLOCK psb)
 *********************************************************************************************************/
 #ifndef WIN32
 
-VOID  tpsFsStat (PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
+VOID  tpsFsStat (PVOID  pvDevHdr, PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
 {
+#ifndef LW_DEV_MAKE_STDEV
+#define LW_DEV_MAKE_STDEV(hdr)  (dev_t)pinode->IND_psb->SB_dev
+#endif
+
     if (pinode) {
         if (LW_NULL == pinode->IND_psb) {
             lib_bzero(pstat, sizeof(struct stat));
 
         } else {
-            pstat->st_dev     = (dev_t)pinode->IND_psb->SB_dev;
+            pstat->st_dev     = LW_DEV_MAKE_STDEV(pvDevHdr);
             pstat->st_ino     = (ino_t)pinode->IND_inum;
             pstat->st_mode    = pinode->IND_iMode;
             pstat->st_nlink   = pinode->IND_uiRefCnt;
@@ -1093,7 +1098,7 @@ VOID  tpsFsStat (PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
         }
 
     } else if (psb) {
-        pstat->st_dev     = (dev_t)psb;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(pvDevHdr);
         pstat->st_ino     = (ino_t)psb->SB_inumRoot;
         pstat->st_nlink   = 1;
         pstat->st_uid     = 0;                                          /*  不支持                      */
@@ -1115,7 +1120,7 @@ VOID  tpsFsStat (PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat)
         }
         
     } else {
-        pstat->st_dev     = (dev_t)TPS_SUPER_MAGIC;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(pvDevHdr);
         pstat->st_ino     = (ino_t)TPS_SUPER_MAGIC;
         pstat->st_nlink   = 1;
         pstat->st_uid     = 0;                                          /*  不支持                      */

@@ -728,7 +728,7 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
     case FIOFSTATGET:                                                   /*  获取文件属性                */
         pstatGet = (struct stat *)piArgPtr;
         if (pstatGet) {
-            pstatGet->st_dev     = (dev_t)pspipedev;
+            pstatGet->st_dev     = LW_DEV_MAKE_STDEV(&pspipedev->SPIPEDEV_devhdrHdr);
             pstatGet->st_ino     = (ino_t)0;                            /*  相当于唯一节点              */
             pstatGet->st_mode    = 0666 | S_IFIFO;
             pstatGet->st_nlink   = 1;

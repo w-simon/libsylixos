@@ -130,7 +130,7 @@ LW_API time_t  API_RootFsTime(time_t  *time);
     case FIOFSTATGET:
         pstat = (struct stat *)lArg;
         if (pgmdev->GMDEV_gmfileop->GMFO_pfuncGetScrInfo((LONG)pgmdev, &scrinfo) >= ERROR_NONE) {
-            pstat->st_dev     = (dev_t)pgmdev;
+            pstat->st_dev     = LW_DEV_MAKE_STDEV(&pgmdev->GMDEV_devhdrHdr);
             pstat->st_ino     = (ino_t)0;                               /*  相当于唯一节点              */
             pstat->st_mode    = 0666 | S_IFCHR;                         /*  默认属性                    */
             pstat->st_nlink   = 1;

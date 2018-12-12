@@ -73,6 +73,12 @@
 
 #define LW_CFG_CPU_ATOMIC_EN            1
 
+#if LW_CFG_CPU_WORD_LENGHT == 64
+#define LW_CFG_CPU_ATOMIC64_EN          1
+#else
+#define LW_CFG_CPU_ATOMIC64_EN          0
+#endif
+
 #endif                                                                  /*  __CPU_CFG_PPC_H             */
 /*********************************************************************************************************
   END

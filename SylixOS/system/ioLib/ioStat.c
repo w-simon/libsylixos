@@ -97,7 +97,7 @@ LW_API time_t  API_RootFsTime(time_t  *time);
         PLW_FD_ENTRY  pfdentry = _IosFileGet(iFd, LW_FALSE);
         
         if (pfdentry) {
-            pstat->st_dev = (dev_t)pfdentry->FDENTRY_pdevhdrHdr;
+            pstat->st_dev = LW_DEV_MAKE_STDEV(pfdentry->FDENTRY_pdevhdrHdr);
         } else {
             return  (PX_ERROR);
         }

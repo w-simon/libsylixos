@@ -173,7 +173,7 @@ static ssize_t xinput_read (PLW_FD_ENTRY pfdentry, char *buffer, size_t maxbytes
 static int xinput_lstat (xinput_dev_t *xinput, char *name, struct stat *pstat)
 {
     if (pstat) {
-        pstat->st_dev     = (dev_t)xinput;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&xinput->devhdr);
         pstat->st_ino     = (ino_t)0;
         pstat->st_mode    = (S_IFCHR | S_IRUSR | S_IRGRP | S_IROTH);
         pstat->st_nlink   = 1;
@@ -234,7 +234,7 @@ static int xinput_ioctl (PLW_FD_ENTRY pfdentry, int cmd, long arg)
     case FIOFSTATGET:
         pstat = (struct stat *)arg;
         if (pstat) {
-            pstat->st_dev     = (dev_t)xinput;
+            pstat->st_dev     = LW_DEV_MAKE_STDEV(pfdentry->FDENTRY_pdevhdrHdr);
             pstat->st_ino     = (ino_t)0;
             pstat->st_mode    = (S_IRUSR | S_IRGRP | S_IROTH);
             pstat->st_nlink   = 1;

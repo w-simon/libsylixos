@@ -31,6 +31,13 @@
     EXPORT_LABEL(archAtomicOr)
     EXPORT_LABEL(archAtomicXor)
 
+#if LW_CFG_CPU_ATOMIC64_EN > 0
+    EXPORT_LABEL(archAtomic64SetCx8)
+    EXPORT_LABEL(archAtomic64GetCx8)
+    EXPORT_LABEL(archAtomic64AddReturnCx8)
+    EXPORT_LABEL(archAtomic64SubReturnCx8)
+#endif
+
 ;/*********************************************************************************************************
 ;  原子量加
 ;*********************************************************************************************************/
@@ -111,6 +118,68 @@ LINE_LABEL(1)
     RET
     FUNC_END(archAtomicXor)
 
+;/*********************************************************************************************************
+;  64 位原子量
+;*********************************************************************************************************/
+
+#if LW_CFG_CPU_ATOMIC64_EN > 0
+
+MACRO_DEF(READ64  reg)
+    MOVL        %EBX , %EAX
+    MOVL        %ECX , %EDX
+    ;/* we need LOCK since otherwise cmpxchg8b always does the write */
+    LOCK
+    CMPXCHG8B   (\reg)
+    MACRO_END()
+
+FUNC_DEF(archAtomic64GetCx8)
+    READ64      %ECX
+    RET
+    FUNC_END(archAtomic64GetCx8)
+
+FUNC_DEF(archAtomic64SetCx8)
+LINE_LABEL(1)
+    ;/* we don't need LOCK since aligned 64-bit writes are atomic on 586 and newer */
+    CMPXCHG8B   (%ESI)
+    JNE         1b
+    RET
+    FUNC_END(archAtomic64SetCx8)
+
+MACRO_DEF(ADD_SUB_RET_CX8  func  ins  insc)
+FUNC_DEF(archAtomic64\func)
+    PUSHL       %EBP
+    PUSHL       %EBX
+    PUSHL       %ESI
+    PUSHL       %EDI
+
+    MOVL        %EAX , %ESI
+    MOVL        %EDX , %EDI
+    MOVL        %ECX , %EBP
+
+    READ64      %ECX
+LINE_LABEL(1)
+    MOVL        %EAX , %EBX
+    MOVL        %EDX , %ECX
+    \ins\()L    %ESI , %EBX
+    \insc\()L   %EDI , %ECX
+    LOCK
+    CMPXCHG8B   (%EBP)
+    JNE         1b
+
+    MOVL        %EBX , %EAX
+    MOVL        %ECX , %EDX
+    POPL        %EDI
+    POPL        %ESI
+    POPL        %EBX
+    POPL        %EBP
+    RET
+    FUNC_END(archAtomic64\func)
+    MACRO_END()
+
+ADD_SUB_RET_CX8  AddReturnCx8  ADD  ADC
+ADD_SUB_RET_CX8  SubReturnCx8  SUB  SBB
+
+#endif
 ;/*********************************************************************************************************
 ;  END
 ;*********************************************************************************************************/

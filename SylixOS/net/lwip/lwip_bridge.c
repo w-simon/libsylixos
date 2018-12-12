@@ -147,7 +147,7 @@ static INT  _netbrIoctl (PLW_DEV_HDR   pdevhdr,
     case FIOFSTATGET:
         pstat = (struct stat *)lArg;
         if (pstat) {
-            pstat->st_dev     = (dev_t)pdevhdr;
+            pstat->st_dev     = LW_DEV_MAKE_STDEV(pdevhdr);
             pstat->st_ino     = (ino_t)0;                               /*  相当于唯一节点              */
             pstat->st_mode    = 0600 | S_IFCHR;
             pstat->st_nlink   = 1;

@@ -40,6 +40,19 @@
 #define Lw_Atomic_Swp                           API_AtomicSwp
 #define Lw_Atomic_Cas                           API_AtomicCas
 
+#define Lw_Atomic64_Add                         API_Atomic64Add
+#define Lw_Atomic64_Sub                         API_Atomic64Sub
+#define Lw_Atomic64_Inc                         API_Atomic64Inc
+#define Lw_Atomic64_Dec                         API_Atomic64Dec
+#define Lw_Atomic64_And                         API_Atomic64And
+#define Lw_Atomic64_Nand                        API_Atomic64Nand
+#define Lw_Atomic64_Or                          API_Atomic64Or
+#define Lw_Atomic64_Xor                         API_Atomic64Xor
+#define Lw_Atomic64_Set                         API_Atomic64Set
+#define Lw_Atomic64_Get                         API_Atomic64Get
+#define Lw_Atomic64_Swp                         API_Atomic64Swp
+#define Lw_Atomic64_Cas                         API_Atomic64Cas
+
 /*********************************************************************************************************
   CPU
 *********************************************************************************************************/

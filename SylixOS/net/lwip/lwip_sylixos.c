@@ -287,7 +287,9 @@ VOID  API_NetInit (VOID)
     
 #if LW_CFG_SHELL_EN > 0
     __tshellNetInit();                                                  /*  ×¢²áÍøÂçÃüÁî                */
+#if LWIP_IPV6
     __tshellNet6Init();                                                 /*  ×¢²á IPv6 ×¨ÊôÃüÁî          */
+#endif
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
     
 #if LW_CFG_NET_DEV_BRIDGE_EN > 0

@@ -182,7 +182,8 @@ INT             __blockIoDevFlag(INT     iIndex);
 /*********************************************************************************************************
   类型转换函数声明
 *********************************************************************************************************/
-VOID            __filInfoToStat(FILINFO     *filinfo, 
+VOID            __filInfoToStat(PLW_DEV_HDR  pdevhdr,
+                                FILINFO     *filinfo, 
                                 FATFS       *fatfs,
                                 struct stat *pstat, 
                                 ino_t        ino);
@@ -1923,7 +1924,8 @@ static INT  __fatFsStatGet (PLW_FD_ENTRY  pfdentry, struct stat *pstat)
     
     if (iError == ERROR_NONE) {                                         /*  转换为 POSIX 标准结构       */
         fileinfo.fsize = pfdnode->FDNODE_oftSize;
-        __filInfoToStat(&fileinfo, 
+        __filInfoToStat(pfdentry->FDENTRY_pdevhdrHdr,
+                        &fileinfo, 
                         &pfatfile->FATFIL_pfatvol->FATVOL_fatfsVol,
                         pstat,
                         pfatfile->FATFIL_inode);

@@ -516,6 +516,7 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
     err = netif->input(p, netif);
     break;
     
+#if LWIP_IPV6
   case NETDEV_TYPE_LOWPAN:
     err = tcpip_6lowpan_input(p, netif);
     break;
@@ -523,7 +524,8 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
   case NETDEV_TYPE_LOWPAN_BLE:
     err = tcpip_rfc7668_input(p, netif);
     break;
-    
+#endif /* LWIP_IPV6 */
+  
   default:
     return (-1);
   }

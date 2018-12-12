@@ -173,9 +173,9 @@ VOID    API_IoDevShow (INT  iShowType)
     
     printf("device show (minor device) >>\n");
     if (iShowType) {
-        printf("%3s %-4s %-20s %s\n", "drv", "open", "name", "type");
+        printf("%3s %3s %-4s %-20s %s\n", "drv", "dev", "open", "name", "type");
     } else {
-        printf("%3s %-4s %-20s\n", "drv", "open", "name");
+        printf("%3s %3s %-4s %-20s\n", "drv", "dev", "open", "name");
     }
     
     _IosLock();
@@ -200,11 +200,15 @@ VOID    API_IoDevShow (INT  iShowType)
             } else {
                 pcType = "character";
             }
-            printf("%3d %4d %-20s %s\n", pdevhdrHdr->DEVHDR_usDrvNum, LW_DEV_GET_USE_COUNT(pdevhdrHdr), 
-                                         pdevhdrHdr->DEVHDR_pcName, pcType);
+            printf("%3d %3d %4d %-20s %s\n", pdevhdrHdr->DEVHDR_usDrvNum, 
+                                             pdevhdrHdr->DEVHDR_usDevNum,
+                                             LW_DEV_GET_USE_COUNT(pdevhdrHdr), 
+                                             pdevhdrHdr->DEVHDR_pcName, pcType);
         } else {
-            printf("%3d %4d %-20s\n", pdevhdrHdr->DEVHDR_usDrvNum, LW_DEV_GET_USE_COUNT(pdevhdrHdr), 
-                                      pdevhdrHdr->DEVHDR_pcName);
+            printf("%3d %3d %4d %-20s\n", pdevhdrHdr->DEVHDR_usDrvNum, 
+                                          pdevhdrHdr->DEVHDR_usDevNum,
+                                          LW_DEV_GET_USE_COUNT(pdevhdrHdr), 
+                                          pdevhdrHdr->DEVHDR_pcName);
         }
     }
     _IosUnlock();                                                       /*  ÍË³ö IO ÁÙ½çÇø              */

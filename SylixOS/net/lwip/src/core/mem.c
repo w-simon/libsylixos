@@ -190,11 +190,15 @@ mem_trim(void *mem, mem_size_t size)
 #define mem_clib_calloc calloc
 #endif
 
+#ifdef SYLIXOS /* SylixOS Changed MEM_LIBC_STATSHELPER_SIZE to 8bytes align */
+#define MEM_LIBC_STATSHELPER_SIZE 8
+#else /* SYLIXOS */
 #if LWIP_STATS && MEM_STATS
 #define MEM_LIBC_STATSHELPER_SIZE LWIP_MEM_ALIGN_SIZE(sizeof(mem_size_t))
 #else
 #define MEM_LIBC_STATSHELPER_SIZE 0
 #endif
+#endif /* !SYLIXOS */
 
 /**
  * Allocate a block of memory with a minimum of 'size' bytes.

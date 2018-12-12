@@ -89,7 +89,7 @@ __KERNEL_EXT  LW_JOB_MSG              _K_jobmsgKernel[LW_CFG_MAX_EXCEMSGS];
   TICK (由于大量的应用软件都将 SylixOS 时钟定义为 ulong 型, 在 32 位机器上, 扩展使用 64 位 tick 会有历史
         遗留问题, 所以这里只能加入一个溢出计数器)
 *********************************************************************************************************/
-__KERNEL_EXT  INT64                   _K_i64KernelTime;                 /*  系统时间计数器              */
+__KERNEL_EXT  atomic64_t              _K_atomic64KernelTime;            /*  系统时间计数器              */
 
 #if LW_CFG_THREAD_CPU_USAGE_CHK_EN > 0
 __KERNEL_EXT  ULONG                   _K_ulCPUUsageTicks;               /*  利用率测算计数器            */

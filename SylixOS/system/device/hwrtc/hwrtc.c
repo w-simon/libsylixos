@@ -201,7 +201,7 @@ static INT  __rtcIoctl (PLW_RTC_DEV    prtcdev, INT  iCmd, PVOID  pvArg)
         
     case FIOFSTATGET:                                                   /*  获得文件属性                */
         pstat = (struct stat *)pvArg;
-        pstat->st_dev     = (dev_t)prtcdev;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&prtcdev->RTCDEV_devhdr);
         pstat->st_ino     = (ino_t)0;                                   /*  相当于唯一节点              */
         pstat->st_mode    = 0644 | S_IFCHR;                             /*  默认属性                    */
         pstat->st_nlink   = 1;

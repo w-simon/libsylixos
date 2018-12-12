@@ -1487,8 +1487,8 @@ VOID  vprocTickHook (VOID)
         if (LW_CPU_IS_ACTIVE(pcpu)) {                                   /*  CPU 必须被激活              */
             ptcb = pcpu->CPU_ptcbTCBCur;
             pvproc = __LW_VP_GET_TCB_PROC(ptcb);
-            if (pvproc && (_K_i64KernelTime != pvproc->VP_i64Tick)) {
-                pvproc->VP_i64Tick = _K_i64KernelTime;                  /*  避免时间被重复计算          */
+            if (pvproc && (_K_atomic64KernelTime.counter != pvproc->VP_i64Tick)) {
+                pvproc->VP_i64Tick = _K_atomic64KernelTime.counter;     /*  避免时间被重复计算          */
                 
 #if LW_CFG_PTIMER_EN > 0
                 vprocItimerEachHook(pcpu, pvproc);                      /*  ITIMER_VIRTUAL/ITIMER_PROF  */

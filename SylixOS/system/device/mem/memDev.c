@@ -542,7 +542,7 @@ static INT  _MemStats (PLW_MEM_FILE  pmemfile, struct stat *pstat)
     pmemdirFile = pmemfile->MEMF_pmemdir;
     bIsDir      = (pmemdirFile->pDir) ? LW_TRUE : LW_FALSE;
     
-    pstat->st_dev = (dev_t)pmemdev;
+    pstat->st_dev = LW_DEV_MAKE_STDEV(&pmemdev->MEM_devhdr);
     pstat->st_ino = (ino_t)pmemdirFile;
     
     if (bIsDir) {

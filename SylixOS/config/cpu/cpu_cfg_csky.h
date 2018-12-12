@@ -112,6 +112,8 @@
 #define LW_CFG_CPU_ATOMIC_EN            0
 #endif
 
+#define LW_CFG_CPU_ATOMIC64_EN          0
+
 #endif                                                                  /*  __CPU_CFG_CSKY_H            */
 /*********************************************************************************************************
   END

@@ -662,7 +662,7 @@ INT  _TyIoctl (TY_DEV_ID  ptyDev,
     case FIOFSTATGET:                                                   /*  获取文件属性                */
         pstatGet = (struct stat *)lArg;
         if (pstatGet) {
-            pstatGet->st_dev     = (dev_t)ptyDev;
+            pstatGet->st_dev     = LW_DEV_MAKE_STDEV(&ptyDev->TYDEV_devhdrHdr);
             pstatGet->st_ino     = (ino_t)0;                            /*  相当于唯一节点              */
             pstatGet->st_mode    = 0666 | S_IFCHR;
             pstatGet->st_nlink   = 1;

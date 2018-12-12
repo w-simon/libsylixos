@@ -741,7 +741,7 @@ static INT  __shmStatGet (PLW_SHM_NODE  pshmn, struct stat *pstat)
     }
     
     if (pshmn) {
-        pstat->st_dev     = (dev_t)&_G_devhdrShm;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrShm);
         pstat->st_ino     = (ino_t)pshmn;
         pstat->st_mode    = pshmn->SHMN_mode;
         pstat->st_nlink   = 1;
@@ -760,7 +760,7 @@ static INT  __shmStatGet (PLW_SHM_NODE  pshmn, struct stat *pstat)
         pstat->st_ctime = pshmn->SHMN_time;
     
     } else {
-        pstat->st_dev     = (dev_t)&_G_devhdrShm;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrShm);
         pstat->st_ino     = (ino_t)0;                                   /*  根目录                      */
         pstat->st_mode    = (0666 | S_IFDIR);                           /*  默认属性                    */
         pstat->st_nlink   = 1;
@@ -803,7 +803,7 @@ static INT  __shmLStatGet (LW_DEV_HDR *pdevhdr, PCHAR  pcName, struct stat *psta
     pshmn = __shmFindNode(pcName, &pshmnFather, &bIsRoot, LW_NULL, &pcTail);
                                                                         /*  查询设备                    */
     if (pshmn) {                                                        /*  一定不是 FOLLOW_LINK_TAIL   */
-        pstat->st_dev     = (dev_t)&_G_devhdrShm;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrShm);
         pstat->st_ino     = (ino_t)pshmn;
         pstat->st_mode    = pshmn->SHMN_mode;
         pstat->st_nlink   = 1;

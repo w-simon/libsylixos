@@ -768,7 +768,7 @@ static INT __canIoctl (__CAN_DEV  *pcanDev, INT  iCmd, LONG  lArg)
 
         case FIOFSTATGET:                                               /*  获得文件属性                */
             pstat = (struct stat *)lArg;
-            pstat->st_dev     = (dev_t)pcanDev;
+            pstat->st_dev     = LW_DEV_MAKE_STDEV(&pcanDev->CAN_devhdr);
             pstat->st_ino     = (ino_t)0;                               /*  相当于唯一节点              */
             pstat->st_mode    = 0666 | S_IFCHR;                         /*  默认属性                    */
             pstat->st_nlink   = 1;

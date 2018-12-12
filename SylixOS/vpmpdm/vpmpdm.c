@@ -58,7 +58,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "2.1.0" /* vp patch version */
+#define __VP_PATCH_VERSION      "2.1.1" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -246,13 +246,6 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
 
     ctx.proc = pvproc; /* save this process handle, dlopen will use this */
 
-    if (API_TShellVarGetRt("SO_MEM_PAGES", buf, sizeof(buf)) > 0) { /* must not use getenv() */
-        ctx.blksize = (size_t)lib_atol(buf);
-        if (ctx.blksize < 0) {
-            return;
-        }
-    }
-    
     if (API_TShellVarGetRt("SO_MEM_DIRECT", buf, sizeof(buf)) > 0) { /* must not use getenv() */
         ctx.memdirect = lib_atoi(buf);
     }
@@ -261,7 +254,22 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
     ctx.pagesize = (size_t)getpagesize();
 #endif /* LW_CFG_VMM_EN > 0 */
 
-    ctx.blksize *= ctx.pagesize;
+    if (API_TShellVarGetRt("SO_MEM_MBYTES", buf, sizeof(buf)) > 0) { /* must not use getenv() */
+        ctx.blksize = (size_t)lib_atol(buf);
+        if (ctx.blksize < 0) {
+            return;
+        }
+        ctx.blksize *= LW_CFG_MB_SIZE;
+
+    } else {
+        if (API_TShellVarGetRt("SO_MEM_PAGES", buf, sizeof(buf)) > 0) { /* must not use getenv() */
+            ctx.blksize = (size_t)lib_atol(buf);
+            if (ctx.blksize < 0) {
+                return;
+            }
+        }
+        ctx.blksize *= ctx.pagesize; /* blocks * pages */
+    }
 
     ctx.locker = API_SemaphoreMCreate("vp_lock", LW_PRIO_DEF_CEILING,
                                       LW_OPTION_WAIT_PRIORITY |
@@ -286,6 +294,9 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
         lib_itoa(getpid(), ctx.heap.HEAP_cHeapName, 10);
         VP_MEM_CTOR(&ctx.heap, ctx.vmem[0], ctx.blksize);
         ctx.alloc_en = 1;
+
+    } else {
+        fprintf(stderr, "WARNING: ctx.vmem create error!\r");
     }
     
     if (ppfuncMalloc) {

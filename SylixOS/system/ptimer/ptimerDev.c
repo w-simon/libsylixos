@@ -385,7 +385,7 @@ static INT  _tmrfdIoctl (PLW_TMRFD_FILE  ptmrfdfil,
     case FIOFSTATGET:
         pstatGet = (struct stat *)lArg;
         if (pstatGet) {
-            pstatGet->st_dev     = (dev_t)&_G_tmrfddev;
+            pstatGet->st_dev     = LW_DEV_MAKE_STDEV(&_G_tmrfddev.TD_devhdrHdr);
             pstatGet->st_ino     = (ino_t)0;                            /*  相当于唯一节点              */
             pstatGet->st_mode    = 0444 | S_IFCHR;
             pstatGet->st_nlink   = 1;

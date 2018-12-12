@@ -634,15 +634,15 @@ static LONG  __yaffsOpen (PYAFFS_FSLIB    pyaffs,
         
 __file_open_ok:
         pfdnode = API_IosFdNodeAdd(&pyaffs->YAFFS_plineFdNodeHeader,
-                                    (dev_t)yafstat.st_dev,
-                                    (ino64_t)yafstat.st_ino,
-                                    iFlags,
-                                    iMode,
-                                    yafstat.st_uid,
-                                    yafstat.st_gid,
-                                    yafstat.st_size,
-                                    (PVOID)pyaffile,
-                                    &bIsNew);                           /*  添加文件节点                */
+                                   (dev_t)yafstat.st_dev,
+                                   (ino64_t)yafstat.st_ino,
+                                   iFlags,
+                                   iMode,
+                                   yafstat.st_uid,
+                                   yafstat.st_gid,
+                                   yafstat.st_size,
+                                   (PVOID)pyaffile,
+                                   &bIsNew);                            /*  添加文件节点                */
         if (pfdnode == LW_NULL) {                                       /*  无法创建 fd_node 节点       */
             __yaffsCloseFile(pyaffile);
             __YAFFS_OPUNLOCK();

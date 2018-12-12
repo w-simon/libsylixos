@@ -132,6 +132,73 @@ static LW_INLINE addr_t  archAtomicAddrCas (volatile addr_t *p, addr_t  ulOld, a
     return  (ulOldValue);
 }
 
+/*********************************************************************************************************
+  ATOMIC64
+*********************************************************************************************************/
+#if LW_CFG_CPU_ATOMIC64_EN > 0
+
+#define ATOMIC64_OP_RETURN(op, c_op, asm_op)                                \
+static LW_INLINE INT64  archAtomic64##op (INT64  i, atomic64_t  *v)         \
+{                                                                           \
+    INT64  i64Result;                                                       \
+                                                                            \
+    __asm__ __volatile__(                                                   \
+        "1: ldarx       %0, 0,  %3      \n"                                 \
+            #asm_op "   %0, %2, %0      \n"                                 \
+        "   stdcx.      %0, 0,  %3      \n"                                 \
+        "   bne-        1b              \n"                                 \
+            : "=&r" (i64Result), "+m" (v->counter)                          \
+            : "r" (i), "r" (&v->counter)                                    \
+            : "cc");                                                        \
+                                                                            \
+    return  (i64Result);                                                    \
+}
+
+ATOMIC64_OP_RETURN(Add,  +=,  add)
+ATOMIC64_OP_RETURN(Sub,  -=,  subf)
+ATOMIC64_OP_RETURN(And,  &=,  and)
+ATOMIC64_OP_RETURN(Or,   |=,  or)
+ATOMIC64_OP_RETURN(Xor,  ^=,  xor)
+
+static LW_INLINE INT64  archAtomic64Get (atomic64_t  *v)
+{
+    INT64  i64Value;
+
+    __asm__ __volatile__("ld%U1%X1 %0,%1" : "=r"(i64Value) : "m"(v->counter));
+
+    return  (i64Value);
+}
+
+static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
+{
+    __asm__ __volatile__("std%U0%X0 %1,%0" : "=m"(v->counter) : "r"(i));
+}
+
+/*********************************************************************************************************
+  atomic64 cas op
+*********************************************************************************************************/
+
+static LW_INLINE INT64  archAtomicCas (atomic64_t  *v, INT64  i64Old, INT64  i64New)
+{
+    INT64  i64OldValue;
+
+    __asm__ __volatile__ (
+            PPC_ATOMIC_ENTRY_BARRIER
+        "1: ldarx   %0, 0,  %2   \n"
+        "   cmpd    0,  %0, %3   \n"
+        "   bne-    2f           \n"
+        "   stdcx.  %4, 0,  %2   \n"
+        "   bne-    1b           \n"
+            PPC_ATOMIC_EXIT_BARRIER
+        "2:"
+            : "=&r" (i64OldValue), "+m" (v->counter)
+            : "r" (&v->counter), "r" (i64Old), "r" (i64New)
+            : "cc", "memory");
+
+    return  (i64OldValue);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC64_EN      */
 #endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN        */
 #endif                                                                  /*  __ARCH_PPC_ATOMIC_H         */
 /*********************************************************************************************************

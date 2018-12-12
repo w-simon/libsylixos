@@ -50,6 +50,7 @@ MACRO_DEF(ENABLE_FPU)
     OR      T0 , T0 , ST0_CU1 | ST0_FR
 #else
     OR      T0 , T0 , ST0_CU1
+    AND     T0 , T0 , ~ST0_FR
 #endif
     MTC0_EHB(T0, CP0_STATUS)
     MACRO_END()

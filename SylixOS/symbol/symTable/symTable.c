@@ -41,6 +41,7 @@
 #define  __SYMBOL_MAIN_FILE
 #include "symStatic.h"
 #include "../symBsp/symBsp.h"
+#include "../symSmp/symSmp.h"
 #include "../symLibc/symLibc.h"
 /*********************************************************************************************************
   hash
@@ -226,6 +227,7 @@ VOID  API_SymbolInit (VOID)
     }
     
     __symbolAddBsp();                                                   /*  加入 BSP 符号表             */
+    __symbolAddSmp();                                                   /*  加入 SMP 转换符号表         */
     __symbolAddLibc();                                                  /*  加入常用 C 库符号表         */
 
 #if LW_CFG_PROCFS_EN > 0

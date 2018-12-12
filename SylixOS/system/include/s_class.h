@@ -165,13 +165,22 @@ typedef LW_PMD_FUNCS    *PLW_PMD_FUNCS;
 
 typedef struct {
     LW_LIST_LINE               DEVHDR_lineManage;                       /*  设备头管理链表              */
-    UINT16                     DEVHDR_usDrvNum;                         /*  设备驱动程序索引号          */
+    UINT16                     DEVHDR_usDrvNum;                         /*  主设备号                    */
+    UINT16                     DEVHDR_usDevNum;                         /*  子设备号                    */
     PCHAR                      DEVHDR_pcName;                           /*  设备名称                    */
     UCHAR                      DEVHDR_ucType;                           /*  设备 dirent d_type          */
     atomic_t                   DEVHDR_atomicOpenNum;                    /*  打开的次数                  */
     PVOID                      DEVHDR_pvReserve;                        /*  保留                        */
 } LW_DEV_HDR;
 typedef LW_DEV_HDR            *PLW_DEV_HDR;
+typedef LW_DEV_HDR             DEV_HDR;
+
+#define LW_DEV_MAKE_STDEV(hdr)  \
+        (((dev_t)((PLW_DEV_HDR)(hdr))->DEVHDR_usDrvNum << 16) | ((PLW_DEV_HDR)(hdr))->DEVHDR_usDevNum)
+
+/*********************************************************************************************************
+  设备使用计数
+*********************************************************************************************************/
 
 static LW_INLINE INT  LW_DEV_INC_USE_COUNT(PLW_DEV_HDR  pdevhdrHdr)
 {
@@ -187,8 +196,6 @@ static LW_INLINE INT  LW_DEV_GET_USE_COUNT(PLW_DEV_HDR  pdevhdrHdr)
 {
     return  ((pdevhdrHdr) ? (API_AtomicGet(&pdevhdrHdr->DEVHDR_atomicOpenNum)) : (PX_ERROR));
 }
-
-typedef LW_DEV_HDR             DEV_HDR;
 
 /*********************************************************************************************************
   驱动程序许可证
@@ -241,6 +248,7 @@ typedef struct {
     BOOL                       DEVENTRY_bInUse;                         /*  是否被使用                  */
     INT                        DEVENTRY_iType;                          /*  设备驱动类型                */
     
+    UINT16                     DEVENTRY_usDevNum;                       /*  子设备号分配池              */
     LW_DRV_LICENSE             DEVENTRY_drvlicLicense;                  /*  驱动程序许可证              */
 } LW_DEV_ENTRY;
 typedef LW_DEV_ENTRY          *PLW_DEV_ENTRY;

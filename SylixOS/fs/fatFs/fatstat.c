@@ -106,7 +106,8 @@ BYTE  __fsModeToAttr (mode_t  iMode)
 /*********************************************************************************************************
 ** 函数名称: __filInfoToStat
 ** 功能描述: 将 FILINFO 结构体转换为 stat 结构
-** 输　入  : filinfo     FILINFO 结构体
+** 输　入  : pdevhdr     设备头
+**           filinfo     FILINFO 结构体
 **           fatfs       文件系统结构
 **           pstat       stat 结构
 **           ino         inode
@@ -114,7 +115,8 @@ BYTE  __fsModeToAttr (mode_t  iMode)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  __filInfoToStat (FILINFO     *filinfo, 
+VOID  __filInfoToStat (PLW_DEV_HDR  pdevhdr,
+                       FILINFO     *filinfo, 
                        FATFS       *fatfs,
                        struct stat *pstat, 
                        ino_t        ino)
@@ -122,7 +124,7 @@ VOID  __filInfoToStat (FILINFO     *filinfo,
     UINT32  dwCrtTime = (DWORD)((filinfo->fcdate << 16) | (filinfo->fctime));
     UINT32  dwWrtTime = (DWORD)((filinfo->fdate  << 16) | (filinfo->ftime));
 
-    pstat->st_dev   = (dev_t)fatfs;
+    pstat->st_dev   = LW_DEV_MAKE_STDEV(pdevhdr);
     pstat->st_ino   = ino;
     
     pstat->st_nlink = 1;

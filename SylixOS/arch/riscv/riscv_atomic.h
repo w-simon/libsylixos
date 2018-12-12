@@ -112,6 +112,64 @@ static LW_INLINE addr_t  archAtomicAddrCas (volatile addr_t *p, addr_t  ulOld, a
     return  (ulResult);
 }
 
+/*********************************************************************************************************
+  ATOMIC64
+*********************************************************************************************************/
+#if LW_CFG_CPU_ATOMIC64_EN > 0
+
+#define ATOMIC64_OP_RETURN(op, asm_op, c_op, I)                         \
+static LW_INLINE INT64  archAtomic64##op (INT64  i, atomic64_t  *v)     \
+{                                                                       \
+    REGISTER INT64  i64Ret;                                             \
+                                                                        \
+    __asm__ __volatile__ (                                              \
+        "   amo" #asm_op ".d.aqrl  %1, %2, %0"                          \
+        : "+A" (v->counter), "=r" (i64Ret)                              \
+        : "r" (I)                                                       \
+        : "memory");                                                    \
+    return  (i64Ret c_op I);                                            \
+}
+
+ATOMIC64_OP_RETURN(Add, add, +,  i)
+ATOMIC64_OP_RETURN(Sub, add, +, -i)
+ATOMIC64_OP_RETURN(And, and, &,  i)
+ATOMIC64_OP_RETURN(Or,  or,  |,  i)
+ATOMIC64_OP_RETURN(Xor, xor, ^,  i)
+
+static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
+{
+    LW_ACCESS_ONCE(INT64, v->counter) = i;
+}
+
+static LW_INLINE INT  archAtomic64Get (atomic64_t  *v)
+{
+    return  (LW_ACCESS_ONCE(INT64, v->counter));
+}
+
+/*********************************************************************************************************
+  atomic64 cas op
+*********************************************************************************************************/
+
+static LW_INLINE INT64  archAtomic64Cas (atomic64_t  *v, INT64  i64Old, INT64  i64New)
+{
+             INT64    i64Result;
+    REGISTER UINT     uiTemp;
+
+    __asm__ __volatile__ (
+        "0: lr.d    %0, %2              \n"
+        "   bne     %0, %z3, 1f         \n"
+        "   sc.d.rl %1, %z4, %2         \n"
+        "   bnez    %1, 0b              \n"
+        "   fence   rw, rw              \n"
+        "1:                             \n"
+        : "=&r" (i64Result), "=&r" (uiTemp), "+A" (v->counter)
+        : "rJ" (i64Old), "rJ" (i64New)
+        : "memory");
+
+    return  (i64Result);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC64_EN      */
 #endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN        */
 #endif                                                                  /*  __ARCH_RISCV_ATOMIC_H       */
 /*********************************************************************************************************

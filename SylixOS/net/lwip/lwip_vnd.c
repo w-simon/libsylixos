@@ -620,7 +620,7 @@ static INT  _vndIoctl (PLW_VND_FILE  pvndfil, INT  iRequest, LONG  lArg)
     case FIOFSTATGET:
         pstatGet = (struct stat *)lArg;
         if (pstatGet) {
-            pstatGet->st_dev   = (dev_t)&_G_vndmDev;
+            pstatGet->st_dev   = LW_DEV_MAKE_STDEV(&_G_vndmDev.VNDM_devhdrHdr);
             pstatGet->st_ino   = (ino_t)0;
             pstatGet->st_mode  = 0444 | S_IFCHR;
             pstatGet->st_nlink = 1;

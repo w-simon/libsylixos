@@ -1000,7 +1000,8 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         pafpacket = (AF_PACKET_T *)plineTemp;
-        if (pafpacket->PACKET_iIfIndex != netif_get_index(inp)) {       /*  不是绑定的网卡              */
+        if ((pafpacket->PACKET_iIfIndex > 0) &&
+            (pafpacket->PACKET_iIfIndex != netif_get_index(inp))) {     /*  不是绑定的网卡              */
             continue;
         }
         

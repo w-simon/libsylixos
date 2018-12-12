@@ -204,7 +204,7 @@ static INT __buzzerIoctl (PLW_BUZZER_FILE   pbuzfil, INT  iCmd, LONG  lArg)
     case FIOFSTATGET:                                                   /*  获取文件属性                */
         pstatGet = (struct stat *)lArg;
         if (pstatGet) {
-            pstatGet->st_dev     = (dev_t)pbuzzer;
+            pstatGet->st_dev     = LW_DEV_MAKE_STDEV(&pbuzzer->BUZZER_devhdr);
             pstatGet->st_ino     = (ino_t)pbuzfil;                      /*  相当于唯一节点              */
             pstatGet->st_mode    = 0222 | S_IFCHR;
             pstatGet->st_nlink   = 1;

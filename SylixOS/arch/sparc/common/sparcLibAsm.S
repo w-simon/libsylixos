@@ -123,7 +123,7 @@ FUNC_END(__sigjmp_save)
 ;*********************************************************************************************************/
 
 FUNC_DEF(sigsetjmp)
-    SAVE
+    SAVE    %sp , -ARCH_STK_FRAME_SIZE , %sp
     MOV     %i0 , %o0
     MOV     %i1 , %o1
     CALL    __sigsetjmpSetup
@@ -160,7 +160,7 @@ FUNC_END(sigsetjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(setjmp)
-    SAVE
+    SAVE    %sp , -ARCH_STK_FRAME_SIZE , %sp
     MOV     %i0 , %o0
     CALL    __setjmpSetup
     NOP
@@ -175,7 +175,7 @@ FUNC_END(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(siglongjmp)
-    SAVE
+    SAVE    %sp , -ARCH_STK_FRAME_SIZE , %sp
     MOV     %i0 , %o0
     MOV     %i1 , %o1
     CALL    __siglongjmpSetup
@@ -191,7 +191,7 @@ FUNC_END(setjmp)
 ;*********************************************************************************************************/
 
 FUNC_DEF(longjmp)
-    SAVE
+    SAVE    %sp , -ARCH_STK_FRAME_SIZE , %sp
     MOV     %i0 , %o0
     MOV     %i1 , %o1
     CALL    __longjmpSetup
@@ -233,7 +233,7 @@ LOC(loop):
     LD      ENV(g1 , JB_SP) , %o0   ;/*  Delay slot: extract target SP.                                  */
 
 LOC(thread):
-    SAVE    %sp , -96 , %sp
+    SAVE    %sp , -ARCH_STK_FRAME_SIZE , %sp
     ;/*
     ; * Do a "flush register windows trap".  The trap handler in the
     ; * kernel writes all the register windows to their stack slots, and

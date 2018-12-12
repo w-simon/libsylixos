@@ -521,7 +521,7 @@ static ssize_t  __procFsPWrite (PLW_PROCFS_NODE  p_pfsn,
 static INT  __procFsStatGet (PLW_PROCFS_NODE  p_pfsn, struct stat *pstat)
 {
     if (p_pfsn == LW_NULL) {                                            /*  procfs 根节点               */
-        pstat->st_dev     = (dev_t)&_G_devhdrProc;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrProc);
         pstat->st_ino     = (ino_t)0;                                   /*  根目录                      */
         pstat->st_mode    = (0644 | S_IFDIR);                           /*  默认属性                    */
         pstat->st_nlink   = 1;
@@ -536,7 +536,7 @@ static INT  __procFsStatGet (PLW_PROCFS_NODE  p_pfsn, struct stat *pstat)
         pstat->st_ctime   = _G_timeProcFs;
     
     } else {                                                            /*  子节点                      */
-        pstat->st_dev     = (dev_t)&_G_devhdrProc;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrProc);
         pstat->st_ino     = (ino_t)p_pfsn;
         pstat->st_mode    = p_pfsn->PFSN_mode;
         pstat->st_nlink   = 1;
@@ -589,7 +589,7 @@ static INT  __procFsLStatGet (PLW_DEV_HDR pdevhdr, PCHAR  pcName, struct stat *p
     if (p_pfsn) {
         p_pfsn->PFSN_time = lib_time(LW_NULL);                          /*  当前 UTC 时间               */
     
-        pstat->st_dev     = (dev_t)&_G_devhdrProc;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&_G_devhdrProc);
         pstat->st_ino     = (ino_t)p_pfsn;
         pstat->st_mode    = p_pfsn->PFSN_mode;
         pstat->st_nlink   = 1;

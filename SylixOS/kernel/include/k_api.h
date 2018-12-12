@@ -75,6 +75,30 @@ LW_API INT              API_AtomicSwp(INT  iVal, atomic_t  *patomic);
 
 LW_API INT              API_AtomicCas(atomic_t  *patomic, INT  iOldVal, INT  iNewVal);
 
+LW_API INT64            API_Atomic64Add(INT64  i64Val, atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Sub(INT64  i64Val, atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Inc(atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Dec(atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64And(INT64  i64Val, atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Nand(INT64  i64Val, atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Or(INT64  i64Val, atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Xor(INT64  i64Val, atomic64_t  *patomic64);
+
+LW_API VOID             API_Atomic64Set(INT64  i64Val, atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Get(atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Swp(INT64  i64Val, atomic64_t  *patomic64);
+
+LW_API INT64            API_Atomic64Cas(atomic64_t  *patomic64, INT64  i64OldVal, INT64  i64NewVal);
+
 /*********************************************************************************************************
   CPU
 *********************************************************************************************************/

@@ -121,7 +121,7 @@ SylixOS/arch/arm64/fpu/vfpnone/arm64VfpNone.c \
 SylixOS/arch/arm64/fpu/vfpv4/arm64VfpV4.c \
 SylixOS/arch/arm64/fpu/vfpv4/arm64VfpV4Asm.S \
 SylixOS/arch/arm64/fpu/vfpv4el2/arm64VfpV4El2.c \
-SylixOS/arch/arm64/fpu/vfpv4el2/arm64VfpV4AsmEl2.S \
+SylixOS/arch/arm64/fpu/vfpv4el2/arm64VfpV4El2Asm.S \
 SylixOS/arch/arm64/fpu/arm64Fpu.c \
 SylixOS/arch/arm64/mm/cache/arm64Cache.c \
 SylixOS/arch/arm64/mm/cache/arm64CacheAsm.S \
@@ -1760,6 +1760,7 @@ SylixOS/shell/ttinyVar/ttinyVarLib.c
 #*********************************************************************************************************
 SYMBOL_SRCS = \
 SylixOS/symbol/symBsp/symBsp.c \
+SylixOS/symbol/symSmp/symSmp.c \
 SylixOS/symbol/symLibc/symLibc.c \
 SylixOS/symbol/symTable/symProc.c \
 SylixOS/symbol/symTable/symTable.c

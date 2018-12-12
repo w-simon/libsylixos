@@ -203,7 +203,7 @@ INT  _PtyDeviceIoctl (P_PTY_DEV     p_ptydev,
     case FIOFSTATGET:                                                   /*  获取文件属性                */
         pstatGet = (struct stat *)lArg;
         if (pstatGet) {
-            pstatGet->st_dev     = (dev_t)p_ptydev;
+            pstatGet->st_dev     = LW_DEV_MAKE_STDEV(&p_ptydev->PTYDEV_ptyddev.PTYDDEV_devhdrDevice);
             pstatGet->st_ino     = (ino_t)0;                            /*  相当于唯一节点              */
             pstatGet->st_mode    = 0666 | S_IFCHR;
             pstatGet->st_nlink   = 1;

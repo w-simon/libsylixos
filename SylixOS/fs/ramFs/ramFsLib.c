@@ -821,7 +821,7 @@ INT  __ram_move (PRAM_NODE  pramn, PCHAR  pcNewName)
 VOID  __ram_stat (PRAM_NODE  pramn, PRAM_VOLUME  pramfs, struct stat  *pstat)
 {
     if (pramn) {
-        pstat->st_dev     = (dev_t)pramfs;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&pramfs->RAMFS_devhdrHdr);
         pstat->st_ino     = (ino_t)pramn;
         pstat->st_mode    = pramn->RAMN_mode;
         pstat->st_nlink   = 1;
@@ -836,7 +836,7 @@ VOID  __ram_stat (PRAM_NODE  pramn, PRAM_VOLUME  pramfs, struct stat  *pstat)
         pstat->st_blocks  = (blkcnt_t)pramn->RAMN_ulCnt;
     
     } else {
-        pstat->st_dev     = (dev_t)pramfs;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&pramfs->RAMFS_devhdrHdr);
         pstat->st_ino     = (ino_t)0;
         pstat->st_mode    = pramfs->RAMFS_mode;
         pstat->st_nlink   = 1;

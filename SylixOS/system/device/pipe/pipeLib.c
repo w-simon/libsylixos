@@ -258,7 +258,7 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
         
         pstatGet = (struct stat *)piArgPtr;
         if (pstatGet) {
-            pstatGet->st_dev     = (dev_t)p_pipedev;
+            pstatGet->st_dev     = LW_DEV_MAKE_STDEV(&p_pipedev->PIPEDEV_devhdrHdr);
             pstatGet->st_ino     = (ino_t)0;                            /*  相当于唯一节点              */
             pstatGet->st_mode    = 0666 | S_IFIFO;
             pstatGet->st_nlink   = 1;

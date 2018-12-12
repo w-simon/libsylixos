@@ -252,6 +252,17 @@ typedef struct {
     volatile INT    counter;
 } atomic_t;
 
+#ifdef __GNUC__
+typedef struct {
+    volatile INT64  __attribute__((aligned(8))) counter;
+} atomic64_t;
+
+#else
+typedef struct {
+    volatile INT64  counter;
+} atomic64_t;
+#endif
+
 /*********************************************************************************************************
   POSIX signal
 *********************************************************************************************************/

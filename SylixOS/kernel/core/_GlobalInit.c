@@ -108,6 +108,7 @@ static VOID  __cpuPrimaryInit (VOID)
         LW_SPIN_INIT(&_K_tcbDummy[i].TCB_slLock);                       /*  初始化自旋锁                */
         
 #if LW_CFG_SMP_EN > 0
+        LW_CPU_ONLY_AFFINITY_SET(LW_CPU_GET(i), LW_FALSE);
         LW_CPU_GET(i)->CPU_iIPIPend.counter = 0;                        /*  清除所有中断标志            */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     }
@@ -128,6 +129,7 @@ static VOID  __cpuSecondaryInit (ULONG   ulCPUId)
     LW_SPIN_INIT(&_K_tcbDummy[ulCPUId].TCB_slLock);                     /*  初始化自旋锁                */
     
 #if LW_CFG_SMP_EN > 0
+    LW_CPU_ONLY_AFFINITY_SET(LW_CPU_GET(ulCPUId), LW_FALSE);
     LW_CPU_GET(ulCPUId)->CPU_iIPIPend.counter = 0;                      /*  清除所有中断标志            */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }
@@ -232,7 +234,7 @@ VOID _GlobalPrimaryInit (VOID)
     /*
      *  内核关键性状态变量初始化
      */
-    _K_i64KernelTime = 0;
+    _K_atomic64KernelTime.counter = 0;
     
 #if LW_CFG_THREAD_CPU_USAGE_CHK_EN > 0
     _K_ulCPUUsageTicks       = 1ul;                                     /*  避免除 0 错误               */

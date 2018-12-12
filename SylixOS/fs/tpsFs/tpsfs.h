@@ -80,7 +80,7 @@ errno_t     tpsFsSync(PTPS_INODE pinode);
                                                                         /* 同步整个文件系统分区         */
 errno_t     tpsFsVolSync (PTPS_SUPER_BLOCK psb);
                                                                         /* tpsfs 获得文件 stat          */
-VOID        tpsFsStat(PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat);
+VOID        tpsFsStat(PVOID  pvDevHdr, PTPS_SUPER_BLOCK  psb, PTPS_INODE  pinode, struct stat *pstat);
                                                                         /* tpsfs 获得文件系统 statfs    */
 VOID        tpsFsStatfs(PTPS_SUPER_BLOCK  psb, struct statfs *pstatfs);
                                                                         /* 获取文件大小                 */

@@ -409,7 +409,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
   TCP Other
 *********************************************************************************************************/
 
-#define MEMP_NUM_TCP_SEG                (8 * TCP_SND_QUEUELEN)
+#define MEMP_NUM_TCP_SEG                MEMP_NUM_PBUF                   /*  Max num of tcp segments     */
 
 #define LWIP_TCP_KEEPALIVE              1
 #define LWIP_NETCONN_FULLDUPLEX         1

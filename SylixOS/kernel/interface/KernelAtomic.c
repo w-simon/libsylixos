@@ -345,5 +345,319 @@ INT  API_AtomicCas (atomic_t  *patomic, INT  iOldVal, INT  iNewVal)
     }
 }
 /*********************************************************************************************************
+** 函数名称: API_Atomic64Add
+** 功能描述: 原子 + 操作
+** 输　入  : i64Val      操作参数
+**           patomic64   原子操作数
+** 输　出  : 操作结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Add (INT64  i64Val, atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_ADD(i64Val, patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Sub
+** 功能描述: 原子 - 操作
+** 输　入  : i64Val      操作参数
+**           patomic64   原子操作数
+** 输　出  : 操作结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Sub (INT64  i64Val, atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_SUB(i64Val, patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Inc
+** 功能描述: 原子 + 1操作
+** 输　入  : patomic64   原子操作数
+** 输　出  : 操作结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Inc (atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_INC(patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Dec
+** 功能描述: 原子 - 1操作
+** 输　入  : patomic64   原子操作数
+** 输　出  : 操作结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Dec (atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_DEC(patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64And
+** 功能描述: 原子 & 操作
+** 输　入  : i64Val      操作参数
+**           patomic64   原子操作数
+** 输　出  : 操作结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64And (INT64  i64Val, atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_AND(i64Val, patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Nand
+** 功能描述: 原子 &~ 操作
+** 输　入  : i64Val      操作参数
+**           patomic64   原子操作数
+** 输　出  : 操作结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Nand (INT64  i64Val, atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_NAND(i64Val, patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Or
+** 功能描述: 原子 | 操作
+** 输　入  : i64Val      操作参数
+**           patomic64   原子操作数
+** 输　出  : 操作结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Or (INT64  i64Val, atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_OR(i64Val, patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Xor
+** 功能描述: 原子 ^ 操作
+** 输　入  : i64Val      操作参数
+**           patomic64   原子操作数
+** 输　出  : 操作结果
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Xor (INT64  i64Val, atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_XOR(i64Val, patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Set
+** 功能描述: 原子赋值操作
+** 输　入  : i64Val      操作参数
+**           patomic64   原子操作数
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+VOID  API_Atomic64Set (INT64  i64Val, atomic64_t  *patomic64)
+{
+    if (patomic64) {
+#if LW_CFG_CPU_WORD_LENGHT == 32
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        __LW_ATOMIC64_SET(i64Val, patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        
+#else
+        __LW_ATOMIC64_SET(i64Val, patomic64);
+#endif
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Get
+** 功能描述: 原子获取操作
+** 输　入  : patomic64   原子操作数
+** 输　出  : 原子操作数
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Get (atomic64_t  *patomic64)
+{
+    if (patomic64) {
+        return  (__LW_ATOMIC64_GET(patomic64));
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Swp
+** 功能描述: 原子交换操作
+** 输　入  : i64Val      操作参数
+**           patomic64   原子操作数
+** 输　出  : 之前的数值
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Swp (INT64  i64Val, atomic64_t  *patomic64)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_SWP(i64Val, patomic64);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_Atomic64Cas
+** 功能描述: 原子交换操作 ()
+** 输　入  : patomic64   原子操作数
+**           i64OldVal   旧值
+**           i64NewVal   新值
+** 输　出  : 旧值, 如果返回值与 i64OldVal 相同, 则表示设置成功.
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT64  API_Atomic64Cas (atomic64_t  *patomic64, INT64  i64OldVal, INT64  i64NewVal)
+{
+    REGISTER INT64  i64Ret;
+
+    if (patomic64) {
+        __LW_ATOMIC_INTREG(ireg);
+        __LW_ATOMIC_INTDIS(ireg);
+        i64Ret = __LW_ATOMIC64_CAS(patomic64, i64OldVal, i64NewVal);
+        __LW_ATOMIC_INTEN(ireg);
+        return  (i64Ret);
+    
+    } else {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
   END
 *********************************************************************************************************/

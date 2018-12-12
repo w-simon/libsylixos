@@ -76,8 +76,9 @@ VOID  __tshellSysVarInit (VOID)
     API_TShellExec("TSLIB_CALIBFILE=/etc/pointercal");                  /*  触摸屏校准文件              */
     
     /*
-     *  如果可装载的应用程序模块使用了 SylixOS 模块初始化库, 
-     *  则模块可以动态分配的内存大小如下环境变量确定.
+     *  SO_MEM_PAGES:  应用程序初始堆内存空间页面数.
+     *  SO_MEM_MBYTES: 应用程序初始堆内存空间兆字节数 (优先被使用)
+     *  SO_MEM_DIRECT: 应用程序不允许使用缺页中断分配内存.
      */
 #if !defined(LW_CFG_CPU_ARCH_C6X)
     API_TShellExec("SO_MEM_PAGES=8192");                                /*  动态内存虚拟页面数量        */

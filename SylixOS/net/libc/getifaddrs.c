@@ -80,6 +80,7 @@ __init_ifaddrs_l (struct ifaddrs  *ifaddr)
     ifaddr->ifa_data    = NULL;
 }
 
+#if LWIP_IPV6
 static void
 __init_in6 (struct sockaddr_in6 *in6)
 {
@@ -89,6 +90,7 @@ __init_in6 (struct sockaddr_in6 *in6)
     in6->sin6_flowinfo = 0;
     in6->sin6_scope_id = 0;
 }
+#endif
 
 static void
 __init_ll (struct sockaddr_ll *ll)
@@ -110,6 +112,7 @@ __init_dl (struct sockaddr_dl *dl)
     dl->sdl_alen     = IFHWADDRLEN;
 }
 
+#if LWIP_IPV6
 static void
 __calc_mask (struct in6_addr *in6addr, uint32_t prefix)
 {
@@ -131,22 +134,25 @@ __calc_mask (struct in6_addr *in6addr, uint32_t prefix)
         }
     }
 }
+#endif
 
 int
 getifaddrs(struct ifaddrs **pif)
 {
     struct ifaddrs  *ifaddr;
     struct ifconf   conf;
+    struct ifreq    req[MAX_IF];
 
-    struct ifreq        req[MAX_IF];
+#if LWIP_IPV6
     struct in6_ifreq    req6;
     struct in6_ifr_addr in6ifraddr[MAX_IPV6];
+    int ipv6_num, j;
+#endif
 
     int err;
     int s;
     int if_num;
-    int ipv6_num;
-    int i, j;
+    int i;
 
     _DIAGASSERT(pif != NULL);
 
@@ -218,7 +224,9 @@ getifaddrs(struct ifaddrs **pif)
 
         /* get ipv6 address */
         ioctl(s, SIOCGIFINDEX, &req[i]);
-        netif_index          = req[i].ifr_ifindex;
+        netif_index = req[i].ifr_ifindex;
+
+#if LWIP_IPV6
         req6.ifr6_ifindex    = req[i].ifr_ifindex;
         req6.ifr6_len        = sizeof(in6ifraddr);
         req6.ifr6_addr_array = in6ifraddr;
@@ -257,6 +265,7 @@ getifaddrs(struct ifaddrs **pif)
             ifaddr6->ifa_next = NULL;
             ifaddr = ifaddr6;
         }
+#endif /* LWIP_IPV6 */
 
         if (ioctl(s, SIOCGIFHWADDR, &req[i]) == 0) {    /* get hwaddr */
             struct ifaddrs      *ifaddr_ll;

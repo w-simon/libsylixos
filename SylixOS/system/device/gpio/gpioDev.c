@@ -684,7 +684,7 @@ static INT  _gpiofdIoctl (PLW_GPIOFD_FILE pgpiofdfil,
     case FIOFSTATGET:
         pstatGet = (struct stat *)lArg;
         if (pstatGet) {
-            pstatGet->st_dev = (dev_t)&_G_gpiofddev;
+            pstatGet->st_dev = LW_DEV_MAKE_STDEV(&_G_gpiofddev.GD_devhdrHdr);
             if (GPIO_IS_ROOT(pgpiofdfil->GF_uiGpio)) {
                 pstatGet->st_ino  = (ino_t)0;
                 pstatGet->st_mode = 0666 | S_IFDIR;

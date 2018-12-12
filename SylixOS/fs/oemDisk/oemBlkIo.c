@@ -116,7 +116,7 @@ static INT  __blkIoFsLStat (PLW_BLKIO_DEV  pdevblk, PCHAR  pcName, struct stat  
         return  (PX_ERROR);
     }
 
-    pstat->st_dev     = (dev_t)pdevblk;
+    pstat->st_dev     = LW_DEV_MAKE_STDEV(&pdevblk->BLKIO_devhdrHdr);
     pstat->st_ino     = (ino_t)0;
     pstat->st_mode    = (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IFBLK);
     pstat->st_nlink   = 1;
@@ -401,7 +401,7 @@ static INT  __blkIoFsIoctl (PLW_BLKIO_DEV  pdevblk, INT  iRequest, LONG  lArg)
             return  (PX_ERROR);
         }
 
-        pstat->st_dev     = (dev_t)pdevblk;
+        pstat->st_dev     = LW_DEV_MAKE_STDEV(&pdevblk->BLKIO_devhdrHdr);
         pstat->st_ino     = (ino_t)0;
         pstat->st_mode    = (S_IRUSR | S_IWUSR | S_IFBLK);
         pstat->st_nlink   = 1;
