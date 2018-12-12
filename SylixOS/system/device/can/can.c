@@ -748,7 +748,7 @@ static INT __canIoctl (__CAN_DEV  *pcanDev, INT  iCmd, LONG  lArg)
             }
             break;
 
-        case FIOSYNC:                                                       /*  等待发送完成                */
+        case FIOSYNC:                                                   /*  等待发送完成                */
         case FIODATASYNC:
             iStatus = __canDrain(pcanDev);
             break;

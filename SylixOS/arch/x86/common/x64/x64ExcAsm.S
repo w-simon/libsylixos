@@ -118,7 +118,7 @@ FUNC_DEF(x86IntEntry\Id)
 2:
     MOV     $\Id , X86_64_ARG0
     MOV     %R12 , X86_64_ARG1
-    LEA     _G_pfuncX86IntHandleArray , %RAX
+    MOVABSQ $_G_pfuncX86IntHandleArray , %RAX
     CALL    *(\Id * 8)(%RAX)
 
     CALL    API_InterExit
@@ -168,7 +168,7 @@ FUNC_DEF(x86IntEntry\Id)
 2:
     MOV     $\Id , X86_64_ARG0
     MOV     %R12 , X86_64_ARG1
-    LEA     _G_pfuncX86IntHandleArray , %RAX
+    MOVABSQ $_G_pfuncX86IntHandleArray , %RAX
     CALL    *(\Id * 8)(%RAX)
 
     CALL    API_InterExit

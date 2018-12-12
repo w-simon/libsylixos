@@ -112,8 +112,10 @@ FUNC_DEF(x86CacheClearPen4Hw)
     ;/*
      ;* stBytes += ((addr_t)pvAdrs % _G_stX86CacheFlushBytes);
      ;*/
-    MOV     _G_stX86CacheFlushBytes , %RDX                              ;/*  Get stFlushBytes in RDX     */
-    SUB     $1 , %RDX                                                   ;/*  Create lowerbit mask        */
+    MOVABSQ $_G_stX86CacheFlushBytes , %R9                              ;/*  Get stFlushBytes in R11     */
+    MOVQ    0(%R9) , %R11
+    MOVQ    %R11 , %RDX                                                 ;/*  Get stFlushBytes in RDX     */
+    SUB     $1   , %RDX                                                 ;/*  Create lowerbit mask        */
     AND     %RDX , %R8                                                  ;/*  Get the lowerbit stRem      */
     ADD     %R8  , %RDI                                                 ;/*  Add the stRem to stBytes    */
 
@@ -125,14 +127,14 @@ FUNC_DEF(x86CacheClearPen4Hw)
     AND     %RDX , %RCX                                                 ;/*  Get the lowerbit stRem      */
     JZ      __cachePen4Flush0                                           ;/*  Skip if (stRem == 0)        */
     SUB     %RCX , %RDI                                                 ;/*  Sub the stRem from stBytes  */
-    ADD     _G_stX86CacheFlushBytes , %RDI                              ;/*  Add the flushBytes          */
+    ADD     %R11 , %RDI                                                 ;/*  Add the flushBytes          */
 
 LINE_LABEL(__cachePen4Flush0)
     ;/*
      ;* ulLoopCount = stBytes / _G_stX86CacheFlushBytes;
      ;*/
-    BSF     _G_stX86CacheFlushBytes , %RCX                              ;/*  Find the LSB, RCX=[0-63]    */
-    SHR     %CL , %RDI                                                  ;/*  Shift right RCX bit         */
+    BSF     %R11 , %RCX                                                 ;/*  Find the LSB, RCX=[0-63]    */
+    SHR     %CL  , %RDI                                                 ;/*  Shift right RCX bit         */
 
     ;/*
      ;* pvAdrs -= ((addr_t)pvAdrs % _G_stX86CacheFlushBytes);
@@ -151,7 +153,7 @@ LINE_LABEL(__cachePen4Flush0)
 
 LINE_LABEL(__cachePen4FlushLoop)
     CLFLUSH (%R8)                                                       ;/*  Flush the line              */
-    ADD     _G_stX86CacheFlushBytes , %R8                               ;/*  (addr_t)pvAdrs += flushBytes*/
+    ADD     %R11 , %R8                                                  ;/*  (addr_t)pvAdrs += flushBytes*/
     LOOP    __cachePen4FlushLoop                                        ;/*  Loop if (--RCX != 0)        */
 
 LINE_LABEL(__cachePen4Ret)

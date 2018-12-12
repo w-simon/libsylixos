@@ -95,8 +95,10 @@ __POST_STRIP_CMD = $($(@F)_POST_STRIP_CMD)
 #*********************************************************************************************************
 # Do not export the following environment variables 
 #*********************************************************************************************************
+unexport CPATH
 unexport C_INCLUDE_PATH
 unexport CPLUS_INCLUDE_PATH
+unexport OBJC_INCLUDE_PATH
 unexport LIBRARY_PATH
 unexport LD_LIBRARY_PATH
 

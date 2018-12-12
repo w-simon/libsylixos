@@ -63,7 +63,7 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
 ARCH_KO_CFLAGS   = -mcmodel=large
 ARCH_KO_LDFLAGS  = -nostdlib -r
 
-ARCH_KLIB_CFLAGS =
+ARCH_KLIB_CFLAGS = -mcmodel=large
 
 ARCH_KERNEL_CFLAGS  = -mcmodel=kernel
 ARCH_KERNEL_LDFLAGS = -z max-page-size=4096
@@ -361,7 +361,7 @@ ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC
 ARCH_KO_CFLAGS   = -Wa,-mno-force2bsr
 ARCH_KO_LDFLAGS  = -nostdlib -r
 
-ARCH_KLIB_CFLAGS =  -Wa,-mno-force2bsr
+ARCH_KLIB_CFLAGS = -Wa,-mno-force2bsr
 
 ARCH_KERNEL_CFLAGS  =
 ARCH_KERNEL_LDFLAGS =

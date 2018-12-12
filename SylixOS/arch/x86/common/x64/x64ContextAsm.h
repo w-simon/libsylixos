@@ -104,7 +104,7 @@ MACRO_DEF(SAVE_REGS)
     MOV     %RBP , XRBP(%RAX)
     MOV     %RSP , XRSP(%RAX)
 
-    MOV     $archResumePc , %RCX
+    MOVABSQ $archResumePc , %RCX
     MOV     %RCX , XRIP(%RAX)
 
     MOVW    %CS  , XCS(%RAX)
