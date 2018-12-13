@@ -235,32 +235,32 @@ static LW_INLINE INT64  __LW_ATOMIC64_ADD (INT64  i64Val, atomic64_t  *patomic64
 
 static LW_INLINE INT64  __LW_ATOMIC64_SUB (INT64  i64Val, atomic64_t  *patomic64)
 {
-    return  (archAtomic64Sub(iVal, patomic));
+    return  (archAtomic64Sub(i64Val, patomic64));
 }
 
 static LW_INLINE INT64  __LW_ATOMIC64_AND (INT64  i64Val, atomic64_t  *patomic64)
 {
-    return  (archAtomic64And(iVal, patomic));
+    return  (archAtomic64And(i64Val, patomic64));
 }
 
 static LW_INLINE INT64  __LW_ATOMIC64_OR (INT64  i64Val, atomic64_t  *patomic64)
 {
-    return  (archAtomic64Or(iVal, patomic));
+    return  (archAtomic64Or(i64Val, patomic64));
 }
 
 static LW_INLINE INT64  __LW_ATOMIC64_XOR (INT64  i64Val, atomic64_t  *patomic64)
 {
-    return  (archAtomic64Xor(iVal, patomic));
+    return  (archAtomic64Xor(i64Val, patomic64));
 }
 
 static LW_INLINE VOID  __LW_ATOMIC64_SET (INT64  i64Val, atomic64_t  *patomic64)
 {
-    archAtomic64Set(iVal, patomic);
+    archAtomic64Set(i64Val, patomic64);
 }
 
 static LW_INLINE INT64  __LW_ATOMIC64_GET (atomic64_t  *patomic64)
 {
-    return  (archAtomic64Get(patomic));
+    return  (archAtomic64Get(patomic64));
 }
 
 static LW_INLINE INT64  __LW_ATOMIC64_SWP (INT64  i64Val, atomic64_t  *patomic64)

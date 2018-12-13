@@ -187,7 +187,7 @@ INT  stat (CPCHAR  pcName, struct stat *pstat)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDONLY | O_NONBLOCK, 0);
+    iFd = open(pcName, O_RDONLY | O_PEEKONLY, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -222,7 +222,7 @@ INT  stat64 (CPCHAR  pcName, struct stat64 *pstat64)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDONLY | O_NONBLOCK, 0);
+    iFd = open(pcName, O_RDONLY | O_PEEKONLY, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -305,7 +305,7 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
     }
     
     for (;;) {
-        lValue = iosOpen(pdevhdrHdr, cFullFileName, O_RDONLY, 0);
+        lValue = iosOpen(pdevhdrHdr, cFullFileName, O_RDONLY | O_PEEKONLY, 0);
         if (lValue != FOLLOW_LINK_TAIL) {                               /*  FOLLOW_LINK_FILE 直接退出   */
             break;
         
@@ -331,7 +331,7 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
     }
     
     if ((lValue != PX_ERROR) && (lValue != FOLLOW_LINK_FILE)) {
-        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY, FDSTAT_CLOSING);
+        _IosFileSet(pfdentry, pdevhdrHdr, lValue, O_RDONLY | O_PEEKONLY, FDSTAT_CLOSING);
         _IosFileClose(pfdentry);                                        /*  关闭                        */
     }
     
@@ -430,7 +430,7 @@ INT  statfs (CPCHAR  pcName, struct statfs *pstatfs)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDONLY | O_NONBLOCK, 0);
+    iFd = open(pcName, O_RDONLY | O_PEEKONLY, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -825,7 +825,7 @@ LW_API
 INT  access (CPCHAR pcPath, INT  iMode)
 {
     REGISTER INT          iError;
-    REGISTER INT          iFd = open(pcPath, O_RDONLY | O_NONBLOCK, 0);
+    REGISTER INT          iFd = open(pcPath, O_RDONLY | O_PEEKONLY, 0);
              struct stat  statFile;
     
     if (iFd < 0) {

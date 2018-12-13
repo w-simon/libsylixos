@@ -240,6 +240,9 @@ INT  _PipeIoctl (PLW_PIPE_DEV  p_pipedev,
         *piArgPtr = (INT)ulTemp;
         break;
         
+    case FIOPIPEBLOCK:                                                  /*  尝试阻塞                    */
+        break;
+        
     case FIOFLUSH:                                                      /*  清空数据                    */
         API_MsgQueueClear(p_pipedev->PIPEDEV_hMsgQueue);                /*  清除消息队列信息            */
         SEL_WAKE_UP_ALL(&p_pipedev->PIPEDEV_selwulList, SELWRITE);      /*  数据可以写入了              */

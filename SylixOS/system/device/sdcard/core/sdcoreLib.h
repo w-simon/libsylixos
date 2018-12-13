@@ -59,6 +59,7 @@ INT API_SdCoreDevSelect(PLW_SDCORE_DEVICE psdcoredevice);
 INT API_SdCoreDevDeSelect(PLW_SDCORE_DEVICE psdcoredevice);
 INT API_SdCoreDevSetBusWidth(PLW_SDCORE_DEVICE psdcoredevice, INT iBusWidth);
 INT API_SdCoreDevSetBlkLen(PLW_SDCORE_DEVICE psdcoredevice, INT iBlkLen);
+INT API_SdCoreDevSetBlkLenRaw(PLW_SDCORE_DEVICE psdcoredevice, INT iBlkLen);
 INT API_SdCoreDevGetStatus(PLW_SDCORE_DEVICE psdcoredevice, UINT32 *puiStatus);
 INT API_SdCoreDevSetPreBlkLen(PLW_SDCORE_DEVICE psdcoredevice, INT iPreBlkLen);
 INT API_SdCoreDevIsBlockAddr(PLW_SDCORE_DEVICE psdcoredevice, BOOL *pbResult);

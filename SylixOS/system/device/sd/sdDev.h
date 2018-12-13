@@ -96,7 +96,15 @@ typedef struct lw_sddev_csd {
 #define MMC_VERSION_1_4     (MMC_VERSION_MMC | 0x14)
 #define MMC_VERSION_2_2     (MMC_VERSION_MMC | 0x22)
 #define MMC_VERSION_3       (MMC_VERSION_MMC | 0x30)
-#define MMC_VERSION_4       (MMC_VERSION_MMC | 0x40)                    /*  this is for MMC card        */
+#define MMC_VERSION_4       (MMC_VERSION_MMC | 0x40)
+#define MMC_VERSION_4_1     (MMC_VERSION_MMC | 0x41)
+#define MMC_VERSION_4_2     (MMC_VERSION_MMC | 0x42)
+#define MMC_VERSION_4_3     (MMC_VERSION_MMC | 0x43)
+#define MMC_VERSION_4_4     (MMC_VERSION_MMC | 0x44)
+#define MMC_VERSION_4_5     (MMC_VERSION_MMC | 0x45)
+#define MMC_VERSION_5_0     (MMC_VERSION_MMC | 0x50)
+#define MMC_VERSION_5_1     (MMC_VERSION_MMC | 0x51)
+#define MMC_VERSION_NEW     (MMC_VERSION_MMC | 0xff)                    /*  this is for MMC card        */
 
     UINT32      DEVCSD_uiTaccNs;
     UINT16      DEVCSD_usTaccClks;

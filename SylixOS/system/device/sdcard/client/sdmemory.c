@@ -32,6 +32,7 @@
 2015.12.17  增加对 MMC/eMMC 兼容性处理.
 2016.01.26  修正对 SPI 模式下的写块操作不符合协议的地方.
 2018.05.22  增加对 SD 卡仅能使用1位模式的处理.
+2018.12.10  修改对 MMC/eMMC 初始化和读写操作的兼容性提升.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -54,11 +55,15 @@ typedef struct __sd_blk_dev {
     PLW_SDCORE_DEVICE     SDBLKDEV_pcoreDev;
     BOOL                  SDBLKDEV_bIsBlockAddr;                        /*  是否是块寻址                */
     BOOL                  SDBLKDEV_bNeedReSelect;                       /*  是否需要重新选择设备        */
+    BOOL                  SDBLKDEV_bNeedReSetBlkSize;                   /*  每次传输需要设置块大小      */
+    BOOL                  SDBLKDEV_bNeedReCalcBlkCnt;                   /*  每次传输需要重计算实际块数  */
+    UINT8                 SDBLKDEV_ucRdBlkLenBits;
+    UINT8                 SDBLKDEV_ucWrBlkLenBits;
     ULONG                 SDBLKDEV_ulSectorOff;                         /*  扇区访问偏移                */
     ULONG                 SDBLKDEV_ulDiskNSector;                       /*  挂载磁盘的实际扇区数量      */
     LW_BLK_INFO           SDBLKDEV_blkinfo;
     
-	/*
+    /*
      * 增加 SDM 后, 为了保持 API 不变, 增加以下成员
      */
     BOOL                  SDBLKDEV_bCoreDevSelf;                        /*  coredev 是自己创建(非SDM给) */
@@ -105,9 +110,9 @@ static INT __sdMemRdMultiBlk(PLW_SDCORE_DEVICE  psdcoredevice,
                              UINT32             uiNBlks);
 
 static INT __sdMemBlkWrt(__PSD_BLK_DEV   psdblkdevice,
-                        VOID            *pvWrtBuffer,
-                        ULONG            ulStartBlk,
-                        ULONG            ulBlkCount);
+                         VOID            *pvWrtBuffer,
+                         ULONG            ulStartBlk,
+                         ULONG            ulBlkCount);
 static INT __sdMemBlkRd(__PSD_BLK_DEV   psdblkdevice,
                         VOID           *pvRdBuffer,
                         ULONG           ulStartBlk,
@@ -130,7 +135,10 @@ static INT __sdMemMmcFreqChange(PLW_SDCORE_DEVICE  psdcoredevice,
                                 LW_SDDEV_CSD      *psdcsd,
                                 INT               *piCardCap);
 static INT __sdMemMmcBusWidthChange(PLW_SDCORE_DEVICE psdcoredevice, INT iCardCap);
+
 static CPCHAR __sdMemProtVsnStr(UINT8 ucType, UINT8 ucVsn);
+static ULONG  __sdMemBlkLogic2Phy(ULONG ulLogic, UINT8 ucBlkLenBits);
+static ULONG  __sdMemBlkPhy2Logic(ULONG ulPhy, UINT8 ucBlkLenBits);
 /*********************************************************************************************************
 ** 函数名称: API_SdMemDevCreate
 ** 功能描述: 创建一个SD记忆卡设备
@@ -148,17 +156,22 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
                                        CPCHAR                    pcDeviceName,
                                        PLW_SDMEM_CHAN            psdmemchan)
 {
-    PLW_SDCORE_DEVICE   psdcoredevice   = LW_NULL;
-    __PSD_BLK_DEV       psdblkdevice    = LW_NULL;
-    PLW_BLK_DEV         pblkdevice      = LW_NULL;
-    PLW_SDCORE_CHAN     psdcorechan     = LW_NULL;
-    BOOL                bCoreDevSelf    = LW_TRUE;
+    PLW_SDCORE_DEVICE   psdcoredevice     = LW_NULL;
+    __PSD_BLK_DEV       psdblkdevice      = LW_NULL;
+    PLW_BLK_DEV         pblkdevice        = LW_NULL;
+    PLW_SDCORE_CHAN     psdcorechan       = LW_NULL;
+    BOOL                bCoreDevSelf      = LW_TRUE;
+    BOOL                bNeedReSelect     = LW_FALSE;
+    BOOL                bNeedReSetBlkSize = LW_FALSE;
+    BOOL                bNeedReCalcBlkCnt = LW_FALSE;
 
     LW_SDDEV_CSD        sddevcsd;
     BOOL                bBlkAddr;
     INT                 iBlkDevFlag;
     ULONG               ulSectorOff;
     ULONG               ulReSelect;
+
+    UINT8               ucType;
     INT                 iError;
 
     /*
@@ -208,6 +221,8 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
 
     }
 
+    API_SdCoreDevTypeView(psdcoredevice, &ucType);
+
     iError = API_SdCoreDevCsdView(psdcoredevice, &sddevcsd);
     if (iError != ERROR_NONE) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "view csd of device failed.\r\n");
@@ -234,6 +249,7 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
 
     if (API_SdmHostIsCardWp(psdcoredevice)) {
         iBlkDevFlag = O_RDONLY;
+
     } else {
         iBlkDevFlag = O_RDWR;
     }
@@ -242,11 +258,22 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
                          SDHOST_EXTOPT_CONFIG_FLAG_GET,
                          (LONG)&ulReSelect);
 
-    if (ulReSelect & SDHOST_EXTOPT_CONFIG_RESELECT_SDMEM) {
-        psdblkdevice->SDBLKDEV_bNeedReSelect = LW_TRUE;
-    } else {
-        psdblkdevice->SDBLKDEV_bNeedReSelect = LW_FALSE;
-        API_SdCoreDevSelect(psdcoredevice);                             /*  只在这里调用一次            */
+    if (ucType != SDDEV_TYPE_MMC) {
+        if (ulReSelect & SDHOST_EXTOPT_CONFIG_RESELECT_SDMEM) {
+            bNeedReSelect = LW_TRUE;
+
+        } else {
+            API_SdCoreDevSelect(psdcoredevice);                       /*  只在这里调用一次              */
+        }
+    }
+
+    if (sddevcsd.DEVCSD_ucWriteBlkLenBits != sddevcsd.DEVCSD_ucReadBlkLenBits) {
+        bNeedReSetBlkSize = LW_TRUE;
+    }
+
+    if ((sddevcsd.DEVCSD_ucReadBlkLenBits  != SD_MEM_DEFAULT_BLKSIZE_NBITS) ||
+        (sddevcsd.DEVCSD_ucWriteBlkLenBits != SD_MEM_DEFAULT_BLKSIZE_NBITS)) {
+        bNeedReCalcBlkCnt = LW_TRUE;
     }
 
     API_SdmHostExtOptGet(psdcoredevice,
@@ -257,11 +284,23 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
         ulSectorOff = 0;
     }
 
-    psdblkdevice->SDBLKDEV_bIsBlockAddr  = bBlkAddr;                    /*  设置寻址方式                */
-    psdblkdevice->SDBLKDEV_pcoreDev      = psdcoredevice;               /*  连接核心设备                */
-    psdblkdevice->SDBLKDEV_bCoreDevSelf  = bCoreDevSelf;
-    psdblkdevice->SDBLKDEV_ulSectorOff   = ulSectorOff;
-    psdblkdevice->SDBLKDEV_ulDiskNSector = sddevcsd.DEVCSD_uiCapacity - ulSectorOff;
+    psdblkdevice->SDBLKDEV_bIsBlockAddr      = bBlkAddr;                /*  设置寻址方式                */
+    psdblkdevice->SDBLKDEV_pcoreDev          = psdcoredevice;           /*  连接核心设备                */
+    psdblkdevice->SDBLKDEV_bCoreDevSelf      = bCoreDevSelf;
+    psdblkdevice->SDBLKDEV_bNeedReSelect     = bNeedReSelect;
+    psdblkdevice->SDBLKDEV_bNeedReSetBlkSize = bNeedReSetBlkSize;
+    psdblkdevice->SDBLKDEV_bNeedReCalcBlkCnt = bNeedReCalcBlkCnt;
+    psdblkdevice->SDBLKDEV_ucRdBlkLenBits    = sddevcsd.DEVCSD_ucReadBlkLenBits;
+    psdblkdevice->SDBLKDEV_ucWrBlkLenBits    = sddevcsd.DEVCSD_ucWriteBlkLenBits;
+    psdblkdevice->SDBLKDEV_ulSectorOff       = ulSectorOff;
+
+    /*
+     * 逻辑扇区大小为 512
+     * 需要将实际的扇区数转换为逻辑扇区数
+     */
+    psdblkdevice->SDBLKDEV_ulDiskNSector  = __sdMemBlkPhy2Logic((ULONG)sddevcsd.DEVCSD_uiCapacity,
+                                                                sddevcsd.DEVCSD_ucReadBlkLenBits)
+                                          - ulSectorOff;
 
     pblkdevice = &psdblkdevice->SDBLKDEV_blkDev;
 
@@ -375,6 +414,7 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
 
     if (sddevswcap.DEVSWCAP_uiHsMaxDtr) {
         uiMaxSpeed = sddevswcap.DEVSWCAP_uiHsMaxDtr;
+
     } else {
         uiMaxSpeed = sddevcsd.DEVCSD_uiTranSpeed;
     }
@@ -410,6 +450,7 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
     printf("Manufacturer : 0x%02X\n", sddevcid.DEVCID_ucMainFid);
     if (ucType == SDDEV_TYPE_MMC) {
         printf("OEM ID       : %08X\n", sddevcid.DEVCID_usOemId);
+
     } else {
         printf("OEM ID       : %c%c\n", sddevcid.DEVCID_usOemId >> 8,
                                         sddevcid.DEVCID_usOemId & 0xff);
@@ -428,6 +469,8 @@ LW_API INT  API_SdMemDevShow (PLW_BLK_DEV pblkdevice)
     printf("Date         : %d/%02d\n", sddevcid.DEVCID_uiYear, sddevcid.DEVCID_ucMonth);
     printf("Max Speed    : %dMB/s\n", uiMaxSpeed / __SD_MILLION);
     printf("Capacity     : %u.%03u MB\n", (UINT32)(ullCap / LW_CFG_MB_SIZE), uiCapMod / 1000);
+    printf("Block Size   : %d(R) %d(W)\n", 1 << psdblkdevice->SDBLKDEV_ucRdBlkLenBits,
+                                           1 << psdblkdevice->SDBLKDEV_ucWrBlkLenBits);
 
     return  (ERROR_NONE);
 }
@@ -562,10 +605,12 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
         if (ucType == SDDEV_TYPE_MMC) {
             uiRCA = 0x01;
             iError = API_SdCoreDevMmcSetRelativeAddr(psdcoredevice, uiRCA);
+
         } else {
             iError = API_SdCoreDevSendRelativeAddr(psdcoredevice, &uiRCA);
                                                                         /*  cmd3                        */
-        } if (iError != ERROR_NONE) {
+        }
+        if (iError != ERROR_NONE) {
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "get device rca failed.\r\n");
             return  (PX_ERROR);
         }
@@ -580,16 +625,25 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
 
         if (ucType == SDDEV_TYPE_MMC) {
             LW_SDDEV_EXT_CSD  sddevextcsd;
-            lib_bzero(&sddevextcsd, sizeof(sddevextcsd));
-            API_SdCoreDevSelect(psdcoredevice);
-            API_SdCoreDecodeExtCSD(psdcoredevice, &sddevcsd, &sddevextcsd);
-            API_SdCoreDevDeSelect(psdcoredevice);
-        }
 
-        sddevcsd.DEVCSD_uiCapacity       <<= sddevcsd.DEVCSD_ucReadBlkLenBits - \
-                                             SD_MEM_DEFAULT_BLKSIZE_NBITS;
-        sddevcsd.DEVCSD_ucReadBlkLenBits   = SD_MEM_DEFAULT_BLKSIZE_NBITS;
-        sddevcsd.DEVCSD_ucWriteBlkLenBits  = SD_MEM_DEFAULT_BLKSIZE_NBITS;
+            iError = API_SdCoreDevCtl(psdcoredevice,
+                                      SDBUS_CTRL_SETCLK,
+                                      SDARG_SETCLK_NORMAL);
+            if (iError != ERROR_NONE) {
+                SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set clock to normal failed.\r\n");
+                return  (PX_ERROR);
+            }
+
+            lib_bzero(&sddevextcsd, sizeof(sddevextcsd));
+            API_SdCoreDevSelect(psdcoredevice);                         /*  MMC 只需在这里选择卡一次    */
+            API_SdCoreDecodeExtCSD(psdcoredevice, &sddevcsd, &sddevextcsd);
+
+        } else {
+            sddevcsd.DEVCSD_uiCapacity       <<= sddevcsd.DEVCSD_ucReadBlkLenBits
+                                               - SD_MEM_DEFAULT_BLKSIZE_NBITS;
+            sddevcsd.DEVCSD_ucReadBlkLenBits   = SD_MEM_DEFAULT_BLKSIZE_NBITS;
+            sddevcsd.DEVCSD_ucWriteBlkLenBits  = SD_MEM_DEFAULT_BLKSIZE_NBITS;
+        }
 
         API_SdCoreDevCsdSet(psdcoredevice, &sddevcsd);                  /*  设置CSD域                   */
         API_SdCoreDevCidSet(psdcoredevice, &sddevcid);                  /*  设置CID域                   */
@@ -633,23 +687,16 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
 
             if ((iHostCap & SDHOST_CAP_DATA_4BIT) &&
                 !(iHostCap & SDHOST_CAP_SD_FORCE_1BIT)) {
-            	iError = API_SdCoreDevSetBusWidth(psdcoredevice, SDARG_SETBUSWIDTH_4);
+                iError = API_SdCoreDevSetBusWidth(psdcoredevice, SDARG_SETBUSWIDTH_4);
                                                                         /*  acmd6 set bus width         */
-            	if (iError != ERROR_NONE) {
-            		SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set bus width error.\r\n");
-            		return  (PX_ERROR);
-            	}
-            	API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4);
+                if (iError != ERROR_NONE) {
+                    SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set bus width error.\r\n");
+                    return  (PX_ERROR);
+                }
+                API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4);
             }
 
         } else {                                                        /*  mmc 总线特殊设置            */
-            iError = API_SdCoreDevSetBlkLen(psdcoredevice, SD_MEM_DEFAULT_BLKSIZE);
-            if (iError != ERROR_NONE) {
-                SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "set blklen failed.\r\n");
-                return  (PX_ERROR);
-            }
-
-            API_SdCoreDevSelect(psdcoredevice);
             iError = __sdMemMmcFreqChange(psdcoredevice, &sddevcsd, &iCardCap);
             if (iError != ERROR_NONE) {
                 SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "mmc change frequency error.\r\n");
@@ -661,8 +708,25 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
                 SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "mmc change bus width error.\r\n");
                 return  (PX_ERROR);
             }
-            API_SdCoreDevDeSelect(psdcoredevice);
+
+            /*
+             * MMC 扇区大小配置为不超过512
+             */
+            if (sddevcsd.DEVCSD_ucReadBlkLenBits > SD_MEM_DEFAULT_BLKSIZE_NBITS) {
+                sddevcsd.DEVCSD_uiCapacity       <<= sddevcsd.DEVCSD_ucReadBlkLenBits
+                                                   - SD_MEM_DEFAULT_BLKSIZE_NBITS;
+                sddevcsd.DEVCSD_ucReadBlkLenBits   = SD_MEM_DEFAULT_BLKSIZE_NBITS;
+            }
+
+            if (sddevcsd.DEVCSD_ucWriteBlkLenBits > SD_MEM_DEFAULT_BLKSIZE_NBITS) {
+                sddevcsd.DEVCSD_ucWriteBlkLenBits = SD_MEM_DEFAULT_BLKSIZE_NBITS;
+            }
+
+            if (sddevcsd.DEVCSD_ucReadBlkLenBits == sddevcsd.DEVCSD_ucWriteBlkLenBits) {
+                API_SdCoreDevSetBlkLenRaw(psdcoredevice, 1 << sddevcsd.DEVCSD_ucReadBlkLenBits);
+            }
         }
+
         return  (ERROR_NONE);
 
     case SDADAPTER_TYPE_SPI:
@@ -737,12 +801,13 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
 
         if (ucType == SDDEV_TYPE_MMC) {
             LW_SDDEV_EXT_CSD  sddevextcsd;
+
             lib_bzero(&sddevextcsd, sizeof(sddevextcsd));
             API_SdCoreDecodeExtCSD(psdcoredevice, &sddevcsd, &sddevextcsd);
         }
 
-        sddevcsd.DEVCSD_uiCapacity       <<= sddevcsd.DEVCSD_ucReadBlkLenBits - \
-                                             SD_MEM_DEFAULT_BLKSIZE_NBITS;
+        sddevcsd.DEVCSD_uiCapacity       <<= sddevcsd.DEVCSD_ucReadBlkLenBits
+                                           - SD_MEM_DEFAULT_BLKSIZE_NBITS;
         sddevcsd.DEVCSD_ucReadBlkLenBits   = SD_MEM_DEFAULT_BLKSIZE_NBITS;
         sddevcsd.DEVCSD_ucWriteBlkLenBits  = SD_MEM_DEFAULT_BLKSIZE_NBITS;
 
@@ -873,6 +938,7 @@ static INT __sdMemWrtMultiBlk (PLW_SDCORE_DEVICE  psdcoredevice,
         sdcmdStop.SDCMD_uiOpcode = SD_STOP_TRANSMISSION;
         sdcmdStop.SDCMD_uiFlag   = SD_RSP_SPI_R1B | SD_RSP_R1B | SD_CMD_AC;
         sdmsg.SDMSG_psdcmdStop   = &sdcmdStop;                          /*  停止命令                    */
+
     } else {
         sdmsg.SDMSG_psdcmdStop   = LW_NULL;
     }
@@ -893,6 +959,7 @@ static INT __sdMemWrtMultiBlk (PLW_SDCORE_DEVICE  psdcoredevice,
      */
     if (COREDEV_IS_SPI(psdcoredevice)) {
         API_SdCoreSpiMulWrtStop(psdcoredevice);
+
     } else {
         iError = __sdMemTestBusy(psdcoredevice, __SD_BUSY_TYPE_PROG);
         if (iError != ERROR_NONE) {
@@ -1029,15 +1096,15 @@ static INT __sdMemRdMultiBlk (PLW_SDCORE_DEVICE   psdcoredevice,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT __sdMemBlkWrt(__PSD_BLK_DEV   psdblkdevice,
-                         VOID           *pvWrtBuffer,
-                         ULONG           ulStartBlk,
-                         ULONG           ulBlkCount)
+static INT __sdMemBlkWrt (__PSD_BLK_DEV   psdblkdevice,
+                          VOID           *pvWrtBuffer,
+                          ULONG           ulStartBlk,
+                          ULONG           ulBlkCount)
 {
     INT                iError;
     INT                iDevSta;
     PLW_SDCORE_DEVICE  psdcoredevice;
-    LW_SDDEV_CSD       sddevcsd;
+    UINT8              ucBlkLenBits;
 
     if (!psdblkdevice || !pvWrtBuffer) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
@@ -1050,6 +1117,8 @@ static INT __sdMemBlkWrt(__PSD_BLK_DEV   psdblkdevice,
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "no core device member.\r\n");
         return  (PX_ERROR);
     }
+
+    ucBlkLenBits = psdblkdevice->SDBLKDEV_ucWrBlkLenBits;
 
     iDevSta = API_SdCoreDevStaView(psdcoredevice);
     if (iDevSta != SD_DEVSTA_EXIST) {
@@ -1065,7 +1134,9 @@ static INT __sdMemBlkWrt(__PSD_BLK_DEV   psdblkdevice,
         }
     }
 
-    API_SdCoreDevCsdView(psdcoredevice, &sddevcsd);
+    if (psdblkdevice->SDBLKDEV_bNeedReSetBlkSize) {
+        API_SdCoreDevSetBlkLenRaw(psdcoredevice, 1 << ucBlkLenBits);
+    }
 
     ulStartBlk += psdblkdevice->SDBLKDEV_ulSectorOff;
     if ((ulStartBlk + ulBlkCount) > psdblkdevice->SDBLKDEV_ulDiskNSector) {
@@ -1074,15 +1145,21 @@ static INT __sdMemBlkWrt(__PSD_BLK_DEV   psdblkdevice,
         goto    __error_handle;
     }
 
+    if (psdblkdevice->SDBLKDEV_bNeedReCalcBlkCnt) {
+        ulStartBlk = __sdMemBlkLogic2Phy(ulStartBlk, ucBlkLenBits);
+        ulBlkCount = __sdMemBlkLogic2Phy(ulBlkCount, ucBlkLenBits);
+    }
+
     /*
      * 块地址转换
      */
     if (!__SDMEM_BLKADDR(psdblkdevice)) {
-        ulStartBlk = ulStartBlk << sddevcsd.DEVCSD_ucWriteBlkLenBits;
+        ulStartBlk <<= ucBlkLenBits;
     }
 
     if (ulBlkCount <= 1) {
         iError = __sdMemWrtSingleBlk(psdcoredevice, (UINT8 *)pvWrtBuffer, (UINT32)ulStartBlk);
+
     } else {
         iError = __sdMemWrtMultiBlk(psdcoredevice, (UINT8 *)pvWrtBuffer,
                                     (UINT32)ulStartBlk, (UINT32)ulBlkCount);
@@ -1096,7 +1173,7 @@ __error_handle:
     return  (iError);
 }
 /*********************************************************************************************************
-** 函数名称: __sdMemBlkWrt
+** 函数名称: __sdMemBlkRd
 ** 功能描述: SD记忆卡块设备读
 ** 输    入: psdblkdevice   块设备结构
 **           pvRdBuffer     读缓冲
@@ -1115,7 +1192,7 @@ static INT __sdMemBlkRd (__PSD_BLK_DEV   psdblkdevice,
     INT                iError;
     INT                iDevSta;
     PLW_SDCORE_DEVICE  psdcoredevice;
-    LW_SDDEV_CSD       sddevcsd;
+    UINT8              ucBlkLenBits;
 
     if (!psdblkdevice || !pvRdBuffer) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
@@ -1128,6 +1205,8 @@ static INT __sdMemBlkRd (__PSD_BLK_DEV   psdblkdevice,
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "no core device.\r\n");
         return  (PX_ERROR);
     }
+
+    ucBlkLenBits = psdblkdevice->SDBLKDEV_ucRdBlkLenBits;
 
     iDevSta = API_SdCoreDevStaView(psdcoredevice);
     if (iDevSta != SD_DEVSTA_EXIST) {
@@ -1143,7 +1222,9 @@ static INT __sdMemBlkRd (__PSD_BLK_DEV   psdblkdevice,
         }
     }
 
-    API_SdCoreDevCsdView(psdcoredevice, &sddevcsd);
+    if (psdblkdevice->SDBLKDEV_bNeedReSetBlkSize) {
+        API_SdCoreDevSetBlkLenRaw(psdcoredevice, 1 << ucBlkLenBits);
+    }
 
     ulStartBlk += psdblkdevice->SDBLKDEV_ulSectorOff;
     if ((ulStartBlk + ulBlkCount) > psdblkdevice->SDBLKDEV_ulDiskNSector) {
@@ -1152,15 +1233,21 @@ static INT __sdMemBlkRd (__PSD_BLK_DEV   psdblkdevice,
         goto    __error_handle;
     }
 
+    if (psdblkdevice->SDBLKDEV_bNeedReCalcBlkCnt) {
+        ulStartBlk = __sdMemBlkLogic2Phy(ulStartBlk, ucBlkLenBits);
+        ulBlkCount = __sdMemBlkLogic2Phy(ulBlkCount, ucBlkLenBits);
+    }
+
     /*
      * 块地址转换
      */
     if (!__SDMEM_BLKADDR(psdblkdevice)) {
-        ulStartBlk = ulStartBlk << sddevcsd.DEVCSD_ucReadBlkLenBits;
+        ulStartBlk <<= ucBlkLenBits;
     }
 
     if (ulBlkCount <= 1) {
         iError = __sdMemRdSingleBlk(psdcoredevice, (UINT8 *)pvRdBuffer, (UINT32)ulStartBlk);
+
     } else {
         iError = __sdMemRdMultiBlk(psdcoredevice, (UINT8 *)pvRdBuffer,
                                    (UINT32)ulStartBlk, (UINT32)ulBlkCount);
@@ -1220,7 +1307,7 @@ static INT __sdMemIoctl (__PSD_BLK_DEV    psdblkdevice,
 
     case LW_BLKD_GET_SECNUM:
         API_SdCoreDevCsdView(psdblkdevice->SDBLKDEV_pcoreDev, &sdcsd);
-        *((UINT32 *)lArg) = sdcsd.DEVCSD_uiCapacity;
+        *((ULONG *)lArg) = psdblkdevice->SDBLKDEV_ulDiskNSector;
         break;
 
     case LW_BLKD_CTRL_INFO:
@@ -1292,18 +1379,21 @@ static INT __sdMemBlkInfoFmt (__PSD_BLK_DEV psdblkdevice)
 
     pcVsnStr = __sdMemProtVsnStr(ucType, sddevcsd.DEVCSD_ucStructure);
 
-    snprintf(pblkinfo->BLKI_cSerial, 32,
+    snprintf(pblkinfo->BLKI_cSerial,
+             LW_BLKD_CTRL_INFO_STR_SZ,
              "%08X",
              sddevcid.DEVCID_uiSerialNum);
 
-    snprintf(pblkinfo->BLKI_cFirmware, 32,
+    snprintf(pblkinfo->BLKI_cFirmware,
+             LW_BLKD_CTRL_INFO_STR_SZ,
              "%d.%02d, v%d.%d",
              sddevcid.DEVCID_uiYear,
              sddevcid.DEVCID_ucMonth,
              sddevcid.DEVCID_ucProductVsn >> 4,
              sddevcid.DEVCID_ucProductVsn & 0xf);
 
-    snprintf(pblkinfo->BLKI_cProduct, 32,
+    snprintf(pblkinfo->BLKI_cProduct,
+             LW_BLKD_CTRL_INFO_STR_SZ,
              "%c%c%c%c%c %s memory card",
              __SD_CID_PNAME(0),
              __SD_CID_PNAME(1),
@@ -1312,10 +1402,13 @@ static INT __sdMemBlkInfoFmt (__PSD_BLK_DEV psdblkdevice)
              __SD_CID_PNAME(4),
              pcTypeStr);
 
-    snprintf(pblkinfo->BLKI_cMedia, 32,
-             "%s(%s)",
+    snprintf(pblkinfo->BLKI_cMedia,
+             LW_BLKD_CTRL_INFO_STR_SZ,
+             "%s(%s), %d(R) %d(W)",
              pcTypeStr,
-             pcVsnStr);
+             pcVsnStr,
+             1 << psdblkdevice->SDBLKDEV_ucRdBlkLenBits,
+             1 << psdblkdevice->SDBLKDEV_ucWrBlkLenBits);
 
     return  (ERROR_NONE);
 }
@@ -1398,6 +1491,38 @@ static CPCHAR __sdMemProtVsnStr (UINT8 ucType, UINT8 ucVsn)
             pcVsnStr = "v4.0";
             break;
 
+        case MMC_VERSION_4_1:
+            pcVsnStr = "v4.1";
+            break;
+
+        case MMC_VERSION_4_2:
+            pcVsnStr = "v4.2";
+            break;
+
+        case MMC_VERSION_4_3:
+            pcVsnStr = "v4.3";
+            break;
+
+        case MMC_VERSION_4_4:
+            pcVsnStr = "v4.4";
+            break;
+
+        case MMC_VERSION_4_5:
+            pcVsnStr = "v4.5";
+            break;
+
+        case MMC_VERSION_5_0:
+            pcVsnStr = "v5.0";
+            break;
+
+        case MMC_VERSION_5_1:
+            pcVsnStr = "v5.1";
+            break;
+
+        case MMC_VERSION_NEW:
+            pcVsnStr = "v5.2 or later";
+            break;
+
         default:
             pcVsnStr = "v1.2";
             break;
@@ -1405,6 +1530,48 @@ static CPCHAR __sdMemProtVsnStr (UINT8 ucType, UINT8 ucVsn)
     }
 
     return  (pcVsnStr);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemBlkLogic2Phy
+** 功能描述: 逻辑块数据到物理块数据转换
+** 输    入: ulLogic      逻辑块数据
+**           ucBlkLenBits 物理块大小(位数)
+** 输    出: NONE
+** 返    回: 物理块数据
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static ULONG __sdMemBlkLogic2Phy (ULONG ulLogic, UINT8 ucBlkLenBits)
+{
+    if (ucBlkLenBits > SD_MEM_DEFAULT_BLKSIZE_NBITS) {
+        ulLogic >>= ucBlkLenBits - SD_MEM_DEFAULT_BLKSIZE_NBITS;
+
+    } else {
+        ulLogic <<= SD_MEM_DEFAULT_BLKSIZE_NBITS - ucBlkLenBits;
+    }
+
+    return  (ulLogic);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemBlkPhy2Logic
+** 功能描述: 物理块数据到逻辑块数据转换
+** 输    入: ulPhy        物理块数据
+**           ucBlkLenBits 物理块大小(位数)
+** 输    出: NONE
+** 返    回: 逻辑块数据
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static ULONG __sdMemBlkPhy2Logic (ULONG ulPhy, UINT8 ucBlkLenBits)
+{
+    if (ucBlkLenBits > SD_MEM_DEFAULT_BLKSIZE_NBITS) {
+        ulPhy <<= ucBlkLenBits - SD_MEM_DEFAULT_BLKSIZE_NBITS;
+
+    } else {
+        ulPhy >>= SD_MEM_DEFAULT_BLKSIZE_NBITS - ucBlkLenBits;
+    }
+
+    return  (ulPhy);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdMemSdSwCapGet
@@ -1499,7 +1666,7 @@ static INT __sdMemMmcFreqChange (PLW_SDCORE_DEVICE  psdcoredevice,
     INT     iCapab  = 0;
 
     if (psdcsd->DEVCSD_ucStructure < MMC_VERSION_4) {
-        return	(ERROR_NONE);
+        return  (ERROR_NONE);
     }
 
     iError = API_SdCoreDevSendExtCSD(psdcoredevice, ucExtCSD);

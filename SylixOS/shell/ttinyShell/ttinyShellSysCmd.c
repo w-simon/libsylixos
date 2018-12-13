@@ -2720,7 +2720,7 @@ VOID  __tshellSysCmdInit (VOID)
                               "       O_RDWR     : 00000002\n"
                               "       O_APPEND   : 00000008\n"
                               "       O_SHLOCK   : 00000010\n"
-                              "       O_EXLOCK   : 00000020\n"
+                              "       O_EXLOCK   : 00000080\n"
                               "       O_ASYNC    : 00000040\n"
                               "       O_CREAT    : 00000200\n"
                               "       O_TRUNC    : 00000400\n"

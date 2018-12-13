@@ -316,6 +316,47 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
     uiExtCsdRev = pucExtCsd[EXT_CSD_REV];
     psdextcsd->DEVEXTCSD_uiBootSizeMulti = pucExtCsd[BOOT_SIZE_MULTI];
 
+    switch (uiExtCsdRev) {
+
+    case 0:
+        psdcsd->DEVCSD_ucStructure = MMC_VERSION_4;
+        break;
+
+    case 1:
+        psdcsd->DEVCSD_ucStructure = MMC_VERSION_4_1;
+        break;
+
+    case 2:
+        psdcsd->DEVCSD_ucStructure = MMC_VERSION_4_2;
+        break;
+
+    case 3:
+        psdcsd->DEVCSD_ucStructure = MMC_VERSION_4_3;
+        break;
+
+    case 5:
+        psdcsd->DEVCSD_ucStructure = MMC_VERSION_4_4;
+        break;
+
+    case 6:
+        psdcsd->DEVCSD_ucStructure = MMC_VERSION_4_5;
+        break;
+
+    case 7:
+        psdcsd->DEVCSD_ucStructure = MMC_VERSION_5_0;
+        break;
+
+    case 8:
+        psdcsd->DEVCSD_ucStructure = MMC_VERSION_5_1;
+        break;
+
+    default:
+        if (uiExtCsdRev > 8) {
+            psdcsd->DEVCSD_ucStructure = MMC_VERSION_NEW;
+        }
+        break;
+    }
+
     if (uiExtCsdRev >= 2) {
         psdextcsd->DEVEXTCSD_uiSectorCnt = (pucExtCsd[EXT_CSD_SEC_CNT + 0] << 0)
                                          | (pucExtCsd[EXT_CSD_SEC_CNT + 1] << 8)
@@ -1315,6 +1356,42 @@ INT API_SdCoreDevSetBlkLen (PLW_SDCORE_DEVICE psdcoredevice, INT iBlkLen)
     }
 
     return  (API_SdCoreDevDeSelect(psdcoredevice));
+}
+/*********************************************************************************************************
+ ** 函数名称: API_SdCoreDevSetBlkLenRaw
+ ** 功能描述: 设置记忆卡的块长度.该函数影响之后的数据读、写、锁定中的块大小参数.
+ **           但是在SDHC和SDXC中,只影响锁定命令中的参数(因为读写固定为512byte块大小).
+ **           该函数不进行卡的选择设置
+ ** 输    入: psdcoredevice   设备结构指针
+ **           iBlkLen         块大小
+ ** 输    出: NONE
+ ** 返    回: ERROR    CODE
+ ** 全局变量:
+ ** 调用模块:
+ ********************************************************************************************************/
+INT API_SdCoreDevSetBlkLenRaw (PLW_SDCORE_DEVICE psdcoredevice, INT iBlkLen)
+{
+    INT             iError;
+    LW_SD_COMMAND   sdcmd;
+
+    sdcmd.SDCMD_uiOpcode = SD_SET_BLOCKLEN;
+    sdcmd.SDCMD_uiArg    = iBlkLen;
+    sdcmd.SDCMD_uiFlag   = SD_RSP_SPI_R1 | SD_RSP_R1 | SD_CMD_AC;
+
+    iError = API_SdCoreDevCmd(psdcoredevice, &sdcmd, 0);
+    if (iError != ERROR_NONE) {
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "send cmd16 failed.\r\n");
+        return  (PX_ERROR);
+    }
+
+    if (COREDEV_IS_SPI(psdcoredevice)) {
+        if ((sdcmd.SDCMD_uiResp[0] & 0xff) != 0) {
+            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "spi response error.\r\n");
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
  ** 函数名称: API_SdCoreDevGetStatus

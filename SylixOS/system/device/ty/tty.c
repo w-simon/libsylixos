@@ -286,6 +286,10 @@ static LONG   _ttyOpen (TYCO_DEV    *ptycoDev,
         if (iFlags & O_NONBLOCK) {                                      /*  ¶ÁÐ´·Ç×èÈû                  */
             ptycoDev->TYCODEV_tydevTyDev.TYDEV_ulRTimeout = LW_OPTION_NOT_WAIT;
             ptycoDev->TYCODEV_tydevTyDev.TYDEV_ulWTimeout = LW_OPTION_NOT_WAIT;
+        
+        } else {
+            ptycoDev->TYCODEV_tydevTyDev.TYDEV_ulRTimeout = LW_OPTION_WAIT_INFINITE;
+            ptycoDev->TYCODEV_tydevTyDev.TYDEV_ulWTimeout = LW_OPTION_WAIT_INFINITE;
         }
     }
 #if __LW_TTY_OPEN_REPEATEDLY_EN == 0

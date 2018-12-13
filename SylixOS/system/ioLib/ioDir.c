@@ -371,7 +371,7 @@ INT  utimes (CPCHAR  pcFile, struct timeval tvp[2])
     REGISTER INT            iError;
     REGISTER INT            iFd;
     
-    iFd = open(pcFile, O_RDONLY, 0);
+    iFd = open(pcFile, O_RDWR, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -399,7 +399,7 @@ INT  utime (CPCHAR  pcFile, const struct utimbuf *utimbNew)
     REGISTER INT            iFd;
     struct utimbuf          utimbNow;
     
-    iFd = open(pcFile, O_RDONLY, 0);
+    iFd = open(pcFile, O_RDWR, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }

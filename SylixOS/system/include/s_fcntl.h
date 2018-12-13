@@ -17,36 +17,13 @@
 ** 文件创建日期: 2006 年 12 月 13 日
 **
 ** 描        述: fcntl.h (2013.01.05 从 lib 文件夹移至此处)
+**
+** BUG:
+2018.12.13  修正 O_EXLOCK 值与 O_DSYNC 重复问题.
 *********************************************************************************************************/
 
 #ifndef __S_FCNTL_H
 #define __S_FCNTL_H
-
-/*********************************************************************************************************
-  POSIX flags
-*********************************************************************************************************/
-
-#define _FREAD                      0x0001                              /* read enabled                 */
-#define _FWRITE                     0x0002                              /* write enabled                */
-#define _FAPPEND                    0x0008                              /* append (writes guaranteed at */
-                                                                        /* the end)                     */
-#define _FDSYNC                     0x0020                              /* data sync                    */
-#define _FASYNC                     0x0040                              /* signal pgrp when data ready  */
-#define _FSHLOCK                    0x0080                              /* BSD flock() shared lock      */
-                                                                        /* present                      */
-#define _FEXLOCK                    0x0100                              /* BSD flock() exclusive lock   */
-                                                                        /* present                      */
-#define _FCREAT                     0x0200                              /* open with file create        */
-#define _FTRUNC                     0x0400                              /* open with truncation         */
-#define _FEXCL                      0x0800                              /* error on open if file exists */
-#define _FNBIO                      0x1000                              /* non blocking I/O (sys5)      */
-#define _FSYNC                      0x2000                              /* do all writes synchronously  */
-#define _FNONBLOCK                  0x4000                              /* non blocking I/O (POSIX)     */
-#define _FNOCTTY                    0x8000                              /* don't assign a ctty on this  */
-                                                                        /* open                         */
-#define _FBINARY                    0x10000                             /* binary mode                  */
-#define _FNOFOLLOW                  0x20000                             /* don't follow symlink.        */
-#define _FDIRECTORY                 0x40000                             /* directory only               */
 
 /*********************************************************************************************************
   POSIX 默认 mode
@@ -64,30 +41,34 @@
   POSIX open flag
 *********************************************************************************************************/
 
-#define O_RDONLY                    0x0000
-#define O_WRONLY                    0x0001
-#define O_RDWR                      0x0002
-
+#define O_RDONLY                    0x0000                              /* read only                    */
+#define O_WRONLY                    0x0001                              /* write only                   */
+#define O_RDWR                      0x0002                              /* read & write                 */
 #define O_ACCMODE                   (O_RDONLY | O_WRONLY | O_RDWR)
 
-#define O_SHLOCK                    0x0010
-#define O_EXLOCK                    0x0020
-#define O_CREAT                     _FCREAT
-#define O_TRUNC                     _FTRUNC
-#define O_APPEND                    _FAPPEND
-#define O_EXCL                      _FEXCL
-#define O_NONBLOCK                  _FNONBLOCK
-#define O_NDELAY                    _FNONBLOCK
-#define O_SYNC                      _FSYNC
-#define O_FSYNC                     _FSYNC
-#define O_DSYNC                     _FDSYNC
-#define O_ASYNC                     _FASYNC
-#define O_NOCTTY                    _FNOCTTY
-#define O_BINARY                    _FBINARY
-#define O_NOFOLLOW                  _FNOFOLLOW
-#define O_DIRECTORY                 _FDIRECTORY
-#define O_CLOEXEC                   0x80000
-#define O_LARGEFILE                 0x100000
+#define O_APPEND                    0x0008                              /* writes guaranteed at the end */
+#define O_DSYNC                     0x0020                              /* data sync                    */
+#define O_ASYNC                     0x0040                              /* signal pgrp when data ready  */
+#define O_SHLOCK                    0x0010                              /* BSD flock() shared lock      */
+#define O_EXLOCK                    0x0080                              /* BSD flock() exclusive lock   */
+#define O_CREAT                     0x0200                              /* open with file create        */
+#define O_TRUNC                     0x0400                              /* open with truncation         */
+#define O_EXCL                      0x0800                              /* error on open if file exists */
+#define O_SYNC                      0x2000                              /* do all writes synchronously  */
+#define O_NONBLOCK                  0x4000                              /* non blocking I/O (POSIX)     */
+#define O_NOCTTY                    0x8000                              /* don't assign a ctty          */
+#define O_BINARY                    0x10000                             /* binary mode                  */
+#define O_NOFOLLOW                  0x20000                             /* don't follow symlink.        */
+#define O_DIRECTORY                 0x40000                             /* directory only               */
+#define O_CLOEXEC                   0x80000                             /* close on exec                */
+#define O_LARGEFILE                 0x100000                            /* is a large file              */
+
+#define O_FSYNC                     O_SYNC                              /* same as O_SYNC               */
+#define O_NDELAY                    O_NONBLOCK                          /* same as O_NONBLOCK           */
+
+#ifdef __SYLIXOS_KERNEL
+#define O_PEEKONLY                  0x80000000                          /* peek only (system use)       */
+#endif                                                                  /* __SYLIXOS_KERNEL             */
 
 /*********************************************************************************************************
   fcntl

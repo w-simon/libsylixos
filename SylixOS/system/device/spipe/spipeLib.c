@@ -206,7 +206,9 @@ LONG  _SpipeOpen (PLW_SPIPE_DEV  pspipedev,
         pspipefil->SPIPEFIL_iMode     = iMode;
         pspipefil->SPIPEFIL_pspipedev = pspipedev;
         
-        LW_SPIPE_INC_CNT(pspipedev, iFlags);                            /*  增加计数                    */
+        if (!(iFlags & O_PEEKONLY)) {
+            LW_SPIPE_INC_CNT(pspipedev, iFlags);                        /*  增加计数                    */
+        }
         
         LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
         
@@ -269,7 +271,7 @@ static INT  _SpipeBlock (PLW_SPIPE_FILE  pspipefil)
 {
     PLW_SPIPE_DEV  pspipedev;
     
-    if (pspipefil) {
+    if (pspipefil && !(pspipefil->SPIPEFIL_iFlags & O_PEEKONLY)) {
         pspipedev = pspipefil->SPIPEFIL_pspipedev;
         
         LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
@@ -303,13 +305,15 @@ INT  _SpipeClose (PLW_SPIPE_FILE  pspipefil)
         
         LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  获取设备使用权              */
               
-        LW_SPIPE_DEC_CNT(pspipedev, pspipefil->SPIPEFIL_iFlags);
-        
-        if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {                      /*  没有写端                    */
-            API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);
-        }
-        if (pspipedev->SPIPEDEV_uiReadCnt == 0) {                       /*  没有读端                    */
-            API_SemaphoreBPost(pspipedev->SPIPEDEV_hWriteLock);
+        if (!(pspipefil->SPIPEFIL_iFlags & O_PEEKONLY)) {
+            LW_SPIPE_DEC_CNT(pspipedev, pspipefil->SPIPEFIL_iFlags);
+            
+            if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {                  /*  没有写端                    */
+                API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);
+            }
+            if (pspipedev->SPIPEDEV_uiReadCnt == 0) {                   /*  没有读端                    */
+                API_SemaphoreBPost(pspipedev->SPIPEDEV_hWriteLock);
+            }
         }
         
         LW_SPIPE_UNLOCK(pspipedev);                                     /*  释放设备使用权              */
