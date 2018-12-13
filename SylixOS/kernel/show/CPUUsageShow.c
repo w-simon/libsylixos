@@ -36,11 +36,17 @@
 #if LW_CFG_FIO_LIB_EN > 0 && LW_CFG_THREAD_CPU_USAGE_CHK_EN > 0
 #include "../SylixOS/shell/include/ttiny_shell.h"
 /*********************************************************************************************************
+  进程相关
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+#include "../SylixOS/loader/include/loader_vppatch.h"
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
 static const CHAR   _G_cCPUUsageInfoHdr[] = "\n\
-       NAME        TID   PRI   CPU   KERN\n\
----------------- ------- --- ------ ------\n";
+       NAME        TID    PID  PRI   CPU   KERN\n\
+---------------- ------- ----- --- ------ ------\n";
 /*********************************************************************************************************
 ** 函数名称: API_CPUUsageShow
 ** 功能描述: 显示所有的线程的 CPU 占用率信息
@@ -72,6 +78,9 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
              
              INT              iOptionNoAbort;
              INT              iOption;
+             
+             LW_CLASS_TCB_DESC  tcbdesc;
+             pid_t              pidGet;
     
     if (LW_CPU_GET_CUR_NESTING()) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
@@ -84,15 +93,12 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
     ioctl(STD_IN, FIOSETOPTIONS, iOptionNoAbort);                       /*  不允许 control-C 操作       */
             
     for (iCounter = 0; iCounter < iTimes; iCounter++) {
-    
         API_ThreadCPUUsageRefresh();                                    /*  刷新统计变量                */
         API_ThreadCPUUsageOn();
+        
         printf("CPU usage checking, please wait...\n");
         
-        {
-            /*
-             *  仅在这里延迟时允许 control-C 操作.
-             */
+        {                                                               /*  这里延迟时允许 control-C    */
             ioctl(STD_IN, FIOSETOPTIONS, iOption);                      /*  回复原来状态                */
             
             iWaitSec = (iWaitSec >  0) ? iWaitSec : 1;
@@ -120,12 +126,7 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
         }
         
         for (i = iThreadNum - 1; i >= 0; i--) {                         /*  反向显示                    */
-            CHAR    cName[LW_CFG_OBJECT_NAME_SIZE];
-            UINT8   ucPriority;
-            
-            if ((API_ThreadGetName(ulId[i], cName) == ERROR_NONE) &&
-                (API_ThreadGetPriority(ulId[i], &ucPriority) == ERROR_NONE)) {
-                
+            if (API_ThreadDesc(ulId[i], &tcbdesc) == ERROR_NONE) {
                 if (uiThreadUsage[i] > ulFullPercent) {
                     API_TShellColorStart2(LW_TSHELL_COLOR_LIGHT_RED, STD_OUT);
                 
@@ -136,8 +137,15 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
                     API_TShellColorStart2(LW_TSHELL_COLOR_GREEN, STD_OUT);
                 }
                 
-                printf("%-16s %7lx %3d %3d.%d%% %3d.%d%%\n", 
-                       cName, ulId[i], ucPriority,
+#if LW_CFG_MODULELOADER_EN > 0
+                pidGet = vprocGetPidByTcbdesc(&tcbdesc);
+#else
+                pidGet = 0;
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
+                printf("%-16s %7lx %5d %3d %3d.%d%% %3d.%d%%\n", 
+                       tcbdesc.TCBD_cThreadName, ulId[i], 
+                       pidGet, tcbdesc.TCBD_ucPriority,
                        uiThreadUsage[i] / 10, uiThreadUsage[i] % 10,
                        uiThreadKernel[i] / 10, uiThreadKernel[i] % 10);
                        
