@@ -141,9 +141,11 @@ LW_API PLW_DEV_HDR  API_IosNextDevGet(PLW_DEV_HDR    pdevhdrHdr);
 #define iosNextDevGet                            API_IosNextDevGet
 
 LW_API LONG         API_IosFdValue(INT  iFd);
+LW_API LONG         API_IosFdValueType(INT  iFd, INT  *piType);
 LW_API PLW_DEV_HDR  API_IosFdDevFind(INT  iFd);
 
 #define iosFdValue                               API_IosFdValue
+#define iosFdValueType                           API_IosFdValueType
 #define iosFdDevFind                             API_IosFdDevFind
 
 LW_API VOID         API_IosFdFree(INT  iFd);

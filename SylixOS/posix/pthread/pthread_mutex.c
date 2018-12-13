@@ -644,8 +644,8 @@ int  pthread_mutex_trylock (pthread_mutex_t  *pmutex)
     
     ulError = API_SemaphoreMPend(pmutex->PMUTEX_ulMutex, LW_OPTION_NOT_WAIT);
     if (ulError == ERROR_THREAD_WAIT_TIMEOUT) {
-        errno = EAGAIN;
-        return  (EAGAIN);
+        errno = EBUSY;
+        return  (EBUSY);
     
     } else if (ulError) {
         if (errno != EDEADLK) {

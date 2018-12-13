@@ -95,67 +95,6 @@ static LW_INLINE addr_t  __LW_ATOMIC_ADDR_CAS (volatile addr_t *p, addr_t  ulOld
     return  (archAtomicAddrCas(p, ulOld, ulNew));
 }
 
-/*********************************************************************************************************
-  汇编实现
-*********************************************************************************************************/
-#if LW_CFG_CPU_ATOMIC64_EN > 0
-
-static LW_INLINE INT64  __LW_ATOMIC64_ADD (INT64  i64Val, atomic64_t  *patomic64)
-{
-    return  (archAtomic64Add(i64Val, patomic64));
-}
-
-static LW_INLINE INT64  __LW_ATOMIC64_SUB (INT64  i64Val, atomic64_t  *patomic64)
-{
-    return  (archAtomic64Sub(i64Val, patomic64));
-}
-
-static LW_INLINE INT64  __LW_ATOMIC64_AND (INT64  i64Val, atomic64_t  *patomic64)
-{
-    return  (archAtomic64And(i64Val, patomic64));
-}
-
-static LW_INLINE INT64  __LW_ATOMIC64_OR (INT64  i64Val, atomic64_t  *patomic64)
-{
-    return  (archAtomic64Or(i64Val, patomic64));
-}
-
-static LW_INLINE INT64  __LW_ATOMIC64_XOR (INT64  i64Val, atomic64_t  *patomic64)
-{
-    return  (archAtomic64Xor(i64Val, patomic64));
-}
-
-static LW_INLINE VOID  __LW_ATOMIC64_SET (INT64  i64Val, atomic64_t  *patomic64)
-{
-    archAtomic64Set(i64Val, patomic64);
-}
-
-static LW_INLINE INT64  __LW_ATOMIC64_GET (atomic64_t  *patomic64)
-{
-    return  (archAtomic64Get(patomic64));
-}
-
-static LW_INLINE INT64  __LW_ATOMIC64_SWP (INT64  i64Val, atomic64_t  *patomic64)
-{
-    INT64   i64OldVal;
-    
-    for (;;) {
-        i64OldVal = archAtomic64Get(patomic64);
-        if (archAtomic64Cas(patomic64, i64OldVal, i64Val) == i64OldVal) {
-            break;
-        }
-    }
-    
-    return  (i64OldVal);
-}
-
-static LW_INLINE INT  __LW_ATOMIC64_CAS (atomic64_t  *patomic64, INT64  i64OldVal, INT64  i64NewVal)
-{
-    return  (archAtomic64Cas(patomic64, i64OldVal, i64NewVal));
-}
-
-#endif                                                                  /*  LW_CFG_CPU_ATOMIC64_EN > 0  */
-
 #else
 /*********************************************************************************************************
   软件实现
@@ -283,8 +222,69 @@ static LW_INLINE addr_t  __LW_ATOMIC_ADDR_CAS (volatile addr_t *p, addr_t  ulOld
     return  (ulRet);
 }
 
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN        */
 /*********************************************************************************************************
-  64bits
+  atomic64 汇编实现
+*********************************************************************************************************/
+#if LW_CFG_CPU_ATOMIC64_EN > 0
+
+static LW_INLINE INT64  __LW_ATOMIC64_ADD (INT64  i64Val, atomic64_t  *patomic64)
+{
+    return  (archAtomic64Add(i64Val, patomic64));
+}
+
+static LW_INLINE INT64  __LW_ATOMIC64_SUB (INT64  i64Val, atomic64_t  *patomic64)
+{
+    return  (archAtomic64Sub(iVal, patomic));
+}
+
+static LW_INLINE INT64  __LW_ATOMIC64_AND (INT64  i64Val, atomic64_t  *patomic64)
+{
+    return  (archAtomic64And(iVal, patomic));
+}
+
+static LW_INLINE INT64  __LW_ATOMIC64_OR (INT64  i64Val, atomic64_t  *patomic64)
+{
+    return  (archAtomic64Or(iVal, patomic));
+}
+
+static LW_INLINE INT64  __LW_ATOMIC64_XOR (INT64  i64Val, atomic64_t  *patomic64)
+{
+    return  (archAtomic64Xor(iVal, patomic));
+}
+
+static LW_INLINE VOID  __LW_ATOMIC64_SET (INT64  i64Val, atomic64_t  *patomic64)
+{
+    archAtomic64Set(iVal, patomic);
+}
+
+static LW_INLINE INT64  __LW_ATOMIC64_GET (atomic64_t  *patomic64)
+{
+    return  (archAtomic64Get(patomic));
+}
+
+static LW_INLINE INT64  __LW_ATOMIC64_SWP (INT64  i64Val, atomic64_t  *patomic64)
+{
+    INT64   i64OldVal;
+    
+    for (;;) {
+        i64OldVal = archAtomic64Get(patomic64);
+        if (archAtomic64Cas(patomic64, i64OldVal, i64Val) == i64OldVal) {
+            break;
+        }
+    }
+    
+    return  (i64OldVal);
+}
+
+static LW_INLINE INT  __LW_ATOMIC64_CAS (atomic64_t  *patomic64, INT64  i64OldVal, INT64  i64NewVal)
+{
+    return  (archAtomic64Cas(patomic64, i64OldVal, i64NewVal));
+}
+
+#else
+/*********************************************************************************************************
+  atomic64 软件实现
 *********************************************************************************************************/
 static LW_INLINE INT64  __LW_ATOMIC64_ADD (INT64  i64Val, atomic64_t  *patomic64)
 {
@@ -405,7 +405,7 @@ static LW_INLINE INT64  __LW_ATOMIC64_CAS (atomic64_t  *patomic64, INT64  i64Old
     return  (i64Ret);
 }
 
-#endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN        */
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC64_EN > 0  */
 /*********************************************************************************************************
   自我实现
 *********************************************************************************************************/

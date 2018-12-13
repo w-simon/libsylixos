@@ -181,7 +181,6 @@ extern void             __packet_set_sockfile(AF_PACKET_T *pafpacket, void *file
                                 _ErrorHandle(EBADF);    \
                                 return  (PX_ERROR); \
                             }   \
-                            iosFdGetType(s, &iType);    \
                             if (iType != LW_DRV_TYPE_SOCKET) { \
                                 _DebugHandle(__ERRORMESSAGE_LEVEL, "not a socket file.\r\n");   \
                                 _ErrorHandle(ENOTSOCK);    \
@@ -877,7 +876,7 @@ void  __socketEnotify (void *file, LW_SEL_TYPE type, INT  iSoErr)
     }
 }
 /*********************************************************************************************************
-** 函数名称: __socketEnotifyEx
+** 函数名称: __socketEnotify2
 ** 功能描述: socket 事件通知
 ** 输　入  : file        SOCKET_T
 **           uiSelFlags  事件类型 LW_SEL_TYPE_FLAG_READ / LW_SEL_TYPE_FLAG_WRITE / LW_SEL_TYPE_FLAG_EXCEPT
@@ -1143,7 +1142,7 @@ __error_handle:
 LW_API  
 int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
 {
-    SOCKET_T    *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T    *psock;
     SOCKET_T    *psockNew;
     INT          iType;
     
@@ -1157,6 +1156,8 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
     
     INT          iCloExec;
     BOOL         iNonBlock;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1295,9 +1296,11 @@ int  accept (int s, struct sockaddr *addr, socklen_t *addrlen)
 LW_API  
 int  bind (int s, const struct sockaddr *name, socklen_t namelen)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1343,9 +1346,11 @@ int  bind (int s, const struct sockaddr *name, socklen_t namelen)
 LW_API  
 int  shutdown (int s, int how)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1398,9 +1403,11 @@ int  shutdown (int s, int how)
 LW_API  
 int  connect (int s, const struct sockaddr *name, socklen_t namelen)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1449,9 +1456,11 @@ int  connect (int s, const struct sockaddr *name, socklen_t namelen)
 LW_API  
 int  getsockname (int s, struct sockaddr *name, socklen_t *namelen)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1494,9 +1503,11 @@ int  getsockname (int s, struct sockaddr *name, socklen_t *namelen)
 LW_API  
 int  getpeername (int s, struct sockaddr *name, socklen_t *namelen)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1541,9 +1552,11 @@ int  getpeername (int s, struct sockaddr *name, socklen_t *namelen)
 LW_API  
 int  setsockopt (int s, int level, int optname, const void *optval, socklen_t optlen)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1598,9 +1611,11 @@ int  setsockopt (int s, int level, int optname, const void *optval, socklen_t op
 LW_API  
 int  getsockopt (int s, int level, int optname, void *optval, socklen_t *optlen)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1660,9 +1675,11 @@ int  getsockopt (int s, int level, int optname, void *optval, socklen_t *optlen)
 LW_API  
 int listen (int s, int backlog)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1710,9 +1727,11 @@ int listen (int s, int backlog)
 LW_API  
 ssize_t  recv (int s, void *mem, size_t len, int flags)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     ssize_t     sstRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1771,9 +1790,11 @@ LW_API
 ssize_t  recvfrom (int s, void *mem, size_t len, int flags,
                    struct sockaddr *from, socklen_t *fromlen)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     ssize_t     sstRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1828,9 +1849,11 @@ ssize_t  recvfrom (int s, void *mem, size_t len, int flags,
 LW_API 
 ssize_t  recvmsg (int  s, struct msghdr *msg, int flags)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     ssize_t     sstRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1886,9 +1909,11 @@ ssize_t  recvmsg (int  s, struct msghdr *msg, int flags)
 LW_API  
 ssize_t  send (int s, const void *data, size_t size, int flags)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     ssize_t     sstRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -1947,9 +1972,11 @@ LW_API
 ssize_t  sendto (int s, const void *data, size_t size, int flags,
                  const struct sockaddr *to, socklen_t tolen)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     ssize_t     sstRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -2002,9 +2029,11 @@ ssize_t  sendto (int s, const void *data, size_t size, int flags,
 LW_API 
 ssize_t  sendmsg (int  s, const struct msghdr *msg, int flags)
 {
-    SOCKET_T   *psock = (SOCKET_T *)iosFdValue(s);
+    SOCKET_T   *psock;
     INT         iType;
     ssize_t     sstRet = PX_ERROR;
+    
+    psock = (SOCKET_T *)iosFdValueType(s, &iType);
     
     __SOCKET_CHECHK();
     
@@ -2189,6 +2218,8 @@ INT  get_dns_server_info_4 (UINT iIndex, struct in_addr *inaddr)
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
+#if LWIP_IPV6
+
 LW_API  
 INT  get_dns_server_info_6 (UINT iIndex, struct in6_addr *in6addr)
 {
@@ -2208,6 +2239,7 @@ INT  get_dns_server_info_6 (UINT iIndex, struct in6_addr *in6addr)
     return  (ERROR_NONE);
 }
 
+#endif                                                                  /*  LWIP_IPV6                   */
 #endif                                                                  /*  LW_CFG_NET_EN               */
 /*********************************************************************************************************
   END

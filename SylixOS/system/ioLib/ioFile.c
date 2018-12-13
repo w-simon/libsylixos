@@ -792,6 +792,35 @@ LONG  API_IosFdValue (INT  iFd)
     }
 }
 /*********************************************************************************************************
+** 函数名称: API_IosFdValueType
+** 功能描述: 确认一个打开的文件描述符有效性，并返回一个设备专有值
+** 输　入  : iFd                           文件描述符
+**           piType                        文件类型
+** 输　出  : 设备专有值
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+LONG  API_IosFdValueType (INT  iFd, INT  *piType)
+{
+    REGISTER PLW_FD_ENTRY   pfdentry;
+    
+    pfdentry = _IosFileGet(iFd, LW_FALSE);
+    
+    if (pfdentry) {                                                     /*  文件有效                    */
+        if (piType) {
+            *piType = pfdentry->FDENTRY_iType;
+        }
+        return  (pfdentry->FDENTRY_lValue);
+    
+    } else {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);                /*  文件描述符出错              */
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: API_IosFdFree
 ** 功能描述: 释放一个设备文件描述符
 ** 输　入  : 
