@@ -65,6 +65,7 @@
 2014.08.27  __tshellRestart() 如果判断是在等待其他任务, 则使用 kill 操作.
 2014.04.17  对重定向描述符的回收需要在内核 IO 环境中中进行.
 2017.07.19  执行完每条命令后使用 fpurge(stdin) 清除输入缓存.
+2018.12.13  有些命令必须使用强制内建命令.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -100,6 +101,12 @@
 static PLW_LIST_LINE    _G_plineTSKeyHeader = LW_NULL;                  /*  命令链表头                  */
 static PLW_LIST_LINE    _G_plineTSKeyHeaderHashTbl[LW_CFG_SHELL_KEY_HASH_SIZE];
                                                                         /*  哈希搜索表                  */
+/*********************************************************************************************************
+  强制使用内建命令表
+*********************************************************************************************************/
+static const PCHAR      _G_pcResBuildinCmd[] = {
+    "ts", "tp", "ps", "modules", "ints"
+};
 /*********************************************************************************************************
   shell 执行线程堆栈大小 (默认与 shell 相同)
 *********************************************************************************************************/
@@ -138,8 +145,28 @@ static INT    __tshellBgCreate(INT      iFd,
 #if LW_CFG_MODULELOADER_EN > 0
 extern BOOL   __ldPathIsFile(CPCHAR  pcName);
 /*********************************************************************************************************
+** 函数名称: __tshellIsResCmd
+** 功能描述: 是否为强制内建命令
+** 输　入  : pcKeyword         当前未能识别的命令
+** 输　出  : 是否有对应的文件
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static BOOL  __tshellIsResCmd (CPCHAR  pcKeyword)
+{
+    INT  i;
+    
+    for (i = 0; i < (sizeof(_G_pcResBuildinCmd) / sizeof(PCHAR)); i++) {
+        if (lib_strcmp(pcKeyword, _G_pcResBuildinCmd[i]) == 0) {
+            return  (LW_TRUE);
+        }
+    }
+    
+    return  (LW_FALSE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellCheckFile
-** 功能描述: shell 未定义命令检查是否存在对应命令的文件
+** 功能描述: shell 检查是否存在对应命令的文件
 ** 输　入  : pcKeyword         当前未能识别的命令
 ** 输　出  : 是否有对应的文件
 ** 全局变量: 
@@ -544,9 +571,11 @@ INT  __tshellExec (CPCHAR  pcCommandExec, VOIDFUNCPTR  pfuncHook)
      *  如果存在可执行文件则, 则优先运行文件.
      */
 #if LW_CFG_MODULELOADER_EN > 0                                          /*  如果存在文件, 则优先运行    */
-    if (__tshellCheckFile(cKeyword)) {                                  /*  有对应文件                  */
-        lib_strcpy(cKeyword, "exec");                                   /*  使用 exec 转义命令序列      */
-        pcParam = (PCHAR)cCommandBuffer;                                /*  从命令头起开始计算参数      */
+    if (!__tshellIsResCmd(cKeyword)) {
+        if (__tshellCheckFile(cKeyword)) {                              /*  有对应文件                  */
+            lib_strcpy(cKeyword, "exec");                               /*  使用 exec 转义命令序列      */
+            pcParam = (PCHAR)cCommandBuffer;                            /*  从命令头起开始计算参数      */
+        }
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 

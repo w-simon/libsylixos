@@ -68,6 +68,10 @@ LONG  _PipeOpen (PLW_PIPE_DEV  p_pipedev,
             _ErrorHandle(ERROR_IO_FILE_EXIST);                          /*  不能重复创建                */
             return  (PX_ERROR);
         }
+        if (iFlags & O_DIRECTORY) {
+            _ErrorHandle(ENOTDIR);
+            return  (PX_ERROR);
+        }
         
         p_pipedev->PIPEDEV_iFlags = iFlags;
         p_pipedev->PIPEDEV_iMode  = iMode;

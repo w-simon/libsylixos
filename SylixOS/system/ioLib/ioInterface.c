@@ -476,7 +476,7 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
         return  (PX_ERROR);
     }
     
-    iFd = open(pcOldName, O_RDONLY, 0);                                 /*  read or write only? XXX     */
+    iFd = open(pcOldName, O_RDONLY | O_PEEKONLY, 0);                    /*  read or write only? XXX     */
     if (iFd < 0) {                                                      /*  open failed                 */
         return  (PX_ERROR);
     }

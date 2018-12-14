@@ -30,6 +30,7 @@
             因为回收进程或者内核已经不是分配时进程的文件描述符表, 文件的关闭统一由进程回收器完成.
 2013.01.08  创建目录需要有 O_EXCL 参数进行排他性创建.
 2013.03.12  加入 readdir64 与 readdir64_r.
+2018.12.14  utimes utime 使用 O_RDONLY 选项打开文件 (权限应由同一的权限控制器判断).
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -348,6 +349,7 @@ INT  futimes (INT iFd, struct timeval tvp[2])
     if (!tvp) {
         utimbNow.actime  = lib_time(LW_NULL);
         utimbNow.modtime = utimbNow.actime;
+    
     } else {
         utimbNow.actime  = tvp[0].tv_sec;
         utimbNow.modtime = tvp[1].tv_sec;
@@ -371,7 +373,7 @@ INT  utimes (CPCHAR  pcFile, struct timeval tvp[2])
     REGISTER INT            iError;
     REGISTER INT            iFd;
     
-    iFd = open(pcFile, O_RDWR, 0);
+    iFd = open(pcFile, O_RDONLY | O_PEEKONLY, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -399,7 +401,7 @@ INT  utime (CPCHAR  pcFile, const struct utimbuf *utimbNew)
     REGISTER INT            iFd;
     struct utimbuf          utimbNow;
     
-    iFd = open(pcFile, O_RDWR, 0);
+    iFd = open(pcFile, O_RDONLY | O_PEEKONLY, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }

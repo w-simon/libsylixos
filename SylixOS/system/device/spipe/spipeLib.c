@@ -181,6 +181,10 @@ LONG  _SpipeOpen (PLW_SPIPE_DEV  pspipedev,
             _ErrorHandle(ERROR_IO_FILE_EXIST);                          /*  不能重复创建                */
             return  (PX_ERROR);
         }
+        if (iFlags & O_DIRECTORY) {
+            _ErrorHandle(ENOTDIR);
+            return  (PX_ERROR);
+        }
         
         LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));                    /*  锁定管道设备                */
         

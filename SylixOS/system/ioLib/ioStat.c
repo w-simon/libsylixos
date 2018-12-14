@@ -602,7 +602,7 @@ INT  chmod (CPCHAR  pcName, INT  iMode)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDWR, 0);
+    iFd = open(pcName, O_RDONLY | O_PEEKONLY, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
@@ -669,7 +669,7 @@ INT  chown (CPCHAR  pcName, uid_t uid, gid_t gid)
     REGISTER INT    iFd;
     REGISTER INT    iError;
     
-    iFd = open(pcName, O_RDWR, 0);
+    iFd = open(pcName, O_RDONLY | O_PEEKONLY, 0);
     if (iFd < 0) {
         return  (PX_ERROR);
     }
