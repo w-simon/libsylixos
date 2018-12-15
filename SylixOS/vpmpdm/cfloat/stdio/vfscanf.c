@@ -187,7 +187,11 @@ literal:
 			flags |= LONGDBL;
 			goto again;
 		case 'h':
-			flags |= SHORT;
+		    if (flags & SHORT) {
+                flags &= ~SHORT;
+                flags |= SHORTSHORT;
+            } else
+                flags |= SHORT;
 			goto again;
 
 		case '0': case '1': case '2': case '3': case '4':

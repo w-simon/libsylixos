@@ -580,7 +580,7 @@ __error_dma:
 
 __done_handle:
     if (iRet == PX_ERROR) {
-        _ErrorHandle (EIO);
+        _ErrorHandle(EIO);
     }
 
     API_SemaphoreMPost(hCtrl->ATACTRL_hSemDev);
