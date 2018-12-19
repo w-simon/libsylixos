@@ -56,6 +56,11 @@
 #endif
 
 /*
+ * netdev_txq_lock
+ */
+static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(netdev_txq_sl) = LW_SPIN_CA_INITIALIZER;
+
+/*
  * netdev_txq_desc
  */
 union netdev_txq_desc {
@@ -84,13 +89,12 @@ static LW_INLINE union netdev_txq_desc *
 netdev_txq_desc_alloc (struct netdev_txq_ctl *txq_ctl)
 {
   union netdev_txq_desc *desc;
-
-  SYS_ARCH_DECL_PROTECT(old_level);
+  INTREG level;
   
-  SYS_ARCH_PROTECT(old_level);
+  LW_SPIN_LOCK_QUICK(&netdev_txq_sl.SLCA_sl, &level);
   desc = txq_ctl->txq_free;
   txq_ctl->txq_free = desc->next;
-  SYS_ARCH_UNPROTECT(old_level);
+  LW_SPIN_UNLOCK_QUICK(&netdev_txq_sl.SLCA_sl, level);
   
   return (desc);
 }
@@ -99,12 +103,12 @@ netdev_txq_desc_alloc (struct netdev_txq_ctl *txq_ctl)
 static LW_INLINE void 
 netdev_txq_desc_free (struct netdev_txq_ctl *txq_ctl, union netdev_txq_desc *desc)
 {
-  SYS_ARCH_DECL_PROTECT(old_level);
+  INTREG level;
   
-  SYS_ARCH_PROTECT(old_level);
+  LW_SPIN_LOCK_QUICK(&netdev_txq_sl.SLCA_sl, &level);
   desc->next = txq_ctl->txq_free;
   txq_ctl->txq_free = desc;
-  SYS_ARCH_UNPROTECT(old_level);
+  LW_SPIN_UNLOCK_QUICK(&netdev_txq_sl.SLCA_sl, level);
 }
 
 /* netdev txqueue thread */

@@ -53,6 +53,11 @@
  */
 static u32_t zc_buf_used, zc_buf_max, zc_buf_error;
 
+/*
+ * zc_buf_sl
+ */
+static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(zc_buf_sl) = LW_SPIN_CA_INITIALIZER;
+
 /*    zc_pool
  * +------------+
  * |  magic_no  |
@@ -159,16 +164,15 @@ static void netdev_zc_pbuf_free_cb (struct pbuf *p)
   struct zc_pbuf *zcpbuf = _LIST_ENTRY(p, struct zc_pbuf, b.cpbuf);
   struct zc_pool *zcpool = zcpbuf->zcpool;
   int wakeup;
+  INTREG level;
   
-  SYS_ARCH_DECL_PROTECT(old_level);
-  
-  SYS_ARCH_PROTECT(old_level);
+  LW_SPIN_LOCK_QUICK(&zc_buf_sl.SLCA_sl, &level);
   wakeup = (zcpool->free) ? 0 : 1;
   zcpbuf->b.next = zcpool->free;
   zcpool->free = zcpbuf;
   zcpool->free_cnt++;
   zc_buf_used--;
-  SYS_ARCH_UNPROTECT(old_level);
+  LW_SPIN_UNLOCK_QUICK(&zc_buf_sl.SLCA_sl, level);
   
   if (wakeup) {
     API_SemaphoreBPost(zcpool->sem);
@@ -185,20 +189,19 @@ struct pbuf *netdev_zc_pbuf_alloc_res (void *hzcpool, int ticks, UINT16 hdr_res)
   struct zc_pbuf *zcpbuf;
   struct pbuf *ret;
   ULONG to;
+  INTREG level;
   u16_t reserve = ETH_PAD_SIZE + SIZEOF_VLAN_HDR + hdr_res;
-  
-  SYS_ARCH_DECL_PROTECT(old_level);
 
   if (!zcpool || (zcpool->magic_no != ZCPOOL_MAGIC)) {
     return (NULL);
   }
   
   do {
-    SYS_ARCH_PROTECT(old_level);
+    LW_SPIN_LOCK_QUICK(&zc_buf_sl.SLCA_sl, &level);
     if (zcpool->free) {
       break;
     }
-    SYS_ARCH_UNPROTECT(old_level);
+    LW_SPIN_UNLOCK_QUICK(&zc_buf_sl.SLCA_sl, level);
     
     if (ticks == 0) {
       zc_buf_error++;
@@ -219,7 +222,7 @@ struct pbuf *netdev_zc_pbuf_alloc_res (void *hzcpool, int ticks, UINT16 hdr_res)
   if (zc_buf_used > zc_buf_max) {
     zc_buf_max = zc_buf_used;
   }
-  SYS_ARCH_UNPROTECT(old_level);
+  LW_SPIN_UNLOCK_QUICK(&zc_buf_sl.SLCA_sl, level);
   
   zcpbuf->b.cpbuf.custom_free_function = netdev_zc_pbuf_free_cb;
   

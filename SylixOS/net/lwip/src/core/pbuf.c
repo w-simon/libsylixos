@@ -68,6 +68,7 @@
  *
  */
 
+#define __SYLIXOS_KERNEL /* SylixOS Add this to export atomic */
 #include "lwip/opt.h"
 
 #include "lwip/pbuf.h"
@@ -747,6 +748,14 @@ pbuf_free(struct pbuf *p)
    * obtain a zero reference count after decrementing*/
   while (p != NULL) {
     LWIP_PBUF_REF_T ref;
+#if defined(SYLIXOS) && \
+    (LW_CFG_CPU_ATOMIC_EN > 0) && \
+    (LWIP_PBUF_REF_T == int) /* SylixOS Changed here for use atomic */
+    /* all pbufs in a chain are referenced at least once */
+    LWIP_ASSERT("pbuf_free: p->ref > 0", p->ref > 0);
+    /* decrease reference count (number of pointers to pbuf) */
+    ref = __LW_ATOMIC_DEC((atomic_t *)&p->ref);
+#else /* SYLIXOS */
     SYS_ARCH_DECL_PROTECT(old_level);
     /* Since decrementing ref cannot be guaranteed to be a single machine operation
      * we must protect it. We put the new ref into a local variable to prevent
@@ -757,6 +766,7 @@ pbuf_free(struct pbuf *p)
     /* decrease reference count (number of pointers to pbuf) */
     ref = --(p->ref);
     SYS_ARCH_UNPROTECT(old_level);
+#endif /* !SYLIXOS */
     /* this pbuf is no longer referenced to? */
     if (ref == 0) {
       /* remember next pbuf in chain for next iteration */
@@ -833,8 +843,15 @@ pbuf_ref(struct pbuf *p)
 {
   /* pbuf given? */
   if (p != NULL) {
+#if defined(SYLIXOS) && \
+    (LW_CFG_CPU_ATOMIC_EN > 0) && \
+    (LWIP_PBUF_REF_T == int) /* SylixOS Changed here for use atomic */
+    LWIP_PBUF_REF_T ref = __LW_ATOMIC_INC((atomic_t *)&p->ref);
+    LWIP_ASSERT("pbuf ref overflow", ref > 0);
+#else /* SYLIXOS */
     SYS_ARCH_SET(p->ref, (LWIP_PBUF_REF_T)(p->ref + 1));
     LWIP_ASSERT("pbuf ref overflow", p->ref > 0);
+#endif /* !SYLIXOS */
   }
 }
 

@@ -64,10 +64,12 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define SMEMCPY     lwip_platform_smemcpy
 
 /*********************************************************************************************************
-  pbuf ref type (For compatibility, choose u16_t)
+  pbuf ref type 
+  For compatibility, choose 'u16_t'
+  For speed, choose 'int' to use atomic operate.
 *********************************************************************************************************/
 
-#define LWIP_PBUF_REF_T     UINT16
+#define LWIP_PBUF_REF_T     int
 
 /*********************************************************************************************************
   Memory options

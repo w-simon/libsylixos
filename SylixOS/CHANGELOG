@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2018-12-20: han.hui
+    网络缓存引用使用 atomic 类型, 提高计算效率.
+
     2018-11-23: han.hui
     网络设备加入 bonding 支持, 可选择 Balance RR, Active Backup 与 Broadcast 模式.
 
