@@ -87,7 +87,7 @@ static VOID  sv32MmuEnable (VOID)
     UINT32  ulSPTBR = read_csr("sptbr");
 
     ulSPTBR &= ~(SATP32_MODE);
-    ulSPTBR |=  (1ULL << 60);                                           /*  Sv32                        */
+    ulSPTBR |=  (1UL << 31);                                            /*  Sv32                        */
 
     write_csr("sptbr", ulSPTBR);
 }

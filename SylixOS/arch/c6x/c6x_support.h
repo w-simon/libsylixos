@@ -206,9 +206,9 @@ VOID    archSpinNotify(VOID);
 #define __ARCH_SPIN_DELAY   archSpinDelay
 #define __ARCH_SPIN_NOTIFY  archSpinNotify
 
-INT     archSpinLock(spinlock_t  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg);
-INT     archSpinTryLock(spinlock_t  *psl);
-INT     archSpinUnlock(spinlock_t  *psl);
+INT     archSpinLock(spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg);
+INT     archSpinTryLock(spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur);
+INT     archSpinUnlock(spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur);
 
 #define __ARCH_SPIN_LOCK    archSpinLock
 #define __ARCH_SPIN_TRYLOCK archSpinTryLock
@@ -230,8 +230,13 @@ VOID    archMpInt(ULONG  ulCPUId);
   c6x ƒ⁄¥Ê∆¡’œ
 *********************************************************************************************************/
 
+#ifdef __TI_COMPILER_VERSION__
 #define KN_BARRIER()
-#define KN_SYNC()
+#define KN_SYNC()               __asm__ __volatile__ (" mfence")
+#else                                                                   /*  CCS                         */
+#define KN_BARRIER()            __asm__ __volatile__ ("" : : : "memory")
+#define KN_SYNC()               __asm__ __volatile__ ("" : : : "memory")
+#endif                                                                  /*  GCC                         */
 
 #define KN_MB()                 KN_SYNC()
 #define KN_RMB()                KN_SYNC()

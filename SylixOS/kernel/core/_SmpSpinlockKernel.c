@@ -53,7 +53,7 @@ VOID  _SmpKernelLockIgnIrq (VOID)
         __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
 
-    __ARCH_SPIN_LOCK(&LW_KERN_SL, _SmpTryProcIpi, pcpuCur);             /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(&LW_KERN_SL, pcpuCur, _SmpTryProcIpi, pcpuCur);    /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
 }
 /*********************************************************************************************************
@@ -70,10 +70,10 @@ VOID  _SmpKernelUnlockIgnIrq (VOID)
     INT             iRet;
     
     KN_SMP_MB();
-    iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL);
+    pcpuCur = LW_CPU_GET_CUR();
+    iRet    = __ARCH_SPIN_UNLOCK(&LW_KERN_SL, pcpuCur);
     _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", &LW_KERN_SL);
     
-    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_DEC(pcpuCur->CPU_ptcbTCBCur);                     /*  解除任务锁定                */
     }
@@ -97,7 +97,7 @@ VOID  _SmpKernelLockQuick (INTREG  *piregInterLevel)
         __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
 
-    __ARCH_SPIN_LOCK(&LW_KERN_SL, _SmpTryProcIpi, pcpuCur);             /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(&LW_KERN_SL, pcpuCur, _SmpTryProcIpi, pcpuCur);    /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
 }
 /*********************************************************************************************************
@@ -114,10 +114,10 @@ VOID  _SmpKernelUnlockQuick (INTREG  iregInterLevel)
     INT             iRet;
     
     KN_SMP_MB();
-    iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL);
+    pcpuCur = LW_CPU_GET_CUR();
+    iRet    = __ARCH_SPIN_UNLOCK(&LW_KERN_SL, pcpuCur);
     _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", &LW_KERN_SL);
     
-    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_DEC(pcpuCur->CPU_ptcbTCBCur);                     /*  解除任务锁定                */
     }
@@ -144,7 +144,7 @@ VOID  _SmpKernelUnlockSched (PLW_CLASS_TCB  ptcbOwner)
     }
     
     KN_SMP_MB();
-    iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL);
+    iRet = __ARCH_SPIN_UNLOCK(&LW_KERN_SL, pcpuCur);
     _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", &LW_KERN_SL);
 }
 

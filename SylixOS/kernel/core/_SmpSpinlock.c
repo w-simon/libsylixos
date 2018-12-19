@@ -71,7 +71,7 @@ VOID  _SmpSpinLock (spinlock_t *psl)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    __ARCH_SPIN_LOCK(psl, LW_NULL, LW_NULL);                            /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(psl, pcpuCur, LW_NULL, LW_NULL);                   /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
     
     KN_INT_ENABLE(iregInterLevel);
@@ -99,7 +99,7 @@ BOOL  _SmpSpinTryLock (spinlock_t *psl)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    iRet = __ARCH_SPIN_TRYLOCK(psl);
+    iRet = __ARCH_SPIN_TRYLOCK(psl, pcpuCur);
     KN_SMP_MB();
     
     if (iRet != LW_SPIN_OK) {
@@ -133,10 +133,10 @@ INT  _SmpSpinUnlock (spinlock_t *psl)
     iregInterLevel = KN_INT_DISABLE();
     
     KN_SMP_MB();
-    iRet = __ARCH_SPIN_UNLOCK(psl);
+    pcpuCur = LW_CPU_GET_CUR();
+    iRet    = __ARCH_SPIN_UNLOCK(psl, pcpuCur);
     _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", psl);
     
-    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         ptcbCur = pcpuCur->CPU_ptcbTCBCur;
         __THREAD_LOCK_DEC(ptcbCur);                                     /*  解除任务锁定                */
@@ -175,7 +175,7 @@ VOID  _SmpSpinLockIgnIrq (spinlock_t *psl)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    __ARCH_SPIN_LOCK(psl, LW_NULL, LW_NULL);                            /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(psl, pcpuCur, LW_NULL, LW_NULL);                   /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
 }
 /*********************************************************************************************************
@@ -198,7 +198,7 @@ BOOL  _SmpSpinTryLockIgnIrq (spinlock_t *psl)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    iRet = __ARCH_SPIN_TRYLOCK(psl);
+    iRet = __ARCH_SPIN_TRYLOCK(psl, pcpuCur);
     KN_SMP_MB();
     
     if (iRet != LW_SPIN_OK) {
@@ -225,10 +225,10 @@ VOID  _SmpSpinUnlockIgnIrq (spinlock_t *psl)
     INT             iRet;
     
     KN_SMP_MB();
-    iRet = __ARCH_SPIN_UNLOCK(psl);
+    pcpuCur = LW_CPU_GET_CUR();
+    iRet    = __ARCH_SPIN_UNLOCK(psl, pcpuCur);
     _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", psl);
     
-    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_DEC(pcpuCur->CPU_ptcbTCBCur);                     /*  解除任务锁定                */
     }
@@ -257,7 +257,7 @@ VOID  _SmpSpinLockIrq (spinlock_t *psl, INTREG  *piregInterLevel)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    __ARCH_SPIN_LOCK(psl, LW_NULL, LW_NULL);                            /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(psl, pcpuCur, LW_NULL, LW_NULL);                   /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
 }
 /*********************************************************************************************************
@@ -283,7 +283,7 @@ BOOL  _SmpSpinTryLockIrq (spinlock_t *psl, INTREG  *piregInterLevel)
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    iRet = __ARCH_SPIN_TRYLOCK(psl);
+    iRet = __ARCH_SPIN_TRYLOCK(psl, pcpuCur);
     KN_SMP_MB();
     
     if (iRet != LW_SPIN_OK) {
@@ -315,10 +315,10 @@ INT  _SmpSpinUnlockIrq (spinlock_t *psl, INTREG  iregInterLevel)
     INT             iRet;
     
     KN_SMP_MB();
-    iRet = __ARCH_SPIN_UNLOCK(psl);
+    pcpuCur = LW_CPU_GET_CUR();
+    iRet    = __ARCH_SPIN_UNLOCK(psl, pcpuCur);
     _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", psl);
     
-    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         ptcbCur = pcpuCur->CPU_ptcbTCBCur;
         __THREAD_LOCK_DEC(ptcbCur);                                     /*  解除任务锁定                */
@@ -357,13 +357,12 @@ VOID  _SmpSpinLockIrqQuick (spinlock_t *psl, INTREG  *piregInterLevel)
     if (!pcpuCur->CPU_ulInterNesting) {
         LW_CPU_LOCK_QUICK_INC(pcpuCur);                                 /*  先于锁定任务之前            */
         KN_SMP_WMB();
-        
         __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
     
     LW_CPU_SPIN_NESTING_INC(pcpuCur);
     
-    __ARCH_SPIN_LOCK(psl, LW_NULL, LW_NULL);                            /*  驱动保证锁定必须成功        */
+    __ARCH_SPIN_LOCK(psl, pcpuCur, LW_NULL, LW_NULL);                   /*  驱动保证锁定必须成功        */
     KN_SMP_MB();
 }
 /*********************************************************************************************************
@@ -381,13 +380,12 @@ VOID  _SmpSpinUnlockIrqQuick (spinlock_t *psl, INTREG  iregInterLevel)
     INT             iRet;
 
     KN_SMP_MB();
-    iRet = __ARCH_SPIN_UNLOCK(psl);
-    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", psl);
-    
     pcpuCur = LW_CPU_GET_CUR();
+    iRet    = __ARCH_SPIN_UNLOCK(psl, pcpuCur);
+    _BugFormat((iRet != LW_SPIN_OK), LW_TRUE, "unlock error %p!\r\n", psl);
+
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_DEC(pcpuCur->CPU_ptcbTCBCur);                     /*  解除任务锁定                */
-        
         KN_SMP_WMB();
         LW_CPU_LOCK_QUICK_DEC(pcpuCur);                                 /*  后于锁定任务之后            */
     }

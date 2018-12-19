@@ -25,8 +25,15 @@
 *********************************************************************************************************/
 #if LW_CFG_SMP_EN > 0
 /*********************************************************************************************************
-  L1 cache 同步请参考: http://www.cnblogs.com/jiayy/p/3246133.html
+  spinlock bug trace
 *********************************************************************************************************/
+#ifdef __LW_SPINLOCK_BUG_TRACE_EN
+#define __LW_SPINLOCK_RECURSIVE_TRACE() \
+        _BugFormat((psl->SL_ulCounter > 10), LW_TRUE, \
+                   "spinlock RECURSIVE %lu!\r\n", psl->SL_ulCounter)
+#else
+#define __LW_SPINLOCK_RECURSIVE_TRACE()
+#endif
 /*********************************************************************************************************
 ** 函数名称: sparcSpinLock
 ** 功能描述: sparc spin lock
@@ -133,23 +140,25 @@ VOID  archSpinNotify (VOID)
 ** 函数名称: archSpinLock
 ** 功能描述: spinlock 上锁
 ** 输　入  : psl        spinlock 指针
+**           pcpuCur    当前 CPU
+**           pfuncPoll  循环等待时调用函数
+**           pvArg      回调参数
 ** 输　出  : 0: 没有获取
 **           1: 正常加锁
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  archSpinLock (spinlock_t  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
+INT  archSpinLock (spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
-    if (psl->SL_pcpuOwner == LW_CPU_GET_CUR()) {
+    if (psl->SL_pcpuOwner == pcpuCur) {
         psl->SL_ulCounter++;
-        _BugFormat((psl->SL_ulCounter > 10), LW_TRUE,
-                   "spinlock RECURSIVE %lu!\r\n", psl->SL_ulCounter);
+        __LW_SPINLOCK_RECURSIVE_TRACE();
         return  (1);                                                    /*  重复调用                    */
     }
 
     sparcSpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
 
-    psl->SL_pcpuOwner = LW_CPU_GET_CUR();                               /*  保存当前 CPU                */
+    psl->SL_pcpuOwner = pcpuCur;                                        /*  保存当前 CPU                */
     
     return  (1);                                                        /*  加锁成功                    */
 }
@@ -157,17 +166,17 @@ INT  archSpinLock (spinlock_t  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 ** 函数名称: archSpinTryLock
 ** 功能描述: spinlock 试图上锁
 ** 输　入  : psl        spinlock 指针
+**           pcpuCur    当前 CPU
 ** 输　出  : 0: 没有获取
 **           1: 正常加锁
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  archSpinTryLock (spinlock_t  *psl)
+INT  archSpinTryLock (spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur)
 {
-    if (psl->SL_pcpuOwner == LW_CPU_GET_CUR()) {
+    if (psl->SL_pcpuOwner == pcpuCur) {
         psl->SL_ulCounter++;
-        _BugFormat((psl->SL_ulCounter > 10), LW_TRUE,
-                   "spinlock RECURSIVE %lu!\r\n", psl->SL_ulCounter);
+        __LW_SPINLOCK_RECURSIVE_TRACE();
         return  (1);                                                    /*  重复调用                    */
     }
 
@@ -175,7 +184,7 @@ INT  archSpinTryLock (spinlock_t  *psl)
         return  (0);
     }
 
-    psl->SL_pcpuOwner = LW_CPU_GET_CUR();                               /*  保存当前 CPU                */
+    psl->SL_pcpuOwner = pcpuCur;                                        /*  保存当前 CPU                */
 
     return  (1);                                                        /*  加锁成功                    */
 }
@@ -183,14 +192,15 @@ INT  archSpinTryLock (spinlock_t  *psl)
 ** 函数名称: archSpinUnlock
 ** 功能描述: spinlock 解锁
 ** 输　入  : psl        spinlock 指针
+**           pcpuCur    当前 CPU
 ** 输　出  : 0: 没有获取
 **           1: 正常解锁
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  archSpinUnlock (spinlock_t  *psl)
+INT  archSpinUnlock (spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur)
 {
-    if (psl->SL_pcpuOwner != LW_CPU_GET_CUR()) {
+    if (psl->SL_pcpuOwner != pcpuCur) {
         return  (0);                                                    /*  没有权利释放                */
     }
 
