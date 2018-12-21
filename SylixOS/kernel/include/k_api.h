@@ -824,7 +824,10 @@ LW_API ULONG            API_TimeGetFrequency(VOID);                     /*  获得
 
 LW_API VOID             API_TimeTodAdj(INT32  *piDelta, 
                                        INT32  *piOldDelta);             /*  微调系统 TOD 时间           */
-
+                                       
+LW_API INT              API_TimeTodAdjEx(INT32  *piDelta, INT32  *piDeltaNs, 
+                                         INT32 *piOldDelta, INT32 *piOldDeltaNs);
+                                                                        /*  高精度微调系统 TOD 时间     */
 /*********************************************************************************************************
   TIMER
 *********************************************************************************************************/

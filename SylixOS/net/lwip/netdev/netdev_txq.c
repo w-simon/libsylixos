@@ -93,7 +93,9 @@ netdev_txq_desc_alloc (struct netdev_txq_ctl *txq_ctl)
   
   LW_SPIN_LOCK_QUICK(&netdev_txq_sl.SLCA_sl, &level);
   desc = txq_ctl->txq_free;
-  txq_ctl->txq_free = desc->next;
+  if (desc) {
+    txq_ctl->txq_free = desc->next;
+  }
   LW_SPIN_UNLOCK_QUICK(&netdev_txq_sl.SLCA_sl, level);
   
   return (desc);

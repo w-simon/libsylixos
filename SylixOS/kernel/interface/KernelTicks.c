@@ -100,7 +100,7 @@ static LW_INLINE VOID __kernelTODUpdate (VOID)
         return;                                                         /*  系统 tod 时间停止一个 tick  */
     
     } else {
-        lNsec = LW_NSEC_PER_TICK;
+        lNsec = LW_NSEC_PER_TICK + _K_iTODDeltaNs;
     }
     
     TOD_UPDATE(&_K_tvTODCurrent, lNsec);                                /*  CLOCK_REALTIME              */

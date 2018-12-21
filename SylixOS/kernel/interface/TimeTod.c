@@ -50,5 +50,49 @@ VOID  API_TimeTodAdj (INT32  *piDelta, INT32 *piOldDelta)
     LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
 }
 /*********************************************************************************************************
+** 函数名称: API_TimeTodAdjEx
+** 功能描述: 微调 TOD 时间.
+** 输　入  : piDelta           TOD 调整时间 正数表示时间加速多少个对应的 ticks
+**                                          负数表示时间减速多少个对应的 ticks
+**                                          例如想让 TOD 时间加速一秒, 而且时钟 hz 为 100, 则此参数为  100
+**                                              想让 TOD 时间减速一秒, 而且时钟 hz 为 100, 则此参数为 -100
+**           piDeltaNs         一个 tick 以内 ns 数的调整
+**           piOldDelta        上次没有调整完的剩余调整值
+**           piOldDeltaNs      一个 tick 以内 ns 数的调整
+** 输　出  : 
+** 全局变量: 
+** 调用模块: 
+** 注  意  : 为了避免时光倒流, TOD 调回以前的时间系统将自动减速 TOD 的运算.
+
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_TimeTodAdjEx (INT32  *piDelta, INT32  *piDeltaNs, INT32 *piOldDelta, INT32 *piOldDeltaNs)
+{
+    INTREG      iregInterLevel;
+    
+    if (piDeltaNs && (lib_abs(*piDeltaNs) > LW_NSEC_PER_TICK)) {
+        _ErrorHandle(E2BIG);
+        return  (PX_ERROR);
+    }
+
+    LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+    if (piOldDelta) {
+        *piOldDelta = _K_iTODDelta;
+    }
+    if (piOldDeltaNs) {
+        *piOldDeltaNs = _K_iTODDeltaNs;
+    }
+    if (piDelta) {
+        _K_iTODDelta = *piDelta;
+    }
+    if (piDeltaNs) {
+        _K_iTODDeltaNs = *piDeltaNs;
+    }
+    LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
   END
 *********************************************************************************************************/

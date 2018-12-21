@@ -38,8 +38,8 @@
 LW_API 
 int  adjtime (const struct timeval *delta, struct timeval *olddelta)
 {
-    INT32   iDelta;
-    INT32   iOldDelta;
+    INT32   iDelta, iDeltaNs;
+    INT32   iOldDelta, iOldDeltaNs;
     
     if (geteuid()) {                                                    /*  只有 root 权限可以操作      */
         errno = EPERM;
@@ -51,18 +51,21 @@ int  adjtime (const struct timeval *delta, struct timeval *olddelta)
             errno = ENOTSUP;
             return  (PX_ERROR);
         }
-        iDelta  = (INT32)delta->tv_sec * (INT32)LW_TICK_HZ;
-        iDelta += (INT32)((((delta->tv_usec * (INT32)LW_TICK_HZ) / 100) / 100) / 100);
-        API_TimeTodAdj(&iDelta, &iOldDelta);
+        iDelta    = (INT32)delta->tv_sec * (INT32)LW_TICK_HZ;
+        iDelta   += (INT32)((((delta->tv_usec * (INT32)LW_TICK_HZ) / 100) / 100) / 100);
+        iDeltaNs  = (INT32)(delta->tv_usec % ((100 * 100 * 100) / (INT32)LW_TICK_HZ));
+        iDeltaNs *= 1000;
+        API_TimeTodAdjEx(&iDelta, &iOldDeltaNs, &iOldDelta, &iOldDeltaNs);
     
     } else {
-        API_TimeTodAdj(LW_NULL, &iOldDelta);
+        API_TimeTodAdjEx(LW_NULL, LW_NULL, &iOldDelta, &iOldDeltaNs);
     }
     
     if (olddelta) {
-        olddelta->tv_sec  = (time_t)(iOldDelta / (INT32)LW_TICK_HZ);
-        olddelta->tv_usec = (LONG)(iOldDelta % (INT32)LW_TICK_HZ) * ((100 * 100 * 100)
-                          / (INT32)LW_TICK_HZ);
+        olddelta->tv_sec   = (time_t)(iOldDelta / (INT32)LW_TICK_HZ);
+        olddelta->tv_usec  = (LONG)(iOldDelta % (INT32)LW_TICK_HZ) * ((100 * 100 * 100)
+                           / (INT32)LW_TICK_HZ);
+        olddelta->tv_usec += iOldDeltaNs / 1000;
     }
     
     return  (ERROR_NONE);
