@@ -260,6 +260,8 @@ VOID  __tshellNetstatStat (VOID)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_RAW
+
 static CPCHAR  __RawGetProto (u8_t  proto)
 {
     switch (proto) {
@@ -323,6 +325,8 @@ static VOID  __RawPrint (struct raw_pcb  *pcb, PCHAR  pcBuffer,
 #endif                                                                  /*  LWIP_IPV6                   */
     }
 }
+
+#endif                                                                  /*  LWIP_RAW                    */
 /*********************************************************************************************************
 ** 函数名称: __tshellNetstatRaw
 ** 功能描述: 系统命令 "netstat -w"
@@ -333,6 +337,7 @@ static VOID  __RawPrint (struct raw_pcb  *pcb, PCHAR  pcBuffer,
 *********************************************************************************************************/
 VOID  __tshellNetstatRaw (INT  iNetType)
 {
+#if LWIP_RAW
     const CHAR      cRawInfoHdr[] = 
     "LOCAL           REMOTE          PROTO\n";
     
@@ -401,6 +406,7 @@ VOID  __tshellNetstatRaw (INT  iNetType)
     printf("%s\n", pcPrintBuf);
     
     __SHEAP_FREE(pcPrintBuf);
+#endif                                                                  /*  LWIP_RAW                    */
 }
 /*********************************************************************************************************
 ** 函数名称: __ProtoAddrBuild
@@ -413,6 +419,8 @@ VOID  __tshellNetstatRaw (INT  iNetType)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_UDP || LWIP_TCP
+
 static PCHAR  __ProtoAddrBuild (ip_addr_t  *addr, u16_t usPort, PCHAR  pcBuffer, size_t  stSize)
 {
     CHAR    cBuffer[INET6_ADDRSTRLEN];
@@ -433,6 +441,8 @@ static PCHAR  __ProtoAddrBuild (ip_addr_t  *addr, u16_t usPort, PCHAR  pcBuffer,
     
     return  (pcBuffer);
 }
+
+#endif                                                                  /*  LWIP_UDP || LWIP_TCP        */
 /*********************************************************************************************************
 ** 函数名称: __TcpGetStat
 ** 功能描述: 获得 tcp 状态信息
@@ -441,6 +451,8 @@ static PCHAR  __ProtoAddrBuild (ip_addr_t  *addr, u16_t usPort, PCHAR  pcBuffer,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_TCP
+
 static CPCHAR  __TcpGetStat (u8_t  state)
 {
     static const PCHAR cTcpState[] = {
@@ -525,6 +537,8 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
 #endif                                                                  /*  LWIP_IPV6                   */
     }
 }
+
+#endif                                                                  /*  LWIP_TCP                    */
 /*********************************************************************************************************
 ** 函数名称: __tshellNetstatTcpListen
 ** 功能描述: 系统命令 "netstat -tl" (只显示 listen 状态 tcp)
@@ -535,6 +549,7 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
 *********************************************************************************************************/
 VOID  __tshellNetstatTcpListen (INT  iNetType)
 {
+#if LWIP_TCP
     const CHAR      cTcpInfoHdr[] = 
     "LOCAL                REMOTE               STATUS   RETRANS RCV_WND SND_WND\n";
     
@@ -606,6 +621,7 @@ VOID  __tshellNetstatTcpListen (INT  iNetType)
     printf("%s\n", pcPrintBuf);
     
     __SHEAP_FREE(pcPrintBuf);
+#endif                                                                  /*  LWIP_TCP                    */
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellNetstatTcp
@@ -617,6 +633,7 @@ VOID  __tshellNetstatTcpListen (INT  iNetType)
 *********************************************************************************************************/
 VOID  __tshellNetstatTcp (INT  iNetType)
 {
+#if LWIP_TCP
     const CHAR      cTcpInfoHdr[] = 
     "LOCAL                REMOTE               STATUS   RETRANS RCV_WND SND_WND\n";
     
@@ -710,6 +727,7 @@ VOID  __tshellNetstatTcp (INT  iNetType)
     printf("%s\n", pcPrintBuf);
     
     __SHEAP_FREE(pcPrintBuf);
+#endif                                                                  /*  LWIP_TCP                    */
 }
 /*********************************************************************************************************
 ** 函数名称: __UdpPrint
@@ -722,6 +740,8 @@ VOID  __tshellNetstatTcp (INT  iNetType)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_UDP
+
 static VOID  __UdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer, 
                          size_t  stTotalSize, size_t *pstOft)
 {
@@ -748,6 +768,8 @@ static VOID  __UdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
 #endif                                                                  /*  LWIP_IPV6                   */
     }
 }
+
+#endif                                                                  /*  LWIP_UDP                    */
 /*********************************************************************************************************
 ** 函数名称: __tshellNetstatUdp
 ** 功能描述: 系统命令 "netstat -u"
@@ -758,6 +780,7 @@ static VOID  __UdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
 *********************************************************************************************************/
 VOID  __tshellNetstatUdp (INT  iNetType)
 {
+#if LWIP_UDP
     const CHAR      cUdpInfoHdr[] = 
     "LOCAL                REMOTE               UDPLITE\n";
     
@@ -827,6 +850,7 @@ VOID  __tshellNetstatUdp (INT  iNetType)
     printf("%s\n", pcPrintBuf);
     
     __SHEAP_FREE(pcPrintBuf);
+#endif                                                                  /*  LWIP_UDP                    */
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellNetstatUnix

@@ -48,6 +48,8 @@
 #include "lwip/pbuf.h"
 #include "lwip/netif.h"
 #include "lwip/inet.h"
+#include "lwip/prot/ip.h"
+#include "lwip/prot/udp.h"
 
 #include "aodv_proto.h"
 #include "aodv_param.h"

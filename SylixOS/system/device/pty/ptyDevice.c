@@ -104,7 +104,7 @@ ssize_t  _PtyDeviceRead (P_PTY_DEV     p_ptydev,
     REGISTER P_PTY_D_DEV    p_ptyddev = &p_ptydev->PTYDEV_ptyddev;
     REGISTER P_PTY_H_DEV    p_ptyhdev = &p_ptydev->PTYDEV_ptyhdev;
 
-    if (p_ptyddev->PTYDDEV_bIsClose) {                                  /*  是否被关闭了                */
+    if (p_ptyddev->PTYDDEV_bIsClose || !stMaxBytes) {                   /*  是否被关闭了                */
         return  (0);
     }
     

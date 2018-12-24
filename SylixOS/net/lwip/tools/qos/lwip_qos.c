@@ -32,8 +32,8 @@
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
 #include "lwip/inet.h"
-#include "lwip/ip.h"
-#include "lwip/udp.h"
+#include "lwip/prot/udp.h"
+#include "lwip/prot/tcp.h"
 #include "lwip/priv/tcp_priv.h"
 /*********************************************************************************************************
   ∫Í∂®“Â

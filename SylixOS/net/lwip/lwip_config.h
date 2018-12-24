@@ -134,10 +134,13 @@ extern void  tlsf_mem_free(void *f);
 #define MEMP_NUM_TCP_PCB                LW_CFG_LWIP_TCP_PCB
 #define MEMP_NUM_TCP_PCB_LISTEN         LW_CFG_LWIP_TCP_PCB
 
-#define MEMP_NUM_NETCONN                (LW_CFG_LWIP_RAW_PCB + LW_CFG_LWIP_UDP_PCB + \
-                                         LW_CFG_LWIP_TCP_PCB)
+#if LW_CFG_LWIP_TCP_PCB + LW_CFG_LWIP_UDP_PCB + LW_CFG_LWIP_RAW_PCB
+#define MEMP_NUM_NETCONN                ((2 * LW_CFG_LWIP_TCP_PCB) + LW_CFG_LWIP_UDP_PCB + LW_CFG_LWIP_RAW_PCB)
+#else
+#define MEMP_NUM_NETCONN                1
+#endif
 
-#define MEMP_NUM_TCPIP_MSG_API          (LW_CFG_LWIP_TCP_PCB + LW_CFG_LWIP_UDP_PCB + LW_CFG_LWIP_RAW_PCB)
+#define MEMP_NUM_TCPIP_MSG_API          MEMP_NUM_NETCONN
 #define MEMP_NUM_TCPIP_MSG_INPKT        LW_CFG_LWIP_NUM_POOLS           /*  tcp input msgqueue use      */
 
 /*********************************************************************************************************
@@ -216,22 +219,6 @@ extern void  tlsf_mem_free(void *f);
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
 
 /*********************************************************************************************************
-  dhcp & autoip
-*********************************************************************************************************/
-
-#define LWIP_DHCP                       1                               /*  DHCP                        */
-#define LWIP_DHCP_CHECK_LINK_UP         1
-#define LWIP_DHCP_BOOTP_FILE            0                               /*  not include bootp file now  */
-#define LWIP_AUTOIP                     1
-
-#if (LWIP_DHCP > 0) && (LWIP_AUTOIP > 0)
-#define LWIP_DHCP_AUTOIP_COOP           1
-#endif                                                                  /*  (LWIP_DHCP > 0)             */
-                                                                        /*  (LWIP_AUTOIP > 0)           */
-
-#define LWIP_IPV6_DHCP6                 LWIP_IPV6                       /*  DHCPv6                      */
-
-/*********************************************************************************************************
   timeouts (default + 10, aodv, lowpan ...)
 *********************************************************************************************************/
 
@@ -250,7 +237,11 @@ extern void  tlsf_mem_free(void *f);
   RAW
 *********************************************************************************************************/
 
+#if LW_CFG_LWIP_RAW_PCB > 0
 #define LWIP_RAW                        1
+#else
+#define LWIP_RAW                        0
+#endif
 
 /*********************************************************************************************************
   SNMP
@@ -299,26 +290,6 @@ extern void  tlsf_mem_free(void *f);
 #else
 #define LWIP_MULTICAST_TX_OPTIONS       1
 #endif
-
-/*********************************************************************************************************
-  DNS
-*********************************************************************************************************/
-
-#define LWIP_DNS                        1
-
-#ifndef MEMP_NUM_NETDB
-#define MEMP_NUM_NETDB                  10
-#endif                                                                  /*  MEMP_NUM_NETDB              */
-
-#define DNS_MAX_NAME_LENGTH             PATH_MAX
-#define DNS_LOCAL_HOSTLIST              1
-
-extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType);
-                                                                        /*  ±¾µØµØÖ·Ó³Éä±í²éÑ¯          */
-                                                                        /*  ·¶Î§ IPv4 ÍøÂç×Ö½ÚÐòµØÖ·    */
-#define DNS_LOCAL_HOSTLIST_IS_DYNAMIC   1
-#define DNS_LOOKUP_LOCAL_EXTERN(name, addr, type)   \
-        __inetHostTableGetItem(name, addr, type)
 
 /*********************************************************************************************************
   TCP UDP Ëæ»ú¶Ë¿Ú·¶Î§
@@ -375,11 +346,20 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
   transmit layer
 *********************************************************************************************************/
 
+#if LW_CFG_LWIP_UDP_PCB > 0
 #define LWIP_UDP                        1
 #define LWIP_UDPLITE                    1
-#define LWIP_NETBUF_RECVINFO            1
+#else
+#define LWIP_UDP                        0
+#define LWIP_UDPLITE                    0
+#endif
 
+#if LW_CFG_LWIP_TCP_PCB > 0
 #define LWIP_TCP                        1
+#else
+#define LWIP_TCP                        0
+#endif
+
 #define TCP_LISTEN_BACKLOG              1
 #define LWIP_TCP_TIMESTAMPS             1
 
@@ -415,6 +395,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 
 #define LWIP_TCP_KEEPALIVE              1
 #define LWIP_NETCONN_FULLDUPLEX         1
+#define LWIP_NETBUF_RECVINFO            1
 
 #define LWIP_SO_LINGER                  1
 #define LWIP_SO_SNDTIMEO                1
@@ -426,6 +407,41 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define SO_REUSE_RXTOALL                1
 
 #define LWIP_FIONREAD_LINUXMODE         1                               /*  linux FIONREAD compatibility*/
+
+/*********************************************************************************************************
+  DNS
+*********************************************************************************************************/
+
+#define LWIP_DNS                        LWIP_UDP
+
+#ifndef MEMP_NUM_NETDB
+#define MEMP_NUM_NETDB                  10
+#endif                                                                  /*  MEMP_NUM_NETDB              */
+
+#define DNS_MAX_NAME_LENGTH             PATH_MAX
+#define DNS_LOCAL_HOSTLIST              1
+
+extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType);
+                                                                        /*  ±¾µØµØÖ·Ó³Éä±í²éÑ¯          */
+                                                                        /*  ·¶Î§ IPv4 ÍøÂç×Ö½ÚÐòµØÖ·    */
+#define DNS_LOCAL_HOSTLIST_IS_DYNAMIC   1
+#define DNS_LOOKUP_LOCAL_EXTERN(name, addr, type)   \
+        __inetHostTableGetItem(name, addr, type)
+
+/*********************************************************************************************************
+  dhcp & autoip
+*********************************************************************************************************/
+
+#define LWIP_DHCP                       LWIP_UDP                        /*  DHCP                        */
+#define LWIP_DHCP_CHECK_LINK_UP         1
+#define LWIP_DHCP_BOOTP_FILE            0                               /*  not include bootp file now  */
+#define LWIP_AUTOIP                     1
+
+#if (LWIP_DHCP > 0) && (LWIP_AUTOIP > 0)
+#define LWIP_DHCP_AUTOIP_COOP           1
+#endif                                                                  /*  (LWIP_DHCP > 0)             */
+                                                                        /*  (LWIP_AUTOIP > 0)           */
+#define LWIP_IPV6_DHCP6                 LWIP_IPV6                       /*  DHCPv6                      */
 
 /*********************************************************************************************************
   network interfaces options

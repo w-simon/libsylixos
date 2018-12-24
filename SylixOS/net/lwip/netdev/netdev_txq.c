@@ -142,6 +142,25 @@ static void netdev_txq_proc (void *arg)
   }
 }
 
+/* pbuf is HEAP or POOL? ref it */
+static LW_INLINE int 
+netdev_txq_can_ref (struct pbuf *p)
+{
+  u8_t type;
+  
+  while (p) {
+    type = pbuf_get_allocsrc(p);
+    if ((type == PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP) || 
+        (type == PBUF_TYPE_ALLOC_SRC_MASK_STD_MEMP_PBUF_POOL)) {
+      p = p->next;
+    } else {
+      return (0);
+    }
+  }
+  
+  return (1);
+}
+
 /* netdev txqueue transmit */
 err_t  netdev_txq_transmit (netdev_t *netdev, struct pbuf *p)
 {
@@ -154,7 +173,7 @@ err_t  netdev_txq_transmit (netdev_t *netdev, struct pbuf *p)
     return (ERR_IF);
   }
   
-  if (NETDEV_TX_CAN_REF_PBUF(p)) {
+  if (netdev_txq_can_ref(p)) {
     pbuf_ref(p);
     desc->p = p;
   

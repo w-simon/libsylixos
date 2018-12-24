@@ -83,9 +83,11 @@
 *********************************************************************************************************/
 #include "lwip/tcp.h"
 #include "lwip/priv/tcp_priv.h"
+#if LWIP_TCP
 extern struct tcp_pcb           *tcp_active_pcbs;
 extern union  tcp_listen_pcbs_t  tcp_listen_pcbs;
 extern struct tcp_pcb           *tcp_tw_pcbs;
+#endif                                                                  /*  LWIP_TCP                    */
 /*********************************************************************************************************
   UDP
 *********************************************************************************************************/
@@ -545,6 +547,8 @@ static LW_PROCFS_NODE       _G_pfsnNet[] =
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_TCP
+
 static CPCHAR  __procFsNetTcpGetStat (u8_t  state)
 {
     static const PCHAR cTcpState[] = {
@@ -632,6 +636,8 @@ static VOID  __procFsNetTcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
 #endif                                                                  /*  LWIP_IPV6                   */
     }
 }
+
+#endif                                                                  /*  LWIP_TCP                    */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetTcpRead
 ** 功能描述: procfs 读一个读取网络 tcp 文件
@@ -648,8 +654,10 @@ static ssize_t  __procFsNetTcpRead (PLW_PROCFS_NODE  p_pfsn,
                                     size_t           stMaxBytes,
                                     off_t            oft)
 {
+#if LWIP_TCP
     const CHAR      cTcpInfoHdr[] = 
     "LOCAL         REMOTE        STATUS   RETRANS RCV_WND SND_WND\n";
+#endif                                                                  /*  LWIP_TCP                    */
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -659,6 +667,7 @@ static ssize_t  __procFsNetTcpRead (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+#if LWIP_TCP
         size_t  stNeedBufferSize = 0;
         struct tcp_pcb *pcb;
         
@@ -707,6 +716,9 @@ static ssize_t  __procFsNetTcpRead (PLW_PROCFS_NODE  p_pfsn,
             }
         }
         UNLOCK_TCPIP_CORE();
+#else                                                                   /*  LWIP_TCP                    */
+        stRealSize = 0;
+#endif                                                                  /*  !LWIP_TCP                   */
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
         stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
@@ -737,9 +749,11 @@ static ssize_t  __procFsNetTcp6Read (PLW_PROCFS_NODE  p_pfsn,
                                      size_t           stMaxBytes,
                                      off_t            oft)
 {
+#if LWIP_TCP
     const CHAR      cTcpInfoHdr[] = 
     "LOCAL                                 REMOTE                                "
     "STATUS   IPv6-ONLY RETRANS RCV_WND SND_WND\n";
+#endif                                                                  /*  LWIP_TCP                    */
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -749,6 +763,7 @@ static ssize_t  __procFsNetTcp6Read (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+#if LWIP_TCP
         size_t  stNeedBufferSize = 0;
         struct tcp_pcb *pcb;
         
@@ -797,6 +812,9 @@ static ssize_t  __procFsNetTcp6Read (PLW_PROCFS_NODE  p_pfsn,
             }
         }
         UNLOCK_TCPIP_CORE();
+#else                                                                   /*  LWIP_TCP                    */
+        stRealSize = 0;
+#endif                                                                  /*  !LWIP_TCP                   */
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
         stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
@@ -822,6 +840,8 @@ static ssize_t  __procFsNetTcp6Read (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_UDP
+
 static VOID  __procFsNetUdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer, 
                                   size_t  stTotalSize, size_t *pstOft)
 {
@@ -847,6 +867,8 @@ static VOID  __procFsNetUdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
 #endif                                                                  /*  LWIP_IPV6                   */
     }
 }
+
+#endif                                                                  /*  LWIP_UDP                    */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetUdpRead
 ** 功能描述: procfs 读一个读取网络 udp 文件
@@ -863,8 +885,10 @@ static ssize_t  __procFsNetUdpRead (PLW_PROCFS_NODE  p_pfsn,
                                     size_t           stMaxBytes,
                                     off_t            oft)
 {
+#if LWIP_UDP
     const CHAR      cUdpInfoHdr[] = 
     "LOCAL         REMOTE\n";
+#endif                                                                  /*  LWIP_UDP                    */
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -874,6 +898,7 @@ static ssize_t  __procFsNetUdpRead (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+#if LWIP_UDP
         size_t          stNeedBufferSize = 0;
         struct udp_pcb *pcb;
         int             udplite;
@@ -909,6 +934,9 @@ static ssize_t  __procFsNetUdpRead (PLW_PROCFS_NODE  p_pfsn,
             }
         }
         UNLOCK_TCPIP_CORE();
+#else                                                                   /*  LWIP_UDP                    */
+        stRealSize = 0;
+#endif                                                                  /*  !LWIP_UDP                   */
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
         stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
@@ -939,8 +967,10 @@ static ssize_t  __procFsNetUdp6Read (PLW_PROCFS_NODE  p_pfsn,
                                      size_t           stMaxBytes,
                                      off_t            oft)
 {
+#if LWIP_UDP
     const CHAR      cUdpInfoHdr[] = 
     "LOCAL                                 REMOTE\n";
+#endif                                                                  /*  LWIP_UDP                    */
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -950,6 +980,7 @@ static ssize_t  __procFsNetUdp6Read (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+#if LWIP_UDP
         size_t          stNeedBufferSize = 0;
         struct udp_pcb *pcb;
         int             udplite;
@@ -985,6 +1016,9 @@ static ssize_t  __procFsNetUdp6Read (PLW_PROCFS_NODE  p_pfsn,
             }
         }
         UNLOCK_TCPIP_CORE();
+#else                                                                   /*  LWIP_UDP                    */
+        stRealSize = 0;
+#endif                                                                  /*  !LWIP_UDP                   */
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
         stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
@@ -1007,6 +1041,8 @@ static ssize_t  __procFsNetUdp6Read (PLW_PROCFS_NODE  p_pfsn,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_RAW
+
 static CPCHAR  __procFsNetRawGetProto (u8_t  proto)
 {
     switch (proto) {
@@ -1069,6 +1105,8 @@ static VOID  __procFsNetRawPrint (struct raw_pcb *pcb, PCHAR  pcBuffer,
 #endif                                                                  /*  LWIP_IPV6                   */
     }
 }
+
+#endif                                                                  /*  LWIP_RAW                    */
 /*********************************************************************************************************
 ** 函数名称: __procFsNetRawRead
 ** 功能描述: procfs 读一个读取网络 raw 文件
@@ -1085,8 +1123,10 @@ static ssize_t  __procFsNetRawRead (PLW_PROCFS_NODE  p_pfsn,
                                     size_t           stMaxBytes,
                                     off_t            oft)
 {
+#if LWIP_RAW
     const CHAR      cRawInfoHdr[] = 
     "LOCAL    REMOTE   PROTO\n";
+#endif                                                                  /*  LWIP_RAW                    */
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -1096,6 +1136,7 @@ static ssize_t  __procFsNetRawRead (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+#if LWIP_RAW
         size_t  stNeedBufferSize = 0;
         struct raw_pcb *pcb;
         
@@ -1124,6 +1165,9 @@ static ssize_t  __procFsNetRawRead (PLW_PROCFS_NODE  p_pfsn,
             }
         }
         UNLOCK_TCPIP_CORE();
+#else                                                                   /*  LWIP_RAW                    */
+        stRealSize = 0;
+#endif                                                                  /*  !LWIP_RAW                   */
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
         stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
@@ -1154,8 +1198,10 @@ static ssize_t  __procFsNetRaw6Read (PLW_PROCFS_NODE  p_pfsn,
                                      size_t           stMaxBytes,
                                      off_t            oft)
 {
+#if LWIP_RAW
     const CHAR      cRawInfoHdr[] = 
     "LOCAL                            REMOTE                           PROTO\n";
+#endif                                                                  /*  LWIP_RAW                    */
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -1165,6 +1211,7 @@ static ssize_t  __procFsNetRaw6Read (PLW_PROCFS_NODE  p_pfsn,
      */
     pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
     if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+#if LWIP_RAW
         size_t  stNeedBufferSize = 0;
         struct raw_pcb *pcb;
         
@@ -1193,6 +1240,9 @@ static ssize_t  __procFsNetRaw6Read (PLW_PROCFS_NODE  p_pfsn,
             }
         }
         UNLOCK_TCPIP_CORE();
+#else                                                                   /*  LWIP_RAW                    */
+        stRealSize = 0;
+#endif                                                                  /*  !LWIP_RAW                   */
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     } else {
         stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
@@ -1740,8 +1790,13 @@ static VOID  __procFsNetTcpipStatPrint (PCHAR  pcBuffer, size_t  stTotalSize, si
     __procFsNetTcpipStatPrintProto(&lwip_stats.icmp6,    "ICMPv6",    pcBuffer, stTotalSize, pstOft);
 #endif                                                                  /*  LWIP_IPV6                   */
     
+#if LWIP_UDP
     __procFsNetTcpipStatPrintProto(&lwip_stats.udp,      "UDP",       pcBuffer, stTotalSize, pstOft);
+#endif                                                                  /*  LWIP_UDP                    */
+
+#if LWIP_TCP
     __procFsNetTcpipStatPrintProto(&lwip_stats.tcp,      "TCP",       pcBuffer, stTotalSize, pstOft);
+#endif                                                                  /*  LWIP_TCP                    */
     
 #if LW_CFG_NET_MROUTER > 0
     __procFsNetTcpipStatPrintPim(pcBuffer, stTotalSize, pstOft);

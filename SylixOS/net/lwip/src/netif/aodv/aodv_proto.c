@@ -38,6 +38,7 @@
  */
  
 #include "lwip/opt.h"
+#include "lwip/ip.h"
 #include "lwip/pbuf.h"
 #include "lwip/inet.h"
 #include "lwip/raw.h"

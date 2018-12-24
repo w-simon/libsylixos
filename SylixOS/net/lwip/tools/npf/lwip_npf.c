@@ -42,8 +42,9 @@
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
 #include "lwip/inet.h"
-#include "lwip/ip.h"
-#include "lwip/udp.h"
+#include "lwip/prot/ip.h"
+#include "lwip/prot/udp.h"
+#include "lwip/prot/tcp.h"
 #include "lwip/priv/tcp_priv.h"
 #include "netif/etharp.h"
 /*********************************************************************************************************
@@ -293,6 +294,7 @@ static VOID  __npfNetifDelete (__PNPF_NETIF_CB  pnpfni)
 ** 输　出  : 是否允许数据报通过
 ** 全局变量:
 ** 调用模块:
+** 注  意  : 只要有一个 allow 节点, 则仅允许白名单通过.
 *********************************************************************************************************/
 static BOOL  __npfMacRuleCheck (__PNPF_NETIF_CB  pnpfni, BOOL  bIn, struct eth_hdr *pethhdr)
 {
@@ -306,17 +308,24 @@ static BOOL  __npfMacRuleCheck (__PNPF_NETIF_CB  pnpfni, BOOL  bIn, struct eth_h
 
     while (plineTemp) {
         pnpfrm = _LIST_ENTRY(plineTemp, __NPF_RULE_MAC, NPFRM_lineManage);
-        if (lib_memcmp(pnpfrm->NPFRM_ucMac,
-                       pethhdr->src.addr,
-                       ETHARP_HWADDR_LEN) == 0) {                       /*  比较 hwaddr                 */
-            if (pnpfrm->NPFRM_bAllow) {
+        if (pnpfrm->NPFRM_bAllow) {
+            if (lib_memcmp(pnpfrm->NPFRM_ucMac,
+                           pethhdr->src.addr,
+                           ETHARP_HWADDR_LEN) == 0) {                   /*  比较 hwaddr                 */
                 return  (LW_TRUE);                                      /*  白名单, 立即放行            */
             }
             bAllow = LW_FALSE;                                          /*  禁止通过                    */
+            
+        } else {
+            if (lib_memcmp(pnpfrm->NPFRM_ucMac,
+                           pethhdr->src.addr,
+                           ETHARP_HWADDR_LEN) == 0) {                   /*  比较 hwaddr                 */
+                bAllow = LW_FALSE;                                      /*  禁止通过                    */
+            }
         }
         plineTemp = _list_line_get_next(plineTemp);
     }
-
+    
     return  (bAllow);
 }
 /*********************************************************************************************************

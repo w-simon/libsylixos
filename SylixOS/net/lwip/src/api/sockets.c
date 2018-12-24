@@ -3213,17 +3213,20 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
           break;
         case IP_HDRINCL:
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB_TYPE(sock, *optlen, int, NETCONN_RAW);
+#if LWIP_RAW
           if (sock->conn->pcb.raw->flags & RAW_FLAGS_HDRINCL) {
             *(int *)optval = 1;
           } else {
             *(int *)optval = 0;
           }
+#endif /* LWIP_RAW */
           break;
         case IP_OPTIONS:
           if (NETCONNTYPE_GROUP(netconn_type((sock)->conn)) != NETCONN_RAW) {
             done_socket(sock);
             return ENOPROTOOPT;
           }
+#if LWIP_RAW
           if (*optlen < sock->conn->pcb.raw->optlen) {
             done_socket(sock);
             return ENOBUFS;
@@ -3232,6 +3235,7 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
             MEMCPY(optval, sock->conn->pcb.raw->options, sock->conn->pcb.raw->optlen);
           }
           *optlen = sock->conn->pcb.raw->optlen;
+#endif /* LWIP_RAW */
           break;
 #endif /* SYLIXOS */
 #if LWIP_IPV4 && LWIP_MULTICAST_TX_OPTIONS
@@ -3904,6 +3908,7 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           break;
         case IP_HDRINCL:
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB_TYPE(sock, optlen, int, NETCONN_RAW);
+#if LWIP_RAW
           if (*(int *)optval) {
             sock->conn->pcb.raw->flags |= RAW_FLAGS_HDRINCL;
           } else {
@@ -3911,12 +3916,14 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           }
           LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_IP, IP_HDRINCL, ..)-> %d\n",
                                       s, *(int *)optval));
+#endif /* LWIP_RAW */
           break;
         case IP_OPTIONS:
           if (NETCONNTYPE_GROUP(netconn_type((sock)->conn)) != NETCONN_RAW) {
             done_socket(sock);
             return ENOPROTOOPT;
           }
+#if LWIP_RAW
           if (optlen <= (IP_HLEN_MAX - IP_HLEN)) {
             if (optlen > 0) {
               MEMCPY(sock->conn->pcb.raw->options, optval, optlen);
@@ -3928,6 +3935,7 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           }
           LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_IP, IP_OPTIONS, ..)-> %d\n",
                                       s, optlen));
+#endif /* LWIP_RAW */
           break;
 #endif /* SYLIXOS */
 #if LWIP_NETBUF_RECVINFO

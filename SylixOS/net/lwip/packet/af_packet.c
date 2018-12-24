@@ -88,7 +88,11 @@ static AF_PACKET_N  *__packetBufAlloc (size_t  stLen)
         return  (LW_NULL);
     }
     
+#if LW_CFG_NET_PACKET_POOL > 0
     pktm->PKTM_p = pbuf_alloc(PBUF_RAW, (u16_t)stLen, PBUF_POOL);
+#else                                                                   /*  LW_CFG_NET_PACKET_POOL      */
+    pktm->PKTM_p = pbuf_alloc(PBUF_RAW, (u16_t)stLen, PBUF_RAM);
+#endif                                                                  /*  !LW_CFG_NET_PACKET_POOL     */
     if (pktm->PKTM_p == LW_NULL) {
         API_PartitionPut(_G_hAfPacketNodes, pktm);
         return  (LW_NULL);

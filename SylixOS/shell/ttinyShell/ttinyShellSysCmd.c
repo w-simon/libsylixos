@@ -229,7 +229,7 @@ static INT  __tshellSetTtyOpt (INT  iFd, PCHAR  pcOpt)
     CHAR   cParity;
     INT    iBits, iStop, iNum;
     
-    if (pcOpt == PX_EOS) {
+    if ((iFd < 0) || (pcOpt == LW_NULL)) {
 __opt_error:
         fprintf(stderr, "tty hardware option error, \n"
                         "eg. /dev/ttyS1:115200,n,8,1\n"

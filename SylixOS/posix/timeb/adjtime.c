@@ -26,6 +26,11 @@
 #if LW_CFG_POSIX_EN > 0
 #include "time.h"
 /*********************************************************************************************************
+  调整范围
+*********************************************************************************************************/
+#define ADJTIME_DELTA_MAX       ((__ARCH_INT_MAX / 1000000) - 2)
+#define ADJTIME_DELTA_MIN       ((__ARCH_INT_MIN / 1000000) + 2)
+/*********************************************************************************************************
 ** 函数名称: adjtime
 ** 功能描述: 微调系统时间
 ** 输　入  : delta             系统时间修正参数 (详细说明参考 POSIX 手册)
@@ -47,7 +52,8 @@ int  adjtime (const struct timeval *delta, struct timeval *olddelta)
     }
     
     if (delta) {
-        if (delta->tv_sec > 86400) {                                    /*  调整时间不得超过 1 天       */
+        if ((delta->tv_sec < ADJTIME_DELTA_MIN) ||
+            (delta->tv_sec > ADJTIME_DELTA_MAX)) {                      /*  调整时间是否超过范围        */
             errno = ENOTSUP;
             return  (PX_ERROR);
         }
@@ -55,7 +61,7 @@ int  adjtime (const struct timeval *delta, struct timeval *olddelta)
         iDelta   += (INT32)((((delta->tv_usec * (INT32)LW_TICK_HZ) / 100) / 100) / 100);
         iDeltaNs  = (INT32)(delta->tv_usec % ((100 * 100 * 100) / (INT32)LW_TICK_HZ));
         iDeltaNs *= 1000;
-        API_TimeTodAdjEx(&iDelta, &iOldDeltaNs, &iOldDelta, &iOldDeltaNs);
+        API_TimeTodAdjEx(&iDelta, &iDeltaNs, &iOldDelta, &iOldDeltaNs);
     
     } else {
         API_TimeTodAdjEx(LW_NULL, LW_NULL, &iOldDelta, &iOldDeltaNs);

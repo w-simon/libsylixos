@@ -822,6 +822,8 @@ void  sys_mbox_set_invalid (sys_mbox_t *pmbox)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
+#if LWIP_DNS
+
 struct hostent  *sys_thread_hostent (struct hostent  *phostent)
 {
 #define __LW_MAX_HOSTENT    20
@@ -852,6 +854,8 @@ struct hostent  *sys_thread_hostent (struct hostent  *phostent)
 
     return  (phostentRet);
 }
+
+#endif                                                                  /*  LWIP_DNS                    */
 /*********************************************************************************************************
 ** 函数名称: sys_thread_new
 ** 功能描述: 创建一个线程
