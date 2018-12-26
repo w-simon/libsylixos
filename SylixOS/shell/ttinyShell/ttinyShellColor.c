@@ -452,6 +452,106 @@ VOID  API_TShellColorStart2 (CPCHAR  pcColor, INT  iFd)
     fdprintf(iFd, "%s", pcColor);
 }
 /*********************************************************************************************************
+** 函数名称: API_TShellColorGet
+** 功能描述: 通过文件类型获得色彩配置
+** 输　入  : mode          文件类型
+**           pcColor       色彩缓存
+**           stSize        缓存大小
+** 输　出  : ERROR or OK
+** 全局变量: 
+** 调用模块: 
+                                           API 函数
+*********************************************************************************************************/
+LW_API  
+INT  API_TShellColorGet (mode_t  mode, PCHAR  pcColor, size_t  stSize)
+{
+    if (!pcColor || !stSize) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    switch (mode & S_IFMT) {
+    
+    case S_IFDIR:
+        snprintf(pcColor, stSize, "%s%s%s",
+                 _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_DIR].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        break;
+        
+    case S_IFCHR:
+        snprintf(pcColor, stSize, "%s%s%s",
+                 _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_CHR].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        break;
+    
+    case S_IFBLK:
+        snprintf(pcColor, stSize, "%s%s%s",
+                 _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_BLK].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        break;
+        
+    case S_IFLNK:
+        snprintf(pcColor, stSize, "%s%s%s",
+                 _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_LN].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        break;
+        
+    case S_IFIFO:
+        snprintf(pcColor, stSize, "%s%s%s",
+                 _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_FIFO].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        break;
+        
+    case S_IFSOCK:
+        snprintf(pcColor, stSize, "%s%s%s",
+                 _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_SOCK].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        break;
+        
+    case S_IFREG:
+        if (mode & S_ISUID) {
+            snprintf(pcColor, stSize, "%s%s%s",
+                     _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                     _G_cTshellFileColor[TSHELL_TYPE_SETUID].TTC_cColor,
+                     _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+            
+        } else if (mode & S_ISGID) {
+            snprintf(pcColor, stSize, "%s%s%s",
+                     _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                     _G_cTshellFileColor[TSHELL_TYPE_SETGID].TTC_cColor,
+                     _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        
+        } else if (mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+            snprintf(pcColor, stSize, "%s%s%s",
+                     _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                     _G_cTshellFileColor[TSHELL_TYPE_EXEC].TTC_cColor,
+                     _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        
+        } else {
+            snprintf(pcColor, stSize, "%s%s%s",
+                     _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                     _G_cTshellFileColor[TSHELL_TYPE_FILE].TTC_cColor,
+                     _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        }
+        break;
+        
+    default:
+        snprintf(pcColor, stSize, "%s%s%s",
+                 _G_cTshellFileColor[TSHELL_TYPE_LEFTCODE].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_NORMAL].TTC_cColor,
+                 _G_cTshellFileColor[TSHELL_TYPE_RIGHTCODE].TTC_cColor);
+        break;
+    }
+    
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: API_TShellColorEnd
 ** 功能描述: 色彩打印结束
 ** 输　入  : iFd           打印目标

@@ -22,26 +22,34 @@
 2011.06.22  当 iCount 小于 0 时, 不处理.
 2013.03.29  memset iC 先转换为 uchar 类型.
 2016.07.15  优化速度.
+2018.12.26  优化程序结构.
 *********************************************************************************************************/
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-  按字对齐方式拷贝
+  按 ULONG 对齐方式拷贝
 *********************************************************************************************************/
-#define __LONGSIZE              sizeof(ULONG)
-#define __LONGMASK              (__LONGSIZE - 1)
-
-#define __BIGBLOCKSTEP          (16)
-#define __BIGBLOCKSIZE          (__LONGSIZE << 4)
-
-#define __LITLOCKSTEP           (1)
-#define __LITLOCKSIZE           (__LONGSIZE)
-
-#define __TLOOP(s)              if (ulTemp) {       \
-                                    __TLOOP1(s);    \
-                                }
-#define __TLOOP1(s)             do {                \
-                                    s;              \
-                                } while (--ulTemp)
+#define __LONG_SIZE                 sizeof(ULONG)
+#define __LONG_MASK                 (__LONG_SIZE - 1)
+/*********************************************************************************************************
+  按 UINT 对齐方式拷贝
+*********************************************************************************************************/
+#define __INT_SIZE                  sizeof(UINT)
+#define __INT_MASK                  (__INT_SIZE - 1)
+/*********************************************************************************************************
+  大循环
+*********************************************************************************************************/
+#define __EXC_BLOCK_LOOP(cnt, s)    while (cnt >= 16) {             \
+                                        (cnt) -= 16;                \
+                                        s; s; s; s; s; s; s; s;     \
+                                        s; s; s; s; s; s; s; s;     \
+                                    }
+/*********************************************************************************************************
+  小循环
+*********************************************************************************************************/
+#define __EXC_TINY_LOOP(cnt, s)     while (cnt) {                   \
+                                        (cnt)--;                    \
+                                        s;                          \
+                                    }
 /*********************************************************************************************************
 ** 函数名称: lib_memset
 ** 功能描述: 
@@ -54,79 +62,44 @@
 PVOID  lib_memset (PVOID  pvDest, INT  iC, size_t  stCount)
 {
 #ifdef __ARCH_MEMSET
-    return  (__ARCH_MEMSET(pvDest, iC, stCount));
+    return  (__ARCH_MEMSET(pvDest, iC, stCount));                       /*  特殊实现                    */
     
-#else
+#else                                                                   /*  通用实现                    */
     REGISTER INT       i;
-    REGISTER ULONG     ulTemp;
+    REGISTER ULONG     ulLoop;
     REGISTER PUCHAR    pucDest = (PUCHAR)pvDest;
     REGISTER ULONG    *pulDest;
     
-             UCHAR     ucC     = (UCHAR)iC;
-             ULONG     ulFill  = (ULONG)ucC;
+             UCHAR     ucC    = (UCHAR)iC;
+             ULONG     ulFill = (ULONG)ucC;
              
     if (stCount == 0) {
         return  (pvDest);
     }
              
-    for (i = 1; i < (__LONGSIZE / sizeof(UCHAR)); i++) {                /*  构建 ulong 对齐的赋值变量   */
+    for (i = 1; i < (__LONG_SIZE / sizeof(UCHAR)); i++) {               /*  构建 ulong 对齐的赋值变量   */
         ulFill = (ulFill << 8) + ucC;
     }
 
-    if ((ULONG)pucDest & __LONGMASK) {                                  /*  处理前端非对齐部分          */
-        if (stCount < __LONGSIZE) {
-            ulTemp = (ULONG)stCount;
+    if ((addr_t)pucDest & __LONG_MASK) {                                /*  处理前端非对齐部分          */
+        if (stCount < __LONG_SIZE) {
+            ulLoop = (ULONG)stCount;
         } else {
-            ulTemp = (ULONG)(__LONGSIZE - ((ULONG)pucDest & __LONGMASK));
+            ulLoop = (ULONG)(__LONG_SIZE - ((addr_t)pucDest & __LONG_MASK));
         }
         
-        stCount -= (size_t)ulTemp;
-        __TLOOP1(*pucDest++ = ucC);
+        stCount -= (size_t)ulLoop;
+        __EXC_TINY_LOOP(ulLoop, *pucDest++ = ucC);
     }
     
-    /*
-     *  按字对齐处理
-     */
-    ulTemp = (INT)(stCount / __LONGSIZE);
-    
+    ulLoop  = (ULONG)(stCount / __LONG_SIZE);
     pulDest = (ULONG *)pucDest;
+    __EXC_BLOCK_LOOP(ulLoop, *pulDest++ = ulFill);                      /*  优先执行大循环              */
+    __EXC_TINY_LOOP(ulLoop, *pulDest++ = ulFill);                       /*  小循环执行                  */
     
-    while (ulTemp >= __BIGBLOCKSTEP) {
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        *pulDest++ = ulFill;
-        
-        ulTemp -= __BIGBLOCKSTEP;
-    }
-    
-    while (ulTemp >= __LITLOCKSTEP) {
-        *pulDest++ = ulFill;
-        ulTemp -= __LITLOCKSTEP;
-    }
-    
+    ulLoop  = (ULONG)(stCount & __LONG_MASK);
     pucDest = (PUCHAR)pulDest;
-    
-    /*
-     *  剩余部分
-     */
-    ulTemp = (ULONG)(stCount & __LONGMASK);
-    __TLOOP(*pucDest++ = ucC);
+    __EXC_TINY_LOOP(ulLoop, *pucDest++ = ucC);                          /*  剩余非对齐部分              */
     
     return  (pvDest);
 #endif                                                                  /*  __ARCH_MEMSET               */
@@ -143,67 +116,36 @@ PVOID  lib_memset (PVOID  pvDest, INT  iC, size_t  stCount)
 VOID    lib_bzero (PVOID   pvStr, size_t  stCount)
 {
 #ifdef __ARCH_MEMSET
-    __ARCH_MEMSET(pvStr, 0, stCount);
+    __ARCH_MEMSET(pvStr, 0, stCount);                                   /*  特殊实现                    */
 
-#else
-    REGISTER ULONG     ulTemp;
+#else                                                                   /*  通用实现                    */
+    REGISTER ULONG     ulLoop;
     REGISTER PUCHAR    pucDest = (PUCHAR)pvStr;
     REGISTER ULONG    *pulDest;
     
-    if ((ULONG)pucDest & __LONGMASK) {                                  /*  处理前端非对齐部分          */
-        if (stCount < __LONGSIZE) {
-            ulTemp = (ULONG)stCount;
+    if (stCount == 0) {
+        return;
+    }
+    
+    if ((addr_t)pucDest & __LONG_MASK) {                                /*  处理前端非对齐部分          */
+        if (stCount < __LONG_SIZE) {
+            ulLoop = (ULONG)stCount;
         } else {
-            ulTemp = (ULONG)(__LONGSIZE - ((ULONG)pucDest & __LONGMASK));
+            ulLoop = (ULONG)(__LONG_SIZE - ((addr_t)pucDest & __LONG_MASK));
         }
         
-        stCount -= (size_t)ulTemp;
-        __TLOOP1(*pucDest++ = 0);
+        stCount -= (size_t)ulLoop;
+        __EXC_TINY_LOOP(ulLoop, *pucDest++ = 0);
     }
     
-    /*
-     *  按字对齐处理
-     */
-    ulTemp = (INT)(stCount / __LONGSIZE);
-    
+    ulLoop  = (ULONG)(stCount / __LONG_SIZE);
     pulDest = (ULONG *)pucDest;
+    __EXC_BLOCK_LOOP(ulLoop, *pulDest++ = 0);                           /*  优先执行大循环              */
+    __EXC_TINY_LOOP(ulLoop, *pulDest++ = 0);                            /*  小循环执行                  */
     
-    while (ulTemp >= __BIGBLOCKSTEP) {
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        *pulDest++ = 0;
-        
-        ulTemp -= __BIGBLOCKSTEP;
-    }
-    
-    while (ulTemp >= __LITLOCKSTEP) {
-        *pulDest++ = 0;
-        ulTemp -= __LITLOCKSTEP;
-    }
-    
+    ulLoop  = (ULONG)(stCount & __LONG_MASK);
     pucDest = (PUCHAR)pulDest;
-    
-    /*
-     *  剩余部分
-     */
-    ulTemp = (ULONG)(stCount & __LONGMASK);
-    __TLOOP(*pucDest++ = 0);
+    __EXC_TINY_LOOP(ulLoop, *pucDest++ = 0);                            /*  剩余非对齐部分              */
 #endif                                                                  /*  __ARCH_MEMSET               */
 }
 /*********************************************************************************************************

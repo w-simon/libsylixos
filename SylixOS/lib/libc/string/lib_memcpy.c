@@ -23,23 +23,104 @@
 *********************************************************************************************************/
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
-  按字对齐方式拷贝
+  按 ULONG 对齐方式拷贝
 *********************************************************************************************************/
-#define __LONGSIZE              sizeof(ULONG)
-#define __LONGMASK              (__LONGSIZE - 1)
+#define __LONG_SIZE                 sizeof(ULONG)
+#define __LONG_MASK                 (__LONG_SIZE - 1)
+/*********************************************************************************************************
+  按 UINT 对齐方式拷贝
+*********************************************************************************************************/
+#define __INT_SIZE                  sizeof(UINT)
+#define __INT_MASK                  (__INT_SIZE - 1)
+/*********************************************************************************************************
+  大循环
+*********************************************************************************************************/
+#define __EXC_BLOCK_LOOP(cnt, s)    while (cnt >= 16) {             \
+                                        (cnt) -= 16;                \
+                                        s; s; s; s; s; s; s; s;     \
+                                        s; s; s; s; s; s; s; s;     \
+                                    }
+/*********************************************************************************************************
+  小循环
+*********************************************************************************************************/
+#define __EXC_TINY_LOOP(cnt, s)     while (cnt) {                   \
+                                        (cnt)--;                    \
+                                        s;                          \
+                                    }
+/*********************************************************************************************************
+** 函数名称: lib_memcpy_32
+** 功能描述: 
+** 输　入  : 
+** 输　出  : 
+** 全局变量: 
+** 调用模块: 
+** 注  意  : 
+*********************************************************************************************************/
+#if !defined(__ARCH_MEMCPY) && (LW_CFG_CPU_WORD_LENGHT == 64)
 
-#define __BIGBLOCKSTEP          (16)
-#define __BIGBLOCKSIZE          (__LONGSIZE << 4)
+static LW_INLINE PVOID  lib_memcpy_32 (PVOID  pvDest, CPVOID   pvSrc, size_t  stCount)
+{
+    REGISTER PUCHAR    pucDest, pucSrc;
+    REGISTER UINT     *puiDest, *puiSrc;
+             ULONG     ulLoop;
+             
+    pucDest = (PUCHAR)pvDest;
+    pucSrc  = (PUCHAR)pvSrc;
+    
+    if (pucDest < pucSrc) {                                             /*  正常循序拷贝                */
+        if (((addr_t)pucSrc | (addr_t)pucDest) & __INT_MASK) {          /*  存在非 int 对齐             */
+            if (((addr_t)pucSrc ^ (addr_t)pucDest) & __INT_MASK) {
+                ulLoop = (ULONG)stCount;
+            } else {
+                ulLoop = (ULONG)(__INT_SIZE - ((addr_t)pucSrc & __INT_MASK));
+            }
+            
+            stCount -= (size_t)ulLoop;
+            __EXC_TINY_LOOP(ulLoop, *pucDest++ = *pucSrc++);
+        }
+        
+        ulLoop  = (ULONG)(stCount / __INT_SIZE);
+        puiDest = (UINT *)pucDest;
+        puiSrc  = (UINT *)pucSrc;
+        __EXC_BLOCK_LOOP(ulLoop, *puiDest++ = *puiSrc++);               /*  优先执行大循环              */
+        __EXC_TINY_LOOP(ulLoop, *puiDest++ = *puiSrc++);                /*  小循环执行                  */
+        
+        ulLoop  = (ULONG)(stCount & __INT_MASK);
+        pucDest = (PUCHAR)puiDest;
+        pucSrc  = (PUCHAR)puiSrc;
+        __EXC_TINY_LOOP(ulLoop, *pucDest++ = *pucSrc++);                /*  剩余非对齐部分              */
+        
+    } else {                                                            /*  反向循序拷贝                */
+        pucSrc  += stCount;
+        pucDest += stCount;
+        
+        if (((addr_t)pucSrc | (addr_t)pucDest) & __INT_MASK) {
+            if (((addr_t)pucSrc ^ (addr_t)pucDest) & __INT_MASK) {
+                ulLoop = (ULONG)stCount;
+            } else {
+                ulLoop = (addr_t)pucSrc & __INT_MASK;
+            }
+            
+            stCount -= (size_t)ulLoop;
+            __EXC_TINY_LOOP(ulLoop, *--pucDest = *--pucSrc);
+        }
+        
+        ulLoop  = (ULONG)(stCount / __INT_SIZE);
+        puiDest = (UINT *)pucDest;
+        puiSrc  = (UINT *)pucSrc;
+        __EXC_BLOCK_LOOP(ulLoop, *--puiDest = *--puiSrc);               /*  优先执行大循环              */
+        __EXC_TINY_LOOP(ulLoop, *--puiDest = *--puiSrc);                /*  小循环执行                  */
+    
+        ulLoop  = (ULONG)(stCount & __INT_MASK);
+        pucDest = (PUCHAR)puiDest;
+        pucSrc  = (PUCHAR)puiSrc;
+        __EXC_TINY_LOOP(ulLoop, *--pucDest = *--pucSrc);
+    }
+    
+    return  (pvDest);
+}
 
-#define __LITLOCKSTEP           (1)
-#define __LITLOCKSIZE           (__LONGSIZE)
-
-#define __TLOOP(s)              if (ulTemp) {       \
-                                    __TLOOP1(s);    \
-                                }
-#define __TLOOP1(s)             do {                \
-                                    s;              \
-                                } while (--ulTemp)
+#endif                                                                  /*  64 Bits                     */
 /*********************************************************************************************************
 ** 函数名称: lib_memcpy
 ** 功能描述: 
@@ -52,155 +133,82 @@
 PVOID  lib_memcpy (PVOID  pvDest, CPVOID   pvSrc, size_t  stCount)
 {
 #ifdef __ARCH_MEMCPY
-    return  (__ARCH_MEMCPY(pvDest, pvSrc, stCount));
+    return  (__ARCH_MEMCPY(pvDest, pvSrc, stCount));                    /*  特殊实现                    */
     
-#else
-    REGISTER PUCHAR    pucDest;
-    REGISTER PUCHAR    pucSrc;
-    
-    REGISTER ULONG    *pulDest;
-    REGISTER ULONG    *pulSrc;
-    
-             ULONG     ulTemp;
+#else                                                                   /*  通用实现                    */
+    REGISTER PUCHAR    pucDest, pucSrc;
+    REGISTER ULONG    *pulDest, *pulSrc;
+             ULONG     ulLoop;
     
     pucDest = (PUCHAR)pvDest;
     pucSrc  = (PUCHAR)pvSrc;
     
-    if (stCount == 0 || pucDest == pucSrc) {
+    if ((stCount == 0) || (pucDest == pucSrc)) {
         return  (pvDest);
     }
     
-    if (pucDest < pucSrc) {
-        /*
-         *  正常循序拷贝
-         */
-        ulTemp = (ULONG)pucSrc;
-        if ((ulTemp | (ULONG)pucDest) & __LONGMASK) {
-            /*
-             *  拷贝非对齐部分
-             */
-            if (((ulTemp ^ (ULONG)pucDest) & __LONGMASK) || (stCount < __LONGSIZE)) {
-                ulTemp = (ULONG)stCount;
+    if (pucDest < pucSrc) {                                             /*  正常循序拷贝                */
+        if (((addr_t)pucSrc | (addr_t)pucDest) & __LONG_MASK) {         /*  存在非 long 对齐            */
+            if (stCount < __LONG_MASK) {
+                ulLoop = (ULONG)stCount;
+            
+            } else if (((addr_t)pucSrc ^ (addr_t)pucDest) & __LONG_MASK) {
+#if LW_CFG_CPU_WORD_LENGHT == 64
+                return  (lib_memcpy_32(pvDest, pvSrc, stCount));
+#else                                                                   /*  64 Bits                     */
+                ulLoop = (ULONG)stCount;
+#endif                                                                  /*  32 Bits                     */
             } else {
-                ulTemp = (ULONG)(__LONGSIZE - (ulTemp & __LONGMASK));
+                ulLoop = (ULONG)(__LONG_SIZE - ((addr_t)pucSrc & __LONG_MASK));
             }
             
-            stCount -= (size_t)ulTemp;
-            __TLOOP1(*pucDest++ = *pucSrc++);
+            stCount -= (size_t)ulLoop;
+            __EXC_TINY_LOOP(ulLoop, *pucDest++ = *pucSrc++);
         }
         
-        /*
-         *  按字对齐拷贝
-         */
-        ulTemp = (ULONG)(stCount / __LONGSIZE);
-        
+        ulLoop  = (ULONG)(stCount / __LONG_SIZE);
         pulDest = (ULONG *)pucDest;
         pulSrc  = (ULONG *)pucSrc;
+        __EXC_BLOCK_LOOP(ulLoop, *pulDest++ = *pulSrc++);               /*  优先执行大循环              */
+        __EXC_TINY_LOOP(ulLoop, *pulDest++ = *pulSrc++);                /*  小循环执行                  */
         
-        while (ulTemp >= __BIGBLOCKSTEP) {
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            *pulDest++ = *pulSrc++;
-            
-            ulTemp -= __BIGBLOCKSTEP;
-        }
-        
-        while (ulTemp >= __LITLOCKSTEP) {
-            *pulDest++ = *pulSrc++;
-            ulTemp -= __LITLOCKSTEP;
-        }
-        
+        ulLoop  = (ULONG)(stCount & __LONG_MASK);
         pucDest = (PUCHAR)pulDest;
         pucSrc  = (PUCHAR)pulSrc;
+        __EXC_TINY_LOOP(ulLoop, *pucDest++ = *pucSrc++);                /*  剩余非对齐部分              */
         
-        /*
-         *  剩余部分
-         */
-        ulTemp = (ULONG)(stCount & __LONGMASK);
-        __TLOOP(*pucDest++ = *pucSrc++);
-    
-    } else {
-        /*
-         *  反向循序拷贝
-         */
+    } else {                                                            /*  反向循序拷贝                */
         pucSrc  += stCount;
         pucDest += stCount;
         
-        ulTemp = (ULONG)pucSrc;
-        if ((ulTemp | (ULONG)pucDest) & __LONGMASK) {
-            /*
-             *  拷贝非对齐部分
-             */
-            if (((ulTemp ^ (ULONG)pucDest) & __LONGMASK) || (stCount <= __LONGSIZE)) {
-                ulTemp = (ULONG)stCount;
+        if (((addr_t)pucSrc | (addr_t)pucDest) & __LONG_MASK) {
+            if (stCount < __LONG_MASK) {
+                ulLoop = (ULONG)stCount;
+                
+            } else if (((addr_t)pucSrc ^ (addr_t)pucDest) & __LONG_MASK) {
+#if LW_CFG_CPU_WORD_LENGHT == 64
+                return  (lib_memcpy_32(pvDest, pvSrc, stCount));
+#else                                                                   /*  64 Bits                     */
+                ulLoop = (ULONG)stCount;
+#endif                                                                  /*  32 Bits                     */
             } else {
-                ulTemp &= __LONGMASK;
+                ulLoop = (addr_t)pucSrc & __LONG_MASK;
             }
-            stCount -= (size_t)ulTemp;
-            __TLOOP1(*--pucDest = *--pucSrc);
+            
+            stCount -= (size_t)ulLoop;
+            __EXC_TINY_LOOP(ulLoop, *--pucDest = *--pucSrc);
         }
         
-        /*
-         *  按字对齐拷贝
-         */
-        ulTemp = (ULONG)(stCount / __LONGSIZE);
-        
+        ulLoop  = (ULONG)(stCount / __LONG_SIZE);
         pulDest = (ULONG *)pucDest;
         pulSrc  = (ULONG *)pucSrc;
-        
-        while (ulTemp >= __BIGBLOCKSTEP) {
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            *--pulDest = *--pulSrc;
-            
-            ulTemp -= __BIGBLOCKSTEP;
-        }
-        
-        while (ulTemp >= __LITLOCKSTEP) {
-            *--pulDest = *--pulSrc;
-            ulTemp -= __LITLOCKSTEP;
-        }
-        
+        __EXC_BLOCK_LOOP(ulLoop, *--pulDest = *--pulSrc);               /*  优先执行大循环              */
+        __EXC_TINY_LOOP(ulLoop, *--pulDest = *--pulSrc);                /*  小循环执行                  */
+    
+        ulLoop  = (ULONG)(stCount & __LONG_MASK);
         pucDest = (PUCHAR)pulDest;
         pucSrc  = (PUCHAR)pulSrc;
-        
-        /*
-         *  剩余部分
-         */
-        ulTemp = (ULONG)(stCount & __LONGMASK);
-        __TLOOP(*--pucDest = *--pucSrc);
+        __EXC_TINY_LOOP(ulLoop, *--pucDest = *--pucSrc);
     }
     
     return  (pvDest);

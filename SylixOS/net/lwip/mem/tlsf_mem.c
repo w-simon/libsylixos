@@ -44,6 +44,7 @@
 #if LW_CFG_LWIP_MEM_TLSF > 0
 
 #include "lwip/mem.h"
+#include "lwip/stats.h"
 #include "tlsf.h"
 
 static tlsf_t tlsf_mem; /* tlsf memory control */
@@ -62,6 +63,12 @@ void tlsf_mem_create (void)
 
   tlsf_mem = tlsf_create_with_pool(mem, MEM_SIZE);
   _BugHandle(!tlsf_mem, TRUE, "tlsf_mem_create() fail!\r\n");
+  
+#if LW_CFG_LWIP_MEM_TLSF_BRK > 0
+  MEM_STATS_AVAIL(avail, LWIP_MEM_ALIGN_SIZE(MEM_SIZE) * (LW_CFG_LWIP_MEM_TLSF_BRK + 1));
+#else
+  MEM_STATS_AVAIL(avail, LWIP_MEM_ALIGN_SIZE(MEM_SIZE));
+#endif
 }
 
 #if LW_CFG_CPU_WORD_LENGHT == 64

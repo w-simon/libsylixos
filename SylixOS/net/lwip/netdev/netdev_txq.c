@@ -240,7 +240,7 @@ int  netdev_txq_enable (netdev_t *netdev, struct netdev_txq *txq)
     return (-1);
   }
   
-  txq_ctl->txq_mem = (union netdev_txq_desc *)mem_malloc((sizeof(union netdev_txq_desc) * len) + 1);
+  txq_ctl->txq_mem = (union netdev_txq_desc *)mem_malloc(sizeof(union netdev_txq_desc) * (len + 2));
   if (!txq_ctl->txq_mem) {
     errno = ENOMEM;
     errlevel = 1;
@@ -262,7 +262,7 @@ int  netdev_txq_enable (netdev_t *netdev, struct netdev_txq *txq)
   txq_ctl->txq_free = NULL;
   
   desc = txq_ctl->txq_mem;
-  for (i = 0; i < len + 1; i++) {
+  for (i = 0; i < len + 2; i++) {
     desc->next = txq_ctl->txq_free;
     txq_ctl->txq_free = desc;
     desc++;

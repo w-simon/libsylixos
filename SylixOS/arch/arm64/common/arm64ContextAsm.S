@@ -74,17 +74,17 @@ FUNC_DEF(archTaskCtxSwitch)
     
     SAVE_SMALL_REG_CTX                                                  ;/*  保存小寄存器上下文          */
 
-    MOV     X9 , X0                                                     ;/*  X9  暂存 X0                 */
+    MOV     X19 , X0                                                    ;/*  X19 暂存 X0                 */
 
 #if LW_CFG_SMP_EN > 0    
     BL      _SchedSafeStack                                             ;/*  _SchedSafeStack();          */
-    MOV     SP , X0                                                     ;/*  恢复 X0                     */
-    MOV     X0 , X9
+    MOV     SP , X0                                                     ;/*  设置 SP                     */
+    MOV     X0 , X19                                                    ;/*  恢复 X0                     */
 #endif
 
     BL      _SchedSwp                                                   ;/*  _SchedSwp();                */
 
-    LDR     X18, [X9]                                                   ;/*  获取当前 TCB 的 REG_CTX 地址*/
+    LDR     X18, [X19]                                                  ;/*  获取当前 TCB 的 REG_CTX 地址*/
     LDR     X9 , [X18, #CTX_TYPE_OFFSET]                                ;/*  获得上下文类型              */
     CMP     X9 , #0
     B.NE    _RestoreSmallCtx
@@ -107,11 +107,10 @@ FUNC_DEF(archCrtCtxSwitch)
 
     SAVE_SMALL_REG_CTX                                                  ;/*  保存小寄存器上下文          */
 
-    MOV     X9  , X0                                                    ;/*  X9 暂存 X0                  */
-
+    MOV     X19 , X0                                                    ;/*  X19 暂存 X0                 */
     BL      _SchedCrSwp                                                 ;/*  _SchedCrSwp();              */
+    MOV     X0  , X19
 
-    MOV     X0  , X9
     ADD     X1  , X0 , #16
     LDR     X18 , [X1]                                                  ;/*  获取当前 CCB 的 REG_CTX 地址*/
 

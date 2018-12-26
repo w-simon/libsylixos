@@ -142,6 +142,7 @@ VOID  __tshellSysVarInit (VOID)
      */                                                                    
     API_TShellExec("TERM=vt100");
     API_TShellExec("TERMCAP=/etc/termcap");                             /*  BSD 终端转义                */
+    API_TShellExec("TERM_PS_COLOR=");                                   /*  命令提示符色彩 eg. "01;32"  */
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */

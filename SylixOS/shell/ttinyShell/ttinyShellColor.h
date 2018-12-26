@@ -49,11 +49,13 @@
 #define LW_TSHELL_COLOR_WHITE         "\033[1;37m"
 
 LW_API  VOID  API_TShellColorRefresh(VOID);
+LW_API  INT   API_TShellColorGet(mode_t  mode, PCHAR  pcColor, size_t  stSize);
 LW_API  VOID  API_TShellColorStart(CPCHAR  pcName, CPCHAR  pcLink, mode_t  mode, INT  iFd);
 LW_API  VOID  API_TShellColorStart2(CPCHAR  pcColor, INT  iFd);
 LW_API  VOID  API_TShellColorEnd(INT  iFd);
 
 #define tshellColorRefresh  API_TShellColorRefresh
+#define tshellColorGet      API_TShellColorGet
 #define tshellColorStart    API_TShellColorStart
 #define tshellColorStart2   API_TShellColorStart2
 #define tshellColorEnd      API_TShellColorEnd

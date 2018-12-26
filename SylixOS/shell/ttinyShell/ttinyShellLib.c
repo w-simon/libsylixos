@@ -105,7 +105,7 @@ static PLW_LIST_LINE    _G_plineTSKeyHeaderHashTbl[LW_CFG_SHELL_KEY_HASH_SIZE];
   强制使用内建命令表
 *********************************************************************************************************/
 static const PCHAR      _G_pcResBuildinCmd[] = {
-    "ts", "tp", "ps", "modules", "ints"
+    "ts", "tp", "ps", "modules", "ints", "cpuus", "sem", "msgq"
 };
 /*********************************************************************************************************
   shell 执行线程堆栈大小 (默认与 shell 相同)
@@ -127,6 +127,9 @@ typedef struct {
     uid_t        TPC_uid;
     gid_t        TPC_gid;
     CHAR         TPC_cUserName[MAX_FILENAME_LENGTH];
+    CHAR         TPC_cPsColor[12];
+    CHAR         TPC_cDirColor[12];
+    CHAR         TPC_cNorColor[12];
 } __TSHELL_PROMPT_CTX;
 typedef __TSHELL_PROMPT_CTX     *__PTSHELL_PROMPT_CTX;
 /*********************************************************************************************************
@@ -726,6 +729,20 @@ VOID  __tshellShowPrompt (VOID)
                                       sizeof(ptpc->TPC_cUserName))) {
                 lib_strcpy(ptpc->TPC_cUserName, "unknown");
             }
+            
+            if ((__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_VT100) &&
+                (API_TShellVarGetRt("TERM_PS_COLOR", &ptpc->TPC_cPsColor[2], 10) > 0)) {
+                ptpc->TPC_cPsColor[0] = '\033';
+                ptpc->TPC_cPsColor[1] = '[';
+                lib_strlcat(ptpc->TPC_cPsColor, "m", 12);               /*  命令提示符色彩              */
+                API_TShellColorGet(S_IFDIR, ptpc->TPC_cDirColor, 12);
+                API_TShellColorGet(0, ptpc->TPC_cNorColor, 12);
+                
+            } else {
+                ptpc->TPC_cPsColor[0]  = PX_EOS;
+                ptpc->TPC_cDirColor[0] = PX_EOS;
+                ptpc->TPC_cNorColor[0] = PX_EOS;
+            }
         }
         
         if (ptpc->TPC_uid != getuid()) {                                /*  有用户改变                  */
@@ -742,10 +759,15 @@ VOID  __tshellShowPrompt (VOID)
         
         pcSeparator = lib_strrchr(cPrompt, PX_DIVIDER);
         if (pcSeparator) {
-            printf("[%s@%s:%s]%c ", pcUserName, cHostName, 
-                                    cPrompt, cPrivilege);               /*  显示当前路径                */
+            printf("[%s%s@%s%s:%s%s%s]%c ", 
+                   ptpc->TPC_cPsColor, pcUserName, cHostName, ptpc->TPC_cNorColor,
+                   ptpc->TPC_cDirColor, cPrompt, ptpc->TPC_cNorColor,
+                   cPrivilege);                                         /*  显示当前路径                */
+        
         } else {
-            printf("[%s@%s:/]%c ", pcUserName, cHostName, cPrivilege);
+            printf("[%s%s@%s%s:%s/%s]%c ",
+                   ptpc->TPC_cPsColor, pcUserName, cHostName, ptpc->TPC_cNorColor,
+                   ptpc->TPC_cDirColor, ptpc->TPC_cNorColor, cPrivilege);
         }
     
     } else {
