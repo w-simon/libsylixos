@@ -53,7 +53,6 @@
  *
  */
 
-#define __SYLIXOS_NET_MALLOC /* SylixOS Add this macro */
 #include "lwip/opt.h"
 #include "lwip/mem.h"
 #include "lwip/def.h"
@@ -72,9 +71,24 @@
 #define LWIP_MEM_ILLEGAL_FREE(msg)         LWIP_ASSERT(msg, 0)
 #endif
 
+#if defined(SYLIXOS) && MEM_LIBC_MALLOC /* SylixOS Changed here for speed up! */
+extern void *tlsf_mem_malloc(size_t size);
+extern void *tlsf_mem_calloc(size_t count, size_t size);
+extern void  tlsf_mem_free(void *f, mem_size_t size);
+
+#define mem_clib_malloc                 tlsf_mem_malloc
+#define mem_clib_calloc                 tlsf_mem_calloc
+#define mem_clib_free                   tlsf_mem_free
+
+#define MEM_STATS_INC_LOCKED(x)         /* statistics in tlsf_mem.c */
+#define MEM_STATS_INC_USED_LOCKED(x, y)
+#define MEM_STATS_DEC_USED_LOCKED(x, y)
+
+#else /* SYLIXOS */
 #define MEM_STATS_INC_LOCKED(x)         SYS_ARCH_LOCKED(MEM_STATS_INC(x))
 #define MEM_STATS_INC_USED_LOCKED(x, y) SYS_ARCH_LOCKED(MEM_STATS_INC_USED(x, y))
 #define MEM_STATS_DEC_USED_LOCKED(x, y) SYS_ARCH_LOCKED(MEM_STATS_DEC_USED(x, y))
+#endif /* !SYLIXOS */
 
 #if MEM_OVERFLOW_CHECK
 #define MEM_SANITY_OFFSET   MEM_SANITY_REGION_BEFORE_ALIGNED
@@ -238,7 +252,11 @@ mem_free(void *rmem)
   rmem = (u8_t *)rmem - MEM_LIBC_STATSHELPER_SIZE;
   MEM_STATS_DEC_USED_LOCKED(used, *(mem_size_t *)rmem);
 #endif
+#ifdef SYLIXOS /* SylixOS Add second parameter */
+  mem_clib_free(rmem, *(mem_size_t *)rmem + MEM_LIBC_STATSHELPER_SIZE);
+#else /* SYLIXOS */
   mem_clib_free(rmem);
+#endif /* !SYLIXOS */
 }
 
 #elif MEM_USE_POOLS

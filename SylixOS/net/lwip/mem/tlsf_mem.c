@@ -84,9 +84,15 @@ void *tlsf_mem_malloc (size_t size)
 __retry:
   LW_SPIN_LOCK_TASK(&tlsf_lock);
   ret = tlsf_malloc(tlsf_mem, size);
-  if (ret || (brk_times >= LW_CFG_LWIP_MEM_TLSF_BRK_TIMES)) {
+  if (ret) {
+    MEM_STATS_INC_USED(used, size);
     LW_SPIN_UNLOCK_TASK(&tlsf_lock);
     return (ret);
+  
+  } else if (brk_times >= LW_CFG_LWIP_MEM_TLSF_BRK_TIMES) {
+    MEM_STATS_INC(err);
+    LW_SPIN_UNLOCK_TASK(&tlsf_lock);
+    return (NULL);
   }
   brk_times++;
   LW_SPIN_UNLOCK_TASK(&tlsf_lock); /* TODO: here unlock maybe preemptive! */
@@ -102,6 +108,11 @@ __retry:
 #else
   LW_SPIN_LOCK_TASK(&tlsf_lock);
   ret = tlsf_malloc(tlsf_mem, size);
+  if (ret) {
+    MEM_STATS_INC_USED(used, size);
+  } else {
+    MEM_STATS_INC(err);
+  }
   LW_SPIN_UNLOCK_TASK(&tlsf_lock);
 #endif
 
@@ -124,13 +135,19 @@ void *tlsf_mem_malloc (size_t size)
 __retry:
   LW_SPIN_LOCK_TASK(&tlsf_lock);
   ret = tlsf_malloc(tlsf_mem, size + TLSF_ALIGN_PADDING_SIZE);
-  if (ret || (brk_times >= LW_CFG_LWIP_MEM_TLSF_BRK_TIMES)) {
+  if (ret) {
+    MEM_STATS_INC_USED(used, size);
     LW_SPIN_UNLOCK_TASK(&tlsf_lock);
-    if (ret && ((addr_t)ret & 0x7)) { /* Not 64bits align */
+    if ((addr_t)ret & 0x7) { /* Not 64bits align */
       *(size_t *)ret = TLSF_ALIGN_PADDING_MARK;
       ret = (void *)((addr_t)ret + TLSF_ALIGN_PADDING_SIZE);
     }
     return (ret);
+    
+  } else if (brk_times >= LW_CFG_LWIP_MEM_TLSF_BRK_TIMES) {
+    MEM_STATS_INC(err);
+    LW_SPIN_UNLOCK_TASK(&tlsf_lock);
+    return (NULL);
   }
   brk_times++;
   LW_SPIN_UNLOCK_TASK(&tlsf_lock); /* TODO: here unlock maybe preemptive! */
@@ -146,6 +163,11 @@ __retry:
 #else
   LW_SPIN_LOCK_TASK(&tlsf_lock);
   ret = tlsf_malloc(tlsf_mem, size + TLSF_ALIGN_PADDING_SIZE);
+  if (ret) {
+    MEM_STATS_INC_USED(used, size);
+  } else {
+    MEM_STATS_INC(err);
+  }
   LW_SPIN_UNLOCK_TASK(&tlsf_lock);
 
   if (ret && ((addr_t)ret & 0x7)) { /* Not 64bits align */
@@ -173,7 +195,7 @@ void *tlsf_mem_calloc (size_t count, size_t size)
 }
 
 /* tlsf free */
-void tlsf_mem_free (void *f)
+void tlsf_mem_free (void *f, mem_size_t size)
 {
 #if LW_CFG_CPU_WORD_LENGHT != 64
   if (f) {
@@ -184,6 +206,7 @@ void tlsf_mem_free (void *f)
 #endif /* LW_CFG_CPU_WORD_LENGHT == 32 */
 
   LW_SPIN_LOCK_TASK(&tlsf_lock);
+  MEM_STATS_DEC_USED(used, size);
   tlsf_free(tlsf_mem, f);
   LW_SPIN_UNLOCK_TASK(&tlsf_lock);
 }

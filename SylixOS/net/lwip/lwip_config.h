@@ -113,16 +113,6 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #if LW_CFG_LWIP_MEM_TLSF > 0
 #define MEM_LIBC_MALLOC                 1
 #define MEM_STATS                       1
-
-#ifdef __SYLIXOS_NET_MALLOC
-extern void *tlsf_mem_malloc(size_t size);
-extern void *tlsf_mem_calloc(size_t count, size_t size);
-extern void  tlsf_mem_free(void *f);
-
-#define mem_clib_malloc                 tlsf_mem_malloc
-#define mem_clib_calloc                 tlsf_mem_calloc
-#define mem_clib_free                   tlsf_mem_free
-#endif                                                                  /*  __SYLIXOS_NET_OPT_MALLOC    */
 #endif                                                                  /*  LW_CFG_LWIP_MEM_TLSF        */
 
 /*********************************************************************************************************
