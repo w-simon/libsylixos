@@ -31,6 +31,7 @@
 #include "net/if_flags.h"
 #include "sys/socket.h"
 #include "lwip/netif.h"
+#include "lwip/netifapi.h"
 #include "lwip/tcpip.h"
 #include "netif/lowpan6.h"
 #include "netif/lowpan6_ble.h"
@@ -189,9 +190,9 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
                 pnetif->flags2 |= ~NETIF_FLAG2_ALLMULTI;
             }
             if (pifreq->ifr_flags & IFF_UP) {
-                netif_set_up(pnetif);
+                netifapi_netif_set_up(pnetif);
             } else {
-                netif_set_down(pnetif);
+                netifapi_netif_set_down(pnetif);
             }
         }
         iRet = ERROR_NONE;
@@ -253,7 +254,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
             INT i;
             INT iIsUp = netif_is_up(pnetif);
             if (pnetif->ioctl) {
-                netif_set_down(pnetif);                                 /*  关闭网口                    */
+                netifapi_netif_set_down(pnetif);                        /*  关闭网口                    */
                 iRet = pnetif->ioctl(pnetif, SIOCSIFHWADDR, pvArg);
                 if (iRet == ERROR_NONE) {
                     for (i = 0; i < IFHWADDRLEN; i++) {
@@ -261,7 +262,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
                     }
                 }
                 if (iIsUp) {
-                    netif_set_up(pnetif);                               /*  重启网口                    */
+                    netifapi_netif_set_up(pnetif);                      /*  重启网口                    */
                 }
             } else {
                 _ErrorHandle(ENOTSUP);
@@ -412,7 +413,9 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         if (psockaddrin->sin_family == AF_INET) {
             ip4_addr_t ipaddr;
             ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            LOCK_TCPIP_CORE();                                          /*  必须 lock 协议栈            */
             netif_set_ipaddr(pnetif, &ipaddr);
+            UNLOCK_TCPIP_CORE();
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EAFNOSUPPORT);
@@ -423,7 +426,9 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         if (psockaddrin->sin_family == AF_INET) {
             ip4_addr_t ipaddr;
             ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            LOCK_TCPIP_CORE();                                          /*  必须 lock 协议栈            */
             netif_set_netmask(pnetif, &ipaddr);
+            UNLOCK_TCPIP_CORE();
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EAFNOSUPPORT);
@@ -530,31 +535,16 @@ static INT  __ifSubIoctlAlias4 (INT  iCmd, PVOID  pvArg)
 
 static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
 {
-#define __LWIP_GET_IPV6_FROM_NETIF() \
-        pifr6addr->ifr6a_addr.un.u32_addr[0] = ip_2_ip6(&pnetif->ip6_addr[i])->addr[0]; \
-        pifr6addr->ifr6a_addr.un.u32_addr[1] = ip_2_ip6(&pnetif->ip6_addr[i])->addr[1]; \
-        pifr6addr->ifr6a_addr.un.u32_addr[2] = ip_2_ip6(&pnetif->ip6_addr[i])->addr[2]; \
-        pifr6addr->ifr6a_addr.un.u32_addr[3] = ip_2_ip6(&pnetif->ip6_addr[i])->addr[3];
-        
-#define __LWIP_SET_IPV6_TO_NETIF() \
-        ip_2_ip6(&pnetif->ip6_addr[i])->addr[0] = pifr6addr->ifr6a_addr.un.u32_addr[0]; \
-        ip_2_ip6(&pnetif->ip6_addr[i])->addr[1] = pifr6addr->ifr6a_addr.un.u32_addr[1]; \
-        ip_2_ip6(&pnetif->ip6_addr[i])->addr[2] = pifr6addr->ifr6a_addr.un.u32_addr[2]; \
-        ip_2_ip6(&pnetif->ip6_addr[i])->addr[3] = pifr6addr->ifr6a_addr.un.u32_addr[3]; 
-        
-#define __LWIP_CMP_IPV6_WITH_NETIF() \
-        (ip_2_ip6(&pnetif->ip6_addr[i])->addr[0] == pifr6addr->ifr6a_addr.un.u32_addr[0]) && \
-        (ip_2_ip6(&pnetif->ip6_addr[i])->addr[1] == pifr6addr->ifr6a_addr.un.u32_addr[1]) && \
-        (ip_2_ip6(&pnetif->ip6_addr[i])->addr[2] == pifr6addr->ifr6a_addr.un.u32_addr[2]) && \
-        (ip_2_ip6(&pnetif->ip6_addr[i])->addr[3] == pifr6addr->ifr6a_addr.un.u32_addr[3]) 
-
            INT           i;
            INT           iSize;
            INT           iNum = 0;
-           INT           iRet    = PX_ERROR;
+           INT           iRet = PX_ERROR;
+           ip6_addr_t    ip6addr;
     struct in6_ifreq    *pifreq6 = LW_NULL;
     struct in6_ifr_addr *pifr6addr;
     struct netif        *pnetif;
+           s8_t          idx;
+           err_t         err;
     
     pifreq6 = (struct in6_ifreq *)pvArg;
     
@@ -580,7 +570,7 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
                 break;
             }
             if (ip6_addr_isvalid(pnetif->ip6_addr_state[i])) {
-                __LWIP_GET_IPV6_FROM_NETIF();
+                inet6_addr_from_ip6addr(&pifr6addr->ifr6a_addr, ip_2_ip6(&pnetif->ip6_addr[i]));
                 if (ip6_addr_isloopback(ip_2_ip6(&pnetif->ip6_addr[i]))) {
                     pifr6addr->ifr6a_prefixlen = 128;
                 } else if (ip6_addr_islinklocal(ip_2_ip6(&pnetif->ip6_addr[i]))) {
@@ -596,7 +586,7 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
         iRet = ERROR_NONE;
         break;
         
-    case SIOCSIFADDR6:                                                  /*  设置网卡 IP                 */
+    case SIOCSIFADDR6:                                                  /*  添加一个 IPv6 地址          */
         if (iSize != 1) {                                               /*  每次只能设置一个 IP 地址    */
             _ErrorHandle(EOPNOTSUPP);
             break;
@@ -606,37 +596,13 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
             _ErrorHandle(EADDRNOTAVAIL);
             break;
         }
-        for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {                 /*  首先试图添加                */
-            if (ip6_addr_isinvalid(pnetif->ip6_addr_state[i])) {
-                __LWIP_SET_IPV6_TO_NETIF();
-                pnetif->ip6_addr_state[i] = IP6_ADDR_VALID | IP6_ADDR_TENTATIVE;
-                netif_ip6_addr_set_valid_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
-                netif_ip6_addr_set_pref_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
-                break;
-            }
-        }
-        if (i >= LWIP_IPV6_NUM_ADDRESSES) {                             /*  无法添加                    */
-            for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {             /*  优先覆盖暂定地址            */
-                if (!ip6_addr_islinklocal(ip_2_ip6(&pnetif->ip6_addr[i])) &&
-                    ip6_addr_istentative(pnetif->ip6_addr_state[i])) {
-                    __LWIP_SET_IPV6_TO_NETIF();
-                    pnetif->ip6_addr_state[i] = IP6_ADDR_VALID | IP6_ADDR_TENTATIVE;
-                    netif_ip6_addr_set_valid_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
-                    netif_ip6_addr_set_pref_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
-                    break;
-                }
-            }
-        }
-        if (i >= LWIP_IPV6_NUM_ADDRESSES) {                             /*  无法添加                    */
-            for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {             /*  替换非 linklocal 地址       */
-                if (!ip6_addr_islinklocal(ip_2_ip6(&pnetif->ip6_addr[i]))) {
-                    __LWIP_SET_IPV6_TO_NETIF();
-                    pnetif->ip6_addr_state[i] = IP6_ADDR_VALID | IP6_ADDR_TENTATIVE;
-                    netif_ip6_addr_set_valid_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
-                    netif_ip6_addr_set_pref_life(pnetif, i, IP6_ADDR_LIFE_STATIC);
-                    break;
-                }
-            }
+        inet6_addr_to_ip6addr(&ip6addr, &pifr6addr->ifr6a_addr);
+        LOCK_TCPIP_CORE();                                              /*  必须 lock 协议栈            */
+        err = netif_add_ip6_address(pnetif, &ip6addr, LW_NULL);
+        UNLOCK_TCPIP_CORE();
+        if (err) {
+            _ErrorHandle(ENOSPC);
+            break;
         }
         iRet = ERROR_NONE;
         break;
@@ -646,13 +612,16 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
             _ErrorHandle(EOPNOTSUPP);
             break;
         }
-        for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
-            if (ip6_addr_isvalid(pnetif->ip6_addr_state[i])) {
-                if (__LWIP_CMP_IPV6_WITH_NETIF()) {                     /*  TODO 没有判断前缀长度       */
-                    pnetif->ip6_addr_state[i] = IP6_ADDR_INVALID;
-                    break;
-                }
-            }
+        inet6_addr_to_ip6addr(&ip6addr, &pifr6addr->ifr6a_addr);
+        LOCK_TCPIP_CORE();                                              /*  必须 lock 协议栈            */
+        idx = netif_get_ip6_addr_match(pnetif, &ip6addr);
+        if (idx >= 0) {
+            netif_ip6_addr_set_state(pnetif, idx, IP6_ADDR_INVALID);
+        }
+        UNLOCK_TCPIP_CORE();
+        if (idx < 0) {
+            _ErrorHandle(EADDRNOTAVAIL);
+            break;
         }
         iRet = ERROR_NONE;
         break;

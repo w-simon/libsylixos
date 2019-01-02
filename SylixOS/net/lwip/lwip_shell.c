@@ -468,10 +468,6 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         PCHAR       pcAddrType;
         CHAR        cBuffer[64];
         
-        if (!ip6_addr_isvalid(netif->ip6_addr_state[i])) {
-            continue;
-        }
-        
         if (ip6_addr_isglobal(ip_2_ip6(&netif->ip6_addr[i]))) {
             pcAddrType = "Global";
         } else if (ip6_addr_islinklocal(ip_2_ip6(&netif->ip6_addr[i]))) {
@@ -479,16 +475,23 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         } else if (ip6_addr_issitelocal(ip_2_ip6(&netif->ip6_addr[i]))) {
             pcAddrType = "Site";
         } else if (ip6_addr_isuniquelocal(ip_2_ip6(&netif->ip6_addr[i]))) {
-            pcAddrType = "Uniquelocal";
+            pcAddrType = "Unique";
         } else if (ip6_addr_isloopback(ip_2_ip6(&netif->ip6_addr[i]))) {
             pcAddrType = "Loopback";
         } else {
             pcAddrType = "Unknown";
         }
         
-        printf("%9s inet6 addr: %s Scope:%s\n", "",
-               ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), cBuffer, sizeof(cBuffer)),
-               pcAddrType);
+        if (ip6_addr_isvalid(netif->ip6_addr_state[i])) {
+            printf("%9s inet6 addr: %s Scope:%s\n", "",
+                   ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), cBuffer, sizeof(cBuffer)),
+                   pcAddrType);
+            
+        } else if (ip6_addr_istentative(netif->ip6_addr_state[i])) {
+            printf("%9s inet6 addr: %s Scope:%s<T%d>\n", "",
+                   ip6addr_ntoa_r(ip_2_ip6(&netif->ip6_addr[i]), cBuffer, sizeof(cBuffer)),
+                   pcAddrType, (netif->ip6_addr_state[i] & IP6_ADDR_TENTATIVE_7) - 8);
+        }
     }
 #endif                                                                  /*  LWIP_IPV6                   */
     

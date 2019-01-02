@@ -2459,8 +2459,8 @@ nd6_traversal(struct netif *netif,
     if (neighbor_cache[i].state != ND6_NO_ENTRY) {
       if ((!netif) || (neighbor_cache[i].netif == netif)) {
         if (callback(neighbor_cache[i].netif, &neighbor_cache[i].next_hop_address,
-                     neighbor_cache[i].lladdr, neighbor_cache[i].state, 
-                     neighbor_cache[i].isrouter,
+                     neighbor_cache[i].lladdr, (int)neighbor_cache[i].state, 
+                     (int)neighbor_cache[i].isrouter,
                      arg0, arg1, arg2, arg3, arg4, arg5)) {
           break;
         }

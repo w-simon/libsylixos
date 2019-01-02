@@ -34,9 +34,9 @@
 *********************************************************************************************************/
 #if LWIP_IPV6
 static const CHAR   _G_cIpv6Help[] = {
-    "set/get IPv6 status\n"
-    "address,               [ifname [address%prefixlen]] set/add an ipv6 address for given if\n"
-    "noaddress              [ifname [address%prefixlen]] delete an ipv6 address for given if\n"
+    "add/delete IPv6 address\n"
+    "address   [ifname [address%prefixlen]]  add an ipv6 address for given interface\n"
+    "noaddress [ifname [address%prefixlen]]  delete an ipv6 address for given interface\n"
 };
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __ifreq6Init
