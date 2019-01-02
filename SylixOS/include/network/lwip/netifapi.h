@@ -70,6 +70,14 @@ err_t netifapi_arp_update(struct netif *netif, const ip4_addr_t *ipaddr, struct 
 #endif /* SYLIXOS */
 #endif /* LWIP_ARP && LWIP_IPV4 */
 
+#ifdef SYLIXOS /* SylixOS Add this safe function */
+#if LWIP_IPV6
+void netifapi_nd6_traversal(struct netif *netif, int (*callback)(), void *arg0, void *arg1,
+                            void *arg2, void *arg3, void *arg4, void *arg5);
+void netifapi_nd6_cleanup(struct netif *netif);
+#endif /* LWIP_IPV6*/
+#endif /* SYLIXOS */
+
 err_t netifapi_netif_add(struct netif *netif,
 #if LWIP_IPV4
                          const ip4_addr_t *ipaddr, const ip4_addr_t *netmask, const ip4_addr_t *gw,

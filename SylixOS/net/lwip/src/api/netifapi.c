@@ -47,6 +47,10 @@
 #include "lwip/memp.h"
 #include "lwip/priv/tcpip_priv.h"
 
+#if LWIP_IPV6 /* SylixOS Add ND6 safe functions */
+#include "lwip/nd6.h"
+#endif /* LWIP_IPV6 */
+
 #include <string.h> /* strncpy */
 
 #define NETIFAPI_VAR_REF(name)      API_VAR_REF(name)
@@ -280,6 +284,44 @@ netifapi_arp_update(struct netif *netif, const ip4_addr_t *ipaddr, struct eth_ad
 }
 #endif /* SYLIXOS */
 #endif /* LWIP_ARP && LWIP_IPV4 */
+
+#ifdef SYLIXOS /* SylixOS Add this safe function */
+#if LWIP_IPV6
+/**
+ * Traversal ND6 table.
+ *
+ * @param netif the lwip network interface on which to send the request
+ * @param callback call back function
+ * @param arg0 ~ arg5 arglist.
+ * @return NONE
+ */
+void
+netifapi_nd6_traversal(struct netif *netif, int (*callback)(), void *arg0, void *arg1,
+                       void *arg2, void *arg3, void *arg4, void *arg5)
+{
+#if LWIP_TCPIP_CORE_LOCKING
+  LOCK_TCPIP_CORE();
+  nd6_traversal(netif, callback, arg0, arg1, arg2, arg3, arg4, arg5);
+  UNLOCK_TCPIP_CORE();
+#endif /* LWIP_TCPIP_CORE_LOCKING */
+}
+
+/**
+ * Remove all ND6 table entries of the specified netif.
+ *
+ * @param netif points to a network interface
+ */
+void
+netifapi_nd6_cleanup(struct netif *netif)
+{
+#if LWIP_TCPIP_CORE_LOCKING
+  LOCK_TCPIP_CORE();
+  nd6_cleanup_netif(netif);
+  UNLOCK_TCPIP_CORE();
+#endif /* LWIP_TCPIP_CORE_LOCKING */
+}
+#endif /* LWIP_IPV6*/
+#endif /* SYLIXOS */
 
 /**
  * @ingroup netifapi_netif

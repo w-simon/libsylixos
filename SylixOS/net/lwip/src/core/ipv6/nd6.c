@@ -2431,4 +2431,43 @@ nd6_restart_netif(struct netif *netif)
 #endif /* LWIP_IPV6_SEND_ROUTER_SOLICIT */
 }
 
+#ifdef SYLIXOS /* SylixOS Add Traversal ND6 table */
+/**
+ * Traversal ND6 table.
+ *
+ * @param netif the lwip network interface on which to send the request
+ * @param callback call back function
+ * @param arg0 ~ arg5 arglist.
+ * @return NONE
+ */
+void 
+nd6_traversal(struct netif *netif, 
+              int (*callback)(),
+              void *arg0,
+              void *arg1,
+              void *arg2,
+              void *arg3,
+              void *arg4,
+              void *arg5)
+{
+  int i;
+  
+  if (!callback) {
+    return;
+  }
+  for (i = 0; i < LWIP_ND6_NUM_NEIGHBORS; ++i) {
+    if (neighbor_cache[i].state != ND6_NO_ENTRY) {
+      if ((!netif) || (neighbor_cache[i].netif == netif)) {
+        if (callback(neighbor_cache[i].netif, &neighbor_cache[i].next_hop_address,
+                     neighbor_cache[i].lladdr, neighbor_cache[i].state, 
+                     neighbor_cache[i].isrouter,
+                     arg0, arg1, arg2, arg3, arg4, arg5)) {
+          break;
+        }
+      }
+    }
+  }
+}
+#endif /* SYLIXOS */
+
 #endif /* LWIP_IPV6 */

@@ -106,6 +106,10 @@ extern struct tcp_pcb           *tcp_tw_pcbs;
 *********************************************************************************************************/
 #include "netif/etharp.h"
 /*********************************************************************************************************
+  ND6
+*********************************************************************************************************/
+#include "lwip/priv/nd6_priv.h"
+/*********************************************************************************************************
   PPP 网络
 *********************************************************************************************************/
 #if LW_CFG_LWIP_PPP > 0
@@ -214,7 +218,12 @@ static ssize_t  __procFsNetArpRead(PLW_PROCFS_NODE  p_pfsn,
                                    PCHAR            pcBuffer, 
                                    size_t           stMaxBytes,
                                    off_t            oft);
-                                   
+#if LWIP_IPV6
+static ssize_t  __procFsNetNd6Read(PLW_PROCFS_NODE  p_pfsn, 
+                                   PCHAR            pcBuffer, 
+                                   size_t           stMaxBytes,
+                                   off_t            oft);
+#endif                                                                  /*  LWIP_IPV6                   */
 #if LW_CFG_NET_AODV_EN > 0
 static ssize_t  __procFsNetAodvRead(PLW_PROCFS_NODE  p_pfsn, 
                                     PCHAR            pcBuffer, 
@@ -326,7 +335,11 @@ static LW_PROCFS_NODE_OP    _G_pfsnoNetIfInet6Funcs = {
 static LW_PROCFS_NODE_OP    _G_pfsnoNetArpFuncs = {
     __procFsNetArpRead,        LW_NULL
 };
-
+#if LWIP_IPV6
+static LW_PROCFS_NODE_OP    _G_pfsnoNetNd6Funcs = {
+    __procFsNetNd6Read,        LW_NULL
+};
+#endif                                                                  /*  LWIP_IPV6                   */
 #if LW_CFG_NET_AODV_EN > 0
 static LW_PROCFS_NODE_OP    _G_pfsnoNetAodvFuncs = {
     __procFsNetAodvRead,        LW_NULL
@@ -356,7 +369,8 @@ static LW_PROCFS_NODE_OP    _G_pfsnoNetWlFuncs = {
 *********************************************************************************************************/
 #define __PROCFS_BUFFER_SIZE_TCPIP_STAT     8192
 #define __PROCFS_BUFFER_SIZE_AODV           2048
-#define __PROCFS_BUFFER_SIZE_ARP            ((LW_CFG_LWIP_ARP_TABLE_SIZE * 64) + 64)
+#define __PROCFS_BUFFER_SIZE_ARP            ((ARP_TABLE_SIZE * 64) + 64)
+#define __PROCFS_BUFFER_SIZE_ND6            ((LWIP_ND6_NUM_NEIGHBORS * 128) + 128)
 
 static LW_PROCFS_NODE       _G_pfsnNet[] = 
 {
@@ -508,7 +522,13 @@ static LW_PROCFS_NODE       _G_pfsnNet[] =
                         &_G_pfsnoNetArpFuncs, 
                         "A",
                         __PROCFS_BUFFER_SIZE_ARP),
-                        
+#if LWIP_IPV6
+    LW_PROCFS_INIT_NODE("nd6", 
+                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
+                        &_G_pfsnoNetNd6Funcs, 
+                        "n",
+                        __PROCFS_BUFFER_SIZE_ND6),
+#endif                                                                  /*  LWIP_IPV6                   */
     LW_PROCFS_INIT_NODE("packet", 
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoNetPacketFuncs, 
@@ -3169,6 +3189,152 @@ static ssize_t  __procFsNetArpRead (PLW_PROCFS_NODE  p_pfsn,
     return  ((ssize_t)stCopeBytes);
 }
 /*********************************************************************************************************
+** 函数名称: __procFsNetNd6Print
+** 功能描述: 打印网络 nd6 文件
+** 输　入  : netif         网络接口
+**           ip6addr       IPv6 地址
+**           lladdr        链路地址
+**           state         状态
+**           router        是否为路由器
+**           pcBuffer      缓冲
+**           stTotalSize   缓冲区大小
+**           pstOft        当前偏移量
+** 输　出  : ERROR_NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+#if LWIP_IPV6
+
+static INT  __procFsNetNd6Print (struct netif      *netif, 
+                                 ip6_addr_t        *ip6addr, 
+                                 u8_t              *lladdr,
+                                 INT                state, 
+                                 INT                router,
+                                 PCHAR              pcBuffer, 
+                                 size_t             stTotalSize, 
+                                 size_t            *pstOft)
+{
+    PCHAR   pcState;
+    CHAR    cIfName[NETIF_NAMESIZE];
+    
+    switch (state) {
+    
+    case ND6_INCOMPLETE:
+        pcState = "incomplete";
+        break;
+    
+    case ND6_REACHABLE:
+        pcState = "reachable";
+        break;
+        
+    case ND6_STALE:
+        pcState = "stale";
+        break;
+        
+    case ND6_DELAY:
+        pcState = "delay";
+        break;
+        
+    case ND6_PROBE:
+        pcState = "probe";
+        break;
+    
+    default:
+        pcState = "<unknown>";
+        break;
+    }
+
+    if (netif->hwaddr_len == 6) {
+        *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                           "%-4s %08x%08x%08x%08x %02x:%02x:%02x:%02x:%02x:%02x       %-6s %s\n",
+                           netif_get_name(netif, cIfName),
+                           PP_NTOHL(ip6addr->addr[0]), PP_NTOHL(ip6addr->addr[1]), 
+                           PP_NTOHL(ip6addr->addr[2]), PP_NTOHL(ip6addr->addr[3]), 
+                           lladdr[0], lladdr[1], lladdr[2], 
+                           lladdr[3], lladdr[4], lladdr[5], 
+                           router ? "yes" : "no", pcState);
+                           
+    } else if (netif->hwaddr_len == 8) {
+        *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                           "%-4s %08x%08x%08x%08x %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x %-6s %s\n",
+                           netif_get_name(netif, cIfName),
+                           PP_NTOHL(ip6addr->addr[0]), PP_NTOHL(ip6addr->addr[1]), 
+                           PP_NTOHL(ip6addr->addr[2]), PP_NTOHL(ip6addr->addr[3]), 
+                           lladdr[0], lladdr[1], lladdr[2], 
+                           lladdr[3], lladdr[4], lladdr[5], lladdr[6], lladdr[7], 
+                           router ? "yes" : "no", pcState);
+    
+    } else {
+        *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                           "%-4s %08x%08x%08x%08x N/A                     %-6s %s\n",
+                           netif_get_name(netif, cIfName),
+                           PP_NTOHL(ip6addr->addr[0]), PP_NTOHL(ip6addr->addr[1]), 
+                           PP_NTOHL(ip6addr->addr[2]), PP_NTOHL(ip6addr->addr[3]), 
+                           router ? "yes" : "no", pcState);
+    }
+                       
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __procFsNetNd6Read
+** 功能描述: procfs 读一个读取网络 nd6 文件
+** 输　入  : p_pfsn        节点控制块
+**           pcBuffer      缓冲区
+**           stMaxBytes    缓冲区大小
+**           oft           文件指针
+** 输　出  : 实际读取的数目
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+static ssize_t  __procFsNetNd6Read (PLW_PROCFS_NODE  p_pfsn, 
+                                    PCHAR            pcBuffer, 
+                                    size_t           stMaxBytes,
+                                    off_t            oft)
+{
+    const CHAR      cNd6InfoHdr[] = 
+    "FACE LINK ADDRESS                     LLADDR                  ROUTER STAT\n";
+          PCHAR     pcFileBuffer;
+          size_t    stRealSize;                                         /*  实际的文件内容大小          */
+          size_t    stCopeBytes;
+    
+    /*
+     *  程序运行到这里, 文件缓冲一定已经分配了预置的内存大小(创建节点时预置大小为 64 字节).
+     */
+    pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
+    if (pcFileBuffer == LW_NULL) {
+        _ErrorHandle(ENOMEM);
+        return  (0);
+    }
+    
+    stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
+    if (stRealSize == 0) {                                              /*  需要生成文件                */
+        struct netif *netif;
+        
+        stRealSize = bnprintf(pcFileBuffer, __PROCFS_BUFFER_SIZE_ND6, 0, cNd6InfoHdr);
+                                                                        /*  打印头信息                  */
+        LWIP_IF_LIST_LOCK(LW_FALSE);
+        NETIF_FOREACH(netif) {
+            netifapi_nd6_traversal(netif, __procFsNetNd6Print, 
+                                   (PVOID)pcFileBuffer, (PVOID)__PROCFS_BUFFER_SIZE_ND6, 
+                                   (PVOID)&stRealSize, LW_NULL, LW_NULL, LW_NULL);
+        }
+        LWIP_IF_LIST_UNLOCK();
+    
+        API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
+    }
+    if (oft >= stRealSize) {
+        _ErrorHandle(ENOSPC);
+        return  (0);
+    }
+    
+    stCopeBytes  = __MIN(stMaxBytes, (size_t)(stRealSize - oft));       /*  计算实际拷贝的字节数        */
+    lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
+    
+    return  ((ssize_t)stCopeBytes);
+}
+
+#endif                                                                  /*  LWIP_IPV6                   */
+/*********************************************************************************************************
 ** 函数名称: __procFsNetAodvRead
 ** 功能描述: procfs 读一个读取网络 adhoc-aodv 文件
 ** 输　入  : p_pfsn        节点控制块
@@ -3839,8 +4005,10 @@ VOID  __procFsNetInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
+#if LWIP_IPV6
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
-
+#endif                                                                  /*  LWIP_IPV6                   */
+    API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
 #if LW_CFG_NET_UNIX_EN > 0
     API_ProcFsMakeNode(&_G_pfsnNet[i++], "/net");
 #endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */

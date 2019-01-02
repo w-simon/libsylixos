@@ -113,13 +113,23 @@ extern void udelay(unsigned long us);
 #endif /* !SYLIXOS_LIB */
 
 #ifndef __LINUX_COMPAT_MALLOC
-#define kmalloc(size, flags)	sys_malloc(size)
+#define GFP_KERNEL              0
+#define GFP_NOFS                1
+#define __GFP_ZERO              2
+
+static LW_INLINE void *kmalloc (size_t size, int flags)
+{
+    if (flags & __GFP_ZERO) {
+        return  sys_zalloc(size);
+    } else {
+        return  sys_malloc(size);
+    }
+}
+
 #define kzalloc(size, flags)	sys_zalloc(size)
 #define vmalloc(size)		    sys_malloc(size)
 #define kfree(ptr)		        sys_free((void *)ptr)
 #define vfree(ptr)		        sys_free(ptr)
-#define GFP_KERNEL			    0
-#define GFP_NOFS			    1
 #endif /* !__LINUX_COMPAT_MALLOC */
 
 #define ARCH_DMA_MINALIGN       8   /* 8-bytes */

@@ -81,6 +81,11 @@ void nd6_adjust_mld_membership(struct netif *netif, s8_t addr_idx, u8_t new_stat
 #endif /* LWIP_IPV6_MLD */
 void nd6_restart_netif(struct netif *netif);
 
+#ifdef SYLIXOS /* SylixOS Add Traversal ND6 table */
+void nd6_traversal(struct netif *netif, int (*callback)(), void *arg0, void *arg1,
+                   void *arg2, void *arg3, void *arg4, void *arg5);
+#endif /* SYLIXOS */
+
 #ifdef __cplusplus
 }
 #endif
