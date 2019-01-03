@@ -3292,7 +3292,7 @@ static ssize_t  __procFsNetNd6Read (PLW_PROCFS_NODE  p_pfsn,
                                     off_t            oft)
 {
     const CHAR      cNd6InfoHdr[] = 
-    "FACE LINK ADDRESS                     LLADDR                  ROUTER STAT\n";
+    "FACE INET6 ADDRESS                    LLADDR                  ROUTER STAT\n";
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;

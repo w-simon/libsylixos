@@ -325,6 +325,9 @@ netif_add(struct netif *netif,
     netif->ip6_addr_pref_life[i] = IP6_ADDR_LIFE_STATIC;
 #endif /* LWIP_IPV6_ADDRESS_LIFETIMES */
   }
+#ifdef SYLIXOS /* SylixOS Add default ipv6 gateway */
+  ip_addr_set_zero_ip6(&netif->ip6_gw);
+#endif /* SYLIXOS */
   netif->output_ip6 = netif_null_output_ip6;
 #endif /* LWIP_IPV6 */
   NETIF_SET_CHECKSUM_CTRL(netif, NETIF_CHECKSUM_ENABLE_ALL);
@@ -1338,6 +1341,29 @@ netif_alloc_client_data_id(void)
 #endif
 
 #if LWIP_IPV6
+#ifdef SYLIXOS
+/**
+ * @ingroup netif_ip6
+ * Change an IPv6 default gateway of a network interface
+ *
+ * @param netif the network interface to change
+ * @param addr6 the IPv6 address
+ */
+void
+netif_ip6_gw_set(struct netif *netif, const ip6_addr_t *gw6)
+{
+  LWIP_ASSERT_CORE_LOCKED();
+
+  LWIP_ASSERT("netif_ip6_gw_set: invalid netif", netif != NULL);
+
+  if (gw6 == NULL) {
+    gw6 = IP6_ADDR_ANY6;
+  }
+
+  ip6_addr_set(ip_2_ip6(&netif->ip6_gw), gw6);
+}
+#endif /* SYLIXOS */
+
 /**
  * @ingroup netif_ip6
  * Change an IPv6 address of a network interface

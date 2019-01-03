@@ -282,6 +282,9 @@ struct netif {
   u32_t ip6_addr_valid_life[LWIP_IPV6_NUM_ADDRESSES];
   u32_t ip6_addr_pref_life[LWIP_IPV6_NUM_ADDRESSES];
 #endif /* LWIP_IPV6_ADDRESS_LIFETIMES */
+#ifdef SYLIXOS /* SylixOS Add default gateway */
+  ip_addr_t ip6_gw; /* ipv6 default gateway */
+#endif /* SYLIXOS */
 #endif /* LWIP_IPV6 */
   /** This function is called by the network device driver
    *  to pass a packet up the TCP/IP stack. */
@@ -543,6 +546,9 @@ err_t netif_input(struct pbuf *p, struct netif *inp);
 #define netif_ip_addr6(netif, i)  ((const ip_addr_t*)(&((netif)->ip6_addr[i])))
 /** @ingroup netif_ip6 */
 #define netif_ip6_addr(netif, i)  ((const ip6_addr_t*)ip_2_ip6(&((netif)->ip6_addr[i])))
+#ifdef SYLIXOS /* SylixOS Add default ipv6 gateway */
+void netif_ip6_gw_set(struct netif *netif, const ip6_addr_t *gw6);
+#endif /* SYLIXOS */
 void netif_ip6_addr_set(struct netif *netif, s8_t addr_idx, const ip6_addr_t *addr6);
 void netif_ip6_addr_set_parts(struct netif *netif, s8_t addr_idx, u32_t i0, u32_t i1, u32_t i2, u32_t i3);
 #define netif_ip6_addr_state(netif, i)  ((netif)->ip6_addr_state[i])

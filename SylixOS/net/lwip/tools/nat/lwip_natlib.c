@@ -755,27 +755,27 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
              */
             u32OldAddr = iphdr->dest.addr;
             ((ip4_addr_t *)&(iphdr->dest))->addr = ipaddr.addr;
-            inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+            inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr), (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
         
             /*
              *  本机发送到内网的数据包目标端口为 NAT_usLocalPort
              */
             if (IPH_PROTO(iphdr) == IP_PROTO_TCP) {
-                inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+                inet_chksum_adjust((u8_t *)&tcphdr->chksum, (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
                 tcphdr->dest = pnatmap->NATM_usLocalPort;
-                inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&tcphdr->dest, 2);
+                inet_chksum_adjust((u8_t *)&tcphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&tcphdr->dest, 2);
             
             } else if (IPH_PROTO(iphdr) == IP_PROTO_UDP) {
                 if (udphdr->chksum != 0) {
-                    inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+                    inet_chksum_adjust((u8_t *)&udphdr->chksum, (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
     	            udphdr->dest = pnatmap->NATM_usLocalPort;
-    	            inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&udphdr->dest, 2);
+    	            inet_chksum_adjust((u8_t *)&udphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&udphdr->dest, 2);
                 }
                 
             } else if ((IPH_PROTO(iphdr) == IP_PROTO_ICMP) && 
                        ((ICMPH_CODE(icmphdr) == ICMP_ECHO || ICMPH_CODE(icmphdr) == ICMP_ER))) {
                 icmphdr->id = pnatmap->NATM_usLocalPort;
-                inet_chksum_adjust((u8_t *)&icmphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
+                inet_chksum_adjust((u8_t *)&icmphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
         
         } else if (!ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(netifIn))) {
@@ -805,27 +805,27 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
              */
             u32OldAddr = iphdr->dest.addr;
             ((ip4_addr_t *)&(iphdr->dest))->addr = pnatcb->NAT_ipaddrLocalIp.addr;
-            inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+            inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr), (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
             
             /*
              *  本机发送到内网的数据包目标端口为 NAT_usLocalPort
              */
             if (IPH_PROTO(iphdr) == IP_PROTO_TCP) {
-                inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+                inet_chksum_adjust((u8_t *)&tcphdr->chksum, (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
                 tcphdr->dest = pnatcb->NAT_usLocalPort;
-                inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&tcphdr->dest, 2);
+                inet_chksum_adjust((u8_t *)&tcphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&tcphdr->dest, 2);
             
             } else if (IPH_PROTO(iphdr) == IP_PROTO_UDP) {
                 if (udphdr->chksum != 0) {
-                    inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
+                    inet_chksum_adjust((u8_t *)&udphdr->chksum, (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
     	            udphdr->dest = pnatcb->NAT_usLocalPort;
-    	            inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&udphdr->dest, 2);
+    	            inet_chksum_adjust((u8_t *)&udphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&udphdr->dest, 2);
                 }
                 
             } else if ((IPH_PROTO(iphdr) == IP_PROTO_ICMP) && 
                        ((ICMPH_CODE(icmphdr) == ICMP_ECHO || ICMPH_CODE(icmphdr) == ICMP_ER))) {
                 icmphdr->id = pnatcb->NAT_usLocalPort;
-                inet_chksum_adjust((u8_t *)&icmphdr->chksum,(u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
+                inet_chksum_adjust((u8_t *)&icmphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
             
             /*
@@ -986,7 +986,7 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         } else {                                                        /*  源 IP 使用 AP 接口 IP       */
             ((ip4_addr_t *)&(iphdr->src))->addr = netif_ip4_addr(netifOut)->addr;
         }
-        inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr),(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
+        inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr), (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
         
         /*
          *  本机发送到外网的数据包使用 NAT_usAssPort (唯一的分配端口)
@@ -994,22 +994,22 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         switch (IPH_PROTO(iphdr)) {
         
         case IP_PROTO_TCP:
-            inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
+            inet_chksum_adjust((u8_t *)&tcphdr->chksum, (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
             tcphdr->src = pnatcb->NAT_usAssPort;
-            inet_chksum_adjust((u8_t *)&tcphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&tcphdr->src, 2);
+            inet_chksum_adjust((u8_t *)&tcphdr->chksum, (u8_t *)&usSrcPort, 2, (u8_t *)&tcphdr->src, 2);
             break;
             
         case IP_PROTO_UDP:
             if (udphdr->chksum != 0) {
-                inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
+                inet_chksum_adjust((u8_t *)&udphdr->chksum, (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->src.addr, 4);
         	    udphdr->src = pnatcb->NAT_usAssPort;
-        	    inet_chksum_adjust((u8_t *)&udphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&udphdr->src, 2);
+        	    inet_chksum_adjust((u8_t *)&udphdr->chksum, (u8_t *)&usSrcPort, 2, (u8_t *)&udphdr->src, 2);
         	}
             break;
             
         case IP_PROTO_ICMP:
             icmphdr->id = pnatcb->NAT_usAssPort;
-            inet_chksum_adjust((u8_t *)&icmphdr->chksum,(u8_t *)&usSrcPort, 2, (u8_t *)&icmphdr->id, 2);
+            inet_chksum_adjust((u8_t *)&icmphdr->chksum, (u8_t *)&usSrcPort, 2, (u8_t *)&icmphdr->id, 2);
             break;
             
         default:

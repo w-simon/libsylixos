@@ -572,11 +572,8 @@ static VOID  __netIfShowAll (INT  iFlags)
 #if LWIP_DNS > 0
     for (i = 0; i < DNS_MAX_SERVERS; i++) {
         ip_addr_t ipaddr = *dns_getserver((u8_t)i);
-        printf("dns%d: %d.%d.%d.%d\n", (i),
-                                       ip4_addr1(ip_2_ip4(&ipaddr)),
-                                       ip4_addr2(ip_2_ip4(&ipaddr)),
-                                       ip4_addr3(ip_2_ip4(&ipaddr)),
-                                       ip4_addr4(ip_2_ip4(&ipaddr)));
+        CHAR      cStrBuf[48];
+        printf("dns%d: %s\n", i, ipaddr_ntoa_r(&ipaddr, cStrBuf, sizeof(cStrBuf)));
     }
 #endif                                                                  /*  LWIP_DNS                    */
 
@@ -677,12 +674,10 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
                 fprintf(stderr, "arguments error!\n");
                 return  (-ERROR_TSHELL_EPARAM);
             }
-            if (inet_aton(ppcArgV[3], &inaddr) == 0) {                  /*  获得 IP 地址                */
+            if (ipaddr_aton(ppcArgV[3], &ipaddr) == 0) {                /*  获得 IP 地址                */
                 fprintf(stderr, "address error.\n");
                 return  (-ERROR_TSHELL_EPARAM);
             }
-            ip_2_ip4(&ipaddr)->addr = inaddr.s_addr;
-            IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_V4);
             dns_setserver((u8_t)iDnsIndex, &ipaddr);                    /*  设置 DNS                    */
         
         } else {                                                        /*  指定网络接口设置            */
@@ -1023,7 +1018,7 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
         }
         
         ipaddr.addr = ipaddr_addr(ppcArgV[2]);
-        if (ipaddr.addr == IPADDR_NONE) {
+        if ((ipaddr.addr == IPADDR_NONE) || (ipaddr.addr == IPADDR_ANY)) {
             fprintf(stderr, "bad inet address: %s\n", ppcArgV[2]);
             return  (-ERROR_TSHELL_EPARAM);
         }
@@ -1061,7 +1056,7 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
         }
         
         ipaddr.addr = ipaddr_addr(ppcArgV[2]);
-        if (ipaddr.addr == IPADDR_NONE) {
+        if ((ipaddr.addr == IPADDR_NONE) || (ipaddr.addr == IPADDR_ANY)) {
             fprintf(stderr, "bad inet address: %s\n", ppcArgV[2]);
             return  (-ERROR_TSHELL_EPARAM);
         }

@@ -73,7 +73,7 @@
              tftp 协议相对简单, 只要 LW_CFG_NET_TFTP_EN 为 1, 表示 tftp 服务器与客户机均使能.
 *********************************************************************************************************/
 
-#define LW_CFG_NET_TFTP_EN                          1                   /*  是否使能 tftp 服务          */
+#define LW_CFG_NET_TFTP_EN                          0                   /*  是否使能 tftp 服务          */
 #if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_NET_TFTP_STK_SIZE                    (8 * LW_CFG_KB_SIZE)/*  tftp 线程堆栈               */
 #else

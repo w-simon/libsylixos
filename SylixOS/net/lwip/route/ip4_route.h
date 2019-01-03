@@ -100,6 +100,7 @@ int  rt_add_entry(struct rt_entry *entry);
 void rt_delete_entry(struct rt_entry *entry);
 void rt_total_entry(unsigned int *cnt);
 int  rt_change_default(const ip4_addr_t *ipgateway, const char *ifname);
+int  rt_delete_default(const ip4_addr_t *ipgateway, const char *ifname);
 int  rt_get_default(struct rt_entry *entry);
 
 /* xchg funcs */

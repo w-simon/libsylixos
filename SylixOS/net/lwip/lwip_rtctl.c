@@ -66,6 +66,7 @@ static INT  __rtAdd4 (const struct rtentry  *prtentry)
         iRet = rt_change_default(&pentry4->rt_gateway, pentry4->rt_ifname);
         RT_UNLOCK();
         if (iRet < 0) {
+            mem_free(pentry4);
             _ErrorHandle(ENETUNREACH);
             return  (PX_ERROR);
         }
@@ -112,24 +113,36 @@ static INT  __rtAdd6 (const struct rtentry  *prtentry)
 {
     INT                 iRet;
     struct rt6_entry   *pentry6;
-    ip6_addr_t          ip6addr;
     
-    inet6_addr_to_ip6addr(&ip6addr, &((struct sockaddr_in6 *)&prtentry->rt_dst)->sin6_addr);
-    
-    if (ip6_addr_isany_val(ip6addr)) {                                  /*  设置默认路由                */
-        _ErrorHandle(ENETUNREACH);
+    pentry6 = (struct rt6_entry *)mem_malloc(sizeof(struct rt6_entry));
+    if (!pentry6) {
+        _ErrorHandle(ENOMEM);
         return  (PX_ERROR);
+    }
+    lib_bzero(pentry6, sizeof(struct rt6_entry));
     
-    } else {                                                            /*  添加路由表项                */
-        pentry6 = (struct rt6_entry *)mem_malloc(sizeof(struct rt6_entry));
-        if (!pentry6) {
-            _ErrorHandle(ENOMEM);
+    rt6_rtentry_to_entry(pentry6, prtentry);                            /*  转换为 rt6_entry            */
+    
+    if (ip6_addr_isany_val(pentry6->rt6_dest)) {                        /*  设置默认路由                */
+        if (pentry6->rt6_ifname[0] == '\0') {
+            mem_free(pentry6);
+            _ErrorHandle(ENETUNREACH);
             return  (PX_ERROR);
         }
-        lib_bzero(pentry6, sizeof(struct rt6_entry));
         
-        rt6_rtentry_to_entry(pentry6, prtentry);                        /*  转换为 rt6_entry            */
+        RT_LOCK();
+        iRet = rt6_change_default(&pentry6->rt6_gateway, pentry6->rt6_ifname);
+        RT_UNLOCK();
+        if (iRet < 0) {
+            mem_free(pentry6);
+            _ErrorHandle(ENETUNREACH);
+            return  (PX_ERROR);
+        }
         
+        route_hook_rt_ipv6(RTM_ADD, pentry6, 0);                        /*  添加接收缓冲                */
+        mem_free(pentry6);
+    
+    } else {                                                            /*  添加路由表项                */
         RT_LOCK();
         if (rt6_find_entry(&pentry6->rt6_dest, &pentry6->rt6_netmask, &pentry6->rt6_gateway, 
                            pentry6->rt6_ifname, pentry6->rt6_flags)) {
@@ -166,6 +179,7 @@ static INT  __rtAdd6 (const struct rtentry  *prtentry)
 *********************************************************************************************************/
 static INT  __rtDel4 (const struct rtentry  *prtentry)
 {
+    INT                 iRet;
     struct rt_entry    *pentry4;
     ip4_addr_t          ipaddr;
     ip4_addr_t          ipnetmask;
@@ -176,23 +190,51 @@ static INT  __rtDel4 (const struct rtentry  *prtentry)
     inet_addr_to_ip4addr(&ipgateway, &((struct sockaddr_in *)&prtentry->rt_gateway)->sin_addr);
     
     if (ipaddr.addr == IPADDR_ANY) {
-        _ErrorHandle(ENETUNREACH);
-        return  (PX_ERROR);
-    }
-    
-    RT_LOCK();
-    pentry4 = rt_find_entry(&ipaddr, &ipnetmask, &ipgateway, 
-                            prtentry->rt_ifname, prtentry->rt_flags);
-    if (!pentry4 || pentry4->rt_type) {
+        if ((ipgateway.addr == IPADDR_ANY) && (prtentry->rt_ifname[0] == '\0')) {
+            _ErrorHandle(ENETUNREACH);
+            return  (PX_ERROR);
+        }
+        
+        pentry4 = (struct rt_entry *)mem_malloc(sizeof(struct rt_entry));
+        if (pentry4) {
+            RT_LOCK();
+            iRet = rt_get_default(pentry4);
+            if (iRet == 0) {
+                iRet = rt_delete_default(&ipgateway, prtentry->rt_ifname);
+                RT_UNLOCK();
+                if (iRet == 0) {
+                    route_hook_rt_ipv4(RTM_DELETE, pentry4, 0);
+                }
+            
+            } else {
+                RT_UNLOCK();
+            }
+            mem_free(pentry4);
+            if (iRet) {
+                _ErrorHandle(ENETUNREACH);
+                return  (PX_ERROR);
+            }
+            
+        } else {
+            _ErrorHandle(ENOMEM);
+            return  (PX_ERROR);
+        }
+        
+    } else {
+        RT_LOCK();
+        pentry4 = rt_find_entry(&ipaddr, &ipnetmask, &ipgateway, 
+                                prtentry->rt_ifname, prtentry->rt_flags);
+        if (!pentry4 || pentry4->rt_type) {
+            RT_UNLOCK();
+            _ErrorHandle(ENETUNREACH);
+            return  (PX_ERROR);
+        }
+        rt_delete_entry(pentry4);
         RT_UNLOCK();
-        _ErrorHandle(ENETUNREACH);
-        return  (PX_ERROR);
+        
+        route_hook_rt_ipv4(RTM_DELETE, pentry4, 0);
+        mem_free(pentry4);
     }
-    rt_delete_entry(pentry4);
-    RT_UNLOCK();
-    
-    route_hook_rt_ipv4(RTM_DELETE, pentry4, 0);
-    mem_free(pentry4);
     
     return  (ERROR_NONE);
 }
@@ -208,6 +250,7 @@ static INT  __rtDel4 (const struct rtentry  *prtentry)
 
 static INT  __rtDel6 (const struct rtentry  *prtentry)
 {
+    INT                  iRet;
     struct rt6_entry    *pentry6;
     ip6_addr_t           ip6addr;
     ip6_addr_t           ip6netmask;
@@ -218,23 +261,51 @@ static INT  __rtDel6 (const struct rtentry  *prtentry)
     inet6_addr_to_ip6addr(&ip6gateway, &((struct sockaddr_in6 *)&prtentry->rt_gateway)->sin6_addr);
     
     if (ip6_addr_isany_val(ip6addr)) {
-        _ErrorHandle(ENETUNREACH);
-        return  (PX_ERROR);
-    }
-
-    RT_LOCK();
-    pentry6 = rt6_find_entry(&ip6addr, &ip6netmask, &ip6gateway, 
-                             prtentry->rt_ifname, prtentry->rt_flags);
-    if (!pentry6 || pentry6->rt6_type) {
+        if (ip6_addr_isany_val(ip6gateway) && (prtentry->rt_ifname[0] == '\0')) {
+            _ErrorHandle(ENETUNREACH);
+            return  (PX_ERROR);
+        }
+        
+        pentry6 = (struct rt6_entry *)mem_malloc(sizeof(struct rt6_entry));
+        if (pentry6) {
+            RT_LOCK();
+            iRet = rt6_get_default(pentry6);
+            if (iRet == 0) {
+                iRet = rt6_delete_default(&ip6gateway, prtentry->rt_ifname);
+                RT_UNLOCK();
+                if (iRet == 0) {
+                    route_hook_rt_ipv6(RTM_DELETE, pentry6, 0);
+                }
+            
+            } else {
+                RT_UNLOCK();
+            }
+            mem_free(pentry6);
+            if (iRet) {
+                _ErrorHandle(ENETUNREACH);
+                return  (PX_ERROR);
+            }
+            
+        } else {
+            _ErrorHandle(ENOMEM);
+            return  (PX_ERROR);
+        }
+        
+    } else {
+        RT_LOCK();
+        pentry6 = rt6_find_entry(&ip6addr, &ip6netmask, &ip6gateway, 
+                                 prtentry->rt_ifname, prtentry->rt_flags);
+        if (!pentry6 || pentry6->rt6_type) {
+            RT_UNLOCK();
+            _ErrorHandle(ENETUNREACH);
+            return  (PX_ERROR);
+        }
+        rt6_delete_entry(pentry6);
         RT_UNLOCK();
-        _ErrorHandle(ENETUNREACH);
-        return  (PX_ERROR);
+        
+        route_hook_rt_ipv6(RTM_DELETE, pentry6, 0);
+        mem_free(pentry6);
     }
-    rt6_delete_entry(pentry6);
-    RT_UNLOCK();
-    
-    route_hook_rt_ipv6(RTM_DELETE, pentry6, 0);
-    mem_free(pentry6);
     
     return  (ERROR_NONE);
 }
@@ -336,8 +407,29 @@ static INT  __rtChg6 (const struct rtentry  *prtentry)
     inet6_addr_to_ip6addr(&ip6gateway, &((struct sockaddr_in6 *)&prtentry->rt_gateway)->sin6_addr);
     
     if (ip6_addr_isany_val(ip6addr)) {                                  /*  设置默认路由                */
-        _ErrorHandle(ENETUNREACH);
-        return  (PX_ERROR);
+        if (prtentry->rt_ifname[0] == '\0') {
+            _ErrorHandle(ENETUNREACH);
+            return  (PX_ERROR);
+        }
+        
+        RT_LOCK();
+        iRet = rt6_change_default(&ip6gateway, prtentry->rt_ifname);
+        RT_UNLOCK();
+        if (iRet < 0) {
+            _ErrorHandle(ENETUNREACH);
+            return  (PX_ERROR);
+        }
+        
+        pentry6 = (struct rt6_entry *)mem_malloc(sizeof(struct rt6_entry));
+        if (pentry6) {
+            RT_LOCK();
+            iRet = rt6_get_default(pentry6);
+            RT_UNLOCK();
+            if (iRet == 0) {
+                route_hook_rt_ipv6(RTM_CHANGE, pentry6, 0);             /*  添加接收缓冲                */
+            }
+            mem_free(pentry6);
+        }
     
     } else {                                                            /*  添加路由表项                */
         RT_LOCK();

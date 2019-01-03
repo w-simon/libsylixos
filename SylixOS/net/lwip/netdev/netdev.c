@@ -733,6 +733,35 @@ static err_t  netdev_netif_init (struct netif *netif)
   return (ERR_OK);
 }
 
+#if LW_CFG_NET_IPV6 > 0
+/* load ipv6 parameter */
+static void netdev_netif_ipv6init (struct netif *netif, void  *ifparam)
+{
+  err_t err;
+  int idx;
+  ip6_addr_t ip6;
+  
+  for (idx = 0; idx < LWIP_IPV6_NUM_ADDRESSES; idx++) {
+    if (if_param_getipaddr_6(ifparam, idx, &ip6) < 0) {
+      break;
+    }
+    LOCK_TCPIP_CORE(); /* must lock tcpip core */
+    err = netif_add_ip6_address(netif, &ip6, NULL);
+    UNLOCK_TCPIP_CORE();
+    if (!err) {
+      break;
+    }
+  }
+  
+  if (if_param_getgw_6(ifparam, &ip6)) {
+    return;
+  }
+  LOCK_TCPIP_CORE(); /* must lock tcpip core */
+  netif_ip6_gw_set(netif, &ip6);
+  UNLOCK_TCPIP_CORE();
+}
+#endif /* LW_CFG_NET_IPV6 */
+
 #if LW_CFG_NET_NETDEV_MIP_EN > 0
 /* load mip parameter */
 static void netdev_netif_mipinit (netdev_t *netdev, void  *ifparam)
@@ -938,6 +967,12 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
     netdev_txq_enable(netdev, &txq);
   }
 #endif /* LW_CFG_NET_DEV_TXQ_EN */
+  
+#if LW_CFG_NET_IPV6 > 0
+  if (ifparam) {
+    netdev_netif_ipv6init(netif, ifparam);
+  }
+#endif /* LW_CFG_NET_IPV6 */
   
 #if LW_CFG_NET_NETDEV_MIP_EN > 0
   if (ifparam) {

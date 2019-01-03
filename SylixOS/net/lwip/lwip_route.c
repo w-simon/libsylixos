@@ -288,7 +288,7 @@ static VOID  __route_show_aodv (VOID)
 static INT  __route_default (INT  iArgC, PCHAR  *ppcArgV, struct rtentry *prtentry)
 {
     if ((iArgC == 5) && (!lib_strcmp(ppcArgV[2], "default")) && (!lib_strcmp(ppcArgV[3], "dev"))) {
-        if (!inet_aton("255.255.255.255", &((struct sockaddr_in *)&prtentry->rt_gateway)->sin_addr)) {
+        if (!inet_aton("0.0.0.0", &((struct sockaddr_in *)&prtentry->rt_gateway)->sin_addr)) {
             goto    __arg_error;
         }
         lib_strlcpy(prtentry->rt_ifname, ppcArgV[4], IF_NAMESIZE);

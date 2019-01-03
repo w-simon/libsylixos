@@ -408,6 +408,12 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define MEMP_NUM_NETDB                  10
 #endif                                                                  /*  MEMP_NUM_NETDB              */
 
+#if LW_CFG_NET_IPV6 > 0
+#define DNS_MAX_SERVERS                 4
+#else
+#define DNS_MAX_SERVERS                 2
+#endif
+
 #define DNS_MAX_NAME_LENGTH             PATH_MAX
 #define DNS_LOCAL_HOSTLIST              1
 

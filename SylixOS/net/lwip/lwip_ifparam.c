@@ -49,6 +49,9 @@
   txqueue=0               # >0 表示使用异步队列发送功能 (16 ~ 4096)
   txqblock=1              # 1: 发送队列遇到阻塞时进行等待 (通常为 1, 窄带无线网络可为 0)
   
+  ipaddr_6=fec0::c0a8:10  # 添加一个 IPv6 地址
+  gateway_6=fec0::c0a8:1  # 添加一个 IPv6 网关地址
+  
   mipaddr=10.0.0.2        # 添加一个辅助 IP 地址
   mnetmask=255.0.0.0
   mgateway=10.0.0.1
@@ -89,6 +92,11 @@
 #define LW_IFPARAM_IPV6_ACFG    "ipv6_auto_cfg"
 #define LW_IFPARAM_TCP_ACK_FREQ "tcp_ack_freq"
 #define LW_IFPARAM_TCP_WND      "tcp_wnd"
+/*********************************************************************************************************
+  IPv6 地址
+*********************************************************************************************************/
+#define LW_IFPARAM_IPADDR_6     "ipaddr_6"
+#define LW_IFPARAM_GW_6         "gateway_6"
 /*********************************************************************************************************
   辅助地址
 *********************************************************************************************************/
@@ -883,6 +891,77 @@ int  if_param_getingw (void *pifparam, struct in_addr *gw)
         return  (PX_ERROR);
     }
 }
+/*********************************************************************************************************
+** 函数名称: if_param_getipaddr_6
+** 功能描述: 读取 IPv6 地址配置.
+** 输　入  : pifparam      配置句柄
+**           idx           索引 (起始为 0)
+**           ipaddr        IPv6 地址
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_NET_IPV6 > 0
+
+LW_API
+int  if_param_getipaddr_6 (void *pifparam, int  idx, ip6_addr_t *ipaddr)
+{
+    const char  *value;
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !ipaddr) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    value = __iniGetIdxStr(pinisec, idx, LW_IFPARAM_IPADDR_6, LW_NULL);
+    if (!value) {
+        return  (PX_ERROR);
+    }
+
+    if (ip6addr_aton(value, ipaddr)) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: if_param_getgw_6
+** 功能描述: 读取 IPv6 网关配置.
+** 输　入  : pifparam      配置句柄
+**           ipaddr        IPv6 地址
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  if_param_getgw_6 (void *pifparam, ip6_addr_t *ipaddr)
+{
+    const char  *value;
+    PLW_INI_SEC  pinisec = (PLW_INI_SEC)pifparam;
+
+    if (!pinisec || !ipaddr) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+    
+    value = __iniGetStr(pinisec, LW_IFPARAM_GW_6, LW_NULL);
+    if (!value) {
+        return  (PX_ERROR);
+    }
+
+    if (ip6addr_aton(value, ipaddr)) {
+        return  (ERROR_NONE);
+
+    } else {
+        return  (PX_ERROR);
+    }
+}
+
+#endif                                                                  /*  LW_CFG_NET_IPV6 > 0         */
 /*********************************************************************************************************
 ** 函数名称: if_param_getmipaddr
 ** 功能描述: 读取辅助 IP 地址配置.

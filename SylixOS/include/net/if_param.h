@@ -48,6 +48,9 @@
   txqueue=0               # >0 表示使用异步队列发送功能 (16 ~ 4096)
   txqblock=1              # 1: 发送队列遇到阻塞时进行等待 (通常为 1, 窄带无线网络可为 0)
   
+  ipaddr_6=fec0::c0a8:10  # 添加一个 IPv6 地址
+  gateway_6=fec0::c0a8:1  # 添加一个 IPv6 网关地址
+  
   mipaddr=10.0.0.2        # 添加一个辅助 IP 地址
   mnetmask=255.0.0.0
   mgateway=10.0.0.1
@@ -94,6 +97,11 @@ LW_API int    if_param_getgw(void *pifparam, ip4_addr_t *gw);
 LW_API int    if_param_getingw(void *pifparam, struct in_addr *gw);
 LW_API int    if_param_getmac(void *pifparam, char *mac, size_t  sz);
 LW_API void   if_param_syncdns(void);
+
+#if LW_CFG_NET_IPV6 > 0
+LW_API int    if_param_getipaddr_6(void *pifparam, int  idx, ip6_addr_t *ipaddr);
+LW_API int    if_param_getgw_6(void *pifparam, ip6_addr_t *ipaddr);
+#endif                                                                  /*  LW_CFG_NET_IPV6 > 0         */
 
 #if LW_CFG_NET_NETDEV_MIP_EN > 0
 LW_API int    if_param_getmipaddr(void *pifparam, int  idx, ip4_addr_t *ipaddr);

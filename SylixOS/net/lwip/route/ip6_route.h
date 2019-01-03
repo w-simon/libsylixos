@@ -106,6 +106,9 @@ struct rt6_entry *rt6_find_entry(const ip6_addr_t *ip6dest,
 int  rt6_add_entry(struct rt6_entry *entry);
 void rt6_delete_entry(struct rt6_entry *entry);
 void rt6_total_entry(unsigned int *cnt);
+int  rt6_change_default(const ip6_addr_t *ip6gateway, const char *ifname);
+int  rt6_delete_default(const ip6_addr_t *ip6gateway, const char *ifname);
+int  rt6_get_default(struct rt6_entry *entry);
 
 /* xchg funcs */
 #define rt6_build_sockaddr_dl rt_build_sockaddr_dl

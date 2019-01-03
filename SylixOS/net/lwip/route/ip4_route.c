@@ -172,7 +172,7 @@ static void  rt_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
   entry.rt_metric = rt_bi_mbase + 1;
   
   if (netif_default) {
-    if (RT_NETIF_AVLID(netif_default)) {
+    if (RT_NETIF_AVLID(netif_default) && (netif_ip4_gw(netif_default)->addr != IPADDR_ANY)) {
       entry.rt_dest.addr = IPADDR_ANY;
       entry.rt_netmask.addr = IPADDR_ANY;
       entry.rt_gateway.addr = netif_ip4_gw(netif_default)->addr;
@@ -445,9 +445,53 @@ int  rt_change_default (const ip4_addr_t *ipgateway, const char *ifname)
     netif = netif_p;
   }
   
-  if (ipgateway->addr != IPADDR_NONE) { /* can not set to IPADDR_NONE */
+  if (ipgateway->addr != IPADDR_ANY) {
     netif_set_gw(netif, ipgateway);
   }
+  if (netif_ip4_gw(netif)->addr == IPADDR_ANY) {
+    return (-1);
+  }
+  netif_set_default(netif);
+  rt_pid_default = getpid();
+  return (0);
+}
+
+/* delete default */
+int  rt_delete_default (const ip4_addr_t *ipgateway, const char *ifname)
+{
+  struct netif *netif, *netif_p = LW_NULL;
+  
+  if (ifname && ifname[0]) {
+    netif = netif_find(ifname);
+    if (!netif) {
+      return (-1);
+    }
+  } else {
+    NETIF_FOREACH(netif) {
+      if (ipgateway->addr == netif_ip4_gw(netif)->addr) {
+        netif_p = netif;
+        break;
+      
+      } else if (RT_NETIF_AVLID(netif)) {
+        if (ip4_addr_netcmp(ipgateway, 
+                            netif_ip4_addr(netif), 
+                            netif_ip4_netmask(netif))) {
+          netif_p = netif;
+        }
+      }
+    }
+    if (!netif_p) {
+      return (-1);
+    }
+    netif = netif_p;
+  }
+  
+  if ((ipgateway->addr != IPADDR_ANY) &&
+      !ip4_addr_cmp(ipgateway, netif_ip4_gw(netif))) {
+    return (-1);
+  }
+  
+  netif_set_gw(netif, NULL);
   netif_set_default(netif);
   rt_pid_default = getpid();
   return (0);
@@ -460,7 +504,7 @@ int  rt_get_default (struct rt_entry *entry)
   entry->rt_metric = 1;
   entry->rt_pid = rt_pid_default;
   
-  if (netif_default) {
+  if (netif_default && (netif_ip4_gw(netif_default)->addr != IPADDR_ANY)) {
     entry->rt_dest.addr = IPADDR_ANY;
     entry->rt_netmask.addr = IPADDR_ANY;
     entry->rt_gateway.addr = netif_ip4_gw(netif_default)->addr;

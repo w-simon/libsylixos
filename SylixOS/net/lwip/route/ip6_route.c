@@ -64,6 +64,9 @@ static unsigned int  rt6_total, rt6_active;
 /* buildin metric base */
 static int rt6_bi_mbase;
 
+/* change default pid save */
+static pid_t rt6_pid_default;
+
 /* route hash table */
 #define RT6_HASH_SHIFT   5
 #define RT6_HASH_SIZE    (1 << RT6_HASH_SHIFT)
@@ -198,7 +201,7 @@ static struct rt6_entry *rt6_match (const ip6_addr_t *ip6dest)
     entry = (struct rt6_entry *)pline;
     if (entry->rt6_netif && RTF_VALID(entry->rt6_flags)) {
       if (entry->rt6_flags & RTF_HOST) {
-        if (ip6_addr_cmp(&entry->rt6_dest, ip6dest)) {
+        if (ip6_addr_cmp_zoneless(&entry->rt6_dest, ip6dest)) {
           return (entry); /* match to host */
         }
       
@@ -230,6 +233,25 @@ static void  rt6_traversal_buildin (VOIDFUNCPTR func, void *arg0, void *arg1,
   lib_bzero(&entry, sizeof(struct rt6_entry));
   entry.rt6_type = RT6_TYPE_BUILDIN;
   entry.rt6_metric = rt6_bi_mbase + 1;
+  
+  if (netif_default) {
+    if (!ip6_addr_isany_val(*ip_2_ip6(&netif_default->ip6_gw))) {
+      ip6_addr_set_any(&entry.rt6_dest);
+      rt6_netmask_from_prefix(&entry.rt6_netmask, 0);
+      ip6_addr_set(&entry.rt6_gateway, ip_2_ip6(&netif_default->ip6_gw));
+      ip6_addr_set_any(&entry.rt6_ifaddr);
+      entry.rt6_netif = netif_default;
+      netif_get_name(netif_default, entry.rt6_ifname);
+      
+      if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
+        entry.rt6_flags = RTF_UP | RTF_GATEWAY | RTF_RUNNING | RTF_LOCAL;
+      } else {
+        entry.rt6_flags = RTF_UP | RTF_GATEWAY | RTF_LOCAL;
+      }
+      
+      func(&entry, arg0, arg1, arg2, arg3, arg4, arg5);
+    }
+  }
   
   NETIF_FOREACH(netif) {
     for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
@@ -314,8 +336,8 @@ static void  rt6_traversal_nd6 (VOIDFUNCPTR func, void *arg0, void *arg1,
         nd6_entry = &default_router_list[j];
         if ((nd6_entry->neighbor_entry != NULL) &&
             (nd6_entry->neighbor_entry->state == ND6_REACHABLE)) {
-          if (ip6_addr_cmp(&destination->next_hop_addr,
-                           &nd6_entry->neighbor_entry->next_hop_address)) {
+          if (ip6_addr_cmp_zoneless(&destination->next_hop_addr,
+                                    &nd6_entry->neighbor_entry->next_hop_address)) {
             netif = nd6_entry->neighbor_entry->netif;
             break;
           }
@@ -392,14 +414,14 @@ struct rt6_entry *rt6_find_entry (const ip6_addr_t *ip6dest,
   for (pline = rt6_table[hash]; pline != NULL; pline = _list_line_get_next(pline)) {
     entry = (struct rt6_entry *)pline;
     if (((host & RTF_HOST) == (entry->rt6_flags & RTF_HOST)) &&
-        (ip6_addr_cmp(&entry->rt6_dest, ip6dest))) {
+        (ip6_addr_cmp_zoneless(&entry->rt6_dest, ip6dest))) {
       if (!ip6_addr_isany(ip6netmask)) {
-        if (!ip6_addr_cmp(&entry->rt6_netmask, ip6netmask)) {
+        if (!ip6_addr_cmp_zoneless(&entry->rt6_netmask, ip6netmask)) {
           continue;
         }
       }
       if (!ip6_addr_isany(ip6gateway)) {
-        if (!ip6_addr_cmp(&entry->rt6_gateway, ip6gateway)) {
+        if (!ip6_addr_cmp_zoneless(&entry->rt6_gateway, ip6gateway)) {
           continue;
         }
       }
@@ -539,6 +561,90 @@ void rt6_total_entry (unsigned int *cnt)
   }
 }
 
+/* change default */
+int  rt6_change_default (const ip6_addr_t *ip6gateway, const char *ifname)
+{
+  struct netif *netif;
+  
+  if (!ifname) {
+    return (-1);
+  }
+  
+  netif = netif_find(ifname);
+  if (!netif) {
+    return (-1);
+  }
+  
+  if (!ip6_addr_isany(ip6gateway)) {
+    netif_ip6_gw_set(netif, ip6gateway);
+  }
+  if (ip6_addr_isany_val(*ip_2_ip6(&netif->ip6_gw))) {
+    return (-1);
+  }
+  netif_set_default(netif);
+  rt6_pid_default = getpid();
+  return (0);
+}
+
+/* delete default */
+int  rt6_delete_default (const ip6_addr_t *ip6gateway, const char *ifname)
+{
+  struct netif *netif;
+  
+  if (ifname && ifname[0]) {
+    netif = netif_find(ifname);
+    if (!netif) {
+      return (-1);
+    }
+  } else {
+    NETIF_FOREACH(netif) {
+      if (ip6_addr_cmp_zoneless(ip6gateway, ip_2_ip6(&netif_default->ip6_gw))) {
+        break;
+      }
+    }
+    if (!netif) {
+      return (-1);
+    }
+  }
+  
+  if (!ip6_addr_isany(ip6gateway) && 
+      !ip6_addr_cmp_zoneless(ip6gateway, ip_2_ip6(&netif_default->ip6_gw))) {
+    return (-1);
+  }
+  
+  netif_ip6_gw_set(netif, NULL);
+  netif_set_default(netif);
+  rt6_pid_default = getpid();
+  return (0);
+}
+
+/* get default */
+int  rt6_get_default (struct rt6_entry *entry)
+{
+  lib_bzero(entry, sizeof(struct rt6_entry));
+  entry->rt6_metric = 1;
+  entry->rt6_pid = rt6_pid_default;
+  
+  if (netif_default && (ip6_addr_isany_val(*ip_2_ip6(&netif_default->ip6_gw)))) {
+    ip6_addr_set_any(&entry->rt6_dest);
+    rt6_netmask_from_prefix(&entry->rt6_netmask, 0);
+    ip6_addr_set(&entry->rt6_gateway, ip_2_ip6(&netif_default->ip6_gw));
+    ip6_addr_set_any(&entry->rt6_ifaddr);
+    entry->rt6_netif = netif_default;
+    netif_get_name(netif_default, entry->rt6_ifname);
+    
+    if (netif_is_up(netif_default) && netif_is_link_up(netif_default)) {
+      entry->rt6_flags = RTF_UP | RTF_GATEWAY | RTF_RUNNING | RTF_LOCAL;
+    } else {
+      entry->rt6_flags = RTF_UP | RTF_GATEWAY | RTF_LOCAL;
+    }
+    return (0);
+  
+  } else {
+    return (-1);
+  }
+}
+
 /* netif_add_hook */
 void  rt6_netif_add_hook (struct netif *netif)
 {
@@ -634,7 +740,7 @@ struct netif *rt6_route_search_hook (const ip6_addr_t *ipsrc, const ip6_addr_t *
   
   if (rt6_cache.rt6_entry && 
       RTF_VALID(rt6_cache.rt6_entry->rt6_flags)) {
-    if (ip6_addr_cmp(&rt6_cache.rt6_dest, ip6dest)) {
+    if (ip6_addr_cmp_zoneless(&rt6_cache.rt6_dest, ip6dest)) {
       IP6_STATS_INC(ip6.cachehit);
       return (rt6_cache.rt6_entry->rt6_netif);
     
@@ -669,13 +775,13 @@ ip6_addr_t *rt6_route_gateway_hook(struct netif *netif, const ip6_addr_t *ip6des
   struct rt6_entry *entry;
 
   if (!rt6_active) {
-    return (NULL);
+    goto default_gw;
   }
   
   gwc = &gw6_cache[netif->num];
   if (gwc->rt6_entry &&
       RTF_VALID(gwc->rt6_entry->rt6_flags)) {
-    if (ip6_addr_cmp(&gwc->rt6_dest, ip6dest)) {
+    if (ip6_addr_cmp_zoneless(&gwc->rt6_dest, ip6dest)) {
       if (!ip6_addr_isany_val(gwc->rt6_gateway) &&
           (gwc->rt6_entry->rt6_netif == netif)) {
         return (&gwc->rt6_gateway);
@@ -708,6 +814,12 @@ ip6_addr_t *rt6_route_gateway_hook(struct netif *netif, const ip6_addr_t *ip6des
     } else {
       return (NULL);
     }
+  }
+  
+default_gw:
+  /* use default gw */
+  if (!ip6_addr_isany_val(*ip_2_ip6(&netif->ip6_gw))) {
+    return (ip_2_ip6(&netif->ip6_gw));
   }
   
   return (NULL);
