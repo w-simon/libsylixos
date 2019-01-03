@@ -22,7 +22,7 @@
 #ifndef __IF_WHANDLER_H
 #define __IF_WHANDLER_H
 
-#include "sys/compiler.h"
+#include <sys/compiler.h>
 #include "if_wireless.h"
 #include "if_ether.h"
 

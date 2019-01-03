@@ -22,7 +22,7 @@
 #ifndef __INC_WAIT_H
 #define __INC_WAIT_H
 
-#include "sys/wait.h"
+#include <sys/wait.h>
 
 #endif                                                                  /*  __INC_WAIT_H                */
 /*********************************************************************************************************

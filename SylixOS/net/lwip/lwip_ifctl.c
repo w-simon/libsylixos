@@ -26,7 +26,7 @@
 #if LW_CFG_NET_EN > 0
 #include "net/if.h"
 #include "net/if_arp.h"
-#include "net/if_type.h"
+#include "net/if_types.h"
 #include "net/if_lock.h"
 #include "net/if_flags.h"
 #include "sys/socket.h"

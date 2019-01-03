@@ -31,8 +31,8 @@
 #ifndef _WCTYPE_H_
 #define	_WCTYPE_H_
 
-#include "sys/types.h"
-#include "sys/cdefs.h"
+#include <sys/types.h>
+#include <sys/cdefs.h>
 
 #ifndef _WCHAR_ALL_TYPE_
 #define _WCHAR_ALL_TYPE_

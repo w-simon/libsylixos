@@ -23,7 +23,7 @@
 #define __INC_SIGNAL_H                                                  /*  这里改为 __INC_... 以示区别 */
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #endif                                                                  /*  __INC_SIGNAL_H              */

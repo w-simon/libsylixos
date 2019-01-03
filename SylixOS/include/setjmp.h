@@ -23,10 +23,10 @@
 #define __SETJMP_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif
 
-#include "sys/cdefs.h"
+#include <sys/cdefs.h>
 
 #ifdef __cplusplus
 extern "C" {

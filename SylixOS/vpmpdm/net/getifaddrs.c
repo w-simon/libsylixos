@@ -37,7 +37,7 @@ __RCSID("$NetBSD: getifaddrs.c,v 1.11.12.1 2009/05/03 13:17:52 bouyer Exp $");
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
-#include <net/if_type.h>
+#include <net/if_types.h>
 #include <netinet6/in6.h>
 #include <netpacket/packet.h>
 

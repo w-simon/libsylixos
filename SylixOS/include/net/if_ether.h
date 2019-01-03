@@ -22,7 +22,8 @@
 #ifndef __IF_ETHER_H
 #define __IF_ETHER_H
 
-#include "sys/types.h"
+#include <sys/compiler.h>
+#include <sys/types.h>
 
 /*********************************************************************************************************
   ²Ã¼ô¿ØÖÆ
@@ -142,7 +143,7 @@ struct ethhdr {
     u_char      h_dest[ETH_ALEN];                                       /* destination eth addr         */
     u_char      h_source[ETH_ALEN];                                     /* source ether addr            */
     u_short     h_proto;                                                /* packet type ID field         */
-} __attribute__((packed));
+} __packed;
 
 #ifdef __cplusplus
 }

@@ -22,7 +22,7 @@
 #ifndef __VIS_H
 #define __VIS_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 /*********************************************************************************************************
   to select alternate encoding format
@@ -60,7 +60,7 @@
 *********************************************************************************************************/
 #define UNVIS_END    1    /* no more characters */
 
-#include "sys/cdefs.h"
+#include <sys/cdefs.h>
 
 __BEGIN_DECLS
 

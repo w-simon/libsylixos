@@ -34,7 +34,7 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
-#include <net/if_type.h>
+#include <net/if_types.h>
 #include <netinet6/in6.h>
 #include <netpacket/packet.h>
 

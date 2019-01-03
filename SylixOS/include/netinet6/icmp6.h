@@ -22,10 +22,11 @@
 #ifndef __NETINET6_ICMP6_H
 #define __NETINET6_ICMP6_H
 
-#include <inttypes.h>
-#include <string.h>
+#include <sys/compiler.h>
 #include <sys/endian.h>
 #include <sys/types.h>
+#include <inttypes.h>
+#include <string.h>
 #include <netinet/in.h>
 
 #define ICMP6_FILTER                1
@@ -48,7 +49,7 @@ struct icmp6_hdr {
         uint16_t    icmp6_un_data16[2];                                 /* type-specific field          */
         uint8_t     icmp6_un_data8[4];                                  /* type-specific field          */
     } icmp6_dataun;
-} __attribute__((__packed__));
+} __packed;
 
 #define icmp6_data32    icmp6_dataun.icmp6_un_data32
 #define icmp6_data16    icmp6_dataun.icmp6_un_data16
@@ -117,7 +118,7 @@ struct icmp6_hdr {
 struct nd_router_solicit {
     struct icmp6_hdr    nd_rs_hdr;
                                                                         /* could be followed by options */
-} __attribute__((__packed__));
+} __packed;
 
 #define nd_rs_type               nd_rs_hdr.icmp6_type
 #define nd_rs_code               nd_rs_hdr.icmp6_code
@@ -133,7 +134,7 @@ struct nd_router_advert {
     uint32_t            nd_ra_reachable;                                /* reachable time               */
     uint32_t            nd_ra_retransmit;                               /* retransmit timer             */
                                                                         /* could be followed by options */
-} __attribute__((__packed__));
+} __packed;
 
 #define nd_ra_type               nd_ra_hdr.icmp6_type
 #define nd_ra_code               nd_ra_hdr.icmp6_code
@@ -153,7 +154,7 @@ struct nd_neighbor_solicit {
     struct icmp6_hdr  nd_ns_hdr;
     struct in6_addr   nd_ns_target;                                     /* target address               */
                                                                         /* could be followed by options */
-} __attribute__((__packed__));
+} __packed;
 
 #define nd_ns_type               nd_ns_hdr.icmp6_type
 #define nd_ns_code               nd_ns_hdr.icmp6_code
@@ -168,7 +169,7 @@ struct nd_neighbor_advert {
     struct icmp6_hdr  nd_na_hdr;
     struct in6_addr   nd_na_target;                                     /* target address               */
                                                                         /* could be followed by options */
-} __attribute__((__packed__));
+} __packed;
 
 #define nd_na_type               nd_na_hdr.icmp6_type
 #define nd_na_code               nd_na_hdr.icmp6_code
@@ -194,7 +195,7 @@ struct nd_redirect {
     struct in6_addr   nd_rd_target;                                     /* target address               */
     struct in6_addr   nd_rd_dst;                                        /* destination address          */
                                                                         /* could be followed by options */
-} __attribute__((__packed__));
+} __packed;
 
 #define nd_rd_type               nd_rd_hdr.icmp6_type
 #define nd_rd_code               nd_rd_hdr.icmp6_code
@@ -209,7 +210,7 @@ struct nd_opt_hdr {
     uint8_t  nd_opt_type;
     uint8_t  nd_opt_len;                                                /* in units of 8 octets         */
                                                                         /* followed by option specific  */
-} __attribute__((__packed__));
+} __packed;
 
 #define ND_OPT_SOURCE_LINKADDR      1
 #define ND_OPT_TARGET_LINKADDR      2
@@ -232,7 +233,7 @@ struct nd_opt_prefix_info {
     uint32_t            nd_opt_pi_preferred_time;
     uint32_t            nd_opt_pi_reserved2;
     struct in6_addr     nd_opt_pi_prefix;
-} __attribute__((__packed__));
+} __packed;
 
 #define ND_OPT_PI_FLAG_ONLINK   0x80
 #define ND_OPT_PI_FLAG_AUTO     0x40
@@ -248,7 +249,7 @@ struct nd_opt_rd_hdr {
     uint16_t  nd_opt_rh_reserved1;
     uint32_t  nd_opt_rh_reserved2;
                                                                         /* followed by IP hdr and data  */
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   MTU option
@@ -259,7 +260,7 @@ struct nd_opt_mtu {
     uint8_t   nd_opt_mtu_len;
     uint16_t  nd_opt_mtu_reserved;
     uint32_t  nd_opt_mtu_mtu;
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   mld_hdr
@@ -268,7 +269,7 @@ struct nd_opt_mtu {
 struct mld_hdr {
     struct icmp6_hdr    mld_icmp6_hdr;
     struct in6_addr     mld_addr;                                       /* multicast address            */
-} __attribute__((__packed__));
+} __packed;
 
 #define mld_type        mld_icmp6_hdr.icmp6_type
 #define mld_code        mld_icmp6_hdr.icmp6_code
@@ -288,7 +289,7 @@ struct icmp6_router_renum {
     uint8_t             rr_flags;
     uint16_t            rr_maxdelay;
     uint32_t            rr_reserved;
-} __attribute__((__packed__));
+} __packed;
 
 #define rr_type         rr_hdr.icmp6_type
 #define rr_code         rr_hdr.icmp6_code
@@ -318,7 +319,7 @@ struct rr_pco_match {
     uint8_t             rpm_maxlen;
     uint16_t            rpm_reserved;
     struct in6_addr     rpm_prefix;
-} __attribute__((__packed__));
+} __packed;
                                                                         /* PCO code values              */
 #define RPM_PCO_ADD             1
 #define RPM_PCO_CHANGE          2
@@ -337,7 +338,7 @@ struct rr_pco_use {
     uint32_t            rpu_pltime;
     uint32_t            rpu_flags;
     struct in6_addr     rpu_prefix;
-} __attribute__((__packed__));
+} __packed;
 
 #define ICMP6_RR_PCOUSE_RAFLAGS_ONLINK  0x20
 #define ICMP6_RR_PCOUSE_RAFLAGS_AUTO    0x10
@@ -360,7 +361,7 @@ struct rr_result {
     uint8_t             rrr_matchedlen;
     uint32_t            rrr_ifid;
     struct in6_addr     rrr_prefix;
-} __attribute__((__packed__));
+} __packed;
 
 #if BYTE_ORDER == BIG_ENDIAN
 # define ICMP6_RR_RESULT_FLAGS_OOB       0x0002
@@ -379,7 +380,7 @@ struct nd_opt_adv_interval {
     uint8_t   nd_opt_adv_interval_len;
     uint16_t  nd_opt_adv_interval_reserved;
     uint32_t  nd_opt_adv_interval_ival;
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   Mobile IPv6 extension: Home Agent Info.
@@ -391,7 +392,7 @@ struct nd_opt_home_agent_info {
     uint16_t  nd_opt_home_agent_info_reserved;
     uint16_t  nd_opt_home_agent_info_preference;
     uint16_t  nd_opt_home_agent_info_lifetime;
-} __attribute__((__packed__));
+} __packed;
 
 #endif                                                                  /*  __NETINET6_ICMP6_H          */
 /*********************************************************************************************************

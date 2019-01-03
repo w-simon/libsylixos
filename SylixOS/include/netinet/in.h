@@ -22,7 +22,7 @@
 #ifndef __NETINET_IN_H
 #define __NETINET_IN_H
 
-#include "netinet6/in6.h"
+#include <netinet6/in6.h>
 
 /*********************************************************************************************************
  Local port number conventions:

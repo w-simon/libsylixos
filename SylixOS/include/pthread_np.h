@@ -23,7 +23,7 @@
 #define __PTHREAD_NP_H
 
 #ifndef __PX_PTHREAD_NP_H
-#include "../SylixOS/posix/include/px_pthread_np.h"
+#include <posix/include/px_pthread_np.h>
 #endif                                                                  /*  __PX_PTHREAD_NP_H           */
 
 #endif                                                                  /*  __PTHREAD_NP_H              */

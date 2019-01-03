@@ -23,7 +23,7 @@
 #define __MQUEUE_H
 
 #ifndef __PX_MQUEUE_H
-#include "../SylixOS/posix/include/px_mqueue.h"
+#include <posix/include/px_mqueue.h>
 #endif                                                                  /*  __PX_MQUEUE_H               */
 
 #endif                                                                  /*  __MQUEUE_H                  */

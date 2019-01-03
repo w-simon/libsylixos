@@ -22,14 +22,14 @@
 #ifndef __NETINET6_IN6_H
 #define __NETINET6_IN6_H
 
-#include "lwip/inet.h"
-#include "lwip/sockets.h"
+#include <lwip/inet.h>
+#include <sys/socket.h>
 
 #ifndef INET6_ADDRSTRLEN
 #define INET6_ADDRSTRLEN    46
 #endif
 
-#include "string.h"
+#include <string.h>
 
 #define IN6_ARE_ADDR_EQUAL(a, b)            \
     (memcmp(&(a)->s6_addr[0], &(b)->s6_addr[0], sizeof(struct in6_addr)) == 0)

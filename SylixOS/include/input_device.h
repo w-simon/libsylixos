@@ -20,7 +20,7 @@
                  向热插拔注册了 LW_HOTPLUG_MSG_USB_KEYBOARD, LW_HOTPLUG_MSG_USB_MOUSE 事件回调.
 *********************************************************************************************************/
 
-#include "../SylixOS/gui/input_device/input_device.h"
+#include <gui/input_device/input_device.h>
 
 /*********************************************************************************************************
   END

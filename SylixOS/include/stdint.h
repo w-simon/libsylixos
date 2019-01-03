@@ -23,10 +23,10 @@
 #define __STDINT_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
-#include "../SylixOS/lib/libc/stdint/lib_stdint.h"                      /*  此头文件默认没有加入        */
+#include <lib/libc/stdint/lib_stdint.h>                                 /*  此头文件默认没有加入        */
 
 #endif                                                                  /*  __STDINT_H                  */
 /*********************************************************************************************************

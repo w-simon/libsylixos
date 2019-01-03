@@ -22,7 +22,7 @@
 #ifndef __NETDB_H
 #define __NETDB_H
 
-#include "lwip/netdb.h"
+#include <lwip/netdb.h>
 
 #ifndef NETDB_INTERNAL
 #define NETDB_INTERNAL  -1

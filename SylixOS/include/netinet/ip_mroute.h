@@ -22,13 +22,13 @@
 #ifndef __NETINET_IP_MTOUTE_H
 #define __NETINET_IP_MTOUTE_H
 
-#include "lwip/opt.h"
-#include "lwip/def.h"
+#include <lwip/opt.h>
+#include <lwip/def.h>
 
 #if LWIP_IPV4 && IP_FORWARD && LWIP_IGMP
 
-#include "lwip/inet.h"
-#include "net/if.h"
+#include <lwip/inet.h>
+#include <net/if.h>
 
 /*********************************************************************************************************
   IP_IPPROTO_IP level multicast socket options.

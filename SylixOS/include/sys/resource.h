@@ -23,7 +23,7 @@
 #define __SYS_RESOURCE_H
 
 #ifndef __PX_RESOURCE_H
-#include "../SylixOS/posix/include/px_resource.h"
+#include <posix/include/px_resource.h>
 #endif                                                                  /*  __PX_RESOURCE_H             */
 
 #endif                                                                  /*  __SYS_RESOURCE_H            */

@@ -23,7 +23,7 @@
 #define __AIO_H
 
 #ifndef __PX_AIO_H
-#include "../SylixOS/posix/include/px_aio.h"
+#include <posix/include/px_aio.h>
 #endif                                                                  /*  __PX_AIO_H                  */
 
 #endif                                                                  /*  __AIO_H                     */

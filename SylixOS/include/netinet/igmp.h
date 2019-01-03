@@ -22,6 +22,7 @@
 #ifndef __NETINET_IGMP_H
 #define __NETINET_IGMP_H
 
+#include <sys/compiler.h>
 #include <sys/cdefs.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -35,7 +36,7 @@ struct igmp {
     u_char          igmp_code;                                      /* routing code                     */
     u_short         igmp_cksum;                                     /* checksum                         */
     struct in_addr  igmp_group;                                     /* group address                    */
-} __attribute__((__packed__));
+} __packed;
 
 #define IGMP_MINLEN     8
 
@@ -55,7 +56,7 @@ struct igmpv3 {
     /*
      * struct in_addr igmp_sources[1];
      */                                                             /* source addresses                 */
-} __attribute__((__packed__));
+} __packed;
 
 #define IGMP_V3_QUERY_MINLEN    12
 
@@ -77,7 +78,7 @@ struct igmp_grouprec {
     /*
      * struct in_addr ig_sources[1];
      */                                                             /* source addresses                 */
-} __attribute__((__packed__));
+} __packed;
 
 #define IGMP_GRPREC_HDRLEN      8
 
@@ -94,7 +95,7 @@ struct igmp_report {
     /*
      * struct igmp_grouprec ir_groups[1];
      */                                                             /* group records                    */
-} __attribute__((__packed__));
+} __packed;
 
 #define IGMP_V3_REPORT_MINLEN           8
 #define IGMP_V3_REPORT_MAXRECS          65535

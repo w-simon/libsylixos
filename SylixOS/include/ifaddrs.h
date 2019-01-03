@@ -22,7 +22,7 @@
 #ifndef __IFADDRS_H
 #define __IFADDRS_H
 
-#include <socket.h>
+#include <sys/socket.h>
 
 struct ifaddrs {
     struct ifaddrs  *ifa_next;

@@ -22,7 +22,7 @@
 #ifndef __LWIPOPTS_H
 #define __LWIPOPTS_H
 
-#include "../SylixOS/net/lwip/lwip_config.h"
+#include <net/lwip/lwip_config.h>
 
 #endif                                                                  /*  __LWIPOPTS_H                */
 /*********************************************************************************************************

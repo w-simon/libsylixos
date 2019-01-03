@@ -22,7 +22,7 @@
 #ifndef __NETWORK_ARCH_HOOK_H
 #define __NETWORK_ARCH_HOOK_H
 
-#include "../SylixOS/net/lwip/lwip_hook.h"
+#include <net/lwip/lwip_hook.h>
 
 #endif                                                                  /*  __NETWORK_ARCH_HOOK_H       */
 /*********************************************************************************************************

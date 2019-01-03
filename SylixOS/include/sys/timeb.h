@@ -23,7 +23,7 @@
 #define __SYS_TIMEB_H
 
 #ifndef __PX_TIMEB_H
-#include "../SylixOS/posix/include/px_timeb.h"
+#include <posix/include/px_timeb.h>
 #endif                                                                  /*  __PX_TIMEB_H                */
 
 #endif                                                                  /*  __SYS_TIMEB_H               */

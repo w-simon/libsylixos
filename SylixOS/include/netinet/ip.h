@@ -22,8 +22,9 @@
 #ifndef __NETINET_IP_H
 #define __NETINET_IP_H
 
-#include "lwip/sockets.h"
-#include "sys/types.h"
+#include <sys/compiler.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 /*********************************************************************************************************
  * Definitions for internet protocol version 4.
@@ -61,7 +62,7 @@ struct ip {
     u_char  ip_p;                               /* protocol                                             */
     u_short ip_sum;                             /* checksum                                             */
     struct in_addr  ip_src,ip_dst;              /* source and dest address                              */
-} __attribute__((__packed__));
+} __packed;
 
 #ifdef _IP_VHL
 #define IP_MAKE_VHL(v, hl)  ((v) << 4 | (hl))
@@ -147,7 +148,7 @@ struct ip_timestamp {
             u_int32_t ipt_time;
         } ipt_ta[1];
     } ipt_timestamp;
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
  * flag bits for ipt_flg 

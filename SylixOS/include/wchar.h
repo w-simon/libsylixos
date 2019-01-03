@@ -59,10 +59,10 @@
 #define _WCHAR_H_
 
 #include <stddef.h>
-#include "sys/types.h"
-#include "sys/cdefs.h"
-#include "limits.h"
-#include "stdio.h" /* for FILE* */
+#include <sys/types.h>
+#include <sys/cdefs.h>
+#include <limits.h>
+#include <stdio.h> /* for FILE* */
 
 #ifndef _WCHAR_ALL_TYPE_
 #define _WCHAR_ALL_TYPE_

@@ -23,7 +23,7 @@
 #define __DLFCN_H
 
 #ifndef __PX_DLFCN_H
-#include "../SylixOS/posix/include/px_dlfcn.h"
+#include <posix/include/px_dlfcn.h>
 #endif                                                                  /*  __PX_DLFCN_H                */
 
 #endif                                                                  /*  __DLFCN_H                   */

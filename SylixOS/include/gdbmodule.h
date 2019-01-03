@@ -22,7 +22,7 @@
 #ifndef __INC_GDBMODULE_H
 #define __INC_GDBMODULE_H
 
-#include "../SylixOS/debug/hwdbg/gdbmodule.h"
+#include <debug/hwdbg/gdbmodule.h>
 
 #endif                                                                  /*  __INC_GDBMODULE_H           */
 /*********************************************************************************************************

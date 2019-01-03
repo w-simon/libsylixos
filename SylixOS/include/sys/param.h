@@ -45,8 +45,8 @@
  * MAXCOMLEN should be >= sizeof(ac_comm) (see <acct.h>)
  * MAXLOGNAME should be >= UT_NAMESIZE (see <utmp.h>)
  */
-#include "limits.h"
-#include "endian.h"
+#include <limits.h>
+#include <endian.h>
 
 /*
  * Round p (pointer or byte index) up to a correctly-aligned value
@@ -74,7 +74,7 @@
 /* More types and definitions used throughout the kernel. */
 
 /* Signals. */
-#include "signal.h"
+#include <signal.h>
 
 /*
  * Priorities.  Note that with 32 run queues, differences less than 4 are

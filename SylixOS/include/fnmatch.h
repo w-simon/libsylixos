@@ -23,7 +23,7 @@
 #define __FNMATCH_H
 
 #ifndef __PX_FNMATCH_H
-#include "../SylixOS/posix/include/px_fnmatch.h"
+#include <posix/include/px_fnmatch.h>
 #endif                                                                  /*  __PX_FNMATCH_H              */
 
 #endif                                                                  /*  __FNMATCH_H                 */

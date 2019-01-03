@@ -22,7 +22,7 @@
 #ifndef __SYS_ERRNO_H
 #define __SYS_ERRNO_H
 
-#include "../errno.h"
+#include <errno.h>
 
 #endif                                                                  /*  __SYS_ERRNO_H               */
 /*********************************************************************************************************

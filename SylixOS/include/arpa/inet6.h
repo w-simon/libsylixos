@@ -22,7 +22,7 @@
 #ifndef __ARPA_INET6_H
 #define __ARPA_INET6_H
 
-#include "lwip/inet.h"
+#include <lwip/inet.h>
 
 #endif                                                                  /*  __ARPA_INET6_H              */
 /*********************************************************************************************************

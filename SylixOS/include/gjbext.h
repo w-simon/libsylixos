@@ -23,19 +23,19 @@
 #define __GJBEXT_H
 
 #ifndef __PX_GJBEXT_H
-#include "../SylixOS/posix/include/px_gjbext.h"
+#include <posix/include/px_gjbext.h>
 #endif                                                                  /*  __PX_GJBEXT_H               */
 
 #ifndef __PX_PTHREAD_H
-#include "../SylixOS/posix/include/px_pthread.h"
+#include <posix/include/px_pthread.h>
 #endif                                                                  /*  __PX_PTHREAD_H              */
 
 #ifndef __PX_SEMAPHORE_H
-#include "../SylixOS/posix/include/px_semaphore.h"
+#include <posix/include/px_semaphore.h>
 #endif                                                                  /*  __PX_SEMAPHORE_H            */
 
 #ifndef __PX_MQUEUE_H
-#include "../SylixOS/posix/include/px_mqueue.h"
+#include <posix/include/px_mqueue.h>
 #endif                                                                  /*  __PX_MQUEUE_H               */
 
 #if (LW_CFG_POSIX_EN > 0) && (LW_CFG_GJB7714_EN > 0)

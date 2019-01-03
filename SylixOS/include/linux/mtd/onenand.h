@@ -12,8 +12,8 @@
 #ifndef __LINUX_MTD_ONENAND_H
 #define __LINUX_MTD_ONENAND_H
 
+#include <linux/compat.h>
 #include "onenand_regs.h"
-#include "../compat.h"
 #include "bbm.h"
 
 #define MAX_DIES		2

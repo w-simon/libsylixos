@@ -22,7 +22,7 @@
 #ifndef __SYS_SOUNDCARD_H
 #define __SYS_SOUNDCARD_H
 
-#include "../SylixOS/system/device/sound/soundcard.h"
+#include <system/device/sound/soundcard.h>
 
 #endif                                                                  /*  __SYS_SOUNDCARD_H           */
 /*********************************************************************************************************

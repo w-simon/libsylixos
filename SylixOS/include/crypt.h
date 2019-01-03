@@ -22,7 +22,7 @@
 #ifndef __CRYPT_H
 #define __CRYPT_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -23,11 +23,11 @@
 #define __IO_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #ifndef __ARCH_IO_H
-#include "../SylixOS/arch/arch_io.h"
+#include <arch/arch_io.h>
 #endif                                                                  /*  __ARCH_IO_H                 */
 
 #endif                                                                  /*  __IO_H                      */

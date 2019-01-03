@@ -22,18 +22,18 @@
 #ifndef __IF_H
 #define __IF_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 /*********************************************************************************************************
   ²Ã¼ô¿ØÖÆ
 *********************************************************************************************************/
 #if LW_CFG_NET_EN > 0
 
-#include "sys/socket.h"
-#include "sys/ioctl.h"
+#include <sys/socket.h>
+#include <sys/ioctl.h>
 
-#include "netinet/in.h"
-#include "netinet6/in6.h"
+#include <netinet/in.h>
+#include <netinet6/in6.h>
 
 /*********************************************************************************************************
   if_nameindex

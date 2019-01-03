@@ -26,7 +26,7 @@
 #include "lwip/netif.h"
 #include "netdev.h"
 #include "net/if.h"
-#include "net/if_type.h"
+#include "net/if_types.h"
 
 /*********************************************************************************************************
   数据包类型

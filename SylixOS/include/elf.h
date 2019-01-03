@@ -22,9 +22,9 @@
 #ifndef __ELF_H
 #define __ELF_H
 
-#include "SylixOS.h"
-#include "auxvect.h"
-#include "../loader/elf/elf_type.h"
+#include <SylixOS.h>
+#include <auxvect.h>
+#include <loader/elf/elf_type.h>
 
 #endif                                                                  /*  __ELF_H                     */
 /*********************************************************************************************************

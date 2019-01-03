@@ -23,7 +23,7 @@
 #define __SYSLOG_H
 
 #ifndef __PX_SYSLOG_H
-#include "../SylixOS/posix/include/px_syslog.h"
+#include <posix/include/px_syslog.h>
 #endif                                                                  /*  __PX_SYSLOG_H               */
 
 #endif                                                                  /*  __SYSLOG_H                  */

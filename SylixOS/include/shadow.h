@@ -22,7 +22,7 @@
 #ifndef __SHADOW_H
 #define __SHADOW_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 #ifndef _PATH_SHADOW
 #define _PATH_SHADOW        "/etc/shadow"

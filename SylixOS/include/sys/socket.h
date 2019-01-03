@@ -91,7 +91,7 @@
 #define PF_NFC          AF_NFC
 #define PF_MAX          AF_MAX
 
-#include "lwip/sockets.h"
+#include <lwip/sockets.h>
 
 #endif                                                                  /*  __SYS_SOCKET_H              */
 /*********************************************************************************************************

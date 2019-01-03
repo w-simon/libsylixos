@@ -25,7 +25,7 @@
 #define UL_GETFSIZE	1                                                   /* Get maximum file size        */
 #define UL_SETFSIZE	2                                                   /* Set maximum file size        */
 
-#include "sys/cdefs.h"
+#include <sys/cdefs.h>
 
 __BEGIN_DECLS
 long    ulimit(int, ...);

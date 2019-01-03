@@ -23,7 +23,7 @@
 #define __MEMORY_H
 
 #ifndef __STRING_H
-#include "string.h"
+#include <string.h>
 #endif                                                                  /*  __STRING_H                  */
 
 #endif                                                                  /*  __MEMORY_H                  */

@@ -22,7 +22,7 @@
 #ifndef __NETINET_IN_SYSTM_H
 #define __NETINET_IN_SYSTM_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 typedef u_short     n_short;                                            /* short as received from net   */
 typedef u_int32_t   n_long;                                             /* long as received from net    */

@@ -23,7 +23,7 @@
 #define __EXECINFO_H
 
 #ifndef __PX_EXECINFO_H
-#include "../SylixOS/posix/include/px_execinfo.h"
+#include <posix/include/px_execinfo.h>
 #endif                                                                  /*  __PX_EXECINFO_H             */
 
 #endif                                                                  /*  __EXECINFO_H                */

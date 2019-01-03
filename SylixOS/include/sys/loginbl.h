@@ -22,7 +22,7 @@
 #ifndef __SYS_LOGINBL_H
 #define __SYS_LOGINBL_H
 
-#include "../SylixOS/net/lwip/lwip_loginbl.h"
+#include <net/lwip/lwip_loginbl.h>
 
 #endif                                                                  /*  __SYS_LOGINBL_H             */
 /*********************************************************************************************************

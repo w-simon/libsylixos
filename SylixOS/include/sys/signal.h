@@ -23,7 +23,7 @@
 #define __SYS_SIGNAL_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #endif                                                                  /*  __SYS_SIGNAL_H              */

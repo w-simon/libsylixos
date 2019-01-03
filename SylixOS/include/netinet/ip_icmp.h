@@ -22,6 +22,7 @@
 #ifndef __NETINET_IP_ICMP_H
 #define __NETINET_IP_ICMP_H
 
+#include <sys/compiler.h>
 #include <sys/cdefs.h>
 #include <sys/types.h>
 
@@ -44,7 +45,7 @@ struct icmphdr {
             u_int16_t   mtu;
         } frag;                                         /* path mtu discovery                           */
     } un;
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   ICMP type
@@ -119,7 +120,7 @@ struct icmphdr {
 struct icmp_ra_addr {
     u_int32_t   ira_addr;
     u_int32_t   ira_preference;
-} __attribute__((__packed__));
+} __packed;
 
 struct icmp {
     u_int8_t    icmp_type;                              /* type of message, see below                   */
@@ -182,7 +183,7 @@ struct icmp {
 #define icmp_radv   icmp_dun.id_radv
 #define icmp_mask   icmp_dun.id_mask
 #define icmp_data   icmp_dun.id_data
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   Lower bounds on packet lengths for various types.

@@ -23,14 +23,14 @@
 #define __INTTYPES_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "../SylixOS/lib/libc/inttypes/lib_inttypes.h"                  /*  此头文件默认没有加入        */
+#include <lib/libc/inttypes/lib_inttypes.h>                             /*  此头文件默认没有加入        */
 
 __LW_RETU_FUNC_DECLARE(intmax_t, imaxabs, (intmax_t j))
 __LW_RETU_FUNC_DECLARE(imaxdiv_t, imaxdiv, (intmax_t numer, intmax_t denomer))

@@ -23,7 +23,7 @@
 #define __SYS_UTSNAME_H
 
 #ifndef __PX_UTSNAME_H
-#include "../SylixOS/posix/include/px_utsname.h"
+#include <posix/include/px_utsname.h>
 #endif                                                                  /*  __PX_UTSNAME_H              */
 
 #endif                                                                  /*  __SYS_UTSNAME_H             */

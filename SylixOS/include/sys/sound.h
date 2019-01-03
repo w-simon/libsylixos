@@ -22,7 +22,7 @@
 #ifndef __SYS_SOUND_H
 #define __SYS_SOUND_H
 
-#include "../SylixOS/system/device/sound/sound.h"
+#include <system/device/sound/sound.h>
 
 #endif                                                                  /*  __SYS_SOUND_H               */
 /*********************************************************************************************************

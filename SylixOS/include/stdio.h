@@ -27,13 +27,13 @@
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #else
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "../SylixOS/lib/libc/stdio/lib_stdio.h"
+#include <lib/libc/stdio/lib_stdio.h>
 #ifdef __cplusplus
 }
 #endif

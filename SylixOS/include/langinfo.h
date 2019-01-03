@@ -22,8 +22,8 @@
 #ifndef __LANGINFO_H
 #define __LANGINFO_H
 
-#include "sys/cdefs.h"
-#include "nl_types.h"
+#include <sys/cdefs.h>
+#include <nl_types.h>
 
 #define D_T_FMT		((nl_item)0)	/* String for formatting date and time */
 #define D_FMT		((nl_item)1)	/* Date format string */

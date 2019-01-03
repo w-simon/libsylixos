@@ -28,7 +28,7 @@
 #include "net/if.h"
 #include "net/if_dl.h"
 #include "net/if_flags.h"
-#include "net/if_type.h"
+#include "net/if_types.h"
 #include "net/if_ether.h"
 #include "net/route.h"
 #include "lwip/mem.h"

@@ -23,7 +23,7 @@
 #define __SEMAPHORE_H
 
 #ifndef __PX_SEMAPHORE_H
-#include "../SylixOS/posix/include/px_semaphore.h"
+#include <posix/include/px_semaphore.h>
 #endif                                                                  /*  __PX_SEMAPHORE_H            */
 
 #endif                                                                  /*  __SEMAPHORE_H               */

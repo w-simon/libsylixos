@@ -22,7 +22,7 @@
 #ifndef __LIBGEN_H
 #define __LIBGEN_H
 
-#include "sys/cdefs.h"
+#include <sys/cdefs.h>
 
 __BEGIN_DECLS
 char	*basename(char *);

@@ -23,10 +23,10 @@
 #define __SYS_TYPES_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
-#include "stdint.h"
+#include <stdint.h>
 
 /*********************************************************************************************************
   statvfs

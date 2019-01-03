@@ -22,8 +22,8 @@
 #ifndef __SYS_STATVFS_H
 #define __SYS_STATVFS_H
 
-#include "sys/cdefs.h"
-#include "sys/types.h"
+#include "cdefs.h"
+#include "types.h"
 
 struct statvfs {
     unsigned long f_bsize;                                              /* File system block size.      */

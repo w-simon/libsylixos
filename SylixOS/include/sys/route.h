@@ -22,16 +22,16 @@
 #ifndef __SYS_ROUTE_H
 #define __SYS_ROUTE_H
 
-#include "sys/types.h"
-#include "sys/socket.h"
+#include "types.h"
+#include "socket.h"
 
 /*********************************************************************************************************
   ²Ã¼ô¿ØÖÆ
 *********************************************************************************************************/
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_ROUTER > 0)
 
-#include "net/if.h"
-#include "net/route.h"
+#include <net/if.h>
+#include <net/route.h>
 
 #ifdef __cplusplus
 extern "C" {

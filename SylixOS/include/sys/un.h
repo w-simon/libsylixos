@@ -33,7 +33,7 @@
 #ifndef __SYS_UN_H
 #define __SYS_UN_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 /*
  * Definitions for UNIX IPC domain.

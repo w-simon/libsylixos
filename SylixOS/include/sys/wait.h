@@ -25,7 +25,7 @@
 #include "types.h"
 
 #ifndef __PX_RESOURCE_H
-#include "../SylixOS/posix/include/px_resource.h"
+#include <posix/include/px_resource.h>
 #endif                                                                  /*  __PX_RESOURCE_H             */
 
 #define WIFEXITED(status)       ((int)((status) & 0xFF00) == 0)

@@ -22,7 +22,7 @@
 #ifndef __INC_FCNTL_H
 #define __INC_FCNTL_H
 
-#include "sys/fcntl.h"
+#include <sys/fcntl.h>
 
 #endif                                                                  /*  __INC_FCNTL_H               */
 /*********************************************************************************************************

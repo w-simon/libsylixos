@@ -7,10 +7,10 @@
 #ifndef __LINUX_MTD_MTD_H
 #define __LINUX_MTD_MTD_H
 
-#include "stdlib.h"
-#include "sys/types.h"
+#include <stdlib.h>
+#include <sys/types.h>
+#include <errno.h>
 #include "mtd-abi.h"
-#include "errno.h"
 
 #ifdef SYLIXOS
 /*

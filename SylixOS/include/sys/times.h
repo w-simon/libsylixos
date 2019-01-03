@@ -23,7 +23,7 @@
 #define __SYS_TIMES_H
 
 #ifndef __PX_TIMES_H
-#include "../SylixOS/posix/include/px_times.h"
+#include <posix/include/px_times.h>
 #endif                                                                  /*  __PX_TIMES_H                */
 
 #endif                                                                  /*  __SYS_TIMES_H               */

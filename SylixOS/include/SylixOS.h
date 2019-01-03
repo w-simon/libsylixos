@@ -45,7 +45,7 @@
 /*********************************************************************************************************
   内核头服务文件
 *********************************************************************************************************/
-#include "../SylixOS/cplusplus/include/cpp_cpp.h"                       /*  C++ run-time lib            */
+#include <cplusplus/include/cpp_cpp.h>                                  /*  C++ run-time lib            */
 extern "C" {
 #endif                                                                  /*  __cplusplus                 */
 
@@ -53,34 +53,34 @@ extern "C" {
   内核头服务文件
 *********************************************************************************************************/
 
-#include "../SylixOS/kernel/include/k_kernel.h"                         /*  LongWing 内核               */
-#include "../SylixOS/system/include/s_system.h"                         /*  系统级                      */
-#include "../SylixOS/mpi/include/mpi_mpi.h"                             /*  MPI 支持                    */
-#include "../SylixOS/shell/include/ttiny_shell.h"                       /*  简易 shell 系统             */
-#include "../SylixOS/fs/include/fs_fs.h"                                /*  FAT 文件系统                */
-#include "../SylixOS/net/include/net_net.h"                             /*  网络接口                    */
-#include "../SylixOS/posix/include/px_posix.h"                          /*  posix 子系统                */
-#include "../SylixOS/symbol/include/sym_sym.h"                          /*  符号表                      */
-#include "../SylixOS/loader/include/loader.h"                           /*  程序/模块装载器 (进程支持)  */
+#include <kernel/include/k_kernel.h>                                    /*  LongWing 内核               */
+#include <system/include/s_system.h>                                    /*  系统级                      */
+#include <mpi/include/mpi_mpi.h>                                        /*  MPI 支持                    */
+#include <shell/include/ttiny_shell.h>                                  /*  简易 shell 系统             */
+#include <fs/include/fs_fs.h>                                           /*  FAT 文件系统                */
+#include <net/include/net_net.h>                                        /*  网络接口                    */
+#include <posix/include/px_posix.h>                                     /*  posix 子系统                */
+#include <symbol/include/sym_sym.h>                                     /*  符号表                      */
+#include <loader/include/loader.h>                                      /*  程序/模块装载器 (进程支持)  */
 
 /*********************************************************************************************************
   可以去除相关中间件
 *********************************************************************************************************/
-#include "../SylixOS/appl/appl.h"                                       /*  应用中间件接口              */
+#include <appl/appl.h>                                                  /*  应用中间件接口              */
 
 #ifndef __SYLIXOS_KERNEL                                                /*  是否是内核模块              */
 
 #define LW_API_EXEC(__class, __operate, __args)   \
         Lw_##__class##_##__operate## __args
 
-#include "../SylixOS/api/Lw_Api_Kernel.h"                               /*  内核 API                    */
-#include "../SylixOS/api/Lw_Api_System.h"                               /*  系统 API                    */
-#include "../SylixOS/api/Lw_Api_Mp.h"                                   /*  多处理器 API                */
-#include "../SylixOS/api/Lw_Api_Shell.h"                                /*  简易 shell 系统             */
-#include "../SylixOS/api/Lw_Api_Net.h"                                  /*  网络接口                    */
-#include "../SylixOS/api/Lw_Api_Fs.h"                                   /*  文件系统                    */
-#include "../SylixOS/api/Lw_Api_Symbol.h"                               /*  符号表                      */
-#include "../SylixOS/api/Lw_Api_Loader.h"                               /*  装载器                      */
+#include <api/Lw_Api_Kernel.h>                                          /*  内核 API                    */
+#include <api/Lw_Api_System.h>                                          /*  系统 API                    */
+#include <api/Lw_Api_Mp.h>                                              /*  多处理器 API                */
+#include <api/Lw_Api_Shell.h>                                           /*  简易 shell 系统             */
+#include <api/Lw_Api_Net.h>                                             /*  网络接口                    */
+#include <api/Lw_Api_Fs.h>                                              /*  文件系统                    */
+#include <api/Lw_Api_Symbol.h>                                          /*  符号表                      */
+#include <api/Lw_Api_Loader.h>                                          /*  装载器                      */
 
 /*********************************************************************************************************
   不对应用引出的内容处理
@@ -95,12 +95,12 @@ extern "C" {
 /*********************************************************************************************************
   驱动程序推荐使用 io.h 中的方法访问硬件寄存器.
 *********************************************************************************************************/
-#include "io.h"                                                         /*  io 空间访问操作             */
+#include <io.h>                                                         /*  io 空间访问操作             */
 #endif                                                                  /*  !__SYLIXOS_KERNEL           */
 
-#include "../SylixOS/api/Lw_Class_Kernel.h"                             /*  内核对象类型                */
-#include "../SylixOS/api/Lw_Class_System.h"                             /*  系统对象类型                */
-#include "../SylixOS/api/Lw_Class_Mp.h"                                 /*  多处理器对象类型            */
+#include <api/Lw_Class_Kernel.h>                                        /*  内核对象类型                */
+#include <api/Lw_Class_System.h>                                        /*  系统对象类型                */
+#include <api/Lw_Class_Mp.h>                                            /*  多处理器对象类型            */
 
 /*********************************************************************************************************
   C++

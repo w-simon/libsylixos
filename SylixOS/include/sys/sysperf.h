@@ -23,7 +23,7 @@
 #define __SYS_SYSPERF_H
 
 #ifndef __SYSPERF_H
-#include "../SylixOS/sysperf/sysperf.h"
+#include <sysperf/sysperf.h>
 #endif                                                                  /*  __SYSPERF_H                 */
 
 #endif                                                                  /*  __SYS_SYSPERF_H             */

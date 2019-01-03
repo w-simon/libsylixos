@@ -22,15 +22,15 @@
 #ifndef __NETINET_IP6_QOS_H
 #define __NETINET_IP6_QOS_H
 
-#include "sys/types.h"
-#include "sys/ioctl.h"
+#include <sys/types.h>
+#include <sys/ioctl.h>
 
-#include "lwip/opt.h"
-#include "lwip/def.h"
+#include <lwip/opt.h>
+#include <lwip/def.h>
 
 #if LWIP_IPV6
 
-#include "lwip/inet.h"
+#include <lwip/inet.h>
 
 #ifdef __cplusplus
 extern "C" {

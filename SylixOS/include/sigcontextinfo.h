@@ -22,7 +22,7 @@
 #ifndef __SIGCONTEXTINFO_H
 #define __SIGCONTEXTINFO_H
 
-#include "SylixOS.h"
+#include <SylixOS.h>
 
 typedef ARCH_REG_CTX    SIGCONTEXT;                                     /*  信号上下文                  */
 

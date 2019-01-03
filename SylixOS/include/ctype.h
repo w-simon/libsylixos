@@ -23,7 +23,7 @@
 #define __CTYPE_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #define _U      0x01
@@ -82,7 +82,7 @@ __END_NAMESPACE_STD
 
 #ifdef _CTYPE_PRIVATE
 
-#include "limits.h"
+#include <limits.h>
 
 #define _CTYPE_NUM_CHARS    (1 << CHAR_BIT)
 #define _CTYPE_ID           "BSDCTYPE"

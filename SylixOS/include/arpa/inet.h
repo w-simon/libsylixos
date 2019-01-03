@@ -22,7 +22,7 @@
 #ifndef __ARPA_INET_H
 #define __ARPA_INET_H
 
-#include "lwip/inet.h"
+#include <lwip/inet.h>
 
 #ifdef __cplusplus
 extern "C" {

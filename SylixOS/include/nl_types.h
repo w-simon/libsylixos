@@ -22,7 +22,7 @@
 #ifndef __NL_TYPES_H
 #define __NL_TYPES_H
 
-#include "sys/cdefs.h"
+#include <sys/cdefs.h>
 
 #ifdef _NLS_PRIVATE
 /*

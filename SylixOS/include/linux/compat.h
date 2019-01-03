@@ -1,13 +1,14 @@
 #ifndef __LINUX_COMPAT_H
 #define __LINUX_COMPAT_H
 
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
-#include "limits.h"
-#include "endian.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include <endian.h>
+#include <io.h>
+
 #include "bitops.h"
-#include "io.h"
 
 #ifndef __user
 #define __user

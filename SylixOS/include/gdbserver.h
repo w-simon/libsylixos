@@ -22,7 +22,7 @@
 #ifndef __INC_GDBSERVER_H
 #define __INC_GDBSERVER_H
 
-#include "../SylixOS/debug/gdb/gdbserver.h"
+#include <debug/gdb/gdbserver.h>
 
 #endif                                                                  /*  __INC_GDBSERVER_H           */
 /*********************************************************************************************************

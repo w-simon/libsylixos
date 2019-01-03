@@ -22,7 +22,7 @@
 #ifndef __INC_SOUNDCARD_H
 #define __INC_SOUNDCARD_H
 
-#include "sys/soundcard.h"
+#include <sys/soundcard.h>
 
 #endif                                                                  /*  __INC_SOUNDCARD_H           */
 /*********************************************************************************************************

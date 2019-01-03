@@ -22,6 +22,7 @@
 #ifndef __SYS_UUID_H
 #define __SYS_UUID_H
 
+#include "compiler.h"
 #include "cdefs.h"
 #include "types.h"
 
@@ -51,7 +52,7 @@ struct uuid {
 	uint8_t		clock_seq_hi_and_reserved;
 	uint8_t		clock_seq_low;
 	uint8_t		node[_UUID_NODE_LEN];
-} __attribute__((packed));
+} __packed;
 
 typedef struct uuid uuid_t;
 

@@ -23,14 +23,14 @@
 #define __PANIC_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #ifdef __cplusplus
 extern "C" {
 #endif                                                                  /*  __cplusplus                 */
 
-#include "../SylixOS/lib/libc/error/lib_error.h"                        /*  此头文件默认没有加入        */
+#include <lib/libc/error/lib_error.h>                                   /*  此头文件默认没有加入        */
 
 extern void  panic(const char  *pcFormat, ...);
 

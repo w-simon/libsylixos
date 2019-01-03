@@ -22,15 +22,15 @@
 #ifndef __NETINET_PIM_H
 #define __NETINET_PIM_H
 
-#include "lwip/opt.h"
-#include "lwip/def.h"
+#include <lwip/opt.h>
+#include <lwip/def.h>
 
 #if LWIP_IPV4 && IP_FORWARD && LWIP_IGMP
 
-#include "sys/types.h"
-#include "sys/endian.h"
-#include "lwip/inet.h"
-#include "net/if.h"
+#include <sys/types.h>
+#include <sys/endian.h>
+#include <lwip/inet.h>
+#include <net/if.h>
 
 /*********************************************************************************************************
   PIM packet header

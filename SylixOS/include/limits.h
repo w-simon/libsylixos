@@ -27,9 +27,9 @@
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #else
-#include "../SylixOS/lib/libc/limits/lib_limits.h"
+#include <lib/libc/limits/lib_limits.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 /*********************************************************************************************************

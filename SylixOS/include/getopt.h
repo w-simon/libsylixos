@@ -23,7 +23,7 @@
 #define __GETOPT_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #endif                                                                  /*  __GETOPT_H                  */

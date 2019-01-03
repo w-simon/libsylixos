@@ -18,8 +18,8 @@
 #ifndef __LINUX_MTD_NAND_H
 #define __LINUX_MTD_NAND_H
 
-#include "../compat.h"
-#include "../types.h"
+#include <linux/compat.h>
+#include <linux/types.h>
 #include "mtd.h"
 #include "bbm.h"
 

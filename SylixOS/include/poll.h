@@ -23,7 +23,7 @@
 #define __POLL_H
 
 #ifndef __PX_POLL_H
-#include "../SylixOS/posix/include/px_poll.h"
+#include <posix/include/px_poll.h>
 #endif                                                                  /*  __PX_POLL_H                 */
 
 #endif                                                                  /*  __POLL_H                    */

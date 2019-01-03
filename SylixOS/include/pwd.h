@@ -22,7 +22,7 @@
 #ifndef __PWD_H
 #define __PWD_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 #ifndef _PATH_PASSWD
 #define _PATH_PASSWD        "/etc/passwd"

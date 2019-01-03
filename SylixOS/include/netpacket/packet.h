@@ -22,7 +22,7 @@
 #ifndef __NETPACKET_PACKET_H
 #define __NETPACKET_PACKET_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 /*********************************************************************************************************
   ²Ã¼ô¿ØÖÆ

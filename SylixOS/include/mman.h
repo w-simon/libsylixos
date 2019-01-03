@@ -23,7 +23,7 @@
 #define __MMAN_H
 
 #ifndef __PX_MMAN_H
-#include "../SylixOS/posix/include/px_mman.h"
+#include <posix/include/px_mman.h>
 #endif                                                                  /*  __PX_MMAN_H                 */
 
 #endif                                                                  /*  __MMAN_H                    */

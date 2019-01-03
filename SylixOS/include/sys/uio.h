@@ -23,7 +23,7 @@
 #define __SYS_UIO_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"                                                    /*  k_ptype.h                   */
+#include <SylixOS.h>                                                    /*  k_ptype.h                   */
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #endif                                                                  /*  __SYS_UIO_H                 */

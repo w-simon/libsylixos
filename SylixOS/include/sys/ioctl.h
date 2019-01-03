@@ -23,7 +23,7 @@
 #define __SYS_IOCTL_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #include "ioccom.h"

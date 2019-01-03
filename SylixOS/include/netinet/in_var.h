@@ -22,8 +22,8 @@
 #ifndef __NETINET_IN_VAR_H
 #define __NETINET_IN_VAR_H
 
-#include "sys/socket.h"
-#include "net/if.h"
+#include <sys/socket.h>
+#include <net/if.h>
 
 struct in_aliasreq {
     char                ifra_name[IFNAMSIZ];                            /*  if name, e.g. "en1"         */

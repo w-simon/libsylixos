@@ -22,9 +22,9 @@
 #ifndef __UTMPX_H
 #define __UTMPX_H
 
-#include "sys/cdefs.h"
-#include "sys/socket.h"
-#include "sys/time.h"
+#include <sys/cdefs.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 
 #define _PATH_UTMPX         "/var/run/utmpx"
 #define _PATH_WTMPX         "/var/log/wtmpx"

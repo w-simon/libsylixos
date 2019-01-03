@@ -23,15 +23,15 @@
 #ifndef __SYS_POSIX_INITIALIZER_H
 #define __SYS_POSIX_INITIALIZER_H
 
-#include "SylixOS.h"                                                    /*  操作系统头文件              */
+#include <SylixOS.h>                                                    /*  操作系统头文件              */
 
 /*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_POSIX_EN > 0
 
-#include "pthread.h"
-#include "semaphore.h"
+#include <pthread.h>
+#include <semaphore.h>
 
 #ifdef __cplusplus
 extern "C" {

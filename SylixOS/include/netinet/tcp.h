@@ -22,9 +22,10 @@
 #ifndef __NETINET_TCP_H
 #define __NETINET_TCP_H
 
+#include <sys/compiler.h>
 #include <sys/endian.h>
 #include <sys/types.h>
-#include <socket.h>
+#include <sys/socket.h>
 
 typedef u_int32_t   tcp_seq;
 
@@ -61,7 +62,7 @@ struct tcphdr {
     u_short     th_win;                                                 /* window                       */
     u_short     th_sum;                                                 /* checksum                     */
     u_short     th_urp;                                                 /* urgent pointer               */
-} __attribute__((__packed__));
+} __packed;
 
 #endif                                                                  /*  __NETINET_TCP_H             */
 /*********************************************************************************************************

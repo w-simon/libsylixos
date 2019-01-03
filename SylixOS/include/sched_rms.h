@@ -23,7 +23,7 @@
 #define __SCHED_RMS_H
 
 #ifndef __PX_SCHED_RMS_H
-#include "../SylixOS/posix/include/px_sched_rms.h"
+#include <posix/include/px_sched_rms.h>
 #endif                                                                  /*  __PX_SCHED_RMS_H            */
 
 #endif                                                                  /*  __SCHED_RMS_H               */

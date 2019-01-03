@@ -22,9 +22,9 @@
 #ifndef __ENDIAN_H
 #define __ENDIAN_H
 
-#include "sys/cdefs.h"
-#include "sys/endian.h"
-#include "sys/types.h"
+#include <sys/cdefs.h>
+#include <sys/endian.h>
+#include <sys/types.h>
 
 __BEGIN_DECLS
 uint32_t htonl(uint32_t) __attribute__((__const__));

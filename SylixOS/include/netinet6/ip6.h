@@ -22,8 +22,9 @@
 #ifndef __NETINET6_IP6_H
 #define __NETINET6_IP6_H
 
-#include "lwip/sockets.h"
-#include "sys/types.h"
+#include <sys/compiler.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 /*********************************************************************************************************
  * Definition for internet protocol version 6.
@@ -42,7 +43,7 @@ struct ip6_hdr {
     } ip6_ctlun;
     struct in6_addr ip6_src;                    /* source address                                       */
     struct in6_addr ip6_dst;                    /* destination address                                  */
-} __attribute__((__packed__));
+} __packed;
 
 #define ip6_vfc     ip6_ctlun.ip6_un2_vfc
 #define ip6_flow    ip6_ctlun.ip6_un1.ip6_un1_flow
@@ -78,7 +79,7 @@ struct ip6_hdr {
 struct ip6_ext {
     u_int8_t ip6e_nxt;
     u_int8_t ip6e_len;
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   Hop-by-Hop options header 
@@ -91,7 +92,7 @@ struct ip6_hbh {
     /* 
      * followed by options 
      */
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   Destination options header
@@ -104,7 +105,7 @@ struct ip6_dest {
     /* 
      * followed by options 
      */
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   Option types and related macros 
@@ -151,7 +152,7 @@ struct ip6_rthdr {
     /* 
      * followed by routing type specific data 
      */
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   Type 0 Routing header
@@ -165,7 +166,7 @@ struct ip6_rthdr0 {
     u_int8_t  ip6r0_reserved;                   /* reserved field                                       */
     u_int8_t  ip6r0_slmap[3];                   /* strict/loose bit map                                 */
     struct in6_addr  ip6r0_addr[1];             /* up to 23 addresses                                   */
-} __attribute__((__packed__));
+} __packed;
 
 /*********************************************************************************************************
   Fragment header
@@ -176,7 +177,7 @@ struct ip6_frag {
     u_int8_t  ip6f_reserved;                    /* reserved field                                       */
     u_int16_t ip6f_offlg;                       /* offset, reserved, and flag                           */
     u_int32_t ip6f_ident;                       /* identification                                       */
-} __attribute__((__packed__));
+} __packed;
 
 #if BYTE_ORDER == BIG_ENDIAN
 #define IP6F_OFF_MASK           0xfff8          /* mask out offset from _offlg                          */

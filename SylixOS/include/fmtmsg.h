@@ -23,7 +23,7 @@
 #define __FMTMSG_H
 
 #ifndef __PX_FMTMSG_H
-#include "../SylixOS/posix/include/px_fmtmsg.h"
+#include <posix/include/px_fmtmsg.h>
 #endif                                                                  /*  __PX_FMTMSG_H               */
 
 #endif                                                                  /*  __FMTMSG_H                  */

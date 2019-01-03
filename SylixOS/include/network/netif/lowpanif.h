@@ -39,15 +39,15 @@
 #define __LOWPANIF_H
 
 /** lowpan interface */
-#include "../SylixOS/net/lwip/src/netif/radio/lowpan_if.h"
+#include <net/lwip/src/netif/radio/lowpan_if.h>
 
 /** lowpan mac driver */
-#include "../SylixOS/net/lwip/src/netif/radio/csma_mac.h"
-#include "../SylixOS/net/lwip/src/netif/radio/tdma_mac.h"
-#include "../SylixOS/net/lwip/src/netif/radio/null_mac.h"
+#include <net/lwip/src/netif/radio/csma_mac.h>
+#include <net/lwip/src/netif/radio/tdma_mac.h>
+#include <net/lwip/src/netif/radio/null_mac.h>
 
 /** lowpan rdc driver */
-#include "../SylixOS/net/lwip/src/netif/radio/xmac_rdc.h"
-#include "../SylixOS/net/lwip/src/netif/radio/null_rdc.h"
+#include <net/lwip/src/netif/radio/xmac_rdc.h>
+#include <net/lwip/src/netif/radio/null_rdc.h>
 
 #endif /* __LOWPANIF_H */

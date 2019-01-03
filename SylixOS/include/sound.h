@@ -22,7 +22,7 @@
 #ifndef __INC_SOUND_H
 #define __INC_SOUND_H
 
-#include "sys/sound.h"
+#include <sys/sound.h>
 
 #endif                                                                  /*  __INC_SOUND_H               */
 /*********************************************************************************************************

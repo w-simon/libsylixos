@@ -1,7 +1,7 @@
 #ifndef __LINUX_TYPES_H
 #define __LINUX_TYPES_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 /*
  * data type

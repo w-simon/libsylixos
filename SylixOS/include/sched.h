@@ -23,7 +23,7 @@
 #define __SCHED_H
 
 #ifndef __PX_SCHED_H
-#include "../SylixOS/posix/include/px_sched.h"
+#include <posix/include/px_sched.h>
 #endif                                                                  /*  __PX_SCHED_H                */
 
 #endif                                                                  /*  __SCHED_H                   */

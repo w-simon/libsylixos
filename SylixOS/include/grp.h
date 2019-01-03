@@ -22,7 +22,7 @@
 #ifndef __GRP_H
 #define __GRP_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 #ifndef _PATH_GROUP
 #define _PATH_GROUP        "/etc/group"

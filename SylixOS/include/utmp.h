@@ -22,7 +22,7 @@
 #ifndef __UTMP_H
 #define __UTMP_H
 
-#include "sys/types.h"
+#include <sys/types.h>
 
 #define _PATH_UTMP          "/var/run/utmp"
 #define _PATH_WTMP          "/var/log/wtmp"

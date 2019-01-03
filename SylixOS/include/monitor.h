@@ -22,14 +22,14 @@
 #ifndef __MONITOR_H
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "../SylixOS/monitor/include/monitor.h"
+#include <monitor/include/monitor.h>
 
 #ifdef __cplusplus
 }

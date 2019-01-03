@@ -22,7 +22,7 @@
 #ifndef __INC_VPROC_H
 #define __INC_VPROC_H
 
-#include "sys/vproc.h"
+#include <sys/vproc.h>
 
 #endif                                                                  /*  __INC_VPROC_H               */
 /*********************************************************************************************************

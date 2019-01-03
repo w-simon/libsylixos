@@ -23,7 +23,7 @@
 #define __SPAWN_H
 
 #ifndef __PX_SPAWN_H
-#include "../SylixOS/posix/include/px_spawn.h"
+#include <posix/include/px_spawn.h>
 #endif                                                                  /*  __PX_SPAWN_H                */
 
 #endif                                                                  /*  __SPAWN_H                   */

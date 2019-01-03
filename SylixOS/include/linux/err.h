@@ -1,8 +1,8 @@
 #ifndef __LINUX_ERR_H
 #define __LINUX_ERR_H
 
+#include <errno.h>
 #include "compat.h"
-#include "errno.h"
 
 #ifndef __must_check
 #ifdef __GNUC__

@@ -22,14 +22,14 @@
 #ifndef __NETINET6_IP6_MTOUTE_H
 #define __NETINET6_IP6_MTOUTE_H
 
-#include "lwip/opt.h"
-#include "lwip/def.h"
+#include <lwip/opt.h>
+#include <lwip/def.h>
 
 #if LWIP_IPV6 && LWIP_IPV6_FORWARD && LWIP_IPV6_MLD
 
-#include "lwip/inet.h"
-#include "net/if.h"
-#include "string.h"
+#include <lwip/inet.h>
+#include <net/if.h>
+#include <string.h>
 
 /*********************************************************************************************************
   multicast socket options.

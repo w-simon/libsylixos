@@ -42,7 +42,7 @@
 
 #if LW_CFG_NET_ROUTER > 0
 
-#include "net/if_type.h"
+#include "net/if_types.h"
 #include "net/if_ether.h"
 #include "lwip/inet.h"
 #include "lwip/netif.h"

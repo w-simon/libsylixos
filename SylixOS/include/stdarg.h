@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-#include "../SylixOS/lib/libc/stdarg/lib_stdarg.h"
+#include <lib/libc/stdarg/lib_stdarg.h>
 
 #ifdef __cplusplus
 }

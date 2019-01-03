@@ -22,7 +22,7 @@
 #ifndef __NETWORK_ARCH_PERF_H
 #define __NETWORK_ARCH_PERF_H
 
-#include "../SylixOS/net/lwip/lwip_fix.h"
+#include <net/lwip/lwip_fix.h>
 
 #endif                                                                  /*  __NETWORK_ARCH_PERF_H       */
 /*********************************************************************************************************

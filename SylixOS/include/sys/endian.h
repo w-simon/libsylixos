@@ -22,8 +22,8 @@
 #ifndef __SYS_ENDIAN_H
 #define __SYS_ENDIAN_H
 
-#include "../SylixOS/config/cpu/cpu_cfg.h"
-#include "../SylixOS/config/kernel/endian_cfg.h"
+#include <config/cpu/cpu_cfg.h>
+#include <config/kernel/endian_cfg.h>
 
 #undef  BYTE_ORDER
 #undef  __BYTE_ORDER

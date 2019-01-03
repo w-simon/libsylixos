@@ -22,7 +22,7 @@
 #ifndef __INC_SOCKET_H
 #define __INC_SOCKET_H
 
-#include "sys/socket.h"
+#include <sys/socket.h>
 
 #endif                                                                  /*  __INC_SOCKET_H              */
 /*********************************************************************************************************

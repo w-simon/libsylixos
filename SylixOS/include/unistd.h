@@ -224,10 +224,10 @@
 *********************************************************************************************************/
 
 #ifndef __SYLIXOS_H
-#include "SylixOS.h"
+#include <SylixOS.h>
 #endif                                                                  /*  __SYLIXOS_H                 */
 
-#include "posix_opt.h"                                                  /*  POSIX support               */
+#include <posix_opt.h>                                                  /*  POSIX support               */
 
 #ifndef MAXPATHLEN
 #define	MAXPATHLEN	                PATH_MAX                            /*  defined in sys/param.h too  */
@@ -278,8 +278,8 @@ LW_API char    *getlogin(void);
 LW_API char    *getpass_r(const char *prompt, char *buffer, size_t buflen);
 LW_API char    *getpass(const char *prompt);
 
-#include "../SylixOS/lib/libc/stdio/lib_stdio.h"						/*  include stdio.h				*/
-#include "../SylixOS/loader/include/loader_exec.h"                      /*  exec family of functions    */
+#include <lib/libc/stdio/lib_stdio.h>                                   /*  include stdio.h             */
+#include <loader/include/loader_exec.h>                                 /*  exec family of functions    */
 
 #if LW_CFG_POSIX_EN > 0
 LW_API int      nice(int incr);
