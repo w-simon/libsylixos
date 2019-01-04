@@ -939,7 +939,7 @@ udp_sendto_if_src_chksum(struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *d
 /**
  * @ingroup udp_raw
  * Bind an UDP PCB.
- * 
+ *
  * @param pcb UDP PCB to be bound with a local address ipaddr and port.
  * @param ipaddr local IP address to bind with. Use IP_ANY_TYPE to
  * bind to all local interfaces.
@@ -1033,8 +1033,10 @@ udp_bind(struct udp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port)
         {
           /* port matches that of PCB in list and REUSEADDR not set -> reject */
           if ((ipcb->local_port == port) &&
+              (IP_GET_TYPE(&ipcb->local_ip) == IP_GET_TYPE(ipaddr)) &&
               /* IP address matches or any IP used? */
-              (ip_addr_cmp(&ipcb->local_ip, ipaddr) || ip_addr_isany(ipaddr) ||
+              (ip_addr_cmp(&ipcb->local_ip, ipaddr) ||
+              ip_addr_isany(ipaddr) ||
               ip_addr_isany(&ipcb->local_ip))) {
             /* other PCB already binds to this local IP and port */
             LWIP_DEBUGF(UDP_DEBUG,
@@ -1204,8 +1206,8 @@ udp_recv(struct udp_pcb *pcb, udp_recv_fn recv, void *recv_arg)
 
 /**
  * @ingroup udp_raw
- * Removes and deallocates the pcb.  
- * 
+ * Removes and deallocates the pcb.
+ *
  * @param pcb UDP PCB to be removed. The PCB is removed from the list of
  * UDP PCB's and the data structure is freed from memory.
  *
@@ -1289,7 +1291,7 @@ udp_new(void)
  * Create a UDP PCB for specific IP type.
  * The pcb is not active until it has either been bound to a local address
  * or connected to a remote address.
- * 
+ *
  * @param type IP address type, see @ref lwip_ip_addr_type definitions.
  * If you want to listen to IPv4 and IPv6 (dual-stack) packets,
  * supply @ref IPADDR_TYPE_ANY as argument and bind to @ref IP_ANY_TYPE.

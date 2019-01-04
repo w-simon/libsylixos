@@ -63,7 +63,7 @@
 #include <string.h>
 
 #if MEM_LIBC_MALLOC
-#include "stdlib.h" /* for malloc()/free() */
+#include <stdlib.h> /* for malloc()/free() */
 #endif
 
 /* This is overridable for tests only... */

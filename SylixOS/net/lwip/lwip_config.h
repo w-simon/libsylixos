@@ -69,7 +69,15 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
   For speed, choose 'int' to use atomic operate.
 *********************************************************************************************************/
 
-#define LWIP_PBUF_REF_T     int
+#define LWIP_PBUF_REF_T         int
+
+/*********************************************************************************************************
+  pbuf custom data
+  For IP_HT_LOCAL_OUT hook only, the hook function can change this variable to
+  change the output netif, NULL means use system route table (if_out -> struct netif point type)
+*********************************************************************************************************/
+
+#define LWIP_PBUF_CUSTOM_DATA   void *if_out;
 
 /*********************************************************************************************************
   Memory options
@@ -417,12 +425,12 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define DNS_MAX_NAME_LENGTH             PATH_MAX
 #define DNS_LOCAL_HOSTLIST              1
 
-extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType);
+extern INT  __inetHostTableGetItem(CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr, UINT8  ucAddrType);
                                                                         /*  本地地址映射表查询          */
                                                                         /*  范围 IPv4 网络字节序地址    */
 #define DNS_LOCAL_HOSTLIST_IS_DYNAMIC   1
-#define DNS_LOOKUP_LOCAL_EXTERN(name, addr, type)   \
-        __inetHostTableGetItem(name, addr, type)
+#define DNS_LOOKUP_LOCAL_EXTERN(name, len, addr, type)   \
+        __inetHostTableGetItem(name, len, addr, type)
 
 /*********************************************************************************************************
   dhcp & autoip
@@ -566,6 +574,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrT
 #define PPP_SUPPORT                     LW_CFG_LWIP_PPP
 #define PPPOS_SUPPORT                   LW_CFG_LWIP_PPP
 #define PPPOE_SUPPORT                   LW_CFG_LWIP_PPPOE
+#define PPPOE_SCNAME_SUPPORT            LW_CFG_LWIP_PPPOE
 #define PPPOL2TP_SUPPORT                LW_CFG_LWIP_PPPOL2TP
 
 /*********************************************************************************************************

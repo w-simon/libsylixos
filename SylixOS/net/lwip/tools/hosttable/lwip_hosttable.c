@@ -29,8 +29,9 @@
 #include "limits.h"
 #include "unistd.h"
 #include "netdb.h"
-#include "lwip/inet.h"
+#include "lwip/def.h"
 #include "lwip/dns.h"
+#include "lwip/inet.h"
 #include "netinet6/in6.h"
 /*********************************************************************************************************
   宏定义
@@ -82,13 +83,14 @@ VOID  __inetHostTableInit (VOID)
 ** 函数名称: __inetHostTableGetItem
 ** 功能描述: lwip 调用此函数查询本地动态主机域名表.
 ** 输　入  : pcHost        主机名
+**           stLen         长度
 **           addr          返回地址
 **           ucAddrType    地址类型
 ** 输　出  : ERR_OK or ERR_IF.
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __inetHostTableGetItem (CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType)
+INT  __inetHostTableGetItem (CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr, UINT8  ucAddrType)
 {
     REGISTER INT                    iHash;
     REGISTER PLW_LIST_LINE          plineTemp;
@@ -107,7 +109,7 @@ INT  __inetHostTableGetItem (CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType)
     }
     
     gethostname(cHostName, HOST_NAME_MAX + 1);                          /*  本地主机地址                */
-    if (lib_strcmp(cHostName, pcHost) == 0) {
+    if (lwip_strnicmp(cHostName, pcHost, stLen) == 0) {
         if (ucAddrType != LWIP_DNS_ADDRTYPE_IPV6) {
             ip_2_ip4(addr)->addr = htonl(INADDR_LOOPBACK);
             IP_SET_TYPE(addr, IPADDR_TYPE_V4);
@@ -125,12 +127,12 @@ INT  __inetHostTableGetItem (CPCHAR  pcHost, PVOID  pvAddr, UINT8  ucAddrType)
     if (fpHosts) {
         phostent = gethostent2_r(fpHosts, cHostsBuffer, sizeof(cHostsBuffer));
         while (phostent) {
-            if (lib_strcmp(pcHost, phostent->h_name) == 0) {
+            if (lwip_strnicmp(pcHost, phostent->h_name, stLen) == 0) {
                 bHostsFund = LW_TRUE;
                 break;
             }
             for (i = 0; phostent->h_aliases[i]; i++) {
-                if (lib_strcmp(pcHost, phostent->h_aliases[i]) == 0) {
+                if (lwip_strnicmp(pcHost, phostent->h_aliases[i], stLen) == 0) {
                     bHostsFund = LW_TRUE;
                     goto    __fund_check;
                 }
@@ -168,7 +170,7 @@ __fund_check:
          plineTemp  = _list_line_get_next(plineTemp)) {
          
         phsttablitem = _LIST_ENTRY(plineTemp, __LW_HOSTTABLE_ITEM, HSTTBL_lineManage);
-        if (lib_strcmp(phsttablitem->HSTTBL_cHostName, pcHost) == 0) {
+        if (lwip_strnicmp(phsttablitem->HSTTBL_cHostName, pcHost, stLen) == 0) {
             uiAddr = phsttablitem->HSTTBL_inaddr.s_addr;
             break;
         }
@@ -200,7 +202,11 @@ INT  API_INetHostTableGetItem (CPCHAR  pcHost, struct in_addr  *pinaddr)
 {
     ip_addr_t   addr;
     
-    if (__inetHostTableGetItem(pcHost, &addr, LWIP_DNS_ADDRTYPE_IPV4)) {
+    if (!pcHost) {
+        return  (PX_ERROR);
+    }
+
+    if (__inetHostTableGetItem(pcHost, lib_strlen(pcHost), &addr, LWIP_DNS_ADDRTYPE_IPV4)) {
         return  (PX_ERROR);
     }
     

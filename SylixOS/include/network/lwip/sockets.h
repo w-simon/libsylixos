@@ -733,7 +733,7 @@ int lwip_inet_pton(int af, const char *src, void *dst);
 
 /*  SylixOS Add socket extern */
 #ifndef  __LWIP_SOCKET_H
-#include "../SylixOS/net/lwip/lwip_socket.h"
+#include <net/lwip/lwip_socket.h>
 #endif  /*  __LWIP_SOCKET_H */
 
 #endif /* LWIP_SOCKET */

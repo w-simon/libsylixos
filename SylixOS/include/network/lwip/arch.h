@@ -74,25 +74,25 @@
 
 /** Platform specific diagnostic output.\n
  * Note the default implementation pulls in printf, which may
- * in turn pull in a lot of standard libary code. In resource-constrained 
+ * in turn pull in a lot of standard libary code. In resource-constrained
  * systems, this should be defined to something less resource-consuming.
  */
 #ifndef LWIP_PLATFORM_DIAG
 #define LWIP_PLATFORM_DIAG(x) do {printf x;} while(0)
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 #endif
 
 /** Platform specific assertion handling.\n
  * Note the default implementation pulls in printf, fflush and abort, which may
- * in turn pull in a lot of standard libary code. In resource-constrained 
+ * in turn pull in a lot of standard libary code. In resource-constrained
  * systems, this should be defined to something less resource-consuming.
  */
 #ifndef LWIP_PLATFORM_ASSERT
 #define LWIP_PLATFORM_ASSERT(x) do {printf("Assertion \"%s\" failed at line %d in %s\n", \
                                      x, __LINE__, __FILE__); fflush(NULL); abort();} while(0)
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 #endif
 
 /** Define this to 1 in arch/cc.h of your port if you do not want to
@@ -104,7 +104,7 @@
 #endif
 
 #if !LWIP_NO_STDDEF_H
-#include "stddef.h" /* for size_t */
+#include <stddef.h> /* for size_t */
 #endif
 
 /** Define this to 1 in arch/cc.h of your port if your compiler does not provide
@@ -117,7 +117,7 @@
 
 /* Define generic types used in lwIP */
 #if !LWIP_NO_STDINT_H
-#include "stdint.h"
+#include <stdint.h>
 /* stdint.h is C99 which should also provide support for 64-bit integers */
 #if !defined(LWIP_HAVE_INT64) && defined(UINT64_MAX)
 #define LWIP_HAVE_INT64 1
@@ -145,7 +145,7 @@ typedef uintptr_t mem_ptr_t;
 
 /* Define (sn)printf formatters for these lwIP types */
 #if !LWIP_NO_INTTYPES_H
-#include "inttypes.h"
+#include <inttypes.h>
 #ifndef X8_F
 #define X8_F  "02" PRIx8
 #endif
@@ -182,7 +182,7 @@ typedef uintptr_t mem_ptr_t;
 
 /* Include limits.h? */
 #if !LWIP_NO_LIMITS_H
-#include "limits.h"
+#include <limits.h>
 #endif
 
 /* Do we need to define ssize_t? This is a compatibility hack:
@@ -196,7 +196,7 @@ typedef uintptr_t mem_ptr_t;
 #define LWIP_NO_UNISTD_H 0
 #endif
 #if !LWIP_NO_UNISTD_H
-#include "unistd.h"
+#include <unistd.h>
 #endif
 #else /* SSIZE_MAX */
 typedef int ssize_t;
@@ -225,7 +225,7 @@ typedef int ssize_t;
 #define lwip_tolower(c)           (lwip_isupper(c) ? (c) - 'A' + 'a' : c)
 #define lwip_toupper(c)           (lwip_islower(c) ? (c) - 'a' + 'A' : c)
 #else
-#include "ctype.h"
+#include <ctype.h>
 #define lwip_isdigit(c)           isdigit((unsigned char)(c))
 #define lwip_isxdigit(c)          isxdigit((unsigned char)(c))
 #define lwip_islower(c)           islower((unsigned char)(c))
@@ -360,7 +360,7 @@ extern "C" {
  * The file included BEFORE the struct is "arch/bpstruct.h".\n
  * The file included AFTER the struct is "arch/epstruct.h".\n
  * This can be used to implement struct packing on MS Visual C compilers, see
- * the Win32 port in the lwIP contrib repository for reference.
+ * the Win32 port in the lwIP/contrib subdir for reference.
  * For examples of packed struct declarations, see include/lwip/prot/ subfolder.\n
  * A port to GCC/clang is included in lwIP, if you use these compilers there is nothing to do here.
  */

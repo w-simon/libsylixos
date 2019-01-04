@@ -147,7 +147,7 @@ int lwip_getaddrinfo(const char *nodename,
 
 /*  SylixOS Add netdb extern */
 #ifndef  __LIB_NETDB_H
-#include "../SylixOS/net/libc/lib_netdb.h"  /* lwip netdb extern */
+#include <net/libc/lib_netdb.h>  /* lwip netdb extern */
 #endif  /* __LIB_NETDB_H */
 
 #endif /* LWIP_DNS && LWIP_SOCKET */

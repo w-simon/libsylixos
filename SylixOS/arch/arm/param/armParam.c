@@ -45,7 +45,7 @@ VOID  archKernelParam (CPCHAR  pcParam)
     
 #if LW_CFG_SMP_EN > 0
     } else if (lib_strncmp(pcParam, "sldepcache=", 11) == 0) {
-        if (pcParam[8] == 'n') {
+        if (pcParam[11] == 'n') {
             armParam.AP_bSLDepCache = LW_FALSE;
         } else {
             armParam.AP_bSLDepCache = LW_TRUE;

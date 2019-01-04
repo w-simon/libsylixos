@@ -487,7 +487,7 @@ alloc_socket(struct netconn *newconn, int accepted)
          after having marked it as used. */
       SYS_ARCH_UNPROTECT(lev);
       sockets[i].lastdata.pbuf = NULL;
-#if LWIP_SOCKET_SELECT
+#if LWIP_SOCKET_SELECT || LWIP_SOCKET_POLL
       LWIP_ASSERT("sockets[i].select_waiting == 0", sockets[i].select_waiting == 0);
       sockets[i].rcvevent   = 0;
       /* TCP sendbuf is empty, but the socket is not yet writable until connected
@@ -497,7 +497,7 @@ alloc_socket(struct netconn *newconn, int accepted)
 #ifdef SYLIXOS /* SylixOS Add socket file for event */
       sockets[i].file = NULL;
 #endif /* SYLIXOS */
-#endif /* LWIP_SOCKET_SELECT */
+#endif /* LWIP_SOCKET_SELECT || LWIP_SOCKET_POLL */
       return i + LWIP_SOCKET_OFFSET;
     }
     SYS_ARCH_UNPROTECT(lev);
@@ -679,11 +679,12 @@ lwip_accept(int s, struct sockaddr *addr, socklen_t *addrlen)
     return -1;
   }
 
-  /* SylixOS Fixed, first conn type check must before call netconn_accept() */
+#ifdef SYLIXOS /* SylixOS Fixed, first conn type check must before call netconn_accept() */
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_TCP) {
     sock_set_errno(sock, EOPNOTSUPP);
     return -1;
   }
+#endif /* SYLIXOS */
 
   /* wait for a new connection */
   err = netconn_accept(sock->conn, &newconn);
@@ -844,7 +845,14 @@ lwip_close(int s)
   /* SylixOS Add clean mrouter socket */
 #if defined(SYLIXOS) && LW_CFG_NET_MROUTER > 0
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
-    ip4_mrt_clean(sock->conn->pcb.raw); /* check if mroute need down */
+#if LWIP_IPV6
+    if (NETCONNTYPE_ISIPV6(netconn_type(sock->conn))) {
+      ip6_mrt_clean(sock->conn->pcb.raw);
+    } else
+#endif /* LWIP_IPV6 */
+    {
+      ip4_mrt_clean(sock->conn->pcb.raw); /* check if mroute need down */
+    }
   }
 #endif /* LW_CFG_NET_MROUTER > 0 */
 
@@ -2965,7 +2973,7 @@ lwip_getsockopt(int s, int level, int optname, void *optval, socklen_t *optlen)
          LWIP_SETGETSOCKOPT_DATA_VAR_REF(data).optlen);
 #endif /* LWIP_MPU_COMPATIBLE */
 
-  /* maybe lwip_getsockopt_internal has changed err */
+  /* maybe lwip_getsockopt_impl has changed err */
   err = LWIP_SETGETSOCKOPT_DATA_VAR_REF(data).err;
   LWIP_SETGETSOCKOPT_DATA_VAR_FREE(data);
 #endif /* LWIP_TCPIP_CORE_LOCKING */
@@ -3665,7 +3673,7 @@ lwip_setsockopt(int s, int level, int optname, const void *optval, socklen_t opt
   }
   sys_arch_sem_wait((sys_sem_t *)(LWIP_SETGETSOCKOPT_DATA_VAR_REF(data).completed_sem), 0);
 
-  /* maybe lwip_getsockopt_internal has changed err */
+  /* maybe lwip_setsockopt_impl has changed err */
   err = LWIP_SETGETSOCKOPT_DATA_VAR_REF(data).err;
   LWIP_SETGETSOCKOPT_DATA_VAR_FREE(data);
 #endif  /* LWIP_TCPIP_CORE_LOCKING */
@@ -4867,4 +4875,7 @@ lwip_inet_pton(int af, const char *src, void *dst)
   }
   return err;
 }
+
+/* SylixOS Remove Lwip Old MEMBERSHIPS operate */
+
 #endif /* LWIP_SOCKET */

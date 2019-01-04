@@ -51,7 +51,7 @@
 #include "lwip/opt.h"
 
 #include <string.h> /* memset */
-#include "stdlib.h" /* atoi */
+#include <stdlib.h> /* atoi */
 
 #include "lwip/def.h"
 #include "lwip/ip_addr.h"
