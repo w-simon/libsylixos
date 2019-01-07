@@ -193,11 +193,28 @@
 
 #define EXT_CSD_BUS_WIDTH               183
 #define EXT_CSD_HS_TIMING               185
+
+#define EXT_CSD_POWER_CLASS             187
+
 #define EXT_CSD_CARD_TYPE               196
 #define EXT_CSD_REV                     192
 #define EXT_CSD_STRUCT                  194
+
+#define EXT_CSD_PWR_CL_52_195           200
+#define EXT_CSD_PWR_CL_26_195           201
+#define EXT_CSD_PWR_CL_52_360           202
+#define EXT_CSD_PWR_CL_26_360           203
+
 #define EXT_CSD_SEC_CNT                 212
 #define BOOT_SIZE_MULTI                 226
+
+#define EXT_CSD_PWR_CL_200_195          236
+#define EXT_CSD_PWR_CL_200_360          237
+#define EXT_CSD_PWR_CL_DDR_52_195       238
+#define EXT_CSD_PWR_CL_DDR_52_360       239
+#define EXT_CSD_PWR_CL_DDR_200_360      253
+
+#define EXT_CSD_GENERIC_CMD6_TIME       248
 
 /*********************************************************************************************************
   EXT CSD ”Ú∂®“Â
@@ -219,6 +236,11 @@
 #define EXT_CSD_BUS_WIDTH_4_DDR         5
 #define EXT_CSD_BUS_WIDTH_8_DDR         6
 
+#define EXT_CSD_PWR_CL_8BIT_MASK        0xF0
+#define EXT_CSD_PWR_CL_4BIT_MASK        0x0F
+#define EXT_CSD_PWR_CL_8BIT_SHIFT       4
+#define EXT_CSD_PWR_CL_4BIT_SHIFT       0
+
 #define MMC_HS_TIMING                   0x00000100
 #define MMC_HS_52MHZ                    (0x1 << 1)
 #define MMC_HS_52MHZ_1_8V_3V_IO         (0x1 << 2)
@@ -228,6 +250,8 @@
 #define MMC_MODE_HS_52MHz               0x00100000
 #define MMC_MODE_HS_52MHz_DDR_18_3V     0x00200000
 #define MMC_MODE_HS_52MHz_DDR_12V       0x00400000
+
+
 
 #endif                                                                  /*  __SDSTD_H                   */
 /*********************************************************************************************************

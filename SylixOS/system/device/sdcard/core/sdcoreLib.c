@@ -215,6 +215,7 @@ INT  API_SdCoreDevSwitch (PLW_SDCORE_DEVICE     psdcoredevice,
 {
     LW_SD_COMMAND   sdcmd;
     INT             iRet;
+    INT             iRetry;
 
     sdcmd.SDCMD_uiOpcode = SD_SWITCH_FUNC;
     sdcmd.SDCMD_uiFlag   = SD_RSP_R1B;
@@ -222,9 +223,14 @@ INT  API_SdCoreDevSwitch (PLW_SDCORE_DEVICE     psdcoredevice,
                          | (ucIndex << 16)
                          | (ucValue << 8)
                          | ucCmdSet;
-
     sdcmd.SDCMD_uiRetry  = 0;
-    iRet = API_SdCoreDevCmd(psdcoredevice, &sdcmd, 0);
+
+    for (iRetry = 0; iRetry < 3; iRetry++) {
+        iRet = API_SdCoreDevCmd(psdcoredevice, &sdcmd, 0);
+        if (iRet == ERROR_NONE) {
+            break;
+        }
+    }
 
     return  (iRet);
 }
@@ -273,6 +279,8 @@ INT API_SdCoreDevSwitchEx (PLW_SDCORE_DEVICE psdcoredevice,
     sdmsg.SDMSG_pucRdBuffer = pucResp;
     iRet = API_SdCoreDevTransfer(psdcoredevice, &sdmsg, 1);
 
+    SD_DELAYMS(10);
+
     return  (iRet);
 }
 /*********************************************************************************************************
@@ -314,7 +322,9 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
     }
 
     uiExtCsdRev = pucExtCsd[EXT_CSD_REV];
+
     psdextcsd->DEVEXTCSD_uiBootSizeMulti = pucExtCsd[BOOT_SIZE_MULTI];
+    psdextcsd->DEVEXTCSD_uiRev           = pucExtCsd[EXT_CSD_REV];
 
     switch (uiExtCsdRev) {
 
@@ -376,6 +386,13 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
         }
     }
 
+    if (uiExtCsdRev >= 6) {
+        psdextcsd->DEVEXTCSD_uiCmd6Timeout = 10 * pucExtCsd[EXT_CSD_GENERIC_CMD6_TIME];
+		
+    } else {
+        psdextcsd->DEVEXTCSD_uiCmd6Timeout = 500;
+    }
+
     if ((pucExtCsd[EXT_CSD_CARD_TYPE] & 0xf) &
         (EXT_CSD_CARD_TYPE_52 | EXT_CSD_CARD_TYPE_52_DDR_18_30 | EXT_CSD_CARD_TYPE_52_DDR_12)) {
         psdcsd->DEVCSD_uiTranSpeed = 52000000;
@@ -388,6 +405,19 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
          * will never happen
          */
     }
+
+    /*
+     * 获取原始电源类信息
+     */
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_52_195      = pucExtCsd[EXT_CSD_PWR_CL_52_195];
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_26_195      = pucExtCsd[EXT_CSD_PWR_CL_26_195];
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_52_360      = pucExtCsd[EXT_CSD_PWR_CL_52_360];
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_26_360      = pucExtCsd[EXT_CSD_PWR_CL_26_360];
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_200_195     = pucExtCsd[EXT_CSD_PWR_CL_200_195];
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_200_360     = pucExtCsd[EXT_CSD_PWR_CL_200_360];
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_ddr_52_195  = pucExtCsd[EXT_CSD_PWR_CL_DDR_52_195];
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_ddr_52_360  = pucExtCsd[EXT_CSD_PWR_CL_DDR_52_360];
+    psdextcsd->DEVEXTCSD_uiRawPwrCl_ddr_200_360 = pucExtCsd[EXT_CSD_PWR_CL_DDR_200_360];
 
     return  (iError);
 }

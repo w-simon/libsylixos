@@ -51,7 +51,7 @@ FUNC_DEF(archMpCur)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archMpInt)
-    JSRI        bspMpInt
+    JMPI        bspMpInt
     FUNC_END(archMpInt)
 
     FILE_END()

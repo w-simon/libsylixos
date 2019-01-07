@@ -33,6 +33,7 @@
 2016.01.26  修正对 SPI 模式下的写块操作不符合协议的地方.
 2018.05.22  增加对 SD 卡仅能使用1位模式的处理.
 2018.12.10  修改对 MMC/eMMC 初始化和读写操作的兼容性提升.
+2018.12.29  增加对 MMC/eMMC 电源类别配置和DDR模式支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -89,6 +90,7 @@ typedef struct __sd_blk_dev {
 #define __SD_CARD_STATUS_MSK        (0x0f << 9)
 #define __SD_CARD_STATUS_PRG        (0x07 << 9)                         /*  数据正在编程                */
 #define __SD_CARD_STATUS_RDYDATA    (0x01 << 8)
+#define __SD_CARD_STATUS_SWITCH_ERR (0x01 << 7)
 /*********************************************************************************************************
   私有函数声明
 *********************************************************************************************************/
@@ -134,7 +136,16 @@ static INT __sdMemSdHsSwitch(PLW_SDCORE_DEVICE  psdcoredevice, LW_SDDEV_SW_CAP  
 static INT __sdMemMmcFreqChange(PLW_SDCORE_DEVICE  psdcoredevice,
                                 LW_SDDEV_CSD      *psdcsd,
                                 INT               *piCardCap);
-static INT __sdMemMmcBusWidthChange(PLW_SDCORE_DEVICE psdcoredevice, INT iCardCap);
+static INT __sdMemMmcBusWidthChange(PLW_SDCORE_DEVICE psdcoredevice,
+                                    INT               iCardCap,
+                                    LW_SDDEV_EXT_CSD *psddevextcsd);
+static INT __sdMemMmcSelectPwrClass(PLW_SDCORE_DEVICE psdcoredevice,
+                                    INT               iCardCap,
+                                    UINT32            uiBusWidth,
+                                    LW_SDDEV_EXT_CSD *psddevextcsd);
+static INT __sdMemSwitchWait(PLW_SDCORE_DEVICE psdcoredevice,
+                             UINT              uiTimeout,
+                             BOOL              bSendStatus);
 
 static CPCHAR __sdMemProtVsnStr(UINT8 ucType, UINT8 ucVsn);
 static ULONG  __sdMemBlkLogic2Phy(ULONG ulLogic, UINT8 ucBlkLenBits);
@@ -527,17 +538,18 @@ static INT __sdMemTestBusy (PLW_SDCORE_DEVICE psdcoredevice, INT iType)
 *********************************************************************************************************/
 static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
 {
-    INT             iError;
-    UINT8           ucType;
-    UINT32          uiOCR;
-    UINT32          uiRCA;
-    LW_SDDEV_OCR    sddevocr;
-    LW_SDDEV_CID    sddevcid;
-    LW_SDDEV_CSD    sddevcsd;
-    LW_SDDEV_SCR    sddevscr;
-    LW_SDDEV_SW_CAP sddevswcap;
-    INT             iCardCap = 0;
-    INT             iHostCap = 0;
+    INT               iError;
+    UINT8             ucType;
+    UINT32            uiOCR;
+    UINT32            uiRCA;
+    LW_SDDEV_OCR      sddevocr;
+    LW_SDDEV_CID      sddevcid;
+    LW_SDDEV_CSD      sddevcsd;
+    LW_SDDEV_SCR      sddevscr;
+    LW_SDDEV_SW_CAP   sddevswcap;
+    LW_SDDEV_EXT_CSD  sddevextcsd;
+    INT               iCardCap = 0;
+    INT               iHostCap = 0;
 
     lib_bzero(&sddevcid, sizeof(LW_SDDEV_CID));
     lib_bzero(&sddevcsd, sizeof(LW_SDDEV_CSD));
@@ -624,8 +636,6 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
         }
 
         if (ucType == SDDEV_TYPE_MMC) {
-            LW_SDDEV_EXT_CSD  sddevextcsd;
-
             iError = API_SdCoreDevCtl(psdcoredevice,
                                       SDBUS_CTRL_SETCLK,
                                       SDARG_SETCLK_NORMAL);
@@ -637,6 +647,10 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
             lib_bzero(&sddevextcsd, sizeof(sddevextcsd));
             API_SdCoreDevSelect(psdcoredevice);                         /*  MMC 只需在这里选择卡一次    */
             API_SdCoreDecodeExtCSD(psdcoredevice, &sddevcsd, &sddevextcsd);
+
+            if ((sddevextcsd.DEVEXTCSD_uiRev >= 5) && (sddevcid.DEVCID_uiYear < 2010)) {
+                sddevcid.DEVCID_uiYear += 16;
+            }
 
         } else {
             sddevcsd.DEVCSD_uiCapacity       <<= sddevcsd.DEVCSD_ucReadBlkLenBits
@@ -703,7 +717,7 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
                 return  (PX_ERROR);
             }
 
-            iError = __sdMemMmcBusWidthChange(psdcoredevice, iCardCap);
+            iError = __sdMemMmcBusWidthChange(psdcoredevice, iCardCap, &sddevextcsd);
             if (iError != ERROR_NONE) {
                 SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "mmc change bus width error.\r\n");
                 return  (PX_ERROR);
@@ -1709,15 +1723,31 @@ static INT __sdMemMmcFreqChange (PLW_SDCORE_DEVICE  psdcoredevice,
 ** 功能描述: 设置 MMC 卡的总线位宽
 ** 输    入: psdcoredevice   核心设备对象
 **           iCardCap        MMC卡支持的位宽功能
+**           psddevextcsd    扩展CSD信息
 ** 输    出: NONE
 ** 返    回: ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardCap)
+static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice,
+                                     INT               iCardCap,
+                                     LW_SDDEV_EXT_CSD *psddevextcsd)
 {
+    static UINT puiExtCsdBits[][2] = {
+        {EXT_CSD_BUS_WIDTH_8, EXT_CSD_BUS_WIDTH_8_DDR},
+        {EXT_CSD_BUS_WIDTH_4, EXT_CSD_BUS_WIDTH_4_DDR},
+        {EXT_CSD_BUS_WIDTH_1, EXT_CSD_BUS_WIDTH_1},
+    };
+    static UINT puiBusWidth[][2] = {
+        {SDBUS_WIDTH_8, SDBUS_WIDTH_8_DDR},
+        {SDBUS_WIDTH_4, SDBUS_WIDTH_4_DDR},
+        {SDBUS_WIDTH_1, SDBUS_WIDTH_1},
+    };
+
     INT iHostCap = 0;
     INT iError   = ERROR_NONE;
+    INT iWidth;
+    INT iDdr;
 
     iError = API_SdmHostCapGet(psdcoredevice, &iHostCap);
     if (iError != ERROR_NONE) {
@@ -1735,6 +1765,11 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
                                      EXT_CSD_CMD_SET_NORMAL,
                                      EXT_CSD_HS_TIMING,
                                      1);
+        if (iError == ERROR_NONE) {
+            API_SdCoreDevCtl(psdcoredevice,
+                             SDBUS_CTRL_SETCLK,
+                             SDARG_SETCLK_MAX);
+        }
 
     } else {
         iError = API_SdCoreDevSwitch(psdcoredevice,
@@ -1744,64 +1779,231 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice, INT iCardC
     }
 
     if (iError != ERROR_NONE) {
-        SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL, "switch to %s mode failed.\r\n",
+        SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL, "warning: switch to %s mode failed.\r\n",
                           iCardCap & MMC_MODE_HS ? "high speed" : "full speed");
-        return  (iError);
+        return  (ERROR_NONE);
     }
 
-    if (iCardCap & SDHOST_CAP_DATA_8BIT_DDR) {
-        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_8_DDR);
-        iError = API_SdCoreDevSwitch(psdcoredevice,
-                                     EXT_CSD_CMD_SET_NORMAL,
-                                     EXT_CSD_BUS_WIDTH,
-                                     EXT_CSD_BUS_WIDTH_8_DDR);
+   if ((iCardCap & SDHOST_CAP_DATA_8BIT_DDR) || (iCardCap & SDHOST_CAP_DATA_4BIT_DDR)) {
+        iDdr = 1;
 
-        if (iError != ERROR_NONE) {
-            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "switch to 8Bit-DDR mode failed.\r\n");
-            return  (iError);
+    } else {
+        iDdr = 0;
+    }
+
+    if ((iCardCap & SDHOST_CAP_DATA_8BIT_DDR) || (iCardCap & SDHOST_CAP_DATA_8BIT)) {
+        iWidth = 0;
+
+    } else {
+        iWidth = 1;
+    }
+
+    for (; iWidth < 3; iWidth++) {
+        if (iWidth == 2) {
+            iDdr = 0;
         }
 
-    } else if (iCardCap & SDHOST_CAP_DATA_4BIT_DDR) {
-        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4_DDR);
-        iError = API_SdCoreDevSwitch(psdcoredevice,
-                                     EXT_CSD_CMD_SET_NORMAL,
-                                     EXT_CSD_BUS_WIDTH,
-                                     EXT_CSD_BUS_WIDTH_4_DDR);
+        iError = __sdMemMmcSelectPwrClass(psdcoredevice,
+                                          iCardCap,
+                                          puiExtCsdBits[iWidth][0],
+                                          psddevextcsd);
+
+        __sdMemSwitchWait(psdcoredevice,
+                          psddevextcsd->DEVEXTCSD_uiCmd6Timeout,
+                          LW_TRUE);
 
         if (iError != ERROR_NONE) {
-            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "switch to 4Bit-DDR mode failed.\r\n");
-            return  (iError);
+            SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL,
+                              "warning: select power class to bus width %d (SDR mode) error.\r\n",
+                              iWidth == 0 ? 8 : iWidth == 1 ? 4 : 1);
         }
 
-    } else if (iCardCap & SDHOST_CAP_DATA_8BIT) {
-        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_8);
         iError = API_SdCoreDevSwitch(psdcoredevice,
                                      EXT_CSD_CMD_SET_NORMAL,
                                      EXT_CSD_BUS_WIDTH,
-                                     EXT_CSD_BUS_WIDTH_8);
+                                     puiExtCsdBits[iWidth][0]);
 
-        if (iError != ERROR_NONE) {
-            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "switch to 8Bit mode failed.\r\n");
-            return  (iError);
+        if (iError == ERROR_NONE) {
+            iError = __sdMemSwitchWait(psdcoredevice,
+                                       psddevextcsd->DEVEXTCSD_uiCmd6Timeout,
+                                       LW_TRUE);
         }
 
-    } else if (iCardCap & SDHOST_CAP_DATA_4BIT) {
-        API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_4);
-        iError = API_SdCoreDevSwitch(psdcoredevice,
-                                     EXT_CSD_CMD_SET_NORMAL,
-                                     EXT_CSD_BUS_WIDTH,
-                                     EXT_CSD_BUS_WIDTH_4);
-
-        if (iError != ERROR_NONE) {
-            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "switch to 4Bit mode failed.\r\n");
-            return  (iError);
+        if (iError == ERROR_NONE) {
+            break;
         }
     }
+
+    if ((iError == ERROR_NONE) && iDdr) {
+        iError = __sdMemMmcSelectPwrClass(psdcoredevice,
+                                          iCardCap,
+                                          puiExtCsdBits[iWidth][1],
+                                          psddevextcsd);
+        if (iError != ERROR_NONE) {
+            SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL,
+                              "warning: select power class to bus width %d (DDR mode) error.\r\n",
+                              iWidth == 0 ? 8 : iWidth == 1 ? 4 : 1);
+
+        } else {
+            iError = API_SdCoreDevSwitch(psdcoredevice,
+                                         EXT_CSD_CMD_SET_NORMAL,
+                                         EXT_CSD_BUS_WIDTH,
+                                         puiExtCsdBits[iWidth][1]);
+        }
+    }
+
+    if (iError == ERROR_NONE) {
+        iError = __sdMemSwitchWait(psdcoredevice,
+                                   psddevextcsd->DEVEXTCSD_uiCmd6Timeout,
+                                   LW_TRUE);
+    }
+
+    if ((iError != ERROR_NONE) || (iWidth > 2)) {
+        iWidth = 2;
+        iDdr   = 0;
+    }
+
+    API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, puiBusWidth[iWidth][iDdr]);
+
+    SDCARD_DEBUG_MSGX(__PRINTMESSAGE_LEVEL, "MMC card work on %d bus width, %s mode.\r\n",
+                      iWidth == 0 ? 8 : iWidth == 1 ? 4 : 1, iDdr ? "DDR" : "SDR");
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemMmcSelectPwrClass
+** 功能描述: 设置 MMC 卡电源类别
+** 输    入: psdcoredevice   核心设备对象
+**           iCardCap        MMC卡支持的位宽功能
+**           uiBusWidth      需要匹配的总线位宽
+**           psddevextcsd    扩展CSD信息
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdMemMmcSelectPwrClass (PLW_SDCORE_DEVICE psdcoredevice,
+                                     INT               iCardCap,
+                                     UINT32            uiBusWidth,
+                                     LW_SDDEV_EXT_CSD *psddevextcsd)
+{
+    UINT32  uiClock;
+    UINT32  uiPwrClassVal;
+    UINT32  uiVdd  = SD_VDD_32_33;
+    INT     iError = ERROR_NONE;
 
     if (iCardCap & MMC_MODE_HS) {
-        iError = API_SdCoreDevCtl(psdcoredevice,
-                                  SDBUS_CTRL_SETCLK,
-                                  SDARG_SETCLK_MAX);
+        uiClock = SDARG_SETCLK_MAX;
+
+    } else {
+        uiClock = SDARG_SETCLK_NORMAL;
+    }
+
+    if (uiBusWidth == EXT_CSD_BUS_WIDTH_1) {
+        return  (ERROR_NONE);
+    }
+
+    switch (uiVdd) {
+
+    case SD_VDD_165_195:
+        if (uiClock <= 26000000) {
+            uiPwrClassVal = psddevextcsd->DEVEXTCSD_uiRawPwrCl_26_195;
+
+        } else if (uiClock <= 52000000) {
+            uiPwrClassVal = (uiBusWidth <= EXT_CSD_BUS_WIDTH_8)
+                          ? psddevextcsd->DEVEXTCSD_uiRawPwrCl_52_195
+                          : psddevextcsd->DEVEXTCSD_uiRawPwrCl_ddr_52_195;
+
+        } else if (uiClock <= 200000000) {
+            uiPwrClassVal = psddevextcsd->DEVEXTCSD_uiRawPwrCl_200_195;
+        }
+        break;
+
+    case SD_VDD_27_28:
+    case SD_VDD_28_29:
+    case SD_VDD_29_30:
+    case SD_VDD_30_31:
+    case SD_VDD_31_32:
+    case SD_VDD_32_33:
+    case SD_VDD_33_34:
+    case SD_VDD_34_35:
+    case SD_VDD_35_36:
+        if (uiClock <= 26000000) {
+            uiPwrClassVal = psddevextcsd->DEVEXTCSD_uiRawPwrCl_26_360;
+
+        } else if (uiClock <= 52000000) {
+            uiPwrClassVal = (uiBusWidth <= EXT_CSD_BUS_WIDTH_8)
+                          ? psddevextcsd->DEVEXTCSD_uiRawPwrCl_52_360
+                          : psddevextcsd->DEVEXTCSD_uiRawPwrCl_ddr_52_360;
+
+        } else if (uiClock <= 200000000) {
+            uiPwrClassVal = psddevextcsd->DEVEXTCSD_uiRawPwrCl_200_360;
+        }
+        break;
+
+    default:
+        return  (PX_ERROR);
+    }
+
+    if (uiBusWidth & (EXT_CSD_BUS_WIDTH_8 | EXT_CSD_BUS_WIDTH_8_DDR)) {
+        uiPwrClassVal = (uiPwrClassVal & EXT_CSD_PWR_CL_8BIT_MASK) >> EXT_CSD_PWR_CL_8BIT_SHIFT;
+    } else {
+        uiPwrClassVal = (uiPwrClassVal & EXT_CSD_PWR_CL_4BIT_MASK) >> EXT_CSD_PWR_CL_4BIT_SHIFT;
+    }
+
+    if (uiPwrClassVal > 0) {
+        iError = API_SdCoreDevSwitch(psdcoredevice,
+                                     EXT_CSD_CMD_SET_NORMAL,
+                                     EXT_CSD_POWER_CLASS,
+                                     uiPwrClassVal);
+    }
+
+    return  (iError);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemSwitchWait
+** 功能描述: 使用 SWITCH 命令后等待设备操作完成
+** 输    入: psdcoredevice   核心设备对象
+**           uiTimeout       超时时间(单位为毫秒)
+**           bSendStatus     是否查询卡状态
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdMemSwitchWait (PLW_SDCORE_DEVICE psdcoredevice,
+                              UINT              uiTimeout,
+                              BOOL              bSendStatus)
+{
+    UINT    uiStatus;
+    INT64   i64Expire;
+    INT     iError;
+
+    if (!bSendStatus) {
+        SD_DELAYMS(uiTimeout);
+        return  (ERROR_NONE);
+    }
+
+    i64Expire = API_TimeGet64() + LW_MSECOND_TO_TICK_1(uiTimeout);
+
+    for (;;) {
+        iError = API_SdCoreDevGetStatus(psdcoredevice, &uiStatus);
+        if (iError != ERROR_NONE) {
+            break;
+        }
+
+        if ((uiStatus & __SD_CARD_STATUS_MSK) != __SD_CARD_STATUS_PRG) {
+            if (uiStatus & __SD_CARD_STATUS_SWITCH_ERR) {
+                SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "wait switch status error.\r\n");
+                iError = PX_ERROR;
+            }
+            break;
+        }
+
+        if (API_TimeGet64() > i64Expire) {
+            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "wait switch done timeout.\r\n");
+            return  (PX_ERROR);
+        }
     }
 
     return  (iError);

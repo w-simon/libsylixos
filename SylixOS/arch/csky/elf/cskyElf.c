@@ -175,6 +175,7 @@ INT  archElfRelocateRela (PVOID       pmodule,
         break;
 
     case R_CKCORE_PCREL_JSR_IMM26BY2:
+#if defined(__CSKYABIV2__) && defined(__CK810__)
         if (IS_BSR32(*pusOpCode16Addr, *(pusOpCode16Addr + 1))) {
             break;
 
@@ -182,6 +183,7 @@ INT  archElfRelocateRela (PVOID       pmodule,
             CHANGE_JSRI_TO_LRW(paddrWhere);                             /*  jsri 0x... --> lrw r26,0x...*/
             SET_JSR32_R26(paddrWhere + 1);                              /*  lsli r0, r0 --> jsr r26     */
         }
+#endif                                                                  /*  __CSKYABIV2__ && __CK810__  */
         break;
 
     case R_CKCORE_ADDR_HI16:

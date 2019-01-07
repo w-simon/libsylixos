@@ -209,5 +209,46 @@ VOID  API_KernelTicksContext (VOID)
     LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);                          /*  退出内核并打开中断          */
 }
 /*********************************************************************************************************
+** 函数名称: API_KernelTicksAdjust
+** 功能描述: 每个 tick 纳秒数微调
+**           BSP 在系统启动前初始化 tick 时调用, 可修正由于 HZ 数偏差时带来的时间偏差
+** 输　入  : lNs       修正纳秒数
+**                     如果为相对修正 +: 表示每一个 tick 需要加大的纳秒数,
+**                                    -: 表示每一个 tick 需要减小的纳秒数.
+**           bRelative 是否为相对修正
+** 输　出  :
+** 全局变量:
+** 调用模块:
+
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_KernelTicksAdjust (LONG  lNs, BOOL  bRelative)
+{
+    if (LW_SYS_STATUS_IS_RUNNING()) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel is already start.\r\n");
+        return  (PX_ERROR);
+    }
+
+    if (bRelative) {
+        if (lib_labs(lNs) >= LW_NSEC_PER_TICK) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "adjust value range error.\r\n");
+            return  (PX_ERROR);
+        }
+
+        LW_NSEC_PER_TICK += lNs;
+
+    } else {
+        if (lNs < 1) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "adjust value range error.\r\n");
+            return  (PX_ERROR);
+        }
+
+        LW_NSEC_PER_TICK = lNs;
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
   END
 *********************************************************************************************************/

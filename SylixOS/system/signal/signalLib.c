@@ -436,7 +436,6 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
 ** 输　入  : ptcb                   任务控制块
 **           psigctx                信号任务相关信息
 **           psiginfo               信号信息
-**           ulSuspendNesting       阻塞嵌套数
 **           iSchedRet              期望的调度器返回值
 **           psigsetMask            执行完信号句柄后需要重新设置的掩码
 ** 输　出  : NONE
@@ -559,7 +558,7 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
 ** 函数名称: __sigReturn
 ** 功能描述: 信号句柄的外壳函数调用此函数从信号上下文中返回任务上下文.
 ** 输　入  : psigctx                 信号任务相关信息
-**           ptcbCur                 当前任务上下文
+**           ptcbCur                 当前任务控制块
 **           psigctlmsg              信号控制信息
 ** 输　出  : NONE
 ** 全局变量: 
@@ -607,6 +606,7 @@ static VOID  __sigReturn (PLW_CLASS_SIGCONTEXT  psigctx,
 ** 输　入  : psigctx               信号任务相关信息
 **           iSigNo                信号的值
 **           psiginfo              需要运行的信号信息
+**           psigctlmsg            信号控制消息
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -915,7 +915,7 @@ INT  _sigPendGet (PLW_CLASS_SIGCONTEXT  psigctx, const sigset_t  *psigset, struc
 ** 函数名称: _sigPendRunSelf
 ** 功能描述: 当前线程运行所有等待的信号. (此函数在进入内核后调用)
 ** 输　入  : NONE
-** 输　出  : NONE
+** 输　出  : 是否运行了信号处理函数
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : 

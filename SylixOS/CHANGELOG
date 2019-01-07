@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-01-07: han.hui
+    针对 SPARC v8e (LEON3/4) 处理器支持 CASA 指令实现 atomic 操作.
+
     2018-12-20: han.hui
     网络缓存引用使用 atomic 类型, 提高计算效率.
 

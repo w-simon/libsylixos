@@ -561,6 +561,7 @@ SylixOS/arch/c6x/param/c6xParam.c
 LOCAL_SPARC_SRCS = \
 SylixOS/arch/sparc/backtrace/sparcBacktrace.c \
 SylixOS/arch/sparc/common/sparcAssert.c \
+SylixOS/arch/sparc/common/sparcAtomicAsm.S \
 SylixOS/arch/sparc/common/sparcContext.c \
 SylixOS/arch/sparc/common/sparcContextAsm.S \
 SylixOS/arch/sparc/common/sparcExc.c \

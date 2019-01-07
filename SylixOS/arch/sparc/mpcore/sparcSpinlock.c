@@ -47,6 +47,30 @@
 *********************************************************************************************************/
 static LW_INLINE VOID  sparcSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
+#if LW_CFG_CPU_ATOMIC_EN > 0
+    UINT32          uiNewVal;
+    SPINLOCKTYPE    sldVal;
+
+    for (;;) {
+        sldVal.SLD_uiLock = LW_ACCESS_ONCE(UINT32, psld->SLD_uiLock);
+        uiNewVal          = sldVal.SLD_uiLock + (1 << LW_SPINLOCK_TICKET_SHIFT);
+        __asm__ __volatile__ ("casa     [%2] 0xb, %3, %0"
+                             : "=&r" (uiNewVal)
+                             : "0" (uiNewVal), "r" (&psld->SLD_uiLock), "r" (sldVal)
+                             : "memory");
+        if (uiNewVal == sldVal.SLD_uiLock) {
+            break;
+        }
+    }
+
+    while (sldVal.SLD_usTicket != sldVal.SLD_usSvcNow) {
+        if (pfuncPoll) {
+            pfuncPoll(pvArg);
+        }
+        sldVal.SLD_usSvcNow = LW_ACCESS_ONCE(UINT16, psld->SLD_usSvcNow);
+    }
+
+#else
     UINT32  uiRes;
 
     for (;;) {
@@ -61,6 +85,7 @@ static LW_INLINE VOID  sparcSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll
             pfuncPoll(pvArg);
         }
     }
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN > 0    */
 }
 /*********************************************************************************************************
 ** 函数名称: sparcSpinTryLock
@@ -73,6 +98,24 @@ static LW_INLINE VOID  sparcSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll
 *********************************************************************************************************/
 static LW_INLINE UINT32  sparcSpinTryLock (SPINLOCKTYPE *psld)
 {
+#if LW_CFG_CPU_ATOMIC_EN > 0
+    UINT32          uiNewVal;
+    SPINLOCKTYPE    sldVal;
+
+    if (psld->SLD_usTicket == psld->SLD_usSvcNow) {
+        sldVal.SLD_uiLock = LW_ACCESS_ONCE(UINT32, psld->SLD_uiLock);
+        uiNewVal          = sldVal.SLD_uiLock + (1 << LW_SPINLOCK_TICKET_SHIFT);
+        __asm__ __volatile__ ("casa     [%2] 0xb, %3, %0"
+                             : "=&r" (uiNewVal)
+                             : "0" (uiNewVal), "r" (&psld->SLD_uiLock), "r" (sldVal)
+                             : "memory");
+        return  ((uiNewVal == sldVal.SLD_uiLock) ? 0 : 1);
+
+    } else {
+        return  (1);
+    }
+
+#else
     UINT32  uiRes;
 
     __asm__ __volatile__("ldstub    [%1], %0"
@@ -81,6 +124,7 @@ static LW_INLINE UINT32  sparcSpinTryLock (SPINLOCKTYPE *psld)
                          : "memory");
 
     return  (uiRes);
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN > 0    */
 }
 /*********************************************************************************************************
 ** 函数名称: sparcSpinUnlock
@@ -92,7 +136,11 @@ static LW_INLINE UINT32  sparcSpinTryLock (SPINLOCKTYPE *psld)
 *********************************************************************************************************/
 static LW_INLINE VOID  sparcSpinUnlock (SPINLOCKTYPE *psld)
 {
+#if LW_CFG_CPU_ATOMIC_EN > 0
+    psld->SLD_usSvcNow++;
+#else
     __asm__ __volatile__("stb   %%g0, [%0]" : : "r" (psld) : "memory");
+#endif                                                                  /*  LW_CFG_CPU_ATOMIC_EN > 0    */
 }
 /*********************************************************************************************************
 ** 函数名称: archSpinInit

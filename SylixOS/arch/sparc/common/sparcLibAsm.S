@@ -38,9 +38,6 @@
     EXPORT_LABEL(longjmp)
     EXPORT_LABEL(siglongjmp)
 
-    EXPORT_LABEL(archFindLsb)
-    EXPORT_LABEL(archFindMsb)
-
     EXPORT_LABEL(archIntDisable)
     EXPORT_LABEL(archIntEnable)
     EXPORT_LABEL(archIntEnableForce)

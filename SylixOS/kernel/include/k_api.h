@@ -1196,9 +1196,13 @@ LW_API VOID             API_KernelReboot(INT  iRebootType);             /*  系统
 LW_API VOID             API_KernelRebootEx(INT  iRebootType, 
                                            addr_t  ulStartAddress);     /*  系统重新启动扩展            */
 
+#ifdef __SYLIXOS_KERNEL
 LW_API VOID             API_KernelTicks(VOID);                          /*  通知系统到达一个实时时钟    */
 
 LW_API VOID             API_KernelTicksContext(VOID);                   /*  保存时钟中断时的线程控制块  */
+                                                                        /*  系统时间微调                */
+LW_API INT              API_KernelTicksAdjust(LONG  lNs, BOOL  bRelative);
+#endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 LW_API ULONG            API_KernelVersion(VOID);                        /*  获得系统版本号              */
 

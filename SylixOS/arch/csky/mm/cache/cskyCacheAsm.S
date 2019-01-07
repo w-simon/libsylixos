@@ -10,7 +10,7 @@
 ;**
 ;**--------------文件信息--------------------------------------------------------------------------------
 ;**
-;** 文   件   名: cskyCache.S
+;** 文   件   名: cskyCacheAsm.S
 ;**
 ;** 创   建   人: Hui.Kai (惠凯)
 ;**
@@ -166,7 +166,6 @@ FUNC_DEF(cskyBranchPredictionEnable)
     BSETI       A0 , 11
     BSETI       A0 , 6
     BSETI       A0 , 5
-    BSETI       A0 , 4
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyBranchPredictionEnable)
@@ -181,9 +180,10 @@ FUNC_DEF(cskyBranchPredictionDisable)
 
     MFCR        A0 , CR18
     BCLRI       A0 , 11
+#ifndef __CK807__
     BCLRI       A0 , 6
+#endif
     BCLRI       A0 , 5
-    BCLRI       A0 , 4
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyBranchPredictionDisable)

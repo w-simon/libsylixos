@@ -309,7 +309,7 @@ static LW_INLINE VOID  cskyICacheInvalidate (PVOID  pvStart, PVOID  pvEnd, size_
 ** 调用模块:
 ** 注  意  : 由于 L2 为物理地址 tag 所以这里暂时使用 L2 全部回写指令.
 *********************************************************************************************************/
-static INT  cskyCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
+INT  cskyCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
 
@@ -668,8 +668,8 @@ VOID  cskyCacheInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_ulOption = 0ul;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIPT;
-    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_VIPT;
+    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_PIPT;
+    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
 
     pcacheop->CACHEOP_iICacheLine = CSKY_ICACHE_LINE_SIZE;
     pcacheop->CACHEOP_iDCacheLine = CSKY_DCACHE_LINE_SIZE;

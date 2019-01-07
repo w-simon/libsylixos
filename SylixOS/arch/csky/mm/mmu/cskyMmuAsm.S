@@ -49,6 +49,9 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyMmuContextSet)
+#if LW_CFG_CSKY_HARD_TLB_REFILL > 0
+    ORI         A0 , A0 , 1
+#endif
     MTCR        A0 , CR<29, 15>
     RTS
     FUNC_END(cskyMmuContextSet)
@@ -71,6 +74,7 @@ FUNC_DEF(cskyMmuTlbRefillExceptEntry)
     MTCR        A1 , SS3
     MTCR        A2 , SS4
 
+#if LW_CFG_CSKY_HARD_TLB_REFILL == 0
     ;/*
     ; * A0 = Bad VPN
     ; * A2 = MPGD
@@ -88,6 +92,7 @@ FUNC_DEF(cskyMmuTlbRefillExceptEntry)
     LSRI        A1 , LW_CFG_VMM_PGD_SHIFT
     LSLI        A1 , LONGLOG
     ADDU        A1 , A2
+    BSETI       A1 , 31
     LD.W        A2 , (A1, 0)
     CMPNEI      A2 , 0
     BF          __error_handle
@@ -98,6 +103,7 @@ FUNC_DEF(cskyMmuTlbRefillExceptEntry)
     ZEXT        A1 , A0 , LW_CFG_VMM_PGD_SHIFT - 1 , LW_CFG_VMM_PAGE_SHIFT + 1
     LSLI        A1 , LONGLOG + 1
     ADDU        A1 , A2
+    BSETI       A1 , 31
     LD.W        A0 , (A1 , 0)
     LD.W        A1 , (A1 , 4)
 
@@ -130,6 +136,7 @@ LINE_LABEL(__error_handle)
 
     BGENI       A1 , 28
     MTCR        A1 , CR<8, 15>
+#endif
 
     MFCR        A1 , EPSR
     BCLRI       A1 , 13
@@ -164,6 +171,7 @@ FUNC_DEF(cskyMmuTlbLdStExceptHandle)
 
     LSRI        R6 , CSKY_PBA_SHIFT
     LSLI        R6 , CSKY_PBA_SHIFT
+    BSETI       R6 , 31
 
     ;/*
     ; * 获得 PGD 条目
@@ -182,7 +190,7 @@ FUNC_DEF(cskyMmuTlbLdStExceptHandle)
     ZEXT        A3 , A2 , LW_CFG_VMM_PGD_SHIFT - 1 , LW_CFG_VMM_PAGE_SHIFT
     LSLI        A3 , LONGLOG
     ADDU        R6 , A3
-
+    BSETI       R6 , 31
     LD.W        A2 , (R6 , 0)
 
     ;/*

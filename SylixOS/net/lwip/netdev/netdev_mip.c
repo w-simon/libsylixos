@@ -42,6 +42,7 @@
 #include "lwip/mem.h"
 #include "lwip/pbuf.h"
 #include "lwip/inet.h"
+#include "lwip/snmp.h"
 #include "lwip/netif.h"
 #include "lwip/netifapi.h"
 #include "lwip/etharp.h"
@@ -65,6 +66,8 @@ static err_t netdev_mipif_init (struct netif *mipif)
   mipif->name[0] = 'm';
   mipif->name[1] = 'i';
   
+  MIB2_INIT_NETIF(mipif, netif->link_type, netif->link_speed);
+
   /* no ipv6, no multicast, no promisc */
   mipif->flags = (u8_t)(netif->flags & ~(NETIF_FLAG_IGMP | NETIF_FLAG_MLD6));
   
@@ -72,7 +75,6 @@ static err_t netdev_mipif_init (struct netif *mipif)
   mipif->linkoutput = netif->linkoutput;
   
   mipif->mtu = netif->mtu;
-  mipif->link_speed = netif->link_speed;
   mipif->chksum_flags = netif->chksum_flags;
 
   mipif->hwaddr_len = netif->hwaddr_len;

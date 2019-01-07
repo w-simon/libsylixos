@@ -42,11 +42,11 @@
 #define LW_CFG_VMM_PAGE_SIZE                  (1ul << LW_CFG_VMM_PAGE_SHIFT)
 #define LW_CFG_VMM_PAGE_MASK                  (~(LW_CFG_VMM_PAGE_SIZE - 1))
 
-#define LW_CFG_VMM_PMD_SHIFT                  20                        /*  NO PMD same as PGD          */
+#define LW_CFG_VMM_PMD_SHIFT                  22                        /*  NO PMD same as PGD          */
 #define LW_CFG_VMM_PMD_SIZE                   (1ul << LW_CFG_VMM_PMD_SHIFT)
 #define LW_CFG_VMM_PMD_MASK                   (~(LW_CFG_VMM_PMD_SIZE - 1))
 
-#define LW_CFG_VMM_PGD_SHIFT                  20                        /*  2^20 = 1MB                  */
+#define LW_CFG_VMM_PGD_SHIFT                  22                        /*  2^22 = 4MB                  */
 #define LW_CFG_VMM_PGD_SIZE                   (1ul << LW_CFG_VMM_PGD_SHIFT)
 #define LW_CFG_VMM_PGD_MASK                   (~(LW_CFG_VMM_PGD_SIZE - 1))
 

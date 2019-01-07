@@ -65,10 +65,12 @@
         12 :  4K Bytes per page.
         14 : 16K Bytes per page.
         16 : 64K Bytes per page.
+
+  LW_CFG_CSKY_PAGE_SHIFT == 12 || 14 -> LW_CFG_CSKY_HARD_TLB_REFILL 必须为 0.
 *********************************************************************************************************/
 
-#define LW_CFG_CSKY_PAGE_SHIFT          14                              /*  MMU 页面大小                */
-#define LW_CFG_CSKY_HARD_TLB_REFILL     0                               /*  MMU 是否使用硬件重填        */
+#define LW_CFG_CSKY_PAGE_SHIFT          12                              /*  MMU 页面大小                */
+#define LW_CFG_CSKY_HARD_TLB_REFILL     1                               /*  MMU 是否使用硬件重填        */
 
 /*********************************************************************************************************
   C-SKY CACHE 配置

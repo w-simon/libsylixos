@@ -3358,11 +3358,12 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
         case MRT_ASSERT:
         case MRT_API_SUPPORT:
         case MRT_API_CONFIG:
-          if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) &&
+          if ((!NETCONNTYPE_ISIPV6(netconn_type(sock->conn))) &&
+              (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) &&
               (sock->conn->pcb.raw->protocol == IPPROTO_IGMP)) {
             err = ip4_mrt_getsockopt(sock->conn->pcb.raw, optname, optval, optlen);
 #if LWIP_IPV6
-          } else if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) &&
+          } else if ((NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) &&
                   (sock->conn->pcb.raw->protocol == IPPROTO_ICMPV6)) {
             err = ip6_mrt_getsockopt(sock->conn->pcb.raw, optname, optval, optlen);
 #endif /* LWIP_IPV6 */
@@ -3448,12 +3449,12 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
         case IPV6_MULTICAST_IF:
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, *optlen, int);
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             *(int *)optval = udp_get_multicast_netif_index(sock->conn->pcb.udp);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             *(int *)optval = raw_get_multicast_netif_index(sock->conn->pcb.raw);
           } else 
 #endif /* LWIP_RAW */
@@ -3467,12 +3468,12 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
         case IPV6_MULTICAST_HOPS:
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, *optlen, u8_t);
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             *(u8_t *)optval = udp_get_multicast_ttl(sock->conn->pcb.udp);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             *(u8_t *)optval = raw_get_multicast_ttl(sock->conn->pcb.raw);
           } else 
 #endif /* LWIP_RAW */
@@ -3485,7 +3486,7 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
           break;
         case IPV6_MULTICAST_LOOP:
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             if ((sock->conn->pcb.udp->flags & UDP_FLAGS_MULTICAST_LOOP) != 0) {
               *(u8_t *)optval = 1;
             } else {
@@ -3494,7 +3495,7 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             if ((sock->conn->pcb.raw->flags & RAW_FLAGS_MULTICAST_LOOP) != 0) {
               *(u8_t *)optval = 1;
             } else {
@@ -3518,12 +3519,12 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
             return EINVAL;
           }
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             err = mcast_sock_get_groupfilter(&sock->conn->pcb.udp->ipmc, optname, (struct group_filter *)optval, optlen);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             err = mcast_sock_get_groupfilter(&sock->conn->pcb.raw->ipmc, optname, (struct group_filter *)optval, optlen);
           } else 
 #endif /* LWIP_RAW */
@@ -4224,7 +4225,8 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
         case MRT_DEL_MFC:
         case MRT_ASSERT:
         case MRT_API_CONFIG:
-          if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) &&
+          if ((!NETCONNTYPE_ISIPV6(netconn_type(sock->conn))) &&
+              (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) &&
               (sock->conn->pcb.raw->protocol == IPPROTO_IGMP)) {
             err = ip4_mrt_setsockopt(sock->conn->pcb.raw, optname, optval, optlen);
 #if LWIP_IPV6
@@ -4333,8 +4335,8 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
         case IPV6_RECVPKTINFO:
           /* SylixOS Changed support UDP & RAW */
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, int);
-          if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) ||
-              (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6)) {
+          if ((NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) ||
+              (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6)) {
             if (*(const int *)optval) {
               sock->conn->flags |= NETCONN_FLAG_PKTINFO;
             } else {
@@ -4348,8 +4350,8 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
         case IPV6_RECVHOPLIMIT:
           /* SylixOS Changed support UDP & RAW */
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, int);
-          if ((NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) ||
-              (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6)) {
+          if ((NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) ||
+              (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6)) {
             if (*(const int *)optval) {
               sock->conn->flags |= NETCONN_FLAG_HOPLIM;
             } else {
@@ -4372,12 +4374,12 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
         case IPV6_MULTICAST_IF:
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, int);
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             udp_set_multicast_netif_index(sock->conn->pcb.udp, (u8_t)(*(int *)optval));
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             raw_set_multicast_netif_index(sock->conn->pcb.raw, (u8_t)(*(int *)optval));
           } else 
 #endif /* LWIP_RAW */
@@ -4389,12 +4391,12 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
         case IPV6_MULTICAST_HOPS:
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, u8_t);
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             udp_set_multicast_ttl(sock->conn->pcb.udp, (u8_t)(*(const u8_t *)optval));
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             raw_set_multicast_ttl(sock->conn->pcb.raw, (u8_t)(*(const u8_t *)optval));
           } else 
 #endif /* LWIP_RAW */
@@ -4406,7 +4408,7 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
         case IPV6_MULTICAST_LOOP:
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, u8_t);
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             if (*(const u8_t *)optval) {
               udp_set_flags(sock->conn->pcb.udp, UDP_FLAGS_MULTICAST_LOOP);
             } else {
@@ -4415,7 +4417,7 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             if (*(const u8_t *)optval) {
               raw_set_flags(sock->conn->pcb.raw, RAW_FLAGS_MULTICAST_LOOP);
             } else {
@@ -4436,12 +4438,12 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           /* SylixOS Use multicast filter to do this */
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, struct ipv6_mreq);
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             err = mcast_sock_ipv6_add_drop_membership(&sock->conn->pcb.udp->ipmc, optname, (const struct ipv6_mreq *)optval);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             err = mcast_sock_ipv6_add_drop_membership(&sock->conn->pcb.raw->ipmc, optname, (const struct ipv6_mreq *)optval);
           } else 
 #endif /* LWIP_RAW */
@@ -4459,12 +4461,12 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
             return EINVAL;
           }
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             err = mcast_sock_join_leave_group(&sock->conn->pcb.udp->ipmc, optname, (const struct group_req *)optval);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             err = mcast_sock_join_leave_group(&sock->conn->pcb.raw->ipmc, optname, (const struct group_req *)optval);
           } else 
 #endif /* LWIP_RAW */
@@ -4483,12 +4485,12 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
             return EINVAL;
           }
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             err = mcast_sock_join_leave_source_group(&sock->conn->pcb.udp->ipmc, optname, (const struct group_source_req *)optval);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             err = mcast_sock_join_leave_source_group(&sock->conn->pcb.raw->ipmc, optname, (const struct group_source_req *)optval);
           } else 
 #endif /* LWIP_RAW */
@@ -4507,12 +4509,12 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
             return EINVAL;
           }
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             err = mcast_sock_block_unblock_source_group(&sock->conn->pcb.udp->ipmc, optname, (const struct group_source_req *)optval);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             err = mcast_sock_block_unblock_source_group(&sock->conn->pcb.raw->ipmc, optname, (const struct group_source_req *)optval);
           } else 
 #endif /* LWIP_RAW */
@@ -4529,12 +4531,12 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
             return EINVAL;
           }
 #if LWIP_UDP
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_UDP_IPV6) {
             err = mcast_sock_set_groupfilter(&sock->conn->pcb.udp->ipmc, optname, (const struct group_filter *)optval);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
-          if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
+          if (NETCONNTYPE_GROUP_IPV6(netconn_type(sock->conn)) == NETCONN_RAW_IPV6) {
             err = mcast_sock_set_groupfilter(&sock->conn->pcb.raw->ipmc, optname, (const struct group_filter *)optval);
           } else 
 #endif /* LWIP_RAW */

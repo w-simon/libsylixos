@@ -23,12 +23,15 @@
 #define __CSKY_ARCH_DEF_H
 
 /*********************************************************************************************************
-  SSEG0 SSEG1 地址转物理地址
+  SSEG0 SSEG1 地址转换
 *********************************************************************************************************/
 #if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
 
 #define CSKY_SSEG0_PA(va)           ((va) & 0x7fffffff)
-#define CSKY_SSEG1_PA(va)           ((va) & 0x5fffffff)
+#define CSKY_SSEG1_PA(va)           ((va) & 0x1fffffff)
+
+#define CSKY_SSEG0_VA(pa)           ((pa) | 0x80000000)
+#define CSKY_SSEG1_VA(pa)           ((pa) | 0xa0000000)
 
 /*********************************************************************************************************
   C-SKY 指令

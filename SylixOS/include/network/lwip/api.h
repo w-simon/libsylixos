@@ -112,6 +112,10 @@ extern "C" {
 #define NETCONNTYPE_ISUDPNOCHKSUM(t) ((t) == NETCONN_UDPNOCHKSUM)
 #endif /* LWIP_IPV6 */
 
+#ifdef SYLIXOS /* SylixOS Add IPv6 Group */
+#define NETCONNTYPE_GROUP_IPV6(t)    ((t)&(0xF0 | NETCONN_TYPE_IPV6))
+#endif /* SYLIXOS */
+
 /** @ingroup netconn_common
  * Protocol family and type of the netconn
  */

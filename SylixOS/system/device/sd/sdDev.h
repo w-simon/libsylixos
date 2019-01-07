@@ -149,9 +149,21 @@ typedef struct lw_sddev_csd {
 *********************************************************************************************************/
 
 typedef struct lw_sddev_ext_csd {
+    UINT        DEVEXTCSD_uiRev;
     UINT        DEVEXTCSD_uiMaxDtr;
     UINT        DEVEXTCSD_uiSectorCnt;
     UINT        DEVEXTCSD_uiBootSizeMulti;
+    UINT        DEVEXTCSD_uiCmd6Timeout;
+
+    UINT8       DEVEXTCSD_uiRawPwrCl_52_195;
+    UINT8       DEVEXTCSD_uiRawPwrCl_26_195;
+    UINT8       DEVEXTCSD_uiRawPwrCl_52_360;
+    UINT8       DEVEXTCSD_uiRawPwrCl_26_360;
+    UINT8       DEVEXTCSD_uiRawPwrCl_200_195;
+    UINT8       DEVEXTCSD_uiRawPwrCl_200_360;
+    UINT8       DEVEXTCSD_uiRawPwrCl_ddr_52_195;
+    UINT8       DEVEXTCSD_uiRawPwrCl_ddr_52_360;
+    UINT8       DEVEXTCSD_uiRawPwrCl_ddr_200_360;
 } LW_SDDEV_EXT_CSD, *PLW_SDDEV_EXT_CSD;
 
 /*********************************************************************************************************

@@ -73,7 +73,7 @@ typedef struct {
 #define LW_LD_STATUS_UNLOAD         0                                   /*  未加载                      */
 #define LW_LD_STATUS_LOADED         1                                   /*  已加载未初始化              */
 #define LW_LD_STATUS_INITED         2                                   /*  已初始化                    */
-#define LW_LD_STATUS_FINIED         3                                   /*  已初始化                    */
+#define LW_LD_STATUS_FINIED         3                                   /*  已清理                      */
 
 /*********************************************************************************************************
   模块结构体用于组织模块的信息

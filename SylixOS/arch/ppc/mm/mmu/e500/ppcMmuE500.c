@@ -46,10 +46,6 @@ static BOOL                 _G_bHasHID1      = LW_FALSE;                /*  是否
 /*********************************************************************************************************
   外部接口声明
 *********************************************************************************************************/
-#if LW_CFG_CACHE_EN > 0
-extern INT     ppcCacheDataUpdate(PVOID  pvAdrs, size_t  stBytes, BOOL  bInv);
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
-
 extern VOID    ppcE500MmuInvalidateTLB(VOID);
 extern VOID    ppcE500MmuInvalidateTLBEA(addr_t  ulAddr);
 /*********************************************************************************************************
@@ -625,10 +621,6 @@ static INT  ppcE500MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  
              */
             *p_pteentry = ppcE500MmuBuildPtentry(paPhysicalAddr, ulFlag);
 
-#if LW_CFG_CACHE_EN > 0
-            ppcCacheDataUpdate((PVOID)p_pteentry,
-                               sizeof(LW_PTE_TRANSENTRY), LW_FALSE);
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
             return  (ERROR_NONE);
 
         } else {
@@ -666,11 +658,6 @@ static VOID  ppcE500MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
      * 构建二级描述符并设置二级描述符
      */
     *p_pteentry = ppcE500MmuBuildPtentry(paPhysicalAddr, ulFlag);
-
-#if LW_CFG_CACHE_EN > 0
-    ppcCacheDataUpdate((PVOID)p_pteentry,
-                       sizeof(LW_PTE_TRANSENTRY), LW_FALSE);
-#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
 /*********************************************************************************************************
 ** 函数名称: ppcE500MmuMakeCurCtx

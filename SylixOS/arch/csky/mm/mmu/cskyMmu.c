@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: cskyMmuCommon.c
+** 文   件   名: cskyMmu.c
 **
 ** 创   建   人: Wang.Xuan (王翾)
 **
@@ -52,16 +52,22 @@
 #error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K)!
 #endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
 /*********************************************************************************************************
+  ENTRYLO 相关定义
+*********************************************************************************************************/
+#define ENTRYLO_B                       (1 << 6)                        /*  可写缓冲                    */
+#define ENTRYLO_SO                      (1 << 5)                        /*  Strong Order                */
+/*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
 static ULONG                _G_ulMmuTlbSize  = 128;                     /*  TLB 数组大小                */
 static LW_OBJECT_HANDLE     _G_hPGDPartition = LW_HANDLE_INVALID;       /*  系统目前仅使用一个 PGD      */
 static LW_OBJECT_HANDLE     _G_hPTEPartition = LW_HANDLE_INVALID;       /*  PTE 缓冲区                  */
 /*********************************************************************************************************
-  全局变量
+  外部函数
 *********************************************************************************************************/
 extern VOID  cskyMmuContextSet(ULONG  ulValue);
 extern VOID  cskyMmuPageMaskSet(ULONG  ulValue);
+extern INT   cskyCacheFlush(LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes);
 /*********************************************************************************************************
 ** 函数名称: cskyMmuEnable
 ** 功能描述: 使能 MMU
@@ -94,7 +100,7 @@ static VOID  cskyMmuDisable (VOID)
 *********************************************************************************************************/
 static LW_PGD_TRANSENTRY  cskyMmuBuildPgdEntry (addr_t  ulBaseAddr)
 {
-    return  (ulBaseAddr);                                               /*  一级描述符就是二级页表基地址*/
+    return  (CSKY_SSEG0_PA(ulBaseAddr));                                /*  一级描述符就是二级页表基地址*/
 }
 /*********************************************************************************************************
 ** 函数名称: cskyMmuBuildPteEntry
@@ -115,17 +121,24 @@ static LW_PTE_TRANSENTRY  cskyMmuBuildPteEntry (addr_t  ulBaseAddr, ULONG  ulFla
 
         pteentry = ulPFN << CSKY_ENTRYLO_PFN_SHIFT;                     /*  填充 PFN                    */
 
-        if (ulFlag & LW_VMM_FLAG_VALID) {
-            pteentry |= ENTRYLO_V;                                      /*  填充 V 位                   */
+        pteentry |= ENTRYLO_V;                                          /*  有效                        */
+
+        if (ulFlag & LW_VMM_FLAG_WRITABLE) {                            /*  可以写                      */
+            pteentry |= ENTRYLO_D;
         }
 
-        if (ulFlag & LW_VMM_FLAG_WRITABLE) {
-            pteentry |= ENTRYLO_D;                                      /*  填充 D 位                   */
-        }
-
-        if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  填充 C 位                   */
+        if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  可以 CACHE                  */
             pteentry |= ENTRYLO_C;
-        } 
+        }
+
+        if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {                          /*  可以写缓冲                  */
+            pteentry |= ENTRYLO_B;
+        }
+
+        if (!(ulFlag & (LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_BUFFERABLE))) {
+            pteentry |= ENTRYLO_SO;                                     /*  Strong Order                */
+        }
+
     } else {
         pteentry = 0;
     }
@@ -142,8 +155,8 @@ static LW_PTE_TRANSENTRY  cskyMmuBuildPteEntry (addr_t  ulBaseAddr, ULONG  ulFla
 *********************************************************************************************************/
 static INT  cskyMmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 {
-#define PGD_BLOCK_SIZE  (4096 * sizeof(LW_PGD_TRANSENTRY))
-#define PTE_BLOCK_SIZE  ((LW_CFG_MB_SIZE / LW_CFG_VMM_PAGE_SIZE) * sizeof(LW_PTE_TRANSENTRY))
+#define PGD_BLOCK_SIZE  (1024 * sizeof(LW_PGD_TRANSENTRY))
+#define PTE_BLOCK_SIZE  ((4 * LW_CFG_MB_SIZE / LW_CFG_VMM_PAGE_SIZE) * sizeof(LW_PTE_TRANSENTRY))
 
     PVOID   pvPgdTable;
     PVOID   pvPteTable;
@@ -219,7 +232,7 @@ static  LW_PTE_TRANSENTRY  *cskyMmuPteOffset (LW_PMD_TRANSENTRY  *p_pmdentry, ad
     REGISTER LW_PMD_TRANSENTRY   pmdentry;
     REGISTER ULONG               ulPageNum;
 
-    pmdentry   = (*p_pmdentry);                                         /*  获得一级页表描述符          */
+    pmdentry   = CSKY_SSEG0_VA(*p_pmdentry);                            /*  获得一级页表描述符          */
     p_pteentry = (LW_PTE_TRANSENTRY *)(pmdentry);                       /*  获得二级页表基地址          */
 
     ulAddr    &= ~LW_CFG_VMM_PGD_MASK;
@@ -337,6 +350,9 @@ static LW_PTE_TRANSENTRY  *cskyMmuPteAlloc (PLW_MMU_CONTEXT     pmmuctx,
                                             LW_PMD_TRANSENTRY  *p_pmdentry,
                                             addr_t              ulAddr)
 {
+#if (LW_CFG_CACHE_EN > 0) && (LW_CFG_CSKY_HARD_TLB_REFILL > 0)
+    INTREG              iregInterLevel;
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     LW_PTE_TRANSENTRY  *p_pteentry = (LW_PTE_TRANSENTRY *)API_PartitionGet(_G_hPTEPartition);
 
     if (!p_pteentry) {
@@ -346,6 +362,12 @@ static LW_PTE_TRANSENTRY  *cskyMmuPteAlloc (PLW_MMU_CONTEXT     pmmuctx,
     lib_bzero(p_pteentry, PTE_BLOCK_SIZE);
 
     *p_pmdentry = (LW_PMD_TRANSENTRY)cskyMmuBuildPgdEntry((addr_t)p_pteentry);  /*  设置二级页表基地址  */
+
+#if (LW_CFG_CACHE_EN > 0) && (LW_CFG_CSKY_HARD_TLB_REFILL > 0)
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
+    cskyCacheFlush(DATA_CACHE, p_pmdentry, sizeof(LW_PMD_TRANSENTRY));
+    KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 
     return  (cskyMmuPteOffset(p_pmdentry, ulAddr));
 }
@@ -403,21 +425,23 @@ static ULONG  cskyMmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
                                       ulAddr);                          /*  获得二级描述符地址          */
         pteentry = *p_pteentry;                                         /*  获得二级描述符              */
         if (cskyMmuPteIsOk(pteentry)) {                                 /*  二级描述符有效              */
-            ULONG   ulFlag = 0;            
+            ULONG   ulFlag;
 
-            if (pteentry & ENTRYLO_V) {                                 /*  有效                        */
-                ulFlag |= LW_VMM_FLAG_VALID;                            /*  映射有效                    */
-            }
+            ulFlag  = LW_VMM_FLAG_VALID;                                /*  映射有效                    */
+            ulFlag |= LW_VMM_FLAG_GUARDED;                              /*  进行严格权限检查            */
+            ulFlag |= LW_VMM_FLAG_ACCESS;                               /*  可以访问                    */
+            ulFlag |= LW_VMM_FLAG_EXECABLE;                             /*  可以执行                    */
 
-            ulFlag |= LW_VMM_FLAG_ACCESS |                              /*  可以访问                    */
-                      LW_VMM_FLAG_EXECABLE;                             /*  可以执行                    */
-
-            if (pteentry & ENTRYLO_D) {                                 /*  可写                        */
-                ulFlag |= LW_VMM_FLAG_WRITABLE;
+            if (pteentry & ENTRYLO_D) {
+                ulFlag |= LW_VMM_FLAG_WRITABLE;                         /*  可以写                      */
             }
            
-            if (pteentry & ENTRYLO_C) {                                 /*  可以 CACHE                  */
-                ulFlag |= LW_VMM_FLAG_CACHEABLE;
+            if (pteentry & ENTRYLO_C) {
+                ulFlag |= LW_VMM_FLAG_CACHEABLE;                        /*  可以 CACHE                  */
+            }
+
+            if (pteentry & ENTRYLO_B) {
+                ulFlag |= LW_VMM_FLAG_BUFFERABLE;                       /*  可以写缓冲                  */
             }
 
             return  (ulFlag);
@@ -459,6 +483,9 @@ static INT  cskyMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulF
             addr_t  ulPhysicalAddr = ulPFN << 12;                       /*  计算页面物理地址            */
 
             *p_pteentry = cskyMmuBuildPteEntry(ulPhysicalAddr, ulFlag);
+#if (LW_CFG_CACHE_EN > 0) && (LW_CFG_CSKY_HARD_TLB_REFILL > 0)
+            cskyCacheFlush(DATA_CACHE, p_pteentry, sizeof(LW_PTE_TRANSENTRY));
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
             return  (ERROR_NONE);
         }
     }
@@ -492,6 +519,9 @@ static VOID  cskyMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
      * 构建二级描述符并设置二级描述符
      */
     *p_pteentry = cskyMmuBuildPteEntry(paPhysicalAddr, ulFlag);
+#if (LW_CFG_CACHE_EN > 0) && (LW_CFG_CSKY_HARD_TLB_REFILL > 0)
+    cskyCacheFlush(DATA_CACHE, p_pteentry, sizeof(LW_PTE_TRANSENTRY));
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
 /*********************************************************************************************************
 ** 函数名称: cskyMmuMakeCurCtx
@@ -503,7 +533,7 @@ static VOID  cskyMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
 *********************************************************************************************************/
 static VOID  cskyMmuMakeCurCtx (PLW_MMU_CONTEXT  pmmuctx)
 {
-    cskyMmuContextSet((addr_t)pmmuctx->MMUCTX_pgdEntry);
+    cskyMmuContextSet(CSKY_SSEG0_PA((addr_t)pmmuctx->MMUCTX_pgdEntry));
 }
 /*********************************************************************************************************
 ** 函数名称: cskyMmuInvalidateTLB

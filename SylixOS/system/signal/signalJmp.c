@@ -54,7 +54,7 @@ VOID  __siglongjmpSetup (sigjmp_buf sigjmpEnv, INT iVal)
 {
 #if LW_CFG_SIGNAL_EN > 0
     if (sigjmpEnv[0].__mask_was_saved) {
-        sigprocmask(SIG_SETMASK, &sigjmpEnv[0].__saved_mask, (sigset_t *) NULL);
+        sigprocmask(SIG_SETMASK, &sigjmpEnv[0].__saved_mask, (sigset_t *)LW_NULL);
     }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 }

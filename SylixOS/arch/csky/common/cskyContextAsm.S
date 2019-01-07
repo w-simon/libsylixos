@@ -53,9 +53,12 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
+    ANDNI       SP , SP , 0x7                                           ;/*  SP 向下 8 字节对齐          */
+    MTCR        SP , SS0                                                ;/*  设置异常临时栈(使用启动栈)  */
+
     LD.W        A1 , (A0 , 0)                                           ;/*  获取当前 TCB 的 REG_CTX 地址*/
-    
-    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
+
+    RESTORE_REGS                                                        ;/*  恢复寄存器                  */
     FUNC_END(archTaskCtxStart)
 
 ;/*********************************************************************************************************
@@ -66,26 +69,21 @@ FUNC_DEF(archTaskCtxStart)
 FUNC_DEF(archTaskCtxSwitch)
     LD.W        A1 , (A0 , 0)                                           ;/*  获取当前 TCB 的 REG_CTX 地址*/
 
-    SAVE_REGS                                                           ;/*  保存所有寄存器              */
+    SAVE_KERN_REGS                                                      ;/*  保存内核态任务寄存器        */
+
+    MOV         S0 , A0                                                 ;/*  S0 暂存 A0                  */
 
 #if LW_CFG_SMP_EN > 0
-    SUBI        SP , ARCH_REG_SIZE
-    ST.W        A0 , (SP)
-    BSR         _SchedSafeStack                                         ;/*  _SchedSafeStack();          */
-    LD.W        A2 , (SP)                                               ;/*  当前 CPU 信息出栈           */
+    JSRI        _SchedSafeStack                                         ;/*  _SchedSafeStack();          */
     MOV         SP , A0
-    MOV         A0 , A2
+    MOV         A0 , S0                                                 ;/*  恢复 A0                     */
 #endif
 
-    SUBI        SP , ARCH_REG_SIZE
-    ST.W        A0 , (SP)                                               ;/*  当前 CPU 信息入栈           */
-    BSR         _SchedSwp                                               ;/*  _SchedSwp();                */   
-    LD.W        A0 , (SP)                                               ;/*  当前 CPU 信息出栈           */
-    ADDI        SP , ARCH_REG_SIZE
+    JSRI        _SchedSwp                                               ;/*  _SchedSwp();                */
     
-    LD.W        A1 , (A0 , 0)                                           ;/*  获取当前 TCB 的 REG_CTX 地址*/
+    LD.W        A1 , (S0 , 0)                                           ;/*  获取当前 TCB 的 REG_CTX 地址*/
     
-    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
+    RESTORE_REGS                                                        ;/*  恢复任务寄存器              */
     FUNC_END(archTaskCtxSwitch)
 
 ;/*********************************************************************************************************
@@ -97,17 +95,15 @@ FUNC_DEF(archTaskCtxSwitch)
 FUNC_DEF(archCrtCtxSwitch)
     LD.W        A1 , (A0 , (2 * PTRSIZE))                               ;/*  当前 CCB 的 REG_CTX 地址    */
     
-    SAVE_REGS                                                           ;/*  保存所有寄存器              */
+    SAVE_KERN_REGS                                                      ;/*  保存内核态协程寄存器        */
     
-    SUBI        SP , ARCH_REG_SIZE
-    ST.W        A0 , (SP)                                               ;/*  当前 CPU 信息入栈           */
-    BSR         _SchedCrSwp                                             ;/*  _SchedCrSwp();              */    
-    LD.W        A0 , (SP)                                               ;/*  当前 CPU 信息出栈           */
-    ADDI        SP , ARCH_REG_SIZE
-    
-    LD.W        A1 , (A0 , (2 * PTRSIZE))                               ;/*  当前 CCB 的 REG_CTX 地址    */
+    MOV         S0 , A0                                                 ;/*  S0 暂存 A0                  */
 
-    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */    
+    JSRI        _SchedCrSwp                                             ;/*  _SchedCrSwp();              */
+    
+    LD.W        A1 , (S0 , (2 * PTRSIZE))                               ;/*  当前 CCB 的 REG_CTX 地址    */
+
+    RESTORE_KERN_REGS                                                   ;/*  恢复内核态协程寄存器        */
     FUNC_END(archCrtCtxSwitch)
 #endif
 
@@ -119,18 +115,18 @@ FUNC_DEF(archCrtCtxSwitch)
 FUNC_DEF(archIntCtxLoad)
     LD.W        A1 , (A0 , 0)                                           ;/*  获取当前 TCB 的 REG_CTX 地址*/
 
-    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
+    RESTORE_REGS                                                        ;/*  恢复任务寄存器              */
     FUNC_END(archIntCtxLoad)
 
 ;/*********************************************************************************************************
 ;  信号上下文返回
-;  参数为 ARCH_REG_CTX 指针
+;  参数为 ARCH_REG_CTX 指针, 即 A0 为 ARCH_REG_CTX 指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archSigCtxLoad)
     MOV         A1 , A0
     
-    RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
+    RESTORE_REGS                                                        ;/*  恢复任务寄存器              */
     FUNC_END(archSigCtxLoad)
 
 ;/*********************************************************************************************************
@@ -139,117 +135,28 @@ FUNC_DEF(archSigCtxLoad)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxCopy)
-    LD.W        A2 , (A1 , (0 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (0 * ARCH_REG_SIZE))
+    LDM         R18-R25 , (A1)
+    STM         R18-R25 , (A0)
+    ADDI        A0 , (8 * ARCH_REG_SIZE)
+    ADDI        A1 , (8 * ARCH_REG_SIZE)
     
-    LD.W        A2 , (A1 , (1 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (1 * ARCH_REG_SIZE))
+    LDM         R18-R25 , (A1)
+    STM         R18-R25 , (A0)
+    ADDI        A0 , (8 * ARCH_REG_SIZE)
+    ADDI        A1 , (8 * ARCH_REG_SIZE)
     
-    LD.W        A2 , (A1 , (2 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (2 * ARCH_REG_SIZE))
-
-    LD.W        A2 , (A1 , (3 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (3 * ARCH_REG_SIZE))
+    LDM         R18-R25 , (A1)
+    STM         R18-R25 , (A0)
+    ADDI        A0 , (8 * ARCH_REG_SIZE)
+    ADDI        A1 , (8 * ARCH_REG_SIZE)
     
-    LD.W        A2 , (A1 , (4 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (4 * ARCH_REG_SIZE))
+    LDM         R18-R25 , (A1)
+    STM         R18-R25 , (A0)
+    ADDI        A0 , (8 * ARCH_REG_SIZE)
+    ADDI        A1 , (8 * ARCH_REG_SIZE)
     
-    LD.W        A2 , (A1 , (5 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (5 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (6 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (6 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (7 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (7 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (8 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (8 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (9 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (9 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (10 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (10 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (11 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (11 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (12 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (12 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (13 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (13 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (14 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (14 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (15 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (15 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (16 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (16 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (17 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (17 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (18 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (18 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (19 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (19 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (20 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (20 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (21 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (21 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (22 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (22 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (23 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (23 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (24 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (24 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (25 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (25 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (26 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (26 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (27 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (27 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (28 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (28 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (29 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (29 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (30 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (30 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (31 * ARCH_REG_SIZE))
-    ST.W        A2 , (A0 , (31 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (32 * ARCH_REG_SIZE))                        ;/*   PC                         */
-    ST.W        A2 , (A0 , (32 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (33 * ARCH_REG_SIZE))                        ;/*   PSR                        */
-    ST.W        A2 , (A0 , (33 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (34 * ARCH_REG_SIZE))                        ;/*   LO                         */
-    ST.W        A2 , (A0 , (34 * ARCH_REG_SIZE))
-    
-    LD.W        A2 , (A1 , (35 * ARCH_REG_SIZE))                        ;/*   HI                         */
-    ST.W        A2 , (A0 , (35 * ARCH_REG_SIZE))
-
-    LD.W        A2 , (A1 , (36 * ARCH_REG_SIZE))                        ;/*   MEH                        */
-    ST.W        A2 , (A0 , (36 * ARCH_REG_SIZE))
-
+    LDM         R18-R23 , (A1)
+    STM         R18-R23 , (A0)
     RTS
     FUNC_END(archTaskCtxCopy)
     

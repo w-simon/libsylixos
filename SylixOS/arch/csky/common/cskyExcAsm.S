@@ -95,20 +95,6 @@
     WEAK(vector)
 
 ;/*********************************************************************************************************
-;  用于临时保存异常上下文
-;  如果有 RDHWR 指令, 可以通过 RDHWR 指令获得 CPU NUM,
-;  所以每个处理器逻辑核的临时异常上下文是相互独立的, 故不用加锁访问, 以提高实时性
-;*********************************************************************************************************/
-
-#define ARCH_TEMP_CTX_SIZE      4096
-#define XLOCK                   4000
-
-    SECTION(.bss)
-    .align      ARCH_STK_ALIGN_SIZE
-LINE_LABEL(archExcTempCtx)
-    .space      ARCH_TEMP_CTX_SIZE
-
-;/*********************************************************************************************************
 ;  异常/中断入口宏
 ;*********************************************************************************************************/
 
@@ -116,56 +102,41 @@ LINE_LABEL(archExcTempCtx)
 
 MACRO_DEF(IRQ_ENTRY  irq  handle)
     ;/*
-    ; * archExcTempCtx 在内核内存，不经 TLB 转换，所以访问时不会发生 TLB 重填异常
+    ; * 使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将寄存器保存到临时上下文保存区
     ; */
-    MTCR        A1 , SS0
-#if LW_CFG_CSKY_HAS_LDSTEX_INSTR > 0
-    MTCR        A0 , SS1
+    MTCR        SP , SS1                                                ;/*  SS1 暂存异常前 SP           */
+    MFCR        SP , SS0                                                ;/*  SP = 异常临时栈             */
+
+    SUBI    	SP , ARCH_REG_CTX_SIZE                                	;/*  在临时堆栈开辟上下文保存区  */
+
+    STM         R0-R31 , (SP)
+
+    MFCR        R18 , EPC                                               ;/*  EPC 代替 PC 保存            */
+    ST.W        R18 , (SP , XPC)
+
+    MFCR        R18 , EPSR                                              ;/*  EPSR 代替 PSR 保存          */
+    ST.W        R18 , (SP , XPSR)
+
+    MFLO        R18                                                     ;/*  保存 LO 寄存器              */
+    ST.W        R18 , (SP , XLO)
+
+    MFHI        R18                                                     ;/*  保存 HI 寄存器              */
+    ST.W        R18 , (SP , XHI)
+
+    MFCR        R18 , CR<4, 15>                                         ;/*  保存 MEH 寄存器             */
+    ST.W        R18 , (SP , XMEH)
+
+    MFCR        R18 , SS1                                               ;/*  读出异常前 SP               */
+#ifdef __CSKYABIV2__
+    ST.W        R18 , (SP , XGREG(14))                                  ;/*  保存异常前 SP               */
+#else
+    ST.W        R18 , (SP , XGREG(0))
 #endif
-1:
-    LRW         A1 , archExcTempCtx
-
-#if LW_CFG_CSKY_HAS_LDSTEX_INSTR > 0
-    ;/*
-    ; * 对 archExcTempCtx 进行加锁
-    ; */
-    LDEX.W      A1 , (A1 , XLOCK)
-    XORI        A1 , A1 , 1
-    BEZ         A1 , 1b
-
-    MOVI        A0 , 1
-    STEX.W      A0 , (A1 , XLOCK)
-    BEZ         A0 , 1b
-    MFCR        A0 , SS1
-#endif
-
-    STM         R0-R31 , (A1)
-
-    MFCR        A2 , EPC
-    ST.W        A2 , (A1 , XPC)                                         ;/*  EPC 代替 PC 保存            */
-
-    MFCR        A2 , EPSR
-    ST.W        A2 , (A1 , XPSR)                                        ;/*  保存 PSR 寄存器             */
-
-    MFLO        A2                                                      ;/*  保存 LO 寄存器              */
-    ST.W        A2 , (A1 , XLO)
-
-    MFHI        A2                                                      ;/*  保存 HI 寄存器              */
-    ST.W        A2 , (A1 , XHI)
-
-    MFCR        A2 , CR<4, 15>                                          ;/*  保存 MEH 寄存器             */
-    ST.W        A2 , (A1 , XMEH)
-
-    MFCR        A2 , SS0
-    ST.W        A2 , (A1 , XGREG(1))
 
     ;/*
-    ; * 以下的子函数调用不会破坏 SS0 寄存器
+    ; * API_InterEnter(寄存器上下文)
     ; */
-    MTCR        A1 , SS0
-    ADDI        SP , A1 , (ARCH_TEMP_CTX_SIZE - ARCH_STK_ALIGN_SIZE)
-
-    MFCR        A0 , SS0
+    MOV         A0 , SP
     JSRI        API_InterEnter
 
     CMPNEI      A0 , 1
@@ -185,21 +156,9 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
 
 2:
     ;/*
-    ; * 解锁 archExcTempCtx
-    ; */
-#if LW_CFG_CSKY_HAS_LDSTEX_INSTR > 0
-    MFCR        A0 , SS0
-    MOVI        A2 , 0
-    ST.W        A2 , (A0 , XLOCK)
-#endif
-
-    PSRSET      EE
-
-    ;/*
     ; * handle(vector, 寄存器上下文)
     ; */
     MOVI        A0 , \irq
-
     JSRI        \handle
 
     ;/*
@@ -212,14 +171,13 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ; * 来到这里, 说明发生了中断嵌套
     ; */
     MOV         A1 , SP
-    RESTORE_REGS
+    RESTORE_KERN_REGS
 
 3:
     ;/*
     ; * 不是第一次进入中断
     ; */
-    MFCR        A1 , SS0
-    LD.W        SP , (A1 , XGREG(14))
+    MFCR        SP , SS1                                                ;/*  异常前 SP                   */
     SUBI        SP , ARCH_REG_CTX_SIZE
     MOV         A1 , SP
     BR          2b

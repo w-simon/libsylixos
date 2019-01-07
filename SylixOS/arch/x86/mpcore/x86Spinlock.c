@@ -71,14 +71,14 @@ static LW_INLINE VOID  x86SpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, 
         uiRet             = cmpxchg(&psld->SLD_uiLock, sldVal, uiNewVal);
         if (uiRet == sldVal.SLD_uiLock) {
             break;
-        } else {
-            __asm__ __volatile__("pause");
         }
     }
 
     while (sldVal.SLD_usTicket != sldVal.SLD_usSvcNow) {
         if (pfuncPoll) {
             pfuncPoll(pvArg);
+        } else {
+            X86_PAUSE();                                                /*  ÊÊºÏ³¬Ïß³Ì                  */
         }
         sldVal.SLD_usSvcNow = LW_ACCESS_ONCE(UINT16, psld->SLD_usSvcNow);
     }
