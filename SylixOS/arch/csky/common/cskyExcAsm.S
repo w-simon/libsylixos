@@ -107,7 +107,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     MTCR        SP , SS1                                                ;/*  SS1 暂存异常前 SP           */
     MFCR        SP , SS0                                                ;/*  SP = 异常临时栈             */
 
-    SUBI    	SP , ARCH_REG_CTX_SIZE                                	;/*  在临时堆栈开辟上下文保存区  */
+    SUBI        SP , ARCH_REG_CTX_SIZE                                	;/*  在临时堆栈开辟上下文保存区  */
 
     STM         R0-R31 , (SP)
 
@@ -155,6 +155,8 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     MOV         A1 , A0
 
 2:
+    PSRSET      EE                                                      ;/*  使能异常                    */
+
     ;/*
     ; * handle(vector, 寄存器上下文)
     ; */
@@ -189,7 +191,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
 
 FUNC_DEF(archUnalignedExceptEntry)
     IRQ_ENTRY   1   archUnalignedExceptHandle
-    FUNC_END()
+    FUNC_END(archUnalignedExceptEntry)
 
 ;/*********************************************************************************************************
 ;  访问错误异常入口函数
@@ -197,7 +199,7 @@ FUNC_DEF(archUnalignedExceptEntry)
 
 FUNC_DEF(archAccessExceptEntry)
     IRQ_ENTRY   2   archAccessExceptHandle
-    FUNC_END()
+    FUNC_END(archAccessExceptEntry)
 
 ;/*********************************************************************************************************
 ;  除零异常入口函数
@@ -205,7 +207,7 @@ FUNC_DEF(archAccessExceptEntry)
 
 FUNC_DEF(archDivideZeroExceptEntry)
     IRQ_ENTRY   3   archDivideZeroExceptHandle
-    FUNC_END()
+    FUNC_END(archDivideZeroExceptEntry)
 
 ;/*********************************************************************************************************
 ;  非法指令异常入口函数
@@ -213,7 +215,7 @@ FUNC_DEF(archDivideZeroExceptEntry)
 
 FUNC_DEF(archIllegalInstExceptEntry)
     IRQ_ENTRY   4   archIllegalInstExceptHandle
-    FUNC_END()
+    FUNC_END(archIllegalInstExceptEntry)
 
 ;/*********************************************************************************************************
 ;  特权违反异常入口函数
@@ -221,7 +223,7 @@ FUNC_DEF(archIllegalInstExceptEntry)
 
 FUNC_DEF(archPrivilegeExceptEntry)
     IRQ_ENTRY   5   archPrivilegeExceptHandle
-    FUNC_END()
+    FUNC_END(archPrivilegeExceptEntry)
 
 ;/*********************************************************************************************************
 ;  跟踪异常入口函数
@@ -229,7 +231,7 @@ FUNC_DEF(archPrivilegeExceptEntry)
 
 FUNC_DEF(archTrapExceptEntry)
     IRQ_ENTRY   6   archTrapExceptHandle
-    FUNC_END()
+    FUNC_END(archTrapExceptEntry)
 
 ;/*********************************************************************************************************
 ;  断点异常入口函数
@@ -237,7 +239,7 @@ FUNC_DEF(archTrapExceptEntry)
 
 FUNC_DEF(archBreakPointExceptEntry)
     IRQ_ENTRY   7   archBreakPointExceptHandle
-    FUNC_END()
+    FUNC_END(archBreakPointExceptEntry)
 
 ;/*********************************************************************************************************
 ;  不可恢复错误异常入口函数
@@ -245,7 +247,7 @@ FUNC_DEF(archBreakPointExceptEntry)
 
 FUNC_DEF(archFatalErrExceptEntry)
     IRQ_ENTRY   8   archFatalErrExceptHandle
-    FUNC_END()
+    FUNC_END(archFatalErrExceptEntry)
 
 ;/*********************************************************************************************************
 ;  Idly 异常入口函数
@@ -253,7 +255,7 @@ FUNC_DEF(archFatalErrExceptEntry)
 
 FUNC_DEF(archIdlyExceptEntry)
     IRQ_ENTRY   9   archIdlyExceptHandle
-    FUNC_END()
+    FUNC_END(archIdlyExceptEntry)
 
 ;/*********************************************************************************************************
 ;  普通中断入口函数
@@ -261,7 +263,7 @@ FUNC_DEF(archIdlyExceptEntry)
 
 FUNC_DEF(archAutoIntEntry)
     IRQ_ENTRY   10  archAutoIntHandle
-    FUNC_END()
+    FUNC_END(archAutoIntEntry)
 
 ;/*********************************************************************************************************
 ;  快速中断入口函数
@@ -270,7 +272,7 @@ FUNC_DEF(archAutoIntEntry)
 FUNC_DEF(archFastAutoIntEntry)
     JSRI            archFastAutoIntHandle
     RFI
-    FUNC_END()
+    FUNC_END(archFastAutoIntEntry)
 
 ;/*********************************************************************************************************
 ;  Reserved 异常入口函数
@@ -278,7 +280,7 @@ FUNC_DEF(archFastAutoIntEntry)
 
 FUNC_DEF(archReservedExceptEntry)
     IRQ_ENTRY   12  archReservedExceptHandle
-    FUNC_END()
+    FUNC_END(archReservedExceptEntry)
 
 ;/*********************************************************************************************************
 ;  TLB 不可恢复异常入口函数
@@ -286,7 +288,7 @@ FUNC_DEF(archReservedExceptEntry)
 
 FUNC_DEF(archTlbFatalExceptEntry)
     IRQ_ENTRY   13  archTlbFatalExceptHandle
-    FUNC_END()
+    FUNC_END(archTlbFatalExceptEntry)
 
 ;/*********************************************************************************************************
 ;  TLB 重填异常入口函数
@@ -295,7 +297,7 @@ FUNC_DEF(archTlbFatalExceptEntry)
 #if LW_CFG_VMM_EN == 0
 FUNC_DEF(archTlbRefillExceptEntry)
     IRQ_ENTRY   14  archTlbRefillExceptHandle
-    FUNC_END()
+    FUNC_END(archTlbRefillExceptEntry)
 #endif
 
 ;/*********************************************************************************************************
@@ -304,7 +306,7 @@ FUNC_DEF(archTlbRefillExceptEntry)
 
 FUNC_DEF(archTlbModExceptEntry)
     IRQ_ENTRY   15  archTlbModExceptHandle
-    FUNC_END()
+    FUNC_END(archTlbModExceptEntry)
 
 ;/*********************************************************************************************************
 ;  陷阱指令异常 0 入口函数
@@ -312,7 +314,7 @@ FUNC_DEF(archTlbModExceptEntry)
 
 FUNC_DEF(archTrap0ExceptEntry)
     IRQ_ENTRY   16  archTrap0ExceptHandle
-    FUNC_END()
+    FUNC_END(archTrap0ExceptEntry)
 
 ;/*********************************************************************************************************
 ;  陷阱指令异常 1 入口函数
@@ -320,7 +322,7 @@ FUNC_DEF(archTrap0ExceptEntry)
 
 FUNC_DEF(archTrap1ExceptEntry)
     IRQ_ENTRY   17  archTrap1ExceptHandle
-    FUNC_END()
+    FUNC_END(archTrap1ExceptEntry)
 
 ;/*********************************************************************************************************
 ;  陷阱指令异常 2 入口函数
@@ -328,7 +330,7 @@ FUNC_DEF(archTrap1ExceptEntry)
 
 FUNC_DEF(archTrap2ExceptEntry)
     IRQ_ENTRY   18  archTrap2ExceptHandle
-    FUNC_END()
+    FUNC_END(archTrap2ExceptEntry)
 
 ;/*********************************************************************************************************
 ;  陷阱指令异常 3 入口函数
@@ -336,7 +338,7 @@ FUNC_DEF(archTrap2ExceptEntry)
 
 FUNC_DEF(archTrap3ExceptEntry)
     IRQ_ENTRY   19  archTrap3ExceptHandle
-    FUNC_END()
+    FUNC_END(archTrap3ExceptEntry)
 
 ;/*********************************************************************************************************
 ;  TLB 读无效异常入口函数
@@ -344,7 +346,7 @@ FUNC_DEF(archTrap3ExceptEntry)
 
 FUNC_DEF(archTlbLoadExceptEntry)
     IRQ_ENTRY   20  archTlbLoadExceptHandle
-    FUNC_END()
+    FUNC_END(archTlbLoadExceptEntry)
 
 ;/*********************************************************************************************************
 ;  TLB 写无效异常入口函数
@@ -352,7 +354,7 @@ FUNC_DEF(archTlbLoadExceptEntry)
 
 FUNC_DEF(archTlbStoreExceptEntry)
     IRQ_ENTRY   21  archTlbStoreExceptHandle
-    FUNC_END()
+    FUNC_END(archTlbStoreExceptEntry)
 
 ;/*********************************************************************************************************
 ;  32 ~ 255 号中断入口函数
@@ -385,7 +387,7 @@ FUNC_DEF(archTlbStoreExceptEntry)
     EXPORT_LABEL(archIntEntry\Id)
 FUNC_DEF(archIntEntry\Id)
     IRQ_ENTRY   \Id  bspIntHandle
-    FUNC_END()
+    FUNC_END(archIntEntry\Id)
     .endr
 
 ;/*********************************************************************************************************
@@ -457,7 +459,7 @@ FUNC_DEF(vector)
     250, 251, 252, 253, 254, 255
     .long   archIntEntry\Id
     .endr
-    FUNC_END()
+    FUNC_END(vector)
 
     FILE_END()
 

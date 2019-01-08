@@ -591,7 +591,6 @@ err_t  sys_mbox_trypost (sys_mbox_t *pmbox, void *msg)
     ulError = API_MsgQueueSend(*pmbox, &msg, sizeof(PVOID));
     if (ulError == ERROR_NONE) {                                        /*  ·¢ËÍ³É¹¦                    */
         return  (ERR_OK);
-    
     }
 
 #if LW_CFG_LWIP_DEBUG > 0

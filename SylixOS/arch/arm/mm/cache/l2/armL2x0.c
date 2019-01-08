@@ -106,7 +106,7 @@ static VOID armL2x0Sync (L2C_DRVIER  *pl2cdrv)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID armL2x0FlushLine (L2C_DRVIER  *pl2cdrv, addr_t  ulPhyAddr)
+static LW_INLINE VOID armL2x0FlushLine (L2C_DRVIER  *pl2cdrv, addr_t  ulPhyAddr)
 {
     while (read32_le(L2C_BASE(pl2cdrv) + L2C_CLEAN_LINE_PA) & 1);
     write32_le((UINT32)ulPhyAddr, L2C_BASE(pl2cdrv) + L2C_CLEAN_LINE_PA);
@@ -163,7 +163,7 @@ static VOID armL2x0Flush (L2C_DRVIER  *pl2cdrv, PVOID  pvPhyAddr, size_t  stByte
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID armL2x0InvalidateLine (L2C_DRVIER  *pl2cdrv, addr_t  ulPhyAddr)
+static LW_INLINE VOID armL2x0InvalidateLine (L2C_DRVIER  *pl2cdrv, addr_t  ulPhyAddr)
 {
     while (read32_le(L2C_BASE(pl2cdrv) + L2C_INV_LINE_PA) & 1);
     write32_le((UINT32)ulPhyAddr, L2C_BASE(pl2cdrv) + L2C_INV_LINE_PA);
@@ -224,7 +224,7 @@ static VOID armL2x0Invalidate (L2C_DRVIER  *pl2cdrv, PVOID  pvPhyAddr, size_t  s
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID armL2x0ClearLine (L2C_DRVIER  *pl2cdrv, addr_t  ulPhyAddr)
+static LW_INLINE VOID armL2x0ClearLine (L2C_DRVIER  *pl2cdrv, addr_t  ulPhyAddr)
 {
     while (read32_le(L2C_BASE(pl2cdrv) + L2C_CLEAN_INV_LINE_PA) & 1);
     write32_le((UINT32)ulPhyAddr, L2C_BASE(pl2cdrv) + L2C_CLEAN_INV_LINE_PA);

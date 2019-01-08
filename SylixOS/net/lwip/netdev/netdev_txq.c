@@ -258,6 +258,7 @@ int  netdev_txq_enable (netdev_t *netdev, struct netdev_txq *txq)
   }
   
   txq_ctl->txq_len = len;
+  txq_ctl->txq_block = txq->txq_block;
   txq_ctl->txq_txquit = 0;
   txq_ctl->txq_free = NULL;
   

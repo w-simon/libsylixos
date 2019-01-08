@@ -78,7 +78,7 @@ FUNC_DEF(archIntDisable)
 FUNC_DEF(archIntEnable)
     ANDI        A0 , A0 , M_PSR_IE
     BEZ         A0 , 1f
-    PSRSET      EE , IE
+    PSRSET      IE
 1:
     RTS
     FUNC_END(archIntEnable)
@@ -88,7 +88,7 @@ FUNC_DEF(archIntEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntEnableForce)
-    PSRSET      EE , IE
+    PSRSET      IE
     RTS
     FUNC_END(archIntEnableForce)
 

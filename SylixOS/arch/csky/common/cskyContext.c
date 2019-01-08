@@ -60,7 +60,7 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     pregctx->REG_ulReg[REG_SP] = (ARCH_REG_T)pfpctx;
 
     ulPSR  = archGetPSR();                                              /*  获得当前的 PSR 寄存器       */
-    ulPSR |= bspIntInitEnableStatus() | M_PSR_IE;                       /*  使能中断                    */
+    ulPSR |= bspIntInitEnableStatus() | M_PSR_IE | M_PSR_EE;            /*  使能中断和异常              */
     pregctx->REG_ulPSR = (ARCH_REG_T)ulPSR;
     pregctx->REG_ulPC  = (ARCH_REG_T)pfuncTask;
     pregctx->REG_ulLO  = (ARCH_REG_T)0x0;

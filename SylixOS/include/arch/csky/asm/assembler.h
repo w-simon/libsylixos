@@ -45,12 +45,13 @@
 #define FUNC_LABEL(func)          func:
 #define LINE_LABEL(line)          line:
 
-#define FUNC_DEF(name)                  \
+#define FUNC_DEF(func)                  \
         .balign     4;                  \
-        .type       symbol, @function;  \
-name:
+        .type   func, %function;        \
+func:
 
-#define FUNC_END(name)               
+#define FUNC_END(func)                  \
+        .size   func, . - func
 
 #define MACRO_DEF(mfunc...)             \
         .macro      mfunc
