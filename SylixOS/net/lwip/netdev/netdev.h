@@ -154,6 +154,7 @@ struct netdev_desc_helper {
 
   /* zero copy pool */
   int tx_zc_en;
+  int rx_zc_cnt; /* The best number is more than 'rx_buf_cnt', twice the recommended. */
   void *rx_zpmem;
   void *rx_hzcpool;
 
@@ -476,7 +477,7 @@ int  netdev_txq_length(netdev_t *netdev);
 /* create Tx/Rx descriptor helper */
 struct netdev_desc_helper *
 netdev_desc_helper_create(size_t each_buf_size, size_t pad_size, int cache_en,
-                          int tx_buf_cnt, int rx_buf_cnt, int tx_zc_en, int rx_zc_en);
+                          int tx_buf_cnt, int rx_buf_cnt, int tx_zc_en, int rx_zc_cnt);
 /* delete Tx/Rx descriptor helper (you must STOP netdev hardware first!) */
 int netdev_desc_helper_delete(struct netdev_desc_helper *helper);
 /* prepair Tx descriptor (you must ensure 'idx' is valid) */

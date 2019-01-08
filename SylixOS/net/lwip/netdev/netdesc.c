@@ -304,7 +304,7 @@ error:
 /* create descriptor helper */
 struct netdev_desc_helper *
 netdev_desc_helper_create (size_t each_buf_size, size_t pad_size, int cache_en,
-                           int tx_buf_cnt, int rx_buf_cnt, int tx_zc_en, int rx_zc_en)
+                           int tx_buf_cnt, int rx_buf_cnt, int tx_zc_en, int rx_zc_cnt)
 {
   struct netdev_desc_helper *helper;
   size_t cache_line;
@@ -341,6 +341,7 @@ netdev_desc_helper_create (size_t each_buf_size, size_t pad_size, int cache_en,
   helper->each_buf_size = each_buf_size;
   helper->pad_size = pad_size;
   helper->tx_zc_en = tx_zc_en;
+  helper->rx_zc_cnt = rx_zc_cnt;
 
 #if LW_CFG_CACHE_EN > 0
   if (cacheGetMode(DATA_CACHE) & CACHE_SNOOP_ENABLE) {
@@ -370,26 +371,27 @@ netdev_desc_helper_create (size_t each_buf_size, size_t pad_size, int cache_en,
 #endif /* !LW_CFG_CACHE_EN */
 
 #if LW_CFG_NET_DEV_ZCBUF_EN > 0
-  if (rx_zc_en) {
+  if (rx_zc_cnt > 0) {
     size_t page_size;
     size_t blk_size;
 
+    /* each_buf_size add zc_buf size */
+    blk_size = each_buf_size + sizeof(struct pbuf_custom) + sizeof(void *);
+    blk_size = ROUND_UP(blk_size, cache_line);
+
 #if LW_CFG_VMM_EN > 0
     page_size = getpagesize();
-    helper->rx_zpmem = vmmDmaAllocAlignWithFlags(rx_buf_cnt * each_buf_size, page_size, helper->cache_flags);
+    helper->rx_zpmem = vmmDmaAllocAlignWithFlags(rx_zc_cnt * blk_size, page_size, helper->cache_flags);
 #else /* LW_CFG_VMM_EN */
     page_size = 4 * LW_CFG_KB_SIZE;
-    helper->rx_zpmem = sys_malloc_align(rx_buf_cnt * each_buf_size, page_size);
+    helper->rx_zpmem = sys_malloc_align(rx_zc_cnt * blk_size, page_size);
 #endif /* !LW_CFG_VMM_EN */
 
     if (!helper->rx_zpmem) {
       goto error;
     }
 
-    /* each_buf_size add zc_buf size */
-    blk_size = each_buf_size + sizeof(struct pbuf_custom) + sizeof(void *);
-    blk_size = ROUND_UP(blk_size, cache_line);
-    helper->rx_hzcpool = netdev_zc_pbuf_pool_create((addr_t)helper->rx_zpmem, rx_buf_cnt, blk_size);
+    helper->rx_hzcpool = netdev_zc_pbuf_pool_create((addr_t)helper->rx_zpmem, rx_zc_cnt, blk_size);
     if (!helper->rx_hzcpool) {
       goto error;
     }
@@ -408,7 +410,7 @@ netdev_desc_helper_create (size_t each_buf_size, size_t pad_size, int cache_en,
 
 error:
 #if LW_CFG_NET_DEV_ZCBUF_EN > 0
-  if (rx_zc_en) {
+  if (rx_zc_cnt > 0) {
     if (helper->rx_hzcpool) {
       netdev_zc_pbuf_pool_delete(helper->rx_hzcpool, 1);
     }
@@ -444,7 +446,7 @@ int netdev_desc_helper_delete (struct netdev_desc_helper *helper)
     struct pbuf *p;
 
     /* recycle all pbuf */
-    for (i = 0; i < helper->rx_buf_cnt; i++) {
+    for (i = 0; i < helper->rx_zc_cnt; i++) {
       do {
         p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, LW_OPTION_WAIT_INFINITE);
       } while (!p);
