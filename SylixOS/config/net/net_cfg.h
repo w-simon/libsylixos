@@ -148,6 +148,7 @@
 #define LW_CFG_NET_DEV_PROTO_ANALYSIS   1                               /*  是否使能网络设备协议分析    */
 #define LW_CFG_NET_DEV_TXQ_EN           1                               /*  网卡发送队列支持            */
 #define LW_CFG_NET_DEV_ZCBUF_EN         1                               /*  网卡接收 0 拷贝缓冲支持     */
+#define LW_CFG_NET_DEV_DESC_HELPER_EN   1                               /*  网卡 Tx/Rx 描述符缓冲管理   */
 #define LW_CFG_NET_DEV_BRIDGE_EN        1                               /*  网卡桥接管理                */
 #define LW_CFG_NET_DEV_BONDING_EN       1                               /*  网卡 Bonding 支持           */
 

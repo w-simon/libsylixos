@@ -1462,6 +1462,7 @@ SylixOS/net/lwip/mroute/ip6_mrt.c \
 SylixOS/net/lwip/netcrc/ncrc_bitrev.c \
 SylixOS/net/lwip/netcrc/ncrc_crc16.c \
 SylixOS/net/lwip/netcrc/ncrc_crc32.c \
+SylixOS/net/lwip/netdev/netdesc.c \
 SylixOS/net/lwip/netdev/netdev_mip.c \
 SylixOS/net/lwip/netdev/netdev_txq.c \
 SylixOS/net/lwip/netdev/netdev.c \

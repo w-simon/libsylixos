@@ -124,6 +124,58 @@ struct netdev_txq {
 #endif /* LW_CFG_NET_DEV_TXQ_EN > 0 */
 
 /*
+ * netdev Tx/Rx descriptor buffer
+ */
+struct netdev_desc_buf {
+  /* zero copy buffer */
+  struct pbuf *p;
+
+  /* static buffer */
+  void *buffer;
+
+  /* driver can use this save something. */
+  void *drv_priv;
+
+  /* reserve for futrue */
+  void *reserved[8];
+};
+
+/*
+ * netdev Tx/Rx descriptor helper
+ */
+struct netdev_desc_helper {
+  /* Tx/Rx buffer array cnt */
+  int tx_buf_cnt;
+  int rx_buf_cnt;
+
+  /* Tx/Rx buffer array */
+  struct netdev_desc_buf *tx_buf;
+  struct netdev_desc_buf *rx_buf;
+
+  /* zero copy pool */
+  int tx_zc_en;
+  void *rx_zpmem;
+  void *rx_hzcpool;
+
+  /* cache update */
+  ULONG cache_flags;
+  int cache_flush;
+  int cache_invalid;
+
+  /* each buffer size & pad_size (typically: 2) */
+  size_t each_buf_size;
+  size_t pad_size;
+};
+
+#define NETDEV_TX_DESC_BUF(helper, i) (&((helper)->tx_buf[i]))
+#define NETDEV_RX_DESC_BUF(helper, i) (&((helper)->rx_buf[i]))
+
+typedef enum {
+  NETDEV_DESC_PBUF = 0,  /* netdev_desc_buf.p valid */
+  NETDEV_DESC_SBUF = 1   /* netdev_desc_buf.buffer valid */
+} netdev_desc_btype;
+
+/*
  * network driver functions.
  */
 struct netdev_funcs {
@@ -419,5 +471,22 @@ int  netdev_txq_isenable(netdev_t *netdev);
 /* netdev txqueue length */
 int  netdev_txq_length(netdev_t *netdev);
 #endif /* LW_CFG_NET_DEV_TXQ_EN */
+
+#if LW_CFG_NET_DEV_DESC_HELPER_EN > 0
+/* create Tx/Rx descriptor helper */
+struct netdev_desc_helper *
+netdev_desc_helper_create(size_t each_buf_size, size_t pad_size, int cache_en,
+                          int tx_buf_cnt, int rx_buf_cnt, int tx_zc_en, int rx_zc_en);
+/* delete Tx/Rx descriptor helper (you must STOP netdev hardware first!) */
+int netdev_desc_helper_delete(struct netdev_desc_helper *helper);
+/* prepair Tx descriptor (you must ensure 'idx' is valid) */
+netdev_desc_btype netdev_desc_tx_prepair(struct netdev_desc_helper *helper, int idx, struct pbuf *p);
+/* clean Tx descriptor (you must ensure 'idx' is valid) */
+void netdev_desc_tx_clean(struct netdev_desc_helper *helper, int idx);
+/* get Rx descriptor buffer (you must ensure 'idx' is valid) */
+struct pbuf *netdev_desc_rx_input(struct netdev_desc_helper *helper, int idx, int len);
+/* refill Rx descriptor buffer (you must ensure 'idx' is valid) */
+netdev_desc_btype netdev_desc_rx_refill(struct netdev_desc_helper *helper, int idx);
+#endif /* LW_CFG_NET_DEV_DESC_HELPER_EN */
 
 #endif /* __NETDEV_H */
