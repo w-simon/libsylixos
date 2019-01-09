@@ -162,10 +162,13 @@ VOID  __tshellNetstatGroup (INT  iNetType)
 
     size_t               stNeedBufferSize = 0;
     struct igmp_group   *group;
-    struct mld_group    *mld_group;
     struct netif        *netif;
     PCHAR                pcPrintBuf;
     size_t               stRealSize = 0;
+
+#if LWIP_IPV6
+    struct mld_group    *mld_group;
+#endif                                                                  /*  LWIP_IPV6                   */
     
     LOCK_TCPIP_CORE();
     if (__NETSTAT_INC_IPV4(iNetType)) {

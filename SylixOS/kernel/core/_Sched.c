@@ -392,11 +392,9 @@ INT  _Schedule (VOID)
 *********************************************************************************************************/
 VOID  _ScheduleInt (PLW_CLASS_CPU  pcpuCur)
 {
-    ULONG            ulCPUId;
     PLW_CLASS_TCB    ptcbCur;
     PLW_CLASS_TCB    ptcbCand;
     
-    ulCPUId = LW_CPU_GET_ID(pcpuCur);                                   /*  当前 CPUID                  */
     ptcbCur = pcpuCur->CPU_ptcbTCBCur;
     
 #if LW_CFG_SMP_EN > 0
@@ -437,7 +435,7 @@ VOID  _ScheduleInt (PLW_CLASS_CPU  pcpuCur)
     }
 #if LW_CFG_SMP_EN > 0                                                   /*  SMP 系统                    */
       else {
-        __LW_SMP_NOTIFY(ulCPUId);                                       /*  SMP 调度通知                */
+        __LW_SMP_NOTIFY(LW_CPU_GET_ID(pcpuCur));                        /*  SMP 调度通知                */
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 }
@@ -453,12 +451,10 @@ VOID  _ScheduleInt (PLW_CLASS_CPU  pcpuCur)
 
 BOOL  _ScheduleIntCheck (PLW_CLASS_CPU  pcpuCur)
 {
-    ULONG            ulCPUId;
     PLW_CLASS_TCB    ptcbCur;
     PLW_CLASS_TCB    ptcbCand;
     BOOL             bNeedSched;
-    
-    ulCPUId = LW_CPU_GET_ID(pcpuCur);                                   /*  当前 CPUID                  */
+
     ptcbCur = pcpuCur->CPU_ptcbTCBCur;
     
 #if LW_CFG_SMP_EN > 0

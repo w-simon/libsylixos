@@ -92,12 +92,14 @@ ULONG  API_ThreadStackCheck (LW_OBJECT_HANDLE  ulId,
         
 #if CPU_STK_GROWTH == 0                                                 /*  Ѱ�Ҷ�ջͷβ                */
         for (pstkButtom = ptcb->TCB_pstkStackBottom;
-             *pstkButtom == _K_stkFreeFlag;
+             (pstkButtom >= ptcb->TCB_pstkStackTop) &&
+             (*pstkButtom == _K_stkFreeFlag);
              pstkButtom--,
              stFree++);
 #else
         for (pstkButtom = ptcb->TCB_pstkStackBottom;
-             *pstkButtom == _K_stkFreeFlag;
+             (pstkButtom <= ptcb->TCB_pstkStackTop) &&
+             (*pstkButtom == _K_stkFreeFlag);
              pstkButtom++,
              stFree++);
 #endif

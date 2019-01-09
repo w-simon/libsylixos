@@ -1426,8 +1426,10 @@ static ssize_t  __procFsNetIgmp6Read (PLW_PROCFS_NODE  p_pfsn,
                                       off_t            oft)
 {
 #if LWIP_IGMP > 0
+#if LWIP_IPV6
     const CHAR      cIgmp6InfoHdr[] = 
     "DEV  GROUP                            COUNT\n";
+#endif
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;
@@ -3031,8 +3033,10 @@ static ssize_t  __procFsNetIfInet6Read (PLW_PROCFS_NODE  p_pfsn,
                                         size_t           stMaxBytes,
                                         off_t            oft)
 {
+#if LWIP_IPV6
     const CHAR      cIfInet6InfoHdr[] = 
     "INET6                            INDEX PREFIX-LEN SCOPE       FLAG      FACE\n";
+#endif                                                                  /*  LWIP_IPV6                   */
           PCHAR     pcFileBuffer;
           size_t    stRealSize;                                         /*  实际的文件内容大小          */
           size_t    stCopeBytes;

@@ -795,12 +795,16 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   struct netif *netif;
   struct netdev_funcs *drv;
   void  *ifparam = NULL;
-  int  i, enable, def, dhcp, autocfg;
+  int  i, enable, def, dhcp;
   char macstr[32];
-  int  mac[NETIF_MAX_HWADDR_LEN];
+  int mac[NETIF_MAX_HWADDR_LEN];
   int tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_MIN;
   int tcp_wnd = TCP_WND;
   
+#if LWIP_IPV6
+  int autocfg;
+#endif
+
 #if LW_CFG_NET_DEV_TXQ_EN > 0
   struct netdev_txq txq = {0, 1};
 #endif

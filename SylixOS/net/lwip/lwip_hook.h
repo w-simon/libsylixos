@@ -91,10 +91,14 @@ extern int link_output_hook(struct pbuf *p, struct netif *pnetif);
 *********************************************************************************************************/
 
 #if LW_CFG_NET_VLAN_EN > 0
+#ifdef SIZEOF_ETH_HDR
 extern int ethernet_vlan_set_hook(struct netif *pnetif, struct pbuf *p, const struct eth_addr *src, 
                                   const struct eth_addr *dst, u16_t eth_type);
+#ifdef SIZEOF_VLAN_HDR
 extern int ethernet_vlan_check_hook(struct netif *pnetif, const struct eth_hdr *ethhdr, 
                                     const struct eth_vlan_hdr *vlanhdr);
+#endif
+#endif
 #endif
 
 /*********************************************************************************************************

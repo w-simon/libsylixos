@@ -536,6 +536,7 @@ struct pbuf *netdev_desc_rx_input (struct netdev_desc_helper *helper, int idx, i
 /* netdev_desc_rx_refill (you must ensure 'idx' is valid) */
 netdev_desc_btype netdev_desc_rx_refill (struct netdev_desc_helper *helper, int idx)
 {
+#if LW_CFG_NET_DEV_ZCBUF_EN > 0
   struct netdev_desc_buf *rx_buf;
 
   rx_buf = NETDEV_RX_DESC_BUF(helper, idx);
@@ -554,6 +555,7 @@ netdev_desc_btype netdev_desc_rx_refill (struct netdev_desc_helper *helper, int 
       return (NETDEV_DESC_PBUF);
     }
   }
+#endif /* LW_CFG_NET_DEV_ZCBUF_EN */
 
   return (NETDEV_DESC_SBUF);
 }

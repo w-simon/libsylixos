@@ -1183,7 +1183,10 @@ struct netif *ip_route_default_hook (const ip4_addr_t *pipsrc, const ip4_addr_t 
 #if LW_CFG_NET_ROUTER > 0
 #if LW_CFG_NET_BALANCING > 0
     return  (srt_route_default_hook(pipsrc, pipdest));
+#else
+    return  (LW_NULL);
 #endif
+
 #else
     return  (LW_NULL);
 #endif                                                                  /*  LW_CFG_NET_ROUTER           */
@@ -1201,7 +1204,6 @@ ip4_addr_t *ip_gw_hook (struct netif *pnetif, const ip4_addr_t *pipdest)
 {
 #if LW_CFG_NET_ROUTER > 0
     return  (rt_route_gateway_hook(pnetif, pipdest));
-    
 #else
     return  (LW_NULL);
 #endif                                                                  /*  LW_CFG_NET_ROUTER           */
@@ -1252,7 +1254,10 @@ struct netif *ip6_route_default_hook (const ip6_addr_t *pip6src, const ip6_addr_
 #if LW_CFG_NET_ROUTER > 0
 #if LW_CFG_NET_BALANCING > 0
     return  (srt6_route_default_hook(pip6src, pip6dest));
+#else
+    return  (LW_NULL);
 #endif
+
 #else
     return  (LW_NULL);
 #endif                                                                  /*  LW_CFG_NET_ROUTER           */
@@ -1269,7 +1274,6 @@ ip6_addr_t *ip6_gw_hook (struct netif *pnetif, const ip6_addr_t *pip6dest)
 {
 #if LW_CFG_NET_ROUTER > 0
     return  (rt6_route_gateway_hook(pnetif, pip6dest));
-    
 #else
     return  (LW_NULL);
 #endif                                                                  /*  LW_CFG_NET_ROUTER           */
