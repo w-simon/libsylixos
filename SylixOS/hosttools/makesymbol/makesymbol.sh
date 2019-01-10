@@ -126,6 +126,7 @@ cat << EOF >$symbolc
 /*********************************************************************************************************
   全局对象声明                                                
 *********************************************************************************************************/
+#ifdef SYLIXOS_EXPORT_KSYMBOL
 EOF
 
 # 声明
@@ -157,6 +158,7 @@ cat $objsfile >>tempfilesymbol.txt
 
 cat << EOF >>$symbolc
 SYMBOL_TABLE_END                                                
+#endif
 /*********************************************************************************************************
   END                                                    
 *********************************************************************************************************/
@@ -190,6 +192,7 @@ cat << EOF > $symbolh
 #include "SylixOS.h"                                            
 #include "symboltools.h"
                                                         
+#ifdef SYLIXOS_EXPORT_KSYMBOL
 #define SYM_TABLE_SIZE      `cat tempfilesymbol.txt|wc -l`
 extern  LW_STATIC_SYMBOL     _G_symLibSylixOS[SYM_TABLE_SIZE];
                                                         
@@ -197,8 +200,14 @@ static LW_INLINE  INT symbolAddAll (VOID)
 {                                                        
     return  (symbolAddStatic((LW_SYMBOL *)_G_symLibSylixOS, SYM_TABLE_SIZE));                
 }                                                        
+#else
+static LW_INLINE  INT symbolAddAll (VOID)
+{
+    return  (ERROR_NONE);                
+}
+#endif
+                                         
 #endif                                                                  /*  __SYMBOL_H                  */
-
 /********************************************************************************************************* 
   END 
 *********************************************************************************************************/

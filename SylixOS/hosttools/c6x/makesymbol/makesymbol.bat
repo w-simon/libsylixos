@@ -64,6 +64,7 @@ echo.														>> symbol.c
 echo /*********************************************************************************************************	>> symbol.c
 echo   全局对象声明											>> symbol.c
 echo *********************************************************************************************************/	>> symbol.c
+echo #ifdef SYLIXOS_EXPORT_KSYMBOL							>> symbol.c
 
 for /f "tokens=3 delims= " %%i in (func.txt) do @(
     if not "%%i"=="__sylixos_version" if not "%%i"=="memcpy" (
@@ -97,6 +98,7 @@ for /f "tokens=3 delims= " %%i in (obj.txt) do @(
     )
 )
 echo SYMBOL_TABLE_END										>> symbol.c
+echo #endif													>> symbol.c
 echo /*********************************************************************************************************	>> symbol.c
 echo   END													>> symbol.c
 echo *********************************************************************************************************/	>> symbol.c
@@ -129,6 +131,7 @@ echo.														>> symbol.h
 echo #include "SylixOS.h"									>> symbol.h
 echo #include "symboltools.h"								>> symbol.h
 echo.														>> symbol.h
+echo #ifdef SYLIXOS_EXPORT_KSYMBOL							>> symbol.h
 echo #define SYM_TABLE_SIZE %num%							>> symbol.h
 echo extern  LW_STATIC_SYMBOL  _G_symLibSylixOS[SYM_TABLE_SIZE];					>> symbol.h
 echo.														>> symbol.h	
@@ -136,6 +139,13 @@ echo static LW_INLINE  INT symbolAddAll (VOID)				>> symbol.h
 echo {														>> symbol.h
 echo     return  (symbolAddStatic((LW_SYMBOL *)_G_symLibSylixOS, SYM_TABLE_SIZE));	>> symbol.h
 echo }														>> symbol.h
+echo #else													>> symbol.h
+echo static LW_INLINE  INT symbolAddAll (VOID)				>> symbol.h
+echo {														>> symbol.h
+echo     return  (ERROR_NONE);								>> symbol.h
+echo }														>> symbol.h
+echo #endif													>> symbol.h
+echo.														>> symbol.h
 echo #endif                                                                  /*  __SYMBOL_H                  */	>> symbol.h
 echo /*********************************************************************************************************	>> symbol.h
 echo   END													>> symbol.h
