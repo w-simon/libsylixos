@@ -241,14 +241,14 @@ INT  API_PciDrvLoad (PCI_DRV_HANDLE       hDrvHandle,
         hIdEntry = hDrvHandle->PCIDRV_hDrvIdTable;
     }
 
-    iRet = hDrvHandle->PCIDRV_pfuncDevProbe(hDevHandle, hIdEntry);
+    iRet = API_PciDevDrvUpdate(hDevHandle, hDrvHandle);                 /*  更新设备驱动句柄以便驱动使用*/
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
 
-    iRet = API_PciDevDrvUpdate(hDevHandle, hDrvHandle);
+    iRet = hDrvHandle->PCIDRV_pfuncDevProbe(hDevHandle, hIdEntry);
     if (iRet != ERROR_NONE) {
-        hDrvHandle->PCIDRV_pfuncDevRemove(hDevHandle);
+        API_PciDevDrvDel(hDevHandle, hDrvHandle);                       /*  匹配失败时删除驱动句柄      */
         return  (PX_ERROR);
     }
 

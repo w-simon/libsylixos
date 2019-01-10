@@ -1322,6 +1322,20 @@ PVOID  API_PciDevIoRemap2 (phys_addr_t  paPhysicalAddr, size_t  stSize)
     return  (API_PciDevIoRemapEx2(paPhysicalAddr, stSize, LW_VMM_FLAG_DMA));
 }
 /*********************************************************************************************************
+** 函数名称: API_PciDevIoUnmap
+** 功能描述: 释放 ioremap 占用的逻辑空间
+** 输　入  : pvVirtualMem      虚拟地址
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_PciDevIoUnmap (PVOID  pvVirtualAddr)
+{
+    return  (API_VmmIoUnmap(pvVirtualAddr));
+}
+/*********************************************************************************************************
 ** 函数名称: API_PciDevDrvDel
 ** 功能描述: 删除一个 PCI 设备的驱动
 ** 输　入  : hDevHandle     设备控制句柄

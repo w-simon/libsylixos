@@ -281,17 +281,18 @@ VOID  _ThreadDebugUnpendSem (PLW_CLASS_TCB  ptcb)
 
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************
-** 函数名称: _ThreadMakeMain
-** 功能描述: 将指定线程转化为进程内主线程
+** 函数名称: _ThreadMigrateToProc
+** 功能描述: 将指定线程转化为进程内线程
 ** 输　入  : ulId          线程 ID
 **           pvVProc       进程控制块
+**           bMain         是否为主线程
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
 
-ULONG  _ThreadMakeMain (LW_HANDLE  ulId, PVOID   pvVProc)
+ULONG  _ThreadMigrateToProc (LW_HANDLE  ulId, PVOID   pvVProc, BOOL  bMain)
 {
              INTREG         iregInterLevel;
     REGISTER UINT16         usIndex;
@@ -324,7 +325,10 @@ ULONG  _ThreadMakeMain (LW_HANDLE  ulId, PVOID   pvVProc)
     }
     
     ptcb->TCB_pvVProcessContext = pvVProc;
-    pvproc->VP_ulMainThread     = ulId;
+
+    if (bMain) {
+        pvproc->VP_ulMainThread = ulId;                                 /*  设置为主线程                */
+    }
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  进入内核打开中断            */
     
     if (bVpAdd) {

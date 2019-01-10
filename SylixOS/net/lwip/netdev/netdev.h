@@ -158,10 +158,16 @@ struct netdev_desc_helper {
   void *rx_zpmem;
   void *rx_hzcpool;
 
-  /* cache update */
-  ULONG cache_flags;
-  int cache_flush;
-  int cache_invalid;
+  /* cache flags */
+  ULONG cache_zc_flags;
+  ULONG cache_ts_flags;
+  ULONG cache_rs_flags;
+
+  /* cache operate */
+  int cache_pb_flush;
+  int cache_ts_flush;
+  int cache_zc_invalid;
+  int cache_rs_invalid;
 
   /* each buffer size & pad_size (typically: 2) */
   size_t each_buf_size;
@@ -476,12 +482,13 @@ int  netdev_txq_length(netdev_t *netdev);
 #if LW_CFG_NET_DEV_DESC_HELPER_EN > 0
 /* create Tx/Rx descriptor helper */
 struct netdev_desc_helper *
-netdev_desc_helper_create(size_t each_buf_size, size_t pad_size, int cache_en,
+netdev_desc_helper_create(size_t each_buf_size, size_t pad_size,
+                          int cache_ts_en, int cache_rs_en, int cache_zc_en,
                           int tx_buf_cnt, int rx_buf_cnt, int tx_zc_en, int rx_zc_cnt);
 /* delete Tx/Rx descriptor helper (you must STOP netdev hardware first!) */
 int netdev_desc_helper_delete(struct netdev_desc_helper *helper);
-/* prepair Tx descriptor (you must ensure 'idx' is valid) */
-netdev_desc_btype netdev_desc_tx_prepair(struct netdev_desc_helper *helper, int idx, struct pbuf *p);
+/* prepare Tx descriptor (you must ensure 'idx' is valid) */
+netdev_desc_btype netdev_desc_tx_prepare(struct netdev_desc_helper *helper, int idx, struct pbuf *p);
 /* clean Tx descriptor (you must ensure 'idx' is valid) */
 void netdev_desc_tx_clean(struct netdev_desc_helper *helper, int idx);
 /* get Rx descriptor buffer (you must ensure 'idx' is valid) */

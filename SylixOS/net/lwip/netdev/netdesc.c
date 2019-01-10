@@ -50,7 +50,7 @@
 #include "netdev.h"
 
 #ifndef NETDEV_DESC_EACH_BUF_MIN_SIZE
-#define NETDEV_DESC_EACH_BUF_MIN_SIZE  1280
+#define NETDEV_DESC_EACH_BUF_MIN_SIZE   1280
 #endif /* !NETDEV_DESC_EACH_BUF_MIN_SIZE */
 
 /* delete descriptor Tx buffer array */
@@ -127,7 +127,7 @@ static int netdev_desc_tx_buf_create (struct netdev_desc_helper *helper)
 
       } else {
 #if LW_CFG_VMM_EN > 0
-        stbuf = vmmDmaAllocAlignWithFlags(page_size, page_size, helper->cache_flags);
+        stbuf = vmmDmaAllocAlignWithFlags(page_size, page_size, helper->cache_ts_flags);
 #else /* LW_CFG_VMM_EN */
         stbuf = sys_malloc(page_size);
 #endif /* !LW_CFG_VMM_EN */
@@ -142,7 +142,7 @@ static int netdev_desc_tx_buf_create (struct netdev_desc_helper *helper)
     npages_per_buf = ROUND_UP(helper->each_buf_size, page_size) / page_size;
     for (i = 0; i < helper->tx_buf_cnt; i++) {
 #if LW_CFG_VMM_EN > 0
-      stbuf = vmmDmaAllocAlignWithFlags(npages_per_buf * page_size, page_size, helper->cache_flags);
+      stbuf = vmmDmaAllocAlignWithFlags(npages_per_buf * page_size, page_size, helper->cache_ts_flags);
 #else /* LW_CFG_VMM_EN */
       stbuf = sys_malloc(npages_per_buf * page_size);
 #endif /* !LW_CFG_VMM_EN */
@@ -246,7 +246,7 @@ static int netdev_desc_rx_buf_create (struct netdev_desc_helper *helper)
 
       } else {
 #if LW_CFG_VMM_EN > 0
-        stbuf = vmmDmaAllocAlignWithFlags(page_size, page_size, helper->cache_flags);
+        stbuf = vmmDmaAllocAlignWithFlags(page_size, page_size, helper->cache_rs_flags);
 #else /* LW_CFG_VMM_EN */
         stbuf = sys_malloc(page_size);
 #endif /* !LW_CFG_VMM_EN */
@@ -259,7 +259,7 @@ static int netdev_desc_rx_buf_create (struct netdev_desc_helper *helper)
       if (helper->rx_hzcpool) {
         rx_buf[i].p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, LW_OPTION_NOT_WAIT);
 #if LW_CFG_CACHE_EN > 0
-        if (rx_buf[i].p && helper->cache_invalid) {
+        if (rx_buf[i].p && helper->cache_zc_invalid) {
           cacheInvalidate(DATA_CACHE, rx_buf[i].p->payload, rx_buf[i].p->tot_len);
         }
 #endif /* LW_CFG_CACHE_EN */
@@ -271,7 +271,7 @@ static int netdev_desc_rx_buf_create (struct netdev_desc_helper *helper)
     npages_per_buf = ROUND_UP(helper->each_buf_size, page_size) / page_size;
     for (i = 0; i < helper->rx_buf_cnt; i++) {
 #if LW_CFG_VMM_EN > 0
-      stbuf = vmmDmaAllocAlignWithFlags(npages_per_buf * page_size, page_size, helper->cache_flags);
+      stbuf = vmmDmaAllocAlignWithFlags(npages_per_buf * page_size, page_size, helper->cache_rs_flags);
 #else /* LW_CFG_VMM_EN */
       stbuf = sys_malloc(npages_per_buf * page_size);
 #endif /* !LW_CFG_VMM_EN */
@@ -283,7 +283,7 @@ static int netdev_desc_rx_buf_create (struct netdev_desc_helper *helper)
       if (helper->rx_hzcpool) {
         rx_buf[i].p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, LW_OPTION_NOT_WAIT);
 #if LW_CFG_CACHE_EN > 0
-        if (rx_buf[i].p && helper->cache_invalid) {
+        if (rx_buf[i].p && helper->cache_zc_invalid) {
           cacheInvalidate(DATA_CACHE, rx_buf[i].p->payload, rx_buf[i].p->tot_len);
         }
 #endif /* LW_CFG_CACHE_EN */
@@ -303,7 +303,8 @@ error:
 
 /* create descriptor helper */
 struct netdev_desc_helper *
-netdev_desc_helper_create (size_t each_buf_size, size_t pad_size, int cache_en,
+netdev_desc_helper_create (size_t each_buf_size, size_t pad_size,
+                           int cache_ts_en, int cache_rs_en, int cache_zc_en,
                            int tx_buf_cnt, int rx_buf_cnt, int tx_zc_en, int rx_zc_cnt)
 {
   struct netdev_desc_helper *helper;
@@ -344,30 +345,51 @@ netdev_desc_helper_create (size_t each_buf_size, size_t pad_size, int cache_en,
   helper->rx_zc_cnt = rx_zc_cnt;
 
 #if LW_CFG_CACHE_EN > 0
-  if (cacheGetMode(DATA_CACHE) & CACHE_SNOOP_ENABLE) {
-    helper->cache_flush   = 0;
-    helper->cache_invalid = 0;
-    helper->cache_flags   = LW_VMM_FLAG_RDWR;
-
-  } else if (cache_en) {
-    if (cacheGetMode(DATA_CACHE) & CACHE_WRITETHROUGH) {
-      helper->cache_flush = 0;
-    } else {
-      helper->cache_flush = 1;
-    }
-    helper->cache_invalid = 1;
-    helper->cache_flags   = LW_VMM_FLAG_RDWR;
+  if (cacheGetMode(DATA_CACHE) & CACHE_SNOOP_ENABLE) {  /* cache has snoop unit */
+    helper->cache_zc_flags   = LW_VMM_FLAG_RDWR;
+    helper->cache_ts_flags   = LW_VMM_FLAG_RDWR;
+    helper->cache_rs_flags   = LW_VMM_FLAG_RDWR;
+    helper->cache_pb_flush   = 0;
+    helper->cache_ts_flush   = 0;
+    helper->cache_zc_invalid = 0;
+    helper->cache_rs_invalid = 0;
 
   } else {
-    helper->cache_flush   = 0;
-    helper->cache_invalid = 0;
-    helper->cache_flags   = LW_VMM_FLAG_DMA;
-  }
+    if (cacheGetMode(DATA_CACHE) & CACHE_WRITETHROUGH) { /* cache is writethrough */
+      helper->cache_ts_flags = LW_VMM_FLAG_RDWR;
+      helper->cache_pb_flush = 0;
+      helper->cache_ts_flush = 0;
 
-#else /* LW_CFG_CACHE_EN */
-  helper->cache_flush   = 0;
-  helper->cache_invalid = 0;
-  helper->cache_flags   = 0;
+    } else {
+      helper->cache_pb_flush = 1; /* must flush send pbuf */
+      if (cache_ts_en) {
+        helper->cache_ts_flags = LW_VMM_FLAG_RDWR; /* send static buffer has cache */
+        helper->cache_ts_flush = 1;
+
+      } else {
+        helper->cache_ts_flags = LW_VMM_FLAG_DMA; /* send static buffer no cache */
+        helper->cache_ts_flush = 0;
+      }
+    }
+
+    if (cache_rs_en) { /* recv static buffer has cache */
+      helper->cache_rs_flags   = LW_VMM_FLAG_RDWR;
+      helper->cache_rs_invalid = 1;
+
+    } else {
+      helper->cache_rs_flags   = LW_VMM_FLAG_DMA;
+      helper->cache_rs_invalid = 0;
+    }
+
+    if (cache_zc_en) { /* recv zc buffer has cache */
+      helper->cache_zc_flags   = LW_VMM_FLAG_RDWR;
+      helper->cache_zc_invalid = 1;
+
+    } else {
+      helper->cache_zc_flags   = LW_VMM_FLAG_DMA;
+      helper->cache_zc_invalid = 0;
+    }
+  }
 #endif /* !LW_CFG_CACHE_EN */
 
 #if LW_CFG_NET_DEV_ZCBUF_EN > 0
@@ -381,7 +403,7 @@ netdev_desc_helper_create (size_t each_buf_size, size_t pad_size, int cache_en,
 
 #if LW_CFG_VMM_EN > 0
     page_size = getpagesize();
-    helper->rx_zpmem = vmmDmaAllocAlignWithFlags(rx_zc_cnt * blk_size, page_size, helper->cache_flags);
+    helper->rx_zpmem = vmmDmaAllocAlignWithFlags(rx_zc_cnt * blk_size, page_size, helper->cache_zc_flags);
 #else /* LW_CFG_VMM_EN */
     page_size = 4 * LW_CFG_KB_SIZE;
     helper->rx_zpmem = sys_malloc_align(rx_zc_cnt * blk_size, page_size);
@@ -467,8 +489,8 @@ int netdev_desc_helper_delete (struct netdev_desc_helper *helper)
   return (0);
 }
 
-/* netdev_desc_tx_prepair (you must ensure 'idx' is valid) */
-netdev_desc_btype netdev_desc_tx_prepair (struct netdev_desc_helper *helper, int idx, struct pbuf *p)
+/* netdev_desc_tx_prepare (you must ensure 'idx' is valid) */
+netdev_desc_btype netdev_desc_tx_prepare (struct netdev_desc_helper *helper, int idx, struct pbuf *p)
 {
   struct netdev_desc_buf *tx_buf;
 
@@ -477,7 +499,9 @@ netdev_desc_btype netdev_desc_tx_prepair (struct netdev_desc_helper *helper, int
     pbuf_ref(p);
     tx_buf->p = p;
 #if LW_CFG_CACHE_EN > 0
-    cacheFlush(DATA_CACHE, p->payload, p->tot_len);
+    if (helper->cache_pb_flush) {
+      cacheFlush(DATA_CACHE, p->payload, p->tot_len);
+    }
 #endif /* LW_CFG_CACHE_EN */
     return (NETDEV_DESC_PBUF);
 
@@ -485,7 +509,7 @@ netdev_desc_btype netdev_desc_tx_prepair (struct netdev_desc_helper *helper, int
     LWIP_ASSERT("buffer length to long!", p->tot_len <= helper->each_buf_size);
     pbuf_copy_partial(p, tx_buf->buffer, p->tot_len, 0);
 #if LW_CFG_CACHE_EN > 0
-    if (helper->cache_flush) {
+    if (helper->cache_ts_flush) {
       cacheFlush(DATA_CACHE, tx_buf->buffer, p->tot_len);
     }
 #endif /* LW_CFG_CACHE_EN */
@@ -516,6 +540,11 @@ struct pbuf *netdev_desc_rx_input (struct netdev_desc_helper *helper, int idx, i
     p = rx_buf->p;
     p->tot_len = p->len = (u16_t)len;
     rx_buf->p = NULL;
+#if LW_CFG_CACHE_EN > 0
+    if (helper->cache_zc_invalid) {
+      cacheInvalidate(DATA_CACHE, p->payload, p->tot_len);
+    }
+#endif /* LW_CFG_CACHE_EN */
 
   } else {
     p = netdev_pbuf_alloc((u16_t)len);
@@ -523,7 +552,7 @@ struct pbuf *netdev_desc_rx_input (struct netdev_desc_helper *helper, int idx, i
       return (NULL);
     }
 #if LW_CFG_CACHE_EN > 0
-    if (helper->cache_invalid) {
+    if (helper->cache_rs_invalid) {
       cacheInvalidate(DATA_CACHE, rx_buf->buffer, len);
     }
 #endif /* LW_CFG_CACHE_EN */
@@ -548,7 +577,7 @@ netdev_desc_btype netdev_desc_rx_refill (struct netdev_desc_helper *helper, int 
     rx_buf->p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, LW_OPTION_NOT_WAIT);
     if (rx_buf->p) {
 #if LW_CFG_CACHE_EN > 0
-      if (helper->cache_invalid) {
+      if (helper->cache_zc_invalid) {
         cacheInvalidate(DATA_CACHE, rx_buf->p->payload, rx_buf->p->tot_len);
       }
 #endif /* LW_CFG_CACHE_EN */

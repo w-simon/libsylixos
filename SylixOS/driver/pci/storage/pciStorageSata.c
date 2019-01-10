@@ -595,7 +595,6 @@ static INT  pciStorageSataDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_
                                    hPciDevHandle->PCIDEV_uiUnitNumber,
                                    (PVOID)hPciDevHandle);
     if (!hAhciCtrl) {
-        hPciDevHandle->PCIDEV_pvDevDriver = LW_NULL;
         pciStorageSataCtrlNum--;
         return  (PX_ERROR);
     }
@@ -966,7 +965,6 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     }
     AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx szie %llx.\r\n",
              hCtrl->AHCICTRL_pvRegAddr, hCtrl->AHCICTRL_stRegSize);
-    hPciDev->PCIDEV_pvDevDriver = (PVOID)hCtrl;
 
     iRet = API_PciDevMsiEnableSet(hPciDev, LW_TRUE);
     if (iRet != ERROR_NONE) {

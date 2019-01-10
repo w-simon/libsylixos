@@ -1371,7 +1371,7 @@ INT  vprocRun (LW_LD_VPROC      *pvproc,
     FUNCPTR            pfunEntry;
     union sigval       sigvalue;
 
-    _ThreadMakeMain(API_ThreadIdSelf(), (PVOID)pvproc);                 /*  当前线程即为主线程          */
+    _ThreadMigrateToProc(API_ThreadIdSelf(), (PVOID)pvproc, LW_TRUE);   /*  当前线程即为主线程          */
                                                                         /*  此线程不再是全局线程        */
                                                                         /*  而且为此线程重新确定 pid    */
     if (LW_NULL == pcFile || LW_NULL == pcEntry) {

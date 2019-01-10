@@ -46,6 +46,7 @@
 2017.08.01  今天中国人民解放军建军 90 周年纪念日, 祝愿祖国蒸蒸日上.
             AF_UNIX 支持多线程并行读写.
 2017.08.31  shutdown 写后, 远程端有机会读出最后暂存的数据.
+2019.01.09  修正 __unixUpdateWriter() 判断错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -400,8 +401,15 @@ static ssize_t  __unixSendtoMsg (AF_UNIX_T  *pafunixSender, AF_UNIX_T  *pafunixR
     AF_UNIX_N  *pafunixmsg;
     AF_UNIX_Q  *pafunixq;
     
-    if (stLen > __AF_UNIX_PIPE_BUF) {
-        stLen = __AF_UNIX_PIPE_BUF;                                     /*  一次发送最多 PIPE_BUF       */
+    if (__AF_UNIX_TYPE(pafunixSender) == SOCK_STREAM) {
+        if (stLen > __AF_UNIX_PIPE_BUF) {
+            stLen = __AF_UNIX_PIPE_BUF;                                 /*  一次发送最多 PIPE_BUF       */
+        }
+
+    } else {                                                            /*  需要原子投递                */
+        if (stLen > pafunixRecver->UNIX_stMaxBufSize) {                 /*  最大不得超出接收缓冲大小    */
+            stLen = pafunixRecver->UNIX_stMaxBufSize;
+        }
     }
     
     pafunixmsg = __unixCreateMsg(pafunixSender, pafunixRecver, 
@@ -589,13 +597,16 @@ static VOID  __unixUpdateWriter (AF_UNIX_T  *pafunix, INT  iSoErr)
 {
     AF_UNIX_T  *pafunixPeer;
 
-    if (pafunix->UNIX_unixq.UNIQ_stTotal > __AF_UNIX_PIPE_BUF) {        /*  保证写入原子性              */
-        __AF_UNIX_SWRITE(pafunix);
-        
-        pafunixPeer = pafunix->UNIX_pafunxPeer;                         /*  如果存在远程对等方          */
-        if (pafunixPeer) {
-            __socketEnotify(pafunixPeer->UNIX_sockFile, SELWRITE, iSoErr);
-        }                                                               /*  远程对等方 select 可写      */
+    if (pafunix->UNIX_stMaxBufSize > pafunix->UNIX_unixq.UNIQ_stTotal) {
+        if ((pafunix->UNIX_stMaxBufSize -
+             pafunix->UNIX_unixq.UNIQ_stTotal) >= __AF_UNIX_PIPE_BUF) { /*  保证写入原子性              */
+            __AF_UNIX_SWRITE(pafunix);
+
+            pafunixPeer = pafunix->UNIX_pafunxPeer;                     /*  如果存在远程对等方          */
+            if (pafunixPeer) {
+                __socketEnotify(pafunixPeer->UNIX_sockFile, SELWRITE, iSoErr);
+            }                                                           /*  远程对等方 select 可写      */
+        }
     }
 }
 /*********************************************************************************************************
@@ -1670,6 +1681,7 @@ static ssize_t  unix_sendto2 (AF_UNIX_T  *pafunix, const void *data, size_t size
                               const struct sockaddr *to, socklen_t tolen)
 {
     BOOL        bHaveTo  = LW_FALSE;
+    size_t      stLeft   = size;
     ssize_t     sstTotal = 0;
     ssize_t     sstWriteNum;                                            /*  单次发送长度                */
     ULONG       ulError;
@@ -1677,11 +1689,7 @@ static ssize_t  unix_sendto2 (AF_UNIX_T  *pafunix, const void *data, size_t size
     CHAR        cPath[MAX_FILENAME_LENGTH];
     AF_UNIX_T  *pafunixRecver;
     
-    INT         i       = 0;                                            /*  总发送次数                  */
-    UINT        uiTimes = size >> __AF_UNIX_PIPE_BUF_SHIFT;             /*  循环次数                    */
-    UINT        uiLeft  = size & (__AF_UNIX_PIPE_BUF - 1);              /*  最后一次数量                */
-    
-    CPCHAR      pcSendMem = (CPCHAR)data;                               /*  当前发送数据指针            */
+    CPCHAR      pcSendMem         = (CPCHAR)data;                       /*  当前发送数据指针            */
     BOOL        bNeedUpdateReader = LW_FALSE;
     
     if (!data || !size) {
@@ -1735,39 +1743,28 @@ static ssize_t  unix_sendto2 (AF_UNIX_T  *pafunix, const void *data, size_t size
         
 __try_send:
         if (__unixCanWrite(pafunixRecver)) {                            /*  可以发送                    */
-            if (i < uiTimes) {
-                sstWriteNum = __unixSendtoMsg(pafunix, pafunixRecver, 
-                                              pcSendMem, __AF_UNIX_PIPE_BUF, 
-                                              data_ex, size_ex, flags);
-                if (sstWriteNum <= 0) {
-                    break;                                              /*  失败则内部已经设置了 errno  */
-                }
-                pcSendMem += __AF_UNIX_PIPE_BUF;
-                sstTotal  += __AF_UNIX_PIPE_BUF;
-                data_ex = LW_NULL;                                      /*  外带数据只发送一次          */
-                size_ex = 0;
-                
-                i++;                                                    /*  发送次数++                  */
-                bNeedUpdateReader = LW_TRUE;                            /*  需要通知读端                */
-                
-                if (sstTotal >= size) {                                 /*  没有需要发送的数据了        */
-                    break;
-                
-                } else {
-                    goto    __try_send;                                 /*  重新尝试发送数据            */
-                }
-                
+            sstWriteNum = __unixSendtoMsg(pafunix, pafunixRecver,
+                                          pcSendMem, stLeft,
+                                          data_ex, size_ex, flags);
+            if (sstWriteNum <= 0) {
+                break;                                                  /*  失败则内部已经设置了 errno  */
+            }
+
+            bNeedUpdateReader = LW_TRUE;                                /*  需要通知读端                */
+
+            pcSendMem += sstWriteNum;
+            sstTotal  += sstWriteNum;
+            stLeft    -= sstWriteNum;
+
+            data_ex = LW_NULL;                                          /*  外带数据只发送一次          */
+            size_ex = 0;
+
+            if (sstTotal >= size) {
+                break;                                                  /*  发送完成                    */
             } else {
-                sstWriteNum = __unixSendtoMsg(pafunix, pafunixRecver, 
-                                              pcSendMem, uiLeft, 
-                                              data_ex, size_ex, flags); /*  最后一次发送                */
-                if (sstWriteNum > 0) {
-                    sstTotal += uiLeft;
-                    bNeedUpdateReader = LW_TRUE;                        /*  需要通知读端                */
-                }
-                break;                                                  /*  发送完毕, 如果最后一次失败  */
-            }                                                           /*  这里也必须退出              */
-        
+                goto    __try_send;
+            }
+
         } 
 #if LW_CFG_NET_UNIX_MULTI_EN > 0
           else {

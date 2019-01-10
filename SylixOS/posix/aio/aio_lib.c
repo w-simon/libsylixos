@@ -24,6 +24,7 @@
 2017.08.11  加入 AIO_REQ_BUSY 标识, 表明文件正在被操作.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
+#include "../include/px_pthread.h"
 #include "../include/px_aio.h"                                          /*  已包含操作系统头文件        */
 /*********************************************************************************************************
   裁剪支持
@@ -34,6 +35,17 @@
   aio 代理线程配置
 *********************************************************************************************************/
 #define __PX_AIO_TIMEOUT    (3 * LW_TICK_HZ)
+/*********************************************************************************************************
+  aio 信号任务参数
+*********************************************************************************************************/
+#if LW_CFG_SIGNAL_EN > 0
+
+struct sigevent_notify_arg {
+    VOIDFUNCPTR     SNA_pfunc;
+    union sigval    SNA_sigvalue;
+};
+
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 /*********************************************************************************************************
   aio 代理线程创建参数
 *********************************************************************************************************/
@@ -589,6 +601,74 @@ VOID  __aioWaitChainSetCnt (AIO_WAIT_CHAIN  *paiowt, INT  *piCnt)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __aioNotifyWrapper
+** 功能描述: SIGEV_THREAD 类型信号外壳函数
+** 输　入  : hThread       目标线程
+**           psigevent     信号事件
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_SIGNAL_EN > 0
+
+static PVOID  __aioNotifyWrapper (PVOID  pvArg)
+{
+    VOIDFUNCPTR                  pfunc;
+    union sigval                 sigvalue;
+    struct sigevent_notify_arg  *psna;
+
+    psna     = (struct sigevent_notify_arg *)pvArg;
+    pfunc    = psna->SNA_pfunc;
+    sigvalue = psna->SNA_sigvalue;
+    __SHEAP_FREE(psna);
+
+    pfunc(sigvalue);
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: __aioSigevent
+** 功能描述: 发送完成信号
+** 输　入  : hThread       目标线程
+**           psigevent     信号事件
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  __aioSigevent (LW_OBJECT_HANDLE  hThread, struct sigevent  *psigevent)
+{
+    pthread_t                    tid;
+    pthread_attr_t               attr, *pattr;
+    struct sigevent_notify_arg  *psna;
+
+    if ((psigevent->sigev_notify == SIGEV_THREAD) &&
+        (psigevent->sigev_notify_function)) {
+        pattr = (pthread_attr_t *)psigevent->sigev_notify_attributes;
+        if (!pattr) {
+            pthread_attr_init(&attr);
+            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+            pattr = &attr;
+        }
+
+        psna = (struct sigevent_notify_arg *)__SHEAP_ALLOC(sizeof(struct sigevent_notify_arg));
+        if (!psna) {
+            return;
+        }
+
+        psna->SNA_pfunc    = psigevent->sigev_notify_function;
+        psna->SNA_sigvalue = psigevent->sigev_value;
+
+        if (pthread_create(&tid, pattr, __aioNotifyWrapper, psna)) {
+            __SHEAP_FREE(psna);
+            return;
+        }
+
+    } else if ((psigevent->sigev_notify & SIGEV_NOTIFY_MASK) == SIGEV_SIGNAL) {
+        _doSigEvent(hThread, psigevent, SI_ASYNCIO);                    /*  notify                      */
+    }
+}
+
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+/*********************************************************************************************************
 ** 函数名称: __aioThread
 ** 功能描述: aio 代理线程
 ** 输　入  : pvArg         参数
@@ -655,8 +735,9 @@ static PVOID  __aioThread (PVOID  pvArg)
             
             if (__issig(paiocb->aio_sigevent.sigev_signo) &&
                 (paiocb->aio_sigevent.sigev_notify != SIGEV_NONE)) {
-                _doSigEvent(paioreq->aioreq_thread, 
-                            &paiocb->aio_sigevent, SI_ASYNCIO);         /*  notify                      */
+#if LW_CFG_SIGNAL_EN > 0
+                __aioSigevent(paioreq->aioreq_thread, &paiocb->aio_sigevent);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
             }
             
             /*
@@ -684,9 +765,9 @@ static PVOID  __aioThread (PVOID  pvArg)
                             
                             if (paiowait->aiowt_psigevent &&
                                 __issig(paiowait->aiowt_psigevent->sigev_signo)) {
-                                _doSigEvent(paioreq->aioreq_thread, 
-                                            paiowait->aiowt_psigevent, SI_ASYNCIO);
-                                                                        /*  notify                      */
+#if LW_CFG_SIGNAL_EN > 0
+                                __aioSigevent(paioreq->aioreq_thread, paiowait->aiowt_psigevent);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
                             }
                             
                             if (paiowt) {

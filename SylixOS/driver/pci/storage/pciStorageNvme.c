@@ -130,7 +130,6 @@ static INT  pciStorageNvmeDevProbe (PCI_DEV_HANDLE  hPciDevHandle, const PCI_DEV
                                    (PVOID)hPciDevHandle,
                                    hIdEntry->PCIDEVID_ulData);
     if (!hNvmeCtrl) {
-        hPciDevHandle->PCIDEV_pvDevDriver = LW_NULL;
         pciStorageNvmeCtrlNum--;
         return  (PX_ERROR);
     }
@@ -355,7 +354,6 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
     }
     NVME_LOG(NVME_LOG_PRT, "nvme reg addr 0x%llx szie %llx.\r\n",
              hCtrl->NVMECTRL_pvRegAddr, hCtrl->NVMECTRL_stRegSize);
-    hPciDev->PCIDEV_pvDevDriver = (PVOID)hCtrl;
 
     iRet = API_PciDevMasterEnable(hPciDev, LW_TRUE);                    /*  使能 Master 模式            */
     if (iRet != ERROR_NONE) {

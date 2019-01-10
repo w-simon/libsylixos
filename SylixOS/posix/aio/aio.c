@@ -31,6 +31,12 @@
 #if LW_CFG_POSIX_EN > 0 && LW_CFG_POSIX_AIO_EN > 0
 #include "aio_lib.h"
 /*********************************************************************************************************
+  aio sigevent notify
+*********************************************************************************************************/
+#if LW_CFG_SIGNAL_EN > 0
+VOID  __aioSigevent(LW_OBJECT_HANDLE  hThread, struct sigevent  *psigevent);
+#endif
+/*********************************************************************************************************
 ** 函数名称: __aioWaitCleanup
 ** 功能描述: 清理 wait 队列
 ** 输　入  : paiowt            paiowait 链表头
@@ -266,7 +272,9 @@ int  lio_listio (int mode, struct aiocb * const list[], int nent, struct sigeven
         
         if (mode == LIO_NOWAIT) {
             if (sig && __issig(sig->sigev_signo)) {
-                _doSigEvent(API_ThreadIdSelf(), sig, SI_ASYNCIO);
+#if LW_CFG_SIGNAL_EN > 0
+                __aioSigevent(API_ThreadIdSelf(), sig);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
             }
         }
         return  (ERROR_NONE);

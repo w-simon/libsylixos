@@ -771,17 +771,18 @@ LW_API INT              API_PciDevConfigWriteDword(PCI_DEV_HANDLE hHandle, UINT 
 *********************************************************************************************************/
 
 LW_API PCI_RESOURCE_HANDLE  API_PciResourceGet(INT iBus, INT iDevice, INT iFunc, UINT uiType, UINT uiNum);
-LW_API PCI_RESOURCE_HANDLE  API_PciDevResourceGet(PCI_DEV_HANDLE  hDevHandle, UINT uiType, UINT uiNum);
-LW_API PCI_RESOURCE_HANDLE  API_PciDevStdResourceGet(PCI_DEV_HANDLE  hDevHandle, UINT uiType, UINT uiNum);
-LW_API PCI_RESOURCE_HANDLE  API_PciDevStdResourceFind(PCI_DEV_HANDLE  hDevHandle, UINT uiType, 
-                                                      pci_resource_size_t  stStart);
+LW_API PCI_RESOURCE_HANDLE  API_PciDevResourceGet(PCI_DEV_HANDLE hDevHandle, UINT uiType, UINT uiNum);
+LW_API PCI_RESOURCE_HANDLE  API_PciDevStdResourceGet(PCI_DEV_HANDLE hDevHandle, UINT uiType, UINT uiNum);
+LW_API PCI_RESOURCE_HANDLE  API_PciDevStdResourceFind(PCI_DEV_HANDLE hDevHandle, UINT uiType,
+                                                      pci_resource_size_t stStart);
 
-LW_API PVOID                API_PciDevIoRemap(PVOID  pvPhysicalAddr, size_t  stSize);
-LW_API PVOID                API_PciDevIoRemap2(phys_addr_t  paPhysicalAddr, size_t  stSize);
-LW_API PVOID                API_PciDevIoRemapEx(PVOID  pvPhysicalAddr, size_t  stSize, ULONG  ulFlags);
-LW_API PVOID                API_PciDevIoRemapEx2(phys_addr_t  paPhysicalAddr, size_t  stSize, ULONG  ulFlags);
+LW_API PVOID                API_PciDevIoRemap(PVOID pvPhysicalAddr, size_t stSize);
+LW_API PVOID                API_PciDevIoRemap2(phys_addr_t paPhysicalAddr, size_t stSize);
+LW_API PVOID                API_PciDevIoRemapEx(PVOID pvPhysicalAddr, size_t stSize, ULONG ulFlags);
+LW_API PVOID                API_PciDevIoRemapEx2(phys_addr_t paPhysicalAddr, size_t stSize, ULONG ulFlags);
+LW_API VOID                 API_PciDevIoUnmap(PVOID pvVirtualAddr);
 
-LW_API INT                  API_PciDevMasterEnable(PCI_DEV_HANDLE  hDevHandle, BOOL bEnable);
+LW_API INT                  API_PciDevMasterEnable(PCI_DEV_HANDLE hDevHandle, BOOL bEnable);
 
 LW_API INT                  API_PciDevInterDisable(PCI_DEV_HANDLE   hHandle,
                                                    ULONG            ulVector,
@@ -809,13 +810,13 @@ LW_API INT                  API_PciDevMsiVecCountGet(PCI_DEV_HANDLE hHandle, UIN
 LW_API INT                  API_PciDevMsiEnableGet(PCI_DEV_HANDLE hHandle, INT *piEnable);
 LW_API INT                  API_PciDevMsiEnableSet(PCI_DEV_HANDLE hHandle, INT iEnable);
 
-LW_API INT                  API_PciDevMsixRangeEnable(PCI_DEV_HANDLE       hHandle,
-                                                      PCI_MSI_DESC_HANDLE  hMsgHandle,
-                                                      UINT                 uiVecMin,
-                                                      UINT                 uiVecMax);
-LW_API INT                  API_PciDevMsixVecCountGet(PCI_DEV_HANDLE  hHandle, UINT32  *puiVecCount);
-LW_API INT                  API_PciDevMsixEnableGet(PCI_DEV_HANDLE  hHandle, INT  *piEnable);
-LW_API INT                  API_PciDevMsixEnableSet(PCI_DEV_HANDLE  hHandle, INT  iEnable);
+LW_API INT                  API_PciDevMsixRangeEnable(PCI_DEV_HANDLE      hHandle,
+                                                      PCI_MSI_DESC_HANDLE hMsgHandle,
+                                                      UINT                uiVecMin,
+                                                      UINT                uiVecMax);
+LW_API INT                  API_PciDevMsixVecCountGet(PCI_DEV_HANDLE hHandle, UINT32 *puiVecCount);
+LW_API INT                  API_PciDevMsixEnableGet(PCI_DEV_HANDLE hHandle, INT *piEnable);
+LW_API INT                  API_PciDevMsixEnableSet(PCI_DEV_HANDLE hHandle, INT iEnable);
 
 LW_API PCI_DEV_HANDLE       API_PciDevParentHandleGet(INT iBus, INT iDevice, INT iFunction);
 LW_API PCI_DEV_HANDLE       API_PciDevHandleGet(INT iBus, INT iDevice, INT iFunction);
@@ -825,12 +826,12 @@ LW_API INT                  API_PciDevSetupAll(VOID);
 /*********************************************************************************************************
   ◊‘∂Ø≈‰÷√
 *********************************************************************************************************/
-LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE  hCtrl,
-                                                     UINT             uiIndex,
-                                                     pci_bus_addr_t   addrBusStart,
-                                                     pci_addr_t       addrPhyStart,
-                                                     pci_size_t       stSize,
-                                                     ULONG            ulFlags);
+LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE hCtrl,
+                                                     UINT            uiIndex,
+                                                     pci_bus_addr_t  addrBusStart,
+                                                     pci_addr_t      addrPhyStart,
+                                                     pci_size_t      stSize,
+                                                     ULONG           ulFlags);
 
 /*********************************************************************************************************
   API Macro

@@ -26,9 +26,6 @@
 *********************************************************************************************************/
 #if LW_CFG_SIGNAL_EN > 0
 #include "signalPrivate.h"
-#if LW_CFG_POSIX_EN > 0
-#include "../SylixOS/posix/include/px_pthread.h"
-#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   进程相关处理
 *********************************************************************************************************/
@@ -61,6 +58,10 @@ typedef SIGNAL_EVENT_ARG   *PSIGNAL_EVENT_ARG;
 static SIGNAL_EVENT_ARG         _G_sigeventargPool[SIGNAL_EVENT_POOL_SIZE];
 static LW_LIST_MONO_HEADER      _G_pmonoSigEventArg;
 /*********************************************************************************************************
+  保护自旋锁
+*********************************************************************************************************/
+static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(_G_slSigeventPool);
+/*********************************************************************************************************
 ** 函数名称: __sigEventArgInit
 ** 功能描述: 初始化 sig event 参数缓冲
 ** 输　入  : NONE
@@ -74,6 +75,8 @@ VOID  __sigEventArgInit (VOID)
     PSIGNAL_EVENT_ARG   psigea1;
     PSIGNAL_EVENT_ARG   psigea2;
     
+    LW_SPIN_INIT(&_G_slSigeventPool.SLCA_sl);
+
     psigea1 = &_G_sigeventargPool[0];
     psigea2 = &_G_sigeventargPool[1];
     
@@ -97,7 +100,18 @@ VOID  __sigEventArgInit (VOID)
 *********************************************************************************************************/
 static PSIGNAL_EVENT_ARG  __sigEventArgAlloc (VOID)
 {
-    return  ((PSIGNAL_EVENT_ARG)_list_mono_allocate(&_G_pmonoSigEventArg));
+    INTREG              iregInterLevel;
+    PSIGNAL_EVENT_ARG   psigea;
+
+    LW_SPIN_LOCK_QUICK(&_G_slSigeventPool.SLCA_sl, &iregInterLevel);
+    if (_G_pmonoSigEventArg) {
+        psigea = (PSIGNAL_EVENT_ARG)_list_mono_allocate(&_G_pmonoSigEventArg);
+    } else {
+        psigea = LW_NULL;
+    }
+    LW_SPIN_UNLOCK_QUICK(&_G_slSigeventPool.SLCA_sl, iregInterLevel);
+
+    return  (psigea);
 }
 /*********************************************************************************************************
 ** 函数名称: __sigEventArgFree
@@ -109,7 +123,11 @@ static PSIGNAL_EVENT_ARG  __sigEventArgAlloc (VOID)
 *********************************************************************************************************/
 static VOID  __sigEventArgFree (PSIGNAL_EVENT_ARG  psigea)
 {
+    INTREG  iregInterLevel;
+
+    LW_SPIN_LOCK_QUICK(&_G_slSigeventPool.SLCA_sl, &iregInterLevel);
     _list_mono_free(&_G_pmonoSigEventArg, &psigea->SE_monoLink);
+    LW_SPIN_UNLOCK_QUICK(&_G_slSigeventPool.SLCA_sl, iregInterLevel);
 }
 /*********************************************************************************************************
 ** 函数名称: _doSigEventInternal
@@ -174,24 +192,9 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
                       psigevent->sigev_value.sival_ptr,
                       LW_NULL);
                       
-    if ((iNotify == SIGEV_THREAD) &&
-        (psigevent->sigev_notify_function)) {
-#if LW_CFG_POSIX_EN > 0
-        pthread_t   tid;
-        
-        if (pthread_create(&tid, psigevent->sigev_notify_attributes,
-                           (void *(*)(void*))(psigevent->sigev_notify_function), 
-                           psigevent->sigev_value.sival_ptr) < 0) {
-            goto    __out;
-        
-        } else {
-            iError = ERROR_NONE;
-            goto    __out;
-        }
-#else
+    if (iNotify == SIGEV_THREAD) {
         _ErrorHandle(ENOSYS);
         goto    __out;
-#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
     }
     
     _sigPendInit(&sigpend);

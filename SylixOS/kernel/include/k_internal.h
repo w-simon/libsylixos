@@ -562,7 +562,7 @@ VOID           _ThreadDebugUnpendSem(PLW_CLASS_TCB  ptcb);
 *********************************************************************************************************/
 
 #if LW_CFG_MODULELOADER_EN > 0
-ULONG          _ThreadMakeMain(LW_HANDLE  ulId, PVOID   pvVProc);
+ULONG          _ThreadMigrateToProc(LW_HANDLE  ulId, PVOID   pvVProc, BOOL  bMain);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
 /*********************************************************************************************************

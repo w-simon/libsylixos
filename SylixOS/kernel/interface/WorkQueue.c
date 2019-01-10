@@ -258,13 +258,15 @@ static ULONG  __wqDInsert (PLW_WORK_QUEUE  pwq,
     
     API_SemaphoreMPend(pwq->q.WQ_dq.DWQ_ulLock, LW_OPTION_WAIT_INFINITE);
     
-    pmonoWDN = _list_mono_allocate(&pwq->q.WQ_dq.DWQ_pmonoPool);
-    if (pmonoWDN == LW_NULL) {
+    if (!pwq->q.WQ_dq.DWQ_pmonoPool) {
         API_SemaphoreMPost(pwq->q.WQ_dq.DWQ_ulLock);
         _ErrorHandle(ENOSPC);
         return  (ENOSPC);
+
+    } else {
+        pmonoWDN = _list_mono_allocate(&pwq->q.WQ_dq.DWQ_pmonoPool);
     }
-    
+
     pwdn = _LIST_ENTRY(pmonoWDN, LW_WORK_DNODE, DWQN_monoList);
     pwdn->DWQN_pfunc    = pfunc;
     pwdn->DWQN_pvArg[0] = pvArg0;
