@@ -190,15 +190,12 @@ static INT  arm64MmuFlags2Attr (ULONG   ulFlag,
         *pucAP = 0x2;
     }
 
-    if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
-        (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /* CACHE && BUFFER WRITE BACK   */
-       *pucAIn = 5;
-    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                        /* CACHE && BUFFER WRITE THROUGH*/
-       *pucAIn = 6;
-    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {                       /* UNCACHE && BUFFER            */
-       *pucAIn = 4;
+    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /* CACHE && BUFFER WRITE BACK   */
+        *pucAIn = 5;
+    } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                     /* CACHE && BUFFER WRITE THROUGH*/
+        *pucAIn = 6;
     } else {
-       *pucAIn = 0;                                                     /* UNCACHE && UNBUFFER          */
+        *pucAIn = 0;                                                    /* UNCACHE && UNBUFFER          */
     }
 
     if (ulFlag & LW_VMM_FLAG_EXECABLE) {
@@ -264,15 +261,11 @@ static INT  arm64MmuAttr2Flags (UINT8  ucGuard,
     switch (ucAIn) {
 
     case 0x5:
-        *pulFlag |= LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_BUFFERABLE;
+        *pulFlag |= LW_VMM_FLAG_CACHEABLE;
         break;
         
     case 0x6:
-        *pulFlag |= LW_VMM_FLAG_CACHEABLE;
-        break;
-
-    case 0x4:
-        *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
+        *pulFlag |= LW_VMM_FLAG_WRITETHROUGH;
         break;
 
     default:

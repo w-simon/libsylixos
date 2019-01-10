@@ -297,7 +297,7 @@ static void *do_shmat (int idnum, int flag)
     }
 
     if (API_CacheAliasProb()) {
-        map_flag &= ~(LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_BUFFERABLE); /* MAP_SHARED (non-cache) */
+        map_flag &= ~(LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_WRITETHROUGH); /* MAP_SHARED (non-cache) */
     }
 
     map_node->shm    = shm;

@@ -138,20 +138,11 @@ static INT  x86MmuFlags2Attr (ULONG   ulFlag,
     *pucUS  = X86_MMU_US_NO;                                            /*   º÷’ supervisor             */
     *pucPAT = X86_MMU_PAT_NO;
 
-    if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
-        (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /*  CACHE ”Î BUFFER øÿ÷∆        */
+    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  ªÿ–¥ CACHE                  */
         *pucPCD = X86_MMU_PCD_NO;                                       /*  ªÿ–¥                        */
         *pucPWT = X86_MMU_PWT_NO;
 
-    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {
-        *pucPCD = X86_MMU_PCD_NO;                                       /*  –¥¥©Õ∏                      */
-        *pucPWT = X86_MMU_PWT;
-
-        if (ulFlag & LW_VMM_FLAG_WRITECOMBINING) {                      /*  –¥∫œ≤¢                      */
-            *pucPAT = X86_MMU_PAT;
-        }
-
-    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
+    } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {
         *pucPCD = X86_MMU_PCD_NO;                                       /*  –¥¥©Õ∏                      */
         *pucPWT = X86_MMU_PWT;
 
@@ -199,36 +190,21 @@ static INT  x86MmuAttr2Flags (UINT8   ucRW,
 
     if (ucRW == X86_MMU_RW) {
         *pulFlag |= LW_VMM_FLAG_WRITABLE;
-
-    } else {
-        *pulFlag |= LW_VMM_FLAG_UNWRITABLE;
     }
 
-    if (ucPCD == X86_MMU_PCD) {
-        *pulFlag |= LW_VMM_FLAG_UNCACHEABLE;
-        *pulFlag |= LW_VMM_FLAG_UNBUFFERABLE;
-
-    } else {
+    if ((ucPCD == X86_MMU_PCD_NO) && (ucPWT == X86_MMU_PWT_NO)) {
         *pulFlag |= LW_VMM_FLAG_CACHEABLE;
 
-        if (ucPWT == X86_MMU_PWT) {
-            *pulFlag |= LW_VMM_FLAG_UNBUFFERABLE;
-        } else {
-            *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
-        }
+    } else if (ucPCD == X86_MMU_PCD_NO) {
+        *pulFlag |= LW_VMM_FLAG_WRITETHROUGH;
+    }
 
-        if (ucPAT == X86_MMU_PAT) {
-            *pulFlag |= LW_VMM_FLAG_WRITECOMBINING;
-        } else {
-            *pulFlag |= LW_VMM_FLAG_UNWRITECOMBINING;
-        }
+    if (ucPAT == X86_MMU_PAT) {
+        *pulFlag |= LW_VMM_FLAG_WRITECOMBINING;
     }
 
     if (ucA == X86_MMU_A) {
-        *pulFlag |= LW_VMM_FLAG_ACCESS;
-
-    } else {
-        *pulFlag |= LW_VMM_FLAG_UNACCESS;
+        *pulFlag |= LW_VMM_FLAG_ACCESS | LW_VMM_FLAG_EXECABLE;
     }
 
     return  (ERROR_NONE);

@@ -124,11 +124,10 @@ static INT  ppcMmuFlags2Attr (ULONG  ulFlag, UINT8  *pucPP, UINT8  *pucWIMG,  UI
         *pucPP = PP_NORW;
     }
 
-    if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
-        (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /*  CACHE 与 BUFFER 控制        */
+    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  回写 CACHE                  */
         ucWIMG = _G_ucWIM4CacheBuffer;
 
-    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {
+    } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                     /*  写穿透                      */
         ucWIMG = _G_ucWIM4Cache;
 
     } else {
@@ -176,10 +175,10 @@ static INT  ppcMmuAttr2Flags (UINT8  ucPP, UINT8  ucWIMG, UINT8  ucExec, ULONG *
     }
 
     if ((ucWIMG & WIM_MASK) == _G_ucWIM4CacheBuffer) {
-        *pulFlag |= LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_BUFFERABLE;
-
-    } else if ((ucWIMG & WIM_MASK) == _G_ucWIM4CacheBuffer) {
         *pulFlag |= LW_VMM_FLAG_CACHEABLE;
+
+    } else if ((ucWIMG & WIM_MASK) == _G_ucWIM4Cache) {
+        *pulFlag |= LW_VMM_FLAG_WRITETHROUGH;
     }
 
     *pulFlag |= LW_VMM_FLAG_GUARDED;
@@ -794,7 +793,7 @@ VOID  ppcMmuInit (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
 {
     _G_uiTlbNr           = bspMmuTlbSize();                             /*  获得 TLB 的数目             */
     _G_ucWIM4CacheBuffer = M_BIT;
-    _G_ucWIM4Cache       = W_BIT | M_BIT;
+    _G_ucWIM4Cache       = W_BIT | M_BIT;                               /*  写穿透                      */
 
     pmmuop->MMUOP_ulOption           = 0ul;                             /*  tlbsync 指令会自动多核同步  */
     pmmuop->MMUOP_pfuncMemInit       = ppcMmuMemInit;

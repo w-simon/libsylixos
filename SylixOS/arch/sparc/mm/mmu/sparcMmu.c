@@ -87,6 +87,7 @@ static LW_OBJECT_HANDLE     _G_hPGDPartition;                           /*  系统
 static LW_OBJECT_HANDLE     _G_hPMDPartition;                           /*  PMD 缓冲区                  */
 static LW_OBJECT_HANDLE     _G_hPTEPartition;                           /*  PTE 缓冲区                  */
 static UINT32              *_G_puiCtxTbl;                               /*  上下文表                    */
+       BOOL                 _G_bSparcCacheCanWt = LW_TRUE;              /*  CACHE 是否可以设置为写穿透  */
 /*********************************************************************************************************
   与处理器实现(LEON)有关的函数
 *********************************************************************************************************/
@@ -263,9 +264,11 @@ static INT  sparcMmuFlags2Attr (ULONG   ulFlag,
         }
     }
 
-    if ((ulFlag & LW_VMM_FLAG_CACHEABLE) ||
-        (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /*  CACHE 与 BUFFER 控制        */
+    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  回写 CACHE                  */
         *pucC = SPARC_MMU_C;
+
+    } else if ((ulFlag & LW_VMM_FLAG_WRITETHROUGH) && _G_bSparcCacheCanWt) {
+        *pucC = SPARC_MMU_C;                                            /*  写穿透 CACHE                */
 
     } else {
         *pucC = SPARC_MMU_C_NO;
@@ -293,16 +296,10 @@ static INT  sparcMmuAttr2Flags (UINT8   ucACC,
 
     if (ucET == SPARC_MMU_ET_PTE) {
         *pulFlag |= LW_VMM_FLAG_ACCESS;
-
-    } else {
-        *pulFlag |= LW_VMM_FLAG_UNACCESS;
     }
 
     if (ucC == SPARC_MMU_C) {
         *pulFlag |= LW_VMM_FLAG_CACHEABLE;
-
-    } else {
-        *pulFlag |= LW_VMM_FLAG_UNCACHEABLE;
     }
 
     switch (ucACC) {

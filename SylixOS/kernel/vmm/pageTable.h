@@ -42,17 +42,24 @@
 #define LW_VMM_FLAG_EXECABLE            0x08                            /*  可以执行代码                */
 #define LW_VMM_FLAG_UNEXECABLE          0x00                            /*  不可以执行代码              */
 
-#define LW_VMM_FLAG_CACHEABLE           0x10                            /*  可以缓冲                    */
-#define LW_VMM_FLAG_UNCACHEABLE         0x00                            /*  不可以缓冲                  */
+#define LW_VMM_FLAG_CACHEABLE           0x10                            /*  可以 CACHE Writeback        */
+#define LW_VMM_FLAG_UNCACHEABLE         0x00                            /*  不可以 CACHE Writeback      */
 
-#define LW_VMM_FLAG_BUFFERABLE          0x20                            /*  可以写缓冲                  */
-#define LW_VMM_FLAG_UNBUFFERABLE        0x00                            /*  不可以写缓冲                */
+#define LW_VMM_FLAG_WRITETHROUGH        0x20                            /*  可以 CACHE Writethrough     */
+#define LW_VMM_FLAG_UNWRITETHROUGH      0x00                            /*  不可以 CACHE Writethrough   */
 
 #define LW_VMM_FLAG_GUARDED             0x40                            /*  进行严格的权限检查          */
 #define LW_VMM_FLAG_UNGUARDED           0x00                            /*  不进行严格的权限检查        */
 
 #define LW_VMM_FLAG_WRITECOMBINING      0x80                            /*  可以写合并                  */
 #define LW_VMM_FLAG_UNWRITECOMBINING    0x00                            /*  不可以写合并                */
+
+/*********************************************************************************************************
+  mmu 兼容性接口 (相当于写穿透)
+*********************************************************************************************************/
+
+#define LW_VMM_FLAG_BUFFERABLE          LW_VMM_FLAG_WRITETHROUGH
+#define LW_VMM_FLAG_UNBUFFERABLE        LW_VMM_FLAG_UNWRITETHROUGH
 
 /*********************************************************************************************************
   默认页面标志
@@ -62,20 +69,17 @@
                                          LW_VMM_FLAG_ACCESS |       \
                                          LW_VMM_FLAG_EXECABLE |     \
                                          LW_VMM_FLAG_CACHEABLE |    \
-                                         LW_VMM_FLAG_BUFFERABLE |   \
                                          LW_VMM_FLAG_GUARDED)           /*  可执行区域                  */
 
 #define LW_VMM_FLAG_READ                (LW_VMM_FLAG_VALID |        \
                                          LW_VMM_FLAG_ACCESS |       \
                                          LW_VMM_FLAG_CACHEABLE |    \
-                                         LW_VMM_FLAG_BUFFERABLE |   \
                                          LW_VMM_FLAG_GUARDED)           /*  只读区域                    */
                                          
 #define LW_VMM_FLAG_RDWR                (LW_VMM_FLAG_VALID |        \
                                          LW_VMM_FLAG_ACCESS |       \
                                          LW_VMM_FLAG_WRITABLE |     \
                                          LW_VMM_FLAG_CACHEABLE |    \
-                                         LW_VMM_FLAG_BUFFERABLE |   \
                                          LW_VMM_FLAG_GUARDED)           /*  读写区域                    */
 
 #define LW_VMM_FLAG_DMA                 (LW_VMM_FLAG_VALID |        \

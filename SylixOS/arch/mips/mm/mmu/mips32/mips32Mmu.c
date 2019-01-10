@@ -84,7 +84,7 @@ static LW_PTE_TRANSENTRY  mips32MmuBuildPteEntry (addr_t  ulBaseAddr, ULONG  ulF
         if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  填充 C 位                   */
             pteentry |= MIPS_MMU_ENTRYLO_CACHE << ENTRYLO_C_SHIFT;
 
-        } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
+        } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                 /*  XXX 此设置不确定是否合适    */
             pteentry |= MIPS_MMU_ENTRYLO_UNCACHE_WB << ENTRYLO_C_SHIFT;
 
         } else {
@@ -408,7 +408,7 @@ static ULONG  mips32MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
 
             } else if ((ulCacheAttr == MIPS_MMU_ENTRYLO_UNCACHE_WB) &&
                        (MIPS_MMU_ENTRYLO_UNCACHE_WB != MIPS_MMU_ENTRYLO_UNCACHE)) {
-                ulFlag |= LW_VMM_FLAG_BUFFERABLE;
+                ulFlag |= LW_VMM_FLAG_WRITETHROUGH;
             }
 
             return  (ulFlag);

@@ -749,8 +749,8 @@ PVOID  API_VmmMmap (PVOID  pvAddr, size_t  stLen, INT  iFlags, ULONG  ulFlag, IN
 #if LW_CFG_CACHE_EN > 0
     if (iFlags == LW_VMM_SHARED_CHANGE) {
         if (API_CacheAliasProb()) {                                     /*  如果有 CACHE 别名可能       */
-            ulFlag &= ~(LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_BUFFERABLE);/*  共享内存不允许 CACHE        */
-        }
+            ulFlag &= ~(LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_WRITETHROUGH);
+        }                                                               /*  共享内存不允许任何形式 CACHE*/
     }
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     

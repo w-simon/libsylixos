@@ -126,16 +126,11 @@ static INT  armMmuFlags2Attr (ULONG   ulFlag,
         *pucAP  = 0x3;
     }
 
-    if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
-        (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /*  CACHE 与 BUFFER 控制        */
+    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  回写                        */
         *pucTEX = 0x1;                                                  /*  Outer: 回写, 写分配         */
         *pucCB  = 0x3;                                                  /*  Inner: 回写, 写分配         */
 
-    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {
-        *pucTEX = 0x0;                                                  /*  Outer: 回写, 不具备写分配   */
-        *pucCB  = 0x3;                                                  /*  Inner: 回写, 不具备写分配   */
-
-    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
+    } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                     /*  写穿透                      */
         *pucTEX = 0x0;                                                  /*  Outer: 写穿透, 不具备写分配 */
         *pucCB  = 0x2;                                                  /*  Inner: 写穿透, 不具备写分配 */
 
@@ -209,15 +204,11 @@ static INT  armMmuAttr2Flags (UINT8  ucAP,
     switch (ucCB) {
     
     case 0x3:
-        if (ucTEX == 0x1) {
-            *pulFlag |= LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_BUFFERABLE;
-        } else {
-            *pulFlag |= LW_VMM_FLAG_CACHEABLE;
-        }
+        *pulFlag |= LW_VMM_FLAG_CACHEABLE;
         break;
         
     case 0x2:
-        *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
+        *pulFlag |= LW_VMM_FLAG_WRITETHROUGH;
         break;
 
     default:

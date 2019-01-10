@@ -150,20 +150,11 @@ static INT  x64MmuFlags2Attr (ULONG   ulFlag,
     *pucUS  = X64_MMU_US_NO;                                            /*   º÷’ supervisor             */
     *pucPAT = X64_MMU_PAT_NO;
 
-    if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
-        (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /*  CACHE ”Î BUFFER øÿ÷∆        */
+    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  ªÿ–¥ CACHE                  */
         *pucPCD = X64_MMU_PCD_NO;                                       /*  ªÿ–¥                        */
         *pucPWT = X64_MMU_PWT_NO;
 
-    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                        /*  –¥¥©Õ∏                      */
-        *pucPCD = X64_MMU_PCD_NO;
-        *pucPWT = X64_MMU_PWT;
-
-        if (ulFlag & LW_VMM_FLAG_WRITECOMBINING) {                      /*  –¥∫œ≤¢                      */
-            *pucPAT = X64_MMU_PAT;
-        }
-
-    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {                       /*  –¥¥©Õ∏                      */
+    } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                     /*  –¥¥©Õ∏                      */
         *pucPCD = X64_MMU_PCD_NO;
         *pucPWT = X64_MMU_PWT;
 
@@ -220,42 +211,24 @@ static INT  x64MmuAttr2Flags (UINT8   ucRW,
 
     if (ucRW == X64_MMU_RW) {
         *pulFlag |= LW_VMM_FLAG_WRITABLE;
-
-    } else {
-        *pulFlag |= LW_VMM_FLAG_UNWRITABLE;
     }
 
-    if (ucPCD == X64_MMU_PCD) {
-        *pulFlag |= LW_VMM_FLAG_UNCACHEABLE;
-        *pulFlag |= LW_VMM_FLAG_UNBUFFERABLE;
-
-    } else {
+    if ((ucPCD == X64_MMU_PCD_NO) && (ucPWT == X64_MMU_PWT_NO)) {
         *pulFlag |= LW_VMM_FLAG_CACHEABLE;
 
-        if (ucPWT == X64_MMU_PWT) {
-            *pulFlag |= LW_VMM_FLAG_UNBUFFERABLE;
-        } else {
-            *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
-        }
+    } else if (ucPCD == X64_MMU_PCD_NO) {
+        *pulFlag |= LW_VMM_FLAG_WRITETHROUGH;
+    }
 
-        if (ucPAT == X64_MMU_PAT) {
-            *pulFlag |= LW_VMM_FLAG_WRITECOMBINING;
-        } else {
-            *pulFlag |= LW_VMM_FLAG_UNWRITECOMBINING;
-        }
+    if (ucPAT == X64_MMU_PAT) {
+        *pulFlag |= LW_VMM_FLAG_WRITECOMBINING;
     }
 
     if (ucA == X64_MMU_A) {
         *pulFlag |= LW_VMM_FLAG_ACCESS;
-
-    } else {
-        *pulFlag |= LW_VMM_FLAG_UNACCESS;
     }
 
-    if (ucXD == X64_MMU_XD) {
-        *pulFlag |= LW_VMM_FLAG_UNEXECABLE;
-
-    } else {
+    if (ucXD == X64_MMU_XD_NO) {
         *pulFlag |= LW_VMM_FLAG_EXECABLE;
     }
 

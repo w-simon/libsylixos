@@ -137,7 +137,9 @@ FUNC_DEF(cskyDCacheEnableHw)
     MTCR        A0 , CR17
 
     MFCR        A0 , CR18
-    BSETI       A0 , 3
+    BSETI       A0 , 3                                                  ;/*  DE 数据高速缓存设置位       */
+    BSETI       A0 , 4                                                  ;/*  WB 高速缓存写回设置位       */
+    BSETI       A0 , 12                                                 ;/*  WA 高速缓存写分配有效设置   */
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyDCacheEnableHw)
@@ -163,9 +165,9 @@ FUNC_DEF(cskyBranchPredictionEnable)
     MTCR        A0 , CR17
 
     MFCR        A0 , CR18
-    BSETI       A0 , 11
-    BSETI       A0 , 6
-    BSETI       A0 , 5
+    BSETI       A0 , 11                                                 ;/*  BTB 分支目标缓冲器使能      */
+    BSETI       A0 , 6                                                  ;/*  Z 允许预测跳转设置位        */
+    BSETI       A0 , 5                                                  ;/*  RS 地址返回栈设置位         */
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyBranchPredictionEnable)

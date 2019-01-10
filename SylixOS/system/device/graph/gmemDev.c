@@ -278,10 +278,13 @@ INT   API_GMemDevAdd (CPCHAR  cpcName, PLW_GM_DEVICE  pgmdev)
 #if LW_CFG_CACHE_EN > 0
         if (API_CacheGetMode(DATA_CACHE) & (CACHE_WRITETHROUGH | CACHE_SNOOP_ENABLE)) {
             pgmdev->GMDEV_ulMapFlags = LW_VMM_FLAG_RDWR;
+#ifdef LW_CFG_CPU_ARCH_X86
+            pgmdev->GMDEV_ulMapFlags |= LW_VMM_FLAG_WRITECOMBINING;
+#endif
         } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
         {
-            pgmdev->GMDEV_ulMapFlags = LW_VMM_FLAG_DMA;
+            pgmdev->GMDEV_ulMapFlags = LW_VMM_FLAG_DMA | LW_VMM_FLAG_WRITETHROUGH;
         }
     }
     

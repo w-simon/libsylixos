@@ -54,8 +54,8 @@
 #define SV48_MMU_G_SHIFT            (5)
 
 #define SV48_MMU_RSW_ZERO           (0)
-#define SV48_MMU_RSW_CACHE          (1)                                 /*  可 CACHE                    */
-#define SV48_MMU_RSW_BUFFER         (2)                                 /*  可 BUFFER                   */
+#define SV48_MMU_RSW_CACHE          (1)                                 /*  回写 CACHE                  */
+#define SV48_MMU_RSW_WT             (2)                                 /*  写穿透 CACHE                */
 #define SV48_MMU_RSW_SHIFT          (8)
 
 #define SV48_MMU_A_SHIFT            (6)
@@ -190,15 +190,11 @@ static INT  sv48MmuFlags2Attr (ULONG   ulFlag,
         *pucX = SV48_MMU_X_NO;
     }
 
-    if ((ulFlag & LW_VMM_FLAG_CACHEABLE) &&
-        (ulFlag & LW_VMM_FLAG_BUFFERABLE)) {                            /*  CACHE 与 BUFFER 控制        */
-        *pucRSW = SV48_MMU_RSW_CACHE | SV48_MMU_RSW_BUFFER;
-
-    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {
+    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  回写 CACHE                  */
         *pucRSW = SV48_MMU_RSW_CACHE;
 
-    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
-        *pucRSW = SV48_MMU_RSW_BUFFER;
+    } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                     /*  写穿透 CACHE                */
+        *pucRSW = SV48_MMU_RSW_WT;
 
     } else {
         *pucRSW = SV48_MMU_RSW_ZERO;
@@ -244,12 +240,11 @@ static INT  sv48MmuAttr2Flags (UINT8   ucV,
         *pulFlag |= LW_VMM_FLAG_EXECABLE;
     }
 
-    if (ucRSW & SV48_MMU_RSW_BUFFER) {
-        *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
-    }
-
     if (ucRSW & SV48_MMU_RSW_CACHE) {
         *pulFlag |= LW_VMM_FLAG_CACHEABLE;
+
+    } else if (ucRSW & SV48_MMU_RSW_WT) {
+        *pulFlag |= LW_VMM_FLAG_WRITETHROUGH;
     }
 
     return  (ERROR_NONE);

@@ -25,6 +25,7 @@
   启动参数
 *********************************************************************************************************/
 static SPARC_PARAM    sparcParam = { LW_TRUE };
+extern BOOL           _G_bSparcCacheCanWt;
 /*********************************************************************************************************
 ** 函数名称: archKernelParam
 ** 功能描述: SPARC 体系构架启动参数设置.
@@ -41,6 +42,13 @@ VOID  archKernelParam (CPCHAR  pcParam)
             sparcParam.SPARC_bUnalign = LW_FALSE;
         } else {
             sparcParam.SPARC_bUnalign = LW_TRUE;
+        }
+
+    } else if (lib_strncmp(pcParam, "cachewt=", 8) == 0) {
+        if (pcParam[8] == 'n') {
+            _G_bSparcCacheCanWt = LW_FALSE;
+        } else {
+            _G_bSparcCacheCanWt = LW_TRUE;                              /*  L1 (L2) CACHE 同时为写穿透  */
         }
     }
 }

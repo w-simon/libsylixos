@@ -184,13 +184,17 @@ static LW_PTE_TRANSENTRY  ppcE500MmuBuildPtentry (phys_addr_t  paBaseAddr,
             uiDescriptor.MAS3_bSuperExec = LW_TRUE;                     /*  ø…÷¥––                      */
         }
 
-        if (!(ulFlag & LW_VMM_FLAG_CACHEABLE)) {
-            uiDescriptor.MAS3_bUnCache = LW_TRUE;                       /*  ≤ªø… Cache                  */
-        }
+        if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                           /*  ªÿ–¥ CACHE                  */
+            uiDescriptor.MAS3_bUnCache = LW_FALSE;
+            uiDescriptor.MAS3_bWT      = LW_FALSE;
 
-        if ((ulFlag  & LW_VMM_FLAG_CACHEABLE) &&
-            !(ulFlag & LW_VMM_FLAG_BUFFERABLE)) {
-            uiDescriptor.MAS3_bWT = LW_TRUE;                            /*  –¥¥©Õ∏                      */
+        } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                 /*  –¥¥©Õ∏ CACHE                */
+            uiDescriptor.MAS3_bUnCache = LW_FALSE;
+            uiDescriptor.MAS3_bWT      = LW_TRUE;
+
+        } else {                                                        /*  UNCACHE                     */
+            uiDescriptor.MAS3_bUnCache = LW_TRUE;
+            uiDescriptor.MAS3_bWT      = LW_TRUE;
         }
 
         if (MMU_MAS2_M) {
@@ -570,12 +574,11 @@ static ULONG  ppcE500MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
                 ulFlag |= LW_VMM_FLAG_WRITABLE;
             }
 
-            if (!uiDescriptor.MAS3_bUnCache) {                          /*  ø… Cache                    */
+            if (!uiDescriptor.MAS3_bUnCache && !uiDescriptor.MAS3_bWT) {
                 ulFlag |= LW_VMM_FLAG_CACHEABLE;
 
-                if (!uiDescriptor.MAS3_bWT) {                           /*  ∑«–¥¥©Õ∏                    */
-                    ulFlag |= LW_VMM_FLAG_BUFFERABLE;
-                }
+            } else if (!uiDescriptor.MAS3_bUnCache) {
+                ulFlag |= LW_VMM_FLAG_WRITETHROUGH;
             }
 
             return  (ulFlag);

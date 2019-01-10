@@ -114,16 +114,12 @@ static INT  armMmuFlags2Attr (ULONG ulFlag, UINT8  *pucAP, UINT8  *pucDomain, UI
         *pucAP = AP_RO;
     }
     
-    if (ulFlag & LW_VMM_FLAG_CACHEABLE &&
-        ulFlag & LW_VMM_FLAG_BUFFERABLE) {                              /*  CACHE ”Î BUFFER øÿ÷∆        */
+    if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  WRITE BACK                  */
         *pucCB = C_B;
-        
-    } else if (ulFlag & LW_VMM_FLAG_CACHEABLE) {
+
+    } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                     /*  WRITE THROUGH               */
         *pucCB = C_NB;
-        
-    } else if (ulFlag & LW_VMM_FLAG_BUFFERABLE) {
-        *pucCB = NC_B;
-        
+
     } else {
         *pucCB = NC_NB;
     }
@@ -161,15 +157,10 @@ static INT  armMmuAttr2Flags (UINT8  ucAP, UINT8  ucDomain, UINT8  ucCB, ULONG *
     
     case C_B:
         *pulFlag |= LW_VMM_FLAG_CACHEABLE;
-        *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
         break;
         
     case C_NB:
-        *pulFlag |= LW_VMM_FLAG_CACHEABLE;
-        break;
-        
-    case NC_B:
-        *pulFlag |= LW_VMM_FLAG_BUFFERABLE;
+        *pulFlag |= LW_VMM_FLAG_WRITETHROUGH;
         break;
     }
     
