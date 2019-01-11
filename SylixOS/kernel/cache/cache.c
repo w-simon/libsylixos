@@ -840,7 +840,7 @@ LW_API
 PVOID    API_CacheDmaMalloc (size_t   stBytes)
 {
     return  ((_G_cacheopLib.CACHEOP_pfuncDmaMalloc == LW_NULL) ?
-             (__KHEAP_ALLOC(stBytes)) : 
+             (__KHEAP_ALLOC_ALIGN(stBytes, LW_CFG_CPU_ARCH_CACHE_LINE)) :
              (_G_cacheopLib.CACHEOP_pfuncDmaMalloc(stBytes)));
 }
 /*********************************************************************************************************
@@ -857,13 +857,18 @@ PVOID    API_CacheDmaMalloc (size_t   stBytes)
 LW_API  
 PVOID    API_CacheDmaMallocAlign (size_t   stBytes, size_t  stAlign)
 {
+    size_t  stAlignMax;
+
     if (stAlign & (stAlign - 1)) {
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
 
+    stAlignMax = (stAlign > LW_CFG_CPU_ARCH_CACHE_LINE)
+               ? stAlign : LW_CFG_CPU_ARCH_CACHE_LINE;
+
     return  ((_G_cacheopLib.CACHEOP_pfuncDmaMallocAlign == LW_NULL) ?
-             (__KHEAP_ALLOC_ALIGN(stBytes, stAlign)) : 
+             (__KHEAP_ALLOC_ALIGN(stBytes, stAlignMax)) :
              (_G_cacheopLib.CACHEOP_pfuncDmaMallocAlign(stBytes, stAlign)));
 }
 /*********************************************************************************************************
