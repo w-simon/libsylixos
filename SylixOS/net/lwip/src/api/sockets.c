@@ -4362,7 +4362,6 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
             return ENOPROTOOPT;
           }
           break;
-          break;
 #endif /* LWIP_NETBUF_RECVINFO */
         case IPV6_UNICAST_HOPS: /* SylixOS Add 'IPV6_UNICAST_HOPS' 'IPV6_MULTICAST_HOPS' 'IPV6_MULTICAST_LOOP' support */
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, int);
