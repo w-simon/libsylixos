@@ -78,6 +78,13 @@ HISTORY
 
 ++ Bugfixes:
 
+    2019-01-14: han.hui
+    PPC 不支持在非 CACHE 区域原子操作.
+    修正 pthread_join() 行为：
+    原生线程退出, 任务资源立即释放, 与之前行为相同.
+    POSIX 线程退出, 如果没有设置为 detach 标志, 则系统会等到 pthread_join 或 detach 时回收线程控制块.
+    为了保持对老版本应用兼容性, 用户可设置启动参数 autorectcb=yes 
+
     2019-01-09: han.hui
     修正 AF_UNIX 写端激活条件判断错误.
     修正内核抛出信号多核竞争风险.

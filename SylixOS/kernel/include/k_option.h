@@ -64,6 +64,12 @@
   注意: 浮点运算器上下文指针是否有效, 由 BSP FPU 相关实现决定, 
         推荐用户不要自己决定是否使用 LW_OPTION_THREAD_USED_FP
         用户禁止使用 LW_OPTION_THREAD_STK_MAIN 选项.
+
+        SylixOS 内核任务 (原生任务) 由于历史原因, 在删除时, 不管是否设置了 detach 标志内核都会回收任务,
+        当任务回收后, 不支持再进行 join 操作, 所以 SylixOS 内核支持线程 start 与 join 合一的原子操作.
+
+        如果是 POSIX 线程, 内核可根据启动参数 autorectcb 的设置情况, 选择不同的兼容模式,
+        如果 autorectcb=no 系统则会保留非 detach 线程的 tcb 直到进程调用 join 或 detach 为止.
 *********************************************************************************************************/
 
 #define LW_OPTION_THREAD_STK_CHK                        0x00000003      /*  允许对任务堆栈进行检查      */
@@ -82,6 +88,7 @@
 #ifdef __SYLIXOS_KERNEL
 #define LW_OPTION_THREAD_AFFINITY_ALWAYS                0x20000000      /*  总是锁定一个 CPU 执行       */
 #define LW_OPTION_THREAD_STK_MAIN                       0x40000000      /*  进程主线程 stack            */
+#define LW_OPTION_THREAD_POSIX                          0x10000000      /*  POSIX 线程                  */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 /*********************************************************************************************************

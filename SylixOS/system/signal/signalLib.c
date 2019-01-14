@@ -389,8 +389,8 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
     }
     
     if (__SIGNO_MUST_EXIT & __sigmask(iSigNo)) {                        /*  必须退出信号                */
-        if (ptcb->TCB_ptcbJoin) {
-            _ThreadDisjoin(ptcb->TCB_ptcbJoin, ptcb);                   /*  退出 join 状态, 不操作就绪表*/
+        if (ptcb->TCB_ptcbJoin) {                                       /*  退出 join 状态, 不操作就绪表*/
+            _ThreadDisjoin(ptcb->TCB_ptcbJoin, ptcb, LW_FALSE, LW_NULL);
         }                                                               /*  否则可能产生重复的操作就绪表*/
     }
     

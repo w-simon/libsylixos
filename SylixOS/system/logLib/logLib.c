@@ -396,7 +396,10 @@ INT  _logInit (VOID)
     API_ThreadAttrBuild(&threadattr, 
                         LW_CFG_THREAD_LOG_STK_SIZE, 
                         LW_PRIO_T_LOG,
-                        (LW_OPTION_THREAD_STK_CHK | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL), 
+                        (LW_OPTION_THREAD_STK_CHK |
+                         LW_OPTION_THREAD_SAFE |
+                         LW_OPTION_OBJECT_GLOBAL |
+                         LW_OPTION_THREAD_DETACHED),
                         LW_NULL);
     
     _S_ulThreadLogId = API_ThreadInit("t_log",

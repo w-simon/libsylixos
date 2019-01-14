@@ -90,6 +90,7 @@
 #define Lw_ThreadAttr_Build                     API_ThreadAttrBuild
 #define Lw_ThreadAttr_BuildEx                   API_ThreadAttrBuildEx
 #define Lw_ThreadAttr_BuildFP                   API_ThreadAttrBuildFP
+#define Lw_ThreadAttr_BuildDefault              API_ThreadAttrBuildDefault
 
 #define Lw_ThreadAttr_SetGuardSize              API_ThreadAttrSetGuardSize
 #define Lw_ThreadAttr_SetStackSize              API_ThreadAttrSetStackSize
@@ -120,6 +121,7 @@
 
 #define Lw_Thread_Join                          API_ThreadJoin
 #define Lw_Thread_Detach                        API_ThreadDetach
+#define Lw_Thread_DetachEx                      API_ThreadDetachEx
 
 #define Lw_Thread_Safe                          API_ThreadSafe
 #define Lw_Thread_Unsafe                        API_ThreadUnsafe
@@ -575,6 +577,8 @@
 #define Lw_Thread_ShowEx                        API_ThreadShowEx
 #define Lw_Thread_PendShow                      API_ThreadPendShow
 #define Lw_Thread_PendShowEx                    API_ThreadPendShowEx
+#define Lw_Thread_WjShow                        API_ThreadWjShow
+#define Lw_Thread_WjShowEx                      API_ThreadWjShowEx
 #define Lw_Semaphore_Show                       API_SemaphoreShow
 #define Lw_MsgQueue_Show                        API_MsgQueueShow
 #define Lw_Interrupt_Show                       API_InterShow

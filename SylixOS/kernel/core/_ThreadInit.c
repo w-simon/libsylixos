@@ -308,7 +308,7 @@ VOID  _TCBBuild (UINT8                    ucPriority,
 #endif
 
     __KERNEL_SPACE_SET2(ptcb, 0);                                       /*  初始化为用户空间            */
-    ptcb->TCB_pvPosixContext = LW_NULL;                                 /*  非 posix 线程               */
+    ptcb->TCB_pvPosixContext = LW_NULL;
 
     ptcb->TCB_usStatus = LW_THREAD_STATUS_RDY;                          /*  暂设为就绪状态              */
 

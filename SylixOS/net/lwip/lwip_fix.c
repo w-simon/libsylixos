@@ -886,7 +886,10 @@ sys_thread_t  sys_thread_new (const char *name, lwip_thread_fn thread,
     API_ThreadAttrBuild(&threadattr,
                         stacksize,
                         (UINT8)prio,
-                        (LW_OPTION_THREAD_STK_CHK | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL),
+                        (LW_OPTION_THREAD_STK_CHK |
+                         LW_OPTION_THREAD_SAFE |
+                         LW_OPTION_OBJECT_GLOBAL |
+                         LW_OPTION_THREAD_DETACHED),
                         arg);
                                                    
     hThread = API_ThreadInit(name, (PTHREAD_START_ROUTINE)thread, &threadattr, LW_NULL);

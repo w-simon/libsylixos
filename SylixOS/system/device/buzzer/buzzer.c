@@ -353,7 +353,8 @@ INT  API_BuzzerDevCreate (CPCHAR            pcName,
                         LW_CFG_THREAD_DEFAULT_STK_SIZE, 
                         LW_PRIO_T_BUS, 
                         (LW_OPTION_THREAD_STK_CHK | 
-                         LW_OPTION_OBJECT_GLOBAL), 
+                         LW_OPTION_OBJECT_GLOBAL |
+                         LW_OPTION_THREAD_DETACHED),
                         (PVOID)pbuzzerdev);
     
     pbuzzerdev->BUZZER_ulThread = API_ThreadInit("t_buzzer",

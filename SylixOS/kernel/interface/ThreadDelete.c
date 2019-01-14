@@ -80,7 +80,12 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     REGISTER PLW_CLASS_PCB         ppcbDel;
     REGISTER LW_OBJECT_HANDLE      ulId;
     REGISTER PLW_STACK             pstkFree;                            /*  要释放的内存地址            */
+             BOOL                  bDetachFlag;
+             INT                   iDetachCnt;
+
+#if LW_CFG_MODULELOADER_EN > 0
              PVOID                 pvVProc;
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
              
 #if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
     REGISTER PLW_EVENTSETNODE      pesnPtr;
@@ -158,11 +163,12 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
     
-    if (ptcbDel->TCB_ptcbJoin) {
-        _ThreadDisjoin(ptcbDel->TCB_ptcbJoin, ptcbDel);                 /*  退出 join 状态, 不操作就绪表*/
+    if (ptcbDel->TCB_ptcbJoin) {                                        /*  退出 join 状态, 不操作就绪表*/
+        _ThreadDisjoin(ptcbDel->TCB_ptcbJoin, ptcbDel, LW_FALSE, LW_NULL);
     }
     
-    _ThreadDisjoinWakeupAll(ptcbDel, pvRetVal);                         /*  DETACH                      */
+    bDetachFlag = ptcbDel->TCB_bDetachFlag;                             /*  save detach flag            */
+    iDetachCnt  = _ThreadDetach(ptcbDel, LW_NULL, pvRetVal);            /*  DETACH                      */
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
@@ -180,7 +186,9 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
                      ptcbDel->TCB_cThreadName);
     }
     
+#if LW_CFG_MODULELOADER_EN > 0
     pvVProc = ptcbDel->TCB_pvVProcessContext;                           /*  进程信息                    */
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
     
     if (ptcbDel->TCB_ucStackAutoAllocFlag) {                            /*  是否是自动分配              */
         _StackFree(ptcbDel, pstkFree);                                  /*  释放堆栈空间                */
@@ -188,16 +196,23 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     
     _TCBDestroy(ptcbDel);                                               /*  销毁 TCB                    */
     
-    __KERNEL_MODE_PROC(
-        _Free_Tcb_Object(ptcbDel);                                      /*  释放 ID                     */
-    );
+    if (!bDetachFlag && !iDetachCnt &&                                  /*  没有设置 detach 标志        */
+        !LW_KERN_AUTO_REC_TCB_GET() &&
+        (ptcbDel->TCB_ulOption & LW_OPTION_THREAD_POSIX)) {             /*  POSIX 线程                  */
+        __KERNEL_MODE_PROC(
+            _ThreadWjAdd(ptcbDel, &_K_twjTable[usIndex], pvRetVal);     /*  保留 TCB 直到 Join          */
+        );
+
+    } else {
+        __KERNEL_MODE_PROC(
+            _Free_Tcb_Object(ptcbDel);                                  /*  释放 ID                     */
+        );
+    }
     
     __LW_OBJECT_DELETE_HOOK(ulId);
 
 #if LW_CFG_MODULELOADER_EN > 0
     __resThreadDelHook(pvVProc, ulId);                                  /*  资源管理器内置静态回调      */
-#else
-    (VOID)pvVProc;
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
 
     return  (ERROR_NONE);

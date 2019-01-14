@@ -572,7 +572,11 @@ INT vprocDestroy (LW_LD_VPROC *pvproc)
     API_SemaphoreBDelete(&pvproc->VP_ulWaitForExit);
 
     _IosEnvDelete(pvproc->VP_pioeIoEnv);                                /*  删除当前进程 IO 环境        */
-    
+
+    __KERNEL_ENTER();
+    _ThreadWjClear(pvproc);                                             /*  清除所有等待回收的 TCB      */
+    __KERNEL_EXIT();
+
     if (pvproc->VP_pcCmdline) {
         LW_LD_SAFEFREE(pvproc->VP_pcCmdline);
     }

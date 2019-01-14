@@ -471,11 +471,12 @@ VOID           _CoroutineFreeAll(PLW_CLASS_TCB  ptcb);
   线程 JOIN & DETACH
 *********************************************************************************************************/
 
-VOID           _ThreadJoin(PLW_CLASS_TCB  ptcbDes, PVOID  *ppvRetValSave);
-VOID           _ThreadDisjoin(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_TCB  ptcbDisjoin);
-VOID           _ThreadDisjoinWakeup(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_TCB  ptcbWakeup, PVOID  pvArg);
-VOID           _ThreadDisjoinWakeupAll(PLW_CLASS_TCB  ptcbDes, PVOID  pvArg);
-VOID           _ThreadDetach(PLW_CLASS_TCB  ptcbDes);
+VOID           _ThreadJoin(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_WAITJOIN  ptwj, PVOID  *ppvRetValSave);
+VOID           _ThreadDisjoin(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_TCB  ptcbDisjoin, BOOL  bWakeup, PVOID  pvArg);
+INT            _ThreadDetach(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_WAITJOIN  ptwj, PVOID  pvRetVal);
+
+VOID           _ThreadWjAdd(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_WAITJOIN  ptwj, PVOID  pvRetVal);
+VOID           _ThreadWjClear(PVOID  pvVProc);
 
 /*********************************************************************************************************
   线程 CPU 调度器锁定

@@ -713,6 +713,33 @@ static INT  __tshellSysCmdTp (INT  iArgC, PCHAR  ppcArgV[])
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellSysCmdWjs
+** 功能描述: 系统命令 "wjs"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellSysCmdWjs (INT  iArgC, PCHAR  ppcArgV[])
+{
+    pid_t   pid = 0;
+
+    if (iArgC < 2) {
+        API_ThreadWjShow();
+        return  (ERROR_NONE);
+    }
+
+    if (sscanf(ppcArgV[1], "%d", &pid) != 1) {
+        fprintf(stderr, "argument error.\n");
+        return  (PX_ERROR);
+    }
+
+    API_ThreadWjShowEx(pid);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellSysCmdSs
 ** 功能描述: 系统命令 "ss"
 ** 输　入  : iArgC         参数个数
@@ -2639,6 +2666,11 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellHelpAdd("tp", "show thread pending information.\n"
                             "you can and pid argument to determine which process you want to see.\n");
     
+    API_TShellKeywordAdd("wjs", __tshellSysCmdWjs);
+    API_TShellFormatAdd("wjs", " [pid]");
+    API_TShellHelpAdd("wjs", "show thread has been deleted but not recycling (need pthread_join()).\n"
+                            "you can and pid argument to determine which process you want to see.\n");
+
     API_TShellKeywordAdd("ss", __tshellSysCmdSs);
     API_TShellHelpAdd("ss", "show all stack information.\n");
     

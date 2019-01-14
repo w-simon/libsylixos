@@ -472,6 +472,7 @@ PVOID  API_WorkQueueCreate (CPCHAR                  pcName,
         threadattr = API_ThreadAttrGetDefault();
     }
     
+    threadattr.THREADATTR_ulOption &= ~LW_OPTION_THREAD_DETACHED;
     threadattr.THREADATTR_ulOption |= LW_OPTION_OBJECT_GLOBAL;
     threadattr.THREADATTR_pvArg     = pwq;
     

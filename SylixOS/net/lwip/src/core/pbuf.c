@@ -749,6 +749,7 @@ pbuf_free(struct pbuf *p)
   while (p != NULL) {
     LWIP_PBUF_REF_T ref;
 #if defined(SYLIXOS) && \
+    !defined(LW_CFG_CPU_ARCH_PPC) && \
     (LW_CFG_CPU_ATOMIC_EN > 0) && \
     (LWIP_PBUF_REF_T == int) /* SylixOS Changed here for use atomic */
     /* all pbufs in a chain are referenced at least once */
@@ -844,6 +845,7 @@ pbuf_ref(struct pbuf *p)
   /* pbuf given? */
   if (p != NULL) {
 #if defined(SYLIXOS) && \
+    !defined(LW_CFG_CPU_ARCH_PPC) && \
     (LW_CFG_CPU_ATOMIC_EN > 0) && \
     (LWIP_PBUF_REF_T == int) /* SylixOS Changed here for use atomic */
     LWIP_PBUF_REF_T ref = __LW_ATOMIC_INC((atomic_t *)&p->ref);

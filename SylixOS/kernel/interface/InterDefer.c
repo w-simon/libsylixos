@@ -80,6 +80,7 @@ VOID  _interDeferInit (VOID)
                         (LW_OPTION_THREAD_STK_CHK | 
                         LW_OPTION_THREAD_SAFE | 
                         LW_OPTION_OBJECT_GLOBAL |
+                        LW_OPTION_THREAD_DETACHED |
                         LW_OPTION_THREAD_AFFINITY_ALWAYS), 
                         LW_NULL);
     
@@ -120,6 +121,7 @@ VOID  _interDeferInit (VOID)
                         (LW_OPTION_THREAD_STK_CHK | 
                         LW_OPTION_THREAD_SAFE | 
                         LW_OPTION_OBJECT_GLOBAL |
+                        LW_OPTION_THREAD_DETACHED |
                         LW_OPTION_THREAD_AFFINITY_ALWAYS), 
                         &_K_jobqIsrDefer[0]);
     

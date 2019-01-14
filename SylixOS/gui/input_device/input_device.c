@@ -732,6 +732,7 @@ LW_API
 INT  API_GuiInputDevProcStop (VOID)
 {
     _G_bIsNeedStop = LW_TRUE;
+    API_ThreadJoin(_G_ulGidThread, LW_NULL);
     
     return  (ERROR_NONE);
 }

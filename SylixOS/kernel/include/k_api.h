@@ -228,6 +228,8 @@ LW_API ULONG            API_ThreadAttrBuildFP(PLW_CLASS_THREADATTR    pthreadatt
                                               PVOID                   pvFP);
                                                                         /*  配置浮点运算器上下文        */
 
+LW_API ULONG            API_ThreadAttrBuildDefault(PLW_CLASS_THREADATTR    pthreadattr);
+                                                                        /*  生成一个线程默认属性块      */
 LW_API ULONG            API_ThreadAttrSetGuardSize(PLW_CLASS_THREADATTR    pthreadattr,
                                                    size_t                  stGuardSize);
                                                                         /*  设置堆栈警戒区大小          */
@@ -301,6 +303,8 @@ LW_API ULONG            API_ThreadJoin(LW_OBJECT_HANDLE  ulId,
                                        PVOID  *ppvRetValAddr);          /*  线程合并                    */
 
 LW_API ULONG            API_ThreadDetach(LW_OBJECT_HANDLE  ulId);       /*  禁止指定线程合并            */
+
+LW_API ULONG            API_ThreadDetachEx(LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal);
 
 LW_API ULONG            API_ThreadSafe(VOID);                           /*  进入安全模式                */
 
@@ -1317,6 +1321,10 @@ LW_API VOID             API_ThreadShowEx(pid_t  pid);                   /*  显示
 LW_API VOID             API_ThreadPendShow(VOID);                       /*  显示阻塞线程信息            */
 
 LW_API VOID             API_ThreadPendShowEx(pid_t  pid);               /*  显示阻塞线程信息            */
+
+LW_API VOID             API_ThreadWjShow(VOID);
+
+LW_API VOID             API_ThreadWjShowEx(pid_t  pid);
 
 LW_API VOID             API_StackShow(VOID);                            /*  打印所有线程堆栈使用信息    */
 

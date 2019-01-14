@@ -59,6 +59,9 @@ static const CHAR   _G_cThreadInfoHdr[] = "\n\
 static const CHAR   _G_cThreadPendHdr[] = "\n\
       NAME         TID    PID  STAT    DELAY          PEND EVENT        OWNER\n\
 ---------------- ------- ----- ---- ---------- ----------------------- -------\n";
+static const CHAR   _G_cThreadWjHdr[] = "\n\
+      NAME         TID    PID\n\
+---------------- ------- -----\n";
 /*********************************************************************************************************
 ** 函数名称: API_ThreadShowEx
 ** 功能描述: 显示所有的线程的信息
@@ -403,6 +406,61 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
     printf("\npending thread: %d\n", iThreadCounter);                   /*  显示线程数量                */
 }
 /*********************************************************************************************************
+** 函数名称: API_ThreadWjShowEx
+** 功能描述: 显示已经删除但未被 join 的线程信息
+** 输　入  : pid       需要显示对应进程内的线程, (-1 表示所有线程)
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+
+                                       (不得在中断中调用)
+*********************************************************************************************************/
+LW_API
+VOID    API_ThreadWjShowEx (pid_t  pid)
+{
+    INT                 i, iThreadCounter = 0;
+    pid_t               pidGet;
+    PLW_CLASS_WAITJOIN  ptwj;
+    CHAR                pcName[LW_CFG_OBJECT_NAME_SIZE];
+    LW_OBJECT_HANDLE    ulThread;
+
+    if (LW_CPU_GET_CUR_NESTING()) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
+        return;
+    }
+
+    printf("thread wait recycling show >>\n");
+    printf(_G_cThreadWjHdr);                                            /*  打印欢迎信息                */
+
+    __KERNEL_ENTER();                                                   /*  锁定内核                    */
+    for (i = LW_NCPUS; i < LW_CFG_MAX_THREADS; i++) {
+        ptwj = &_K_twjTable[i];
+        if (ptwj->TWJ_ptcb) {
+#if LW_CFG_MODULELOADER_EN > 0
+            pidGet = vprocGetPidByTcbNoLock(ptwj->TWJ_ptcb);
+#else
+            pidGet = 0;
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+            if ((pidGet != pid) && (pid != -1)) {
+                continue;
+            }
+
+            lib_strlcpy(pcName, ptwj->TWJ_ptcb->TCB_cThreadName, LW_CFG_OBJECT_NAME_SIZE);
+            ulThread = ptwj->TWJ_ptcb->TCB_ulId;
+            iThreadCounter++;
+
+            __KERNEL_EXIT();                                            /*  解锁内核                    */
+            printf("%-16s %7lx %5d\n", pcName, ulThread, pidGet);
+            __KERNEL_ENTER();                                           /*  锁定内核                    */
+        }
+    }
+    __KERNEL_EXIT();                                                    /*  解锁内核                    */
+
+    printf("\nwait recycling thread: %d\n", iThreadCounter);            /*  显示线程数量                */
+}
+/*********************************************************************************************************
 ** 函数名称: API_ThreadShow
 ** 功能描述: 显示所有的线程的信息
 ** 输　入  : NONE
@@ -433,6 +491,23 @@ LW_API
 VOID    API_ThreadPendShow (VOID)
 {
     API_ThreadPendShowEx(PX_ERROR);                                     /*  显示所有线程                */
+}
+
+/*********************************************************************************************************
+** 函数名称: API_ThreadWjShow
+** 功能描述: 显示已经删除但未被 join 的线程信息
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+
+                                       (不得在中断中调用)
+*********************************************************************************************************/
+LW_API
+VOID    API_ThreadWjShow (VOID)
+{
+    API_ThreadWjShowEx(PX_ERROR);                                       /*  显示所有                    */
 }
 
 #endif                                                                  /*  LW_CFG_FIO_LIB_EN > 0       */

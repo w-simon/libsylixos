@@ -251,6 +251,36 @@ ULONG   API_ThreadAttrBuildFP (PLW_CLASS_THREADATTR  pthreadattr, PVOID  pvFP)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_ThreadAttrBuildDefault
+** 功能描述: 建立线程默认属性块
+** 输　入  : pthreadattr        指向要生成的属性块
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_ThreadAttrBuildDefault (PLW_CLASS_THREADATTR    pthreadattr)
+{
+#if LW_CFG_ARG_CHK_EN > 0
+    if (!pthreadattr) {                                                 /*  需要生成的对象为空          */
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread attribute pointer invalidate.\r\n");
+        _ErrorHandle(ERROR_THREAD_ATTR_NULL);
+        return  (ERROR_THREAD_ATTR_NULL);
+    }
+#endif
+
+    pthreadattr->THREADATTR_pstkLowAddr     = LW_NULL;
+    pthreadattr->THREADATTR_stGuardSize     = LW_CFG_THREAD_DEFAULT_GUARD_SIZE;
+    pthreadattr->THREADATTR_stStackByteSize = LW_CFG_THREAD_DEFAULT_STK_SIZE;
+    pthreadattr->THREADATTR_ucPriority      = LW_PRIO_NORMAL;
+    pthreadattr->THREADATTR_ulOption        = LW_OPTION_THREAD_STK_CHK;
+    pthreadattr->THREADATTR_pvArg           = LW_NULL;
+    pthreadattr->THREADATTR_pvExt           = LW_NULL;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: API_ThreadAttrSetGuardSize
 ** 功能描述: 建立线程属性块设置堆栈警戒区大小
 ** 输　入  : pthreadattr        指向要生成的属性块

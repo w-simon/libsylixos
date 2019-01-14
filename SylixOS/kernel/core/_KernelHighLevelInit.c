@@ -63,6 +63,7 @@ static VOID  _CreateIdleThread (VOID)
                         (LW_OPTION_THREAD_STK_CHK | 
                          LW_OPTION_THREAD_SAFE | 
                          LW_OPTION_OBJECT_GLOBAL | 
+                         LW_OPTION_THREAD_DETACHED |
                          LW_OPTION_THREAD_AFFINITY_ALWAYS), 
                         (PVOID)0);
                         
@@ -108,7 +109,10 @@ static VOID  _CreateITimerThread (VOID)
     API_ThreadAttrBuild(&threadattr, 
                         LW_CFG_THREAD_ITMR_STK_SIZE, 
                         LW_PRIO_T_ITIMER,
-                        (LW_CFG_ITIMER_OPTION | LW_OPTION_THREAD_SAFE | LW_OPTION_OBJECT_GLOBAL), 
+                        (LW_CFG_ITIMER_OPTION |
+                         LW_OPTION_THREAD_SAFE |
+                         LW_OPTION_OBJECT_GLOBAL |
+                         LW_OPTION_THREAD_DETACHED),
                         LW_NULL);
 
     _K_ulThreadItimerId = API_ThreadInit("t_itimer", _ITimerThread, &threadattr, LW_NULL);

@@ -142,7 +142,8 @@ int  pthread_create (pthread_t              *pthread,
         lwattr.THREADATTR_ucPriority      = ptcbCur->TCB_ucPriority;
     }
     
-    lwattr.THREADATTR_pvArg = arg;                                      /*  记录参数                    */
+    lwattr.THREADATTR_ulOption |= LW_OPTION_THREAD_POSIX;               /*  POSIX 线程                  */
+    lwattr.THREADATTR_pvArg     = arg;                                  /*  记录参数                    */
     
     /*
      *  初始化线程.

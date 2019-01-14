@@ -38,49 +38,49 @@
     IO SYSTEM
 *********************************************************************************************************/
 #if LW_CFG_DEVICE_EN > 0
-__SYSTEM_EXT  LW_DEV_ENTRY          _S_deventryTbl[LW_CFG_MAX_DRIVERS]; /*  驱动程序表                  */
-__SYSTEM_EXT  LW_LIST_LINE_HEADER   _S_plineDevHdrHeader;               /*  设备表表头                  */
+__SYSTEM_EXT LW_DEV_ENTRY          _S_deventryTbl[LW_CFG_MAX_DRIVERS];  /*  驱动程序表                  */
+__SYSTEM_EXT LW_LIST_LINE_HEADER   _S_plineDevHdrHeader;                /*  设备表表头                  */
 
-__SYSTEM_EXT  LW_LIST_LINE_HEADER   _S_plineFileEntryHeader;            /*  文件结构表头                */
-__SYSTEM_EXT  atomic_t              _S_atomicFileLineOp;                /*  遍历文件结构表锁            */
-__SYSTEM_EXT  BOOL                  _S_bFileEntryRemoveReq;             /*  文件结构链表有请求删除的节点*/
+__SYSTEM_EXT LW_LIST_LINE_HEADER   _S_plineFileEntryHeader;             /*  文件结构表头                */
+__SYSTEM_EXT atomic_t              _S_atomicFileLineOp;                 /*  遍历文件结构表锁            */
+__SYSTEM_EXT BOOL                  _S_bFileEntryRemoveReq;              /*  文件结构链表有请求删除的节点*/
 
-__SYSTEM_EXT  LW_IO_ENV             _S_ioeIoGlobalEnv;                  /*  全局 io 环境                */
-__SYSTEM_EXT  INT                   _S_iIoMaxLinkLevels;                /*  maximum number of symlinks  */
+__SYSTEM_EXT LW_IO_ENV             _S_ioeIoGlobalEnv;                   /*  全局 io 环境                */
+__SYSTEM_EXT INT                   _S_iIoMaxLinkLevels;                 /*  maximum number of symlinks  */
                                                                         /*  to traverse                 */
 /*********************************************************************************************************
   IO 回调函数组
 *********************************************************************************************************/
 
-__SYSTEM_EXT  pid_t               (*_S_pfuncGetCurPid)();               /*  获得当前 pid                */
-__SYSTEM_EXT  PLW_FD_ENTRY        (*_S_pfuncFileGet)();                 /*  获得对应 fd 的 fdentry      */
-__SYSTEM_EXT  PLW_FD_DESC         (*_S_pfuncFileDescGet)();             /*  获得对应 fd 的 filedesc     */
-__SYSTEM_EXT  INT                 (*_S_pfuncFileDup)();                 /*  dup                         */
-__SYSTEM_EXT  INT                 (*_S_pfuncFileDup2)();                /*  dup2                        */
-__SYSTEM_EXT  INT                 (*_S_pfuncFileRefInc)();              /*  将文件描述符引用计数++      */
-__SYSTEM_EXT  INT                 (*_S_pfuncFileRefDec)();              /*  将文件描述符引用计数--      */
-__SYSTEM_EXT  INT                 (*_S_pfuncFileRefGet)();              /*  获得文件描述符引用计数      */
+__SYSTEM_EXT pid_t               (*_S_pfuncGetCurPid)();                /*  获得当前 pid                */
+__SYSTEM_EXT PLW_FD_ENTRY        (*_S_pfuncFileGet)();                  /*  获得对应 fd 的 fdentry      */
+__SYSTEM_EXT PLW_FD_DESC         (*_S_pfuncFileDescGet)();              /*  获得对应 fd 的 filedesc     */
+__SYSTEM_EXT INT                 (*_S_pfuncFileDup)();                  /*  dup                         */
+__SYSTEM_EXT INT                 (*_S_pfuncFileDup2)();                 /*  dup2                        */
+__SYSTEM_EXT INT                 (*_S_pfuncFileRefInc)();               /*  将文件描述符引用计数++      */
+__SYSTEM_EXT INT                 (*_S_pfuncFileRefDec)();               /*  将文件描述符引用计数--      */
+__SYSTEM_EXT INT                 (*_S_pfuncFileRefGet)();               /*  获得文件描述符引用计数      */
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
 /*********************************************************************************************************
     THREAD POOL SYSTEM
 *********************************************************************************************************/
 #if LW_CFG_THREAD_POOL_EN > 0 && LW_CFG_MAX_THREAD_POOLS > 0
-__SYSTEM_EXT  LW_CLASS_THREADPOOL   _S_threadpoolBuffer[LW_CFG_MAX_THREAD_POOLS];  
+__SYSTEM_EXT LW_CLASS_THREADPOOL   _S_threadpoolBuffer[LW_CFG_MAX_THREAD_POOLS];
                                                                         /*  线程池控制块缓冲区          */
-__SYSTEM_EXT  LW_CLASS_OBJECT_RESRC _S_resrcThreadPool;                 /*  线程池对象资源结构          */
+__SYSTEM_EXT LW_CLASS_OBJECT_RESRC _S_resrcThreadPool;                  /*  线程池对象资源结构          */
 #endif                                                                  /*  LW_CFG_THREAD_POOL_EN > 0   */
 /*********************************************************************************************************
     服务线程相关
 *********************************************************************************************************/
-__SYSTEM_EXT  LW_OBJECT_ID          _S_ulThreadExceId;                  /*  信号服务线程                */
+__SYSTEM_EXT LW_OBJECT_ID          _S_ulThreadExceId;                   /*  信号服务线程                */
 
 #if LW_CFG_LOG_LIB_EN > 0
-__SYSTEM_EXT  LW_OBJECT_ID          _S_ulThreadLogId;                   /*  日志服务线程                */
+__SYSTEM_EXT LW_OBJECT_ID          _S_ulThreadLogId;                    /*  日志服务线程                */
 #endif
 
 #if LW_CFG_POWERM_EN > 0
-__SYSTEM_EXT  LW_OBJECT_ID          _S_ulPowerMId;                      /*  功耗管理线程                */
+__SYSTEM_EXT LW_OBJECT_ID          _S_ulPowerMId;                       /*  功耗管理线程                */
 #endif
 
 #endif                                                                  /*  __S_GLOBALVAR_H             */

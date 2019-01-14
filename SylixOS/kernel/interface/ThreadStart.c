@@ -99,7 +99,7 @@ ULONG  API_ThreadStartEx (LW_OBJECT_HANDLE  ulId, BOOL  bJoin, PVOID  *ppvRetVal
             KN_INT_ENABLE(iregInterLevel);                              /*  打开中断                    */
             
             if (bJoin) {
-                _ThreadJoin(ptcb, ppvRetValAddr);                       /*  合并                        */
+                _ThreadJoin(ptcb, LW_NULL, ppvRetValAddr);              /*  合并                        */
             }
             
             __KERNEL_EXIT();                                            /*  退出内核                    */

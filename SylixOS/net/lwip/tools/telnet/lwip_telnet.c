@@ -402,7 +402,9 @@ static VOID  __telnetServer (INT  iSock)
         API_ThreadAttrBuild(&threadattr,
                             LW_CFG_NET_TELNET_STK_SIZE,
                             LW_PRIO_T_SERVICE,
-                            LW_OPTION_THREAD_STK_CHK | LW_OPTION_OBJECT_GLOBAL,
+                            LW_OPTION_THREAD_STK_CHK |
+                            LW_OPTION_OBJECT_GLOBAL |
+                            LW_OPTION_THREAD_DETACHED,
                             (PVOID)iDevFd);
                                                                         /*  与 shell 优先级相同         */
         threadattr.THREADATTR_ucPriority = LW_PRIO_T_SHELL;
@@ -424,7 +426,8 @@ static VOID  __telnetServer (INT  iSock)
      */
     ulTShell = API_TShellCreate(iHostFd, LW_OPTION_TSHELL_VT100 | 
                                          LW_OPTION_TSHELL_AUTHEN |
-                                         LW_OPTION_TSHELL_PROMPT_FULL); /*  需用户登陆                  */
+                                         LW_OPTION_TSHELL_PROMPT_FULL |
+                                         LW_OPTION_TSHELL_NODETACH);    /*  需用户登陆                  */
     if (ulTShell == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 5;
         goto    __error_handle;

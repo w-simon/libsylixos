@@ -204,6 +204,7 @@ static LW_INLINE BOOL __heap_crossbord_check (PLW_CLASS_SEGMENT psegment)
 ** 调用模块: 
 *********************************************************************************************************/
 #if (LW_CFG_SEMM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
+
 static ULONG    __heap_lock (PLW_CLASS_HEAP  pheap)
 {
     if (pheap->HEAP_ulLock) {
@@ -214,12 +215,14 @@ static ULONG    __heap_lock (PLW_CLASS_HEAP  pheap)
         return  (ERROR_NONE);
     }
 }
+
 #else 
 static ULONG    __heap_lock (PLW_CLASS_HEAP  pheap)
 {
     LW_SPIN_LOCK(&pheap->HEAP_slLock);                                  /*  进入自旋锁保护资源          */
     return  (ERROR_NONE);
 }
+
 #endif                                                                  /*  (LW_CFG_SEMM_EN > 0) &&     */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
 /*********************************************************************************************************
@@ -231,6 +234,7 @@ static ULONG    __heap_lock (PLW_CLASS_HEAP  pheap)
 ** 调用模块: 
 *********************************************************************************************************/
 #if (LW_CFG_SEMM_EN > 0) && (LW_CFG_MAX_EVENTS > 0)
+
 static VOID    __heap_unlock (PLW_CLASS_HEAP  pheap)
 {
     if (pheap->HEAP_ulLock) {
@@ -239,11 +243,13 @@ static VOID    __heap_unlock (PLW_CLASS_HEAP  pheap)
         LW_SPIN_UNLOCK(&pheap->HEAP_slLock);                            /*  释放自旋锁                  */
     }
 }
+
 #else
 static VOID    __heap_unlock (PLW_CLASS_HEAP  pheap)
 {
     LW_SPIN_UNLOCK(&pheap->HEAP_slLock);                                /*  释放自旋锁                  */
 }
+
 #endif                                                                  /*  (LW_CFG_SEMM_EN > 0) &&     */
                                                                         /*  (LW_CFG_MAX_EVENTS > 0)     */
 /*********************************************************************************************************

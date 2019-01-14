@@ -348,6 +348,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
     LW_OBJECT_HANDLE        hTShellHandle;
     INT                     iKernelFile;
     ULONG                   ulOldOption = ulOption;
+    ULONG                   ulTaskOpt;
     PLW_CLASS_TCB           ptcbShell;
     
     _DebugHandle(__LOGMESSAGE_LEVEL, "ttiny shell system initialize...\r\n");
@@ -381,10 +382,15 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
         iKernelFile = iTtyFd;
     }
     
+    ulTaskOpt = LW_CFG_SHELL_THREAD_OPTION | LW_OPTION_OBJECT_GLOBAL;
+    if (!(ulOption & LW_OPTION_TSHELL_NODETACH)) {
+        ulTaskOpt |= LW_OPTION_THREAD_DETACHED;
+    }
+
     API_ThreadAttrBuild(&threadattrTShell,
                         _G_stShellStackSize,                            /*  shell 堆栈大小              */
                         LW_PRIO_T_SHELL,
-                        LW_CFG_SHELL_THREAD_OPTION | LW_OPTION_OBJECT_GLOBAL,
+                        ulTaskOpt,
                         (PVOID)iKernelFile);                            /*  构建属性块                  */
     
     hTShellHandle = API_ThreadInit("t_tshell", __tshellThread,

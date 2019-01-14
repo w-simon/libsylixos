@@ -38,6 +38,12 @@
 #define __THREAD_CANCEL_POINT()
 #endif                                                                  /*  LW_CFG_THREAD_CANCEL_EN     */
 /*********************************************************************************************************
+  loader
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+extern pid_t  vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
 ** 函数名称: API_ThreadJoin
 ** 功能描述: 线程合并
 ** 输　入  : 
@@ -56,6 +62,7 @@ ULONG  API_ThreadJoin (LW_OBJECT_HANDLE  ulId, PVOID  *ppvRetValAddr)
     REGISTER UINT16                usIndex;
     REGISTER PLW_CLASS_TCB         ptcbCur;
     REGISTER PLW_CLASS_TCB         ptcb;
+    REGISTER PLW_CLASS_WAITJOIN    ptwj;
 	
     usIndex = _ObjectGetIndex(ulId);
     
@@ -82,28 +89,52 @@ ULONG  API_ThreadJoin (LW_OBJECT_HANDLE  ulId, PVOID  *ppvRetValAddr)
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */
-    if (_Thread_Invalid(usIndex)) {
+
+    ptcb = _K_ptcbTCBIdTable[usIndex];
+    if (ptcb) {
+        if (ptcb == ptcbCur) {                                          /*  不能阻塞自己                */
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "thread join self.\r\n");
+            _ErrorHandle(ERROR_THREAD_JOIN_SELF);
+            return  (ERROR_THREAD_JOIN_SELF);
+        }
+
+#if LW_CFG_MODULELOADER_EN > 0
+        if (vprocGetPidByTcbNoLock(ptcb) !=
+            vprocGetPidByTcbNoLock(ptcbCur)) {                          /*  只能 join 同进程线程        */
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            _ErrorHandle(ERROR_THREAD_NULL);
+            return  (ERROR_THREAD_NULL);
+        }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
+        if (ptcb->TCB_bDetachFlag) {
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            _ErrorHandle(ERROR_THREAD_DETACHED);
+            return  (ERROR_THREAD_DETACHED);
+        }
+
+        _ThreadJoin(ptcb, LW_NULL, ppvRetValAddr);                      /*  合并                        */
+
+    } else if (!LW_KERN_AUTO_REC_TCB_GET()) {                           /*  需要手动回收                */
+        ptwj = &_K_twjTable[usIndex];
+        if (ptwj->TWJ_ptcb) {
+#if LW_CFG_MODULELOADER_EN > 0
+            if (vprocGetPidByTcbNoLock(ptwj->TWJ_ptcb) !=
+                vprocGetPidByTcbNoLock(ptcbCur)) {                      /*  只能 join 同进程线程        */
+                __KERNEL_EXIT();                                        /*  退出内核                    */
+                _ErrorHandle(ERROR_THREAD_NULL);
+                return  (ERROR_THREAD_NULL);
+            }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+            _ThreadJoin(LW_NULL, ptwj, ppvRetValAddr);                  /*  在等待回收队列中            */
+        }
+
+    } else {
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(ERROR_THREAD_NULL);
         return  (ERROR_THREAD_NULL);
     }
-    
-    ptcb = _K_ptcbTCBIdTable[usIndex];
-    
-    if (ptcb == ptcbCur) {                                              /*  不能阻塞自己                */
-        __KERNEL_EXIT();                                                /*  退出内核                    */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread join self.\r\n");
-        _ErrorHandle(ERROR_THREAD_JOIN_SELF);
-        return  (ERROR_THREAD_JOIN_SELF);
-    }
-        
-    if (ptcb->TCB_bDetachFlag) {
-        __KERNEL_EXIT();                                                /*  退出内核                    */
-        _ErrorHandle(ERROR_THREAD_DETACHED);
-        return  (ERROR_THREAD_DETACHED);
-    }
-    
-    _ThreadJoin(ptcb, ppvRetValAddr);                                   /*  合并                        */
     
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     

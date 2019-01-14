@@ -397,6 +397,7 @@ INT  __processStart (INT  mode, __PSPAWN_ARG  psarg)
     ulOption = LW_OPTION_THREAD_STK_CHK
              | LW_OPTION_OBJECT_GLOBAL
              | LW_OPTION_THREAD_STK_MAIN
+             | LW_OPTION_THREAD_POSIX
              | psarg->SA_spawnattr.SPA_opt.SPO_ulMainOption;
              
     if (psarg->SA_spawnattr.SPA_opt.SPO_stStackSize) {
