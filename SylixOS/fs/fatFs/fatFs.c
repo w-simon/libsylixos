@@ -86,6 +86,7 @@
 2017.04.27  fat 内部使用 O_RDWR 打开, 防止多重打开时内部权限判断错误.
 2017.09.22  格式化操作不使用 exFAT 系统, 防止 BIOS 兼容性问题.
 2017.12.27  修正 rename 符合 POSIX 标准.
+2019.01.16  修正 open 针对 EEXIST 处理 errno 错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -376,6 +377,7 @@ INT  API_FatFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
         _DebugHandle(__ERRORMESSAGE_LEVEL, "block device invalidate.\r\n");
         _ErrorHandle(ERROR_IOS_DEVICE_NOT_FOUND);
         return  (PX_ERROR);
+
     } else if (iBlkdIndex == -2) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "block device table full.\r\n");
         _ErrorHandle(ERROR_IOS_DRIVER_GLUT);
@@ -631,16 +633,14 @@ static BYTE  __fatFsMkMode (INT  iFlags)
         ucMode = FA_READ;
     }
      
-    if ((iFlags & O_CREAT) &&
-        (iFlags & O_EXCL)) {                                            /*  如果存在, 不新建, 返回错误  */
+    if ((iFlags & O_CREAT) && (iFlags & O_EXCL)) {                      /*  如果存在, 不新建, 返回错误  */
         ucMode |= FA_CREATE_NEW;                                        /*  有则错误, 无则新建          */
     } else if (iFlags & O_CREAT) {
         ucMode |= FA_OPEN_ALWAYS;                                       /*  有则打开, 无则新建          */
     }
 
     if (iFlags & O_TRUNC) {                                             /*  创建新文件并截断            */
-        if ((iFlags & O_RDWR) ||
-            (iFlags & O_WRONLY)) {
+        if ((iFlags & O_RDWR) || (iFlags & O_WRONLY)) {
             ucMode |= FA_CREATE_ALWAYS;                                 /*  总是创建新文件, 并且trunc   */
         }
     }
@@ -817,6 +817,7 @@ static LONG  __fatFsOpen (PFAT_VOLUME     pfatvol,
     REGISTER PFAT_FILE      pfatfile;
     REGISTER BYTE           ucMode;
     REGISTER FRESULT        fresError;
+    REGISTER FRESULT        fresStat;
     REGISTER ULONG          ulError;
              PLW_FD_NODE    pfdnode;
              BOOL           bIsNew;
@@ -892,15 +893,13 @@ static LONG  __fatFsOpen (PFAT_VOLUME     pfatvol,
         pfatfile->FATFIL_iFileType = __FAT_FILE_TYPE_NODE;              /*  可以被 close 掉             */
         
         if (fresError != FR_OK) {                                       /*  打开失败                    */
-            fresError =  f_stat_ex(&pfatvol->FATVOL_fatfsVol, 
-                                   pcName, 
-                                   &fileinfo);                          /*  检查是否为目录文件          */
-            if ((fresError == FR_OK) &&
-                (fileinfo.fattrib & AM_DIR)) {
+            fresStat = f_stat_ex(&pfatvol->FATVOL_fatfsVol,
+                                 pcName, &fileinfo);                    /*  检查是否为目录文件          */
+            if ((fresStat == FR_OK) &&
+                (fileinfo.fattrib & AM_DIR)) {                          /*  此路径为目录                */
                 f_opendir_ex(&pfatvol->FATVOL_fatfsVol, 
                              &pfatfile->FATFIL_fftm.FFTM_fatdir,
-                             &pfatfile->FATFIL_u64Uniq,
-                             (CPCHAR)pcName);                           /*  打开目录                    */
+                             &pfatfile->FATFIL_u64Uniq, pcName);        /*  打开目录                    */
                 pfatfile->FATFIL_iFileType = __FAT_FILE_TYPE_DIR;       /*  目录文件                    */
                 goto    __file_open_ok;                                 /*  文件打开正常                */
             }
@@ -932,6 +931,7 @@ static LONG  __fatFsOpen (PFAT_VOLUME     pfatvol,
 __file_open_ok:
         if (pfatfile->FATFIL_iFileType == __FAT_FILE_TYPE_DEV) {
             pfatfile->FATFIL_inode = 0;                                 /*  不与任何文件重复(根目录)    */
+
         } else {
             pfatfile->FATFIL_inode = __fatFsHisAdd(pfatfile);
             if (pfatfile->FATFIL_inode == 0) {                          /*  无法获取 inode              */

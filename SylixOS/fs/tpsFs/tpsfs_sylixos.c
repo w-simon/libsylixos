@@ -423,6 +423,7 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
         _DebugHandle(__ERRORMESSAGE_LEVEL, "block device invalidate.\r\n");
         _ErrorHandle(ERROR_IOS_DEVICE_NOT_FOUND);
         return  (PX_ERROR);
+
     } else if (iBlkdIndex == -2) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "block device table full.\r\n");
         _ErrorHandle(ERROR_IOS_DRIVER_GLUT);
