@@ -40,7 +40,8 @@ src/gtest.cpp
 #*********************************************************************************************************
 LOCAL_INC_PATH :=  \
 -I"$(SYLIXOS_BASE_PATH)/libgtest/googletest/googletest/include" \
--I"$(SYLIXOS_BASE_PATH)/libgtest/googletest/googlemock/include" 
+-I"$(SYLIXOS_BASE_PATH)/libgtest/googletest/googlemock/include" \
+-I"$(SYLIXOS_BASE_PATH)/libgtest/googletestx"
 
 #*********************************************************************************************************
 # Pre-defined macro (eg. -DYOUR_MARCO=1)
