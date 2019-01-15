@@ -324,7 +324,8 @@ ULONG  _ThreadMigrateToProc (LW_HANDLE  ulId, PVOID   pvVProc, BOOL  bMain)
         bVpAdd = LW_FALSE;
     }
     
-    ptcb->TCB_pvVProcessContext = pvVProc;
+    ptcb->TCB_ulOption          |= LW_OPTION_THREAD_POSIX;              /*  进程内线程默认为 POSIX 线程 */
+    ptcb->TCB_pvVProcessContext  = pvVProc;
 
     if (bMain) {
         pvproc->VP_ulMainThread = ulId;                                 /*  设置为主线程                */
