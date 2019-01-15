@@ -32,6 +32,11 @@
 #include "pciDrv.h"
 #include "pciLib.h"
 /*********************************************************************************************************
+  别名 (修正之前的拼写错误)
+*********************************************************************************************************/
+#include "sys/cdefs.h"
+__weak_alias(API_PciDevInterDisonnect, API_PciDevInterDisconnect)
+/*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
 static UINT                     _GuiPciDevTotalNum  = 0;
@@ -124,7 +129,7 @@ INT  API_PciDevInterEnable (PCI_DEV_HANDLE   hHandle,
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_PciDevInterDisonnect
+** 函数名称: API_PciDevInterDisconnect
 ** 功能描述: 设置 PCI 设备解除中断连接
 ** 输　入  : hHandle    设备句柄
 **           ulVector   中断向量
@@ -136,10 +141,10 @@ INT  API_PciDevInterEnable (PCI_DEV_HANDLE   hHandle,
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_PciDevInterDisonnect (PCI_DEV_HANDLE    hHandle,
-                               ULONG             ulVector,
-                               PINT_SVR_ROUTINE  pfuncIsr,
-                               PVOID             pvArg)
+INT  API_PciDevInterDisconnect (PCI_DEV_HANDLE    hHandle,
+                                ULONG             ulVector,
+                                PINT_SVR_ROUTINE  pfuncIsr,
+                                PVOID             pvArg)
 {
     INT     iRet = PX_ERROR;
 

@@ -792,10 +792,10 @@ LW_API INT                  API_PciDevInterEnable(PCI_DEV_HANDLE   hHandle,
                                                   ULONG            ulVector,
                                                   PINT_SVR_ROUTINE pfuncIsr,
                                                   PVOID            pvArg);
-LW_API INT                  API_PciDevInterDisonnect(PCI_DEV_HANDLE   hHandle,
-                                                     ULONG            ulVector,
-                                                     PINT_SVR_ROUTINE pfuncIsr,
-                                                     PVOID            pvArg);
+LW_API INT                  API_PciDevInterDisconnect(PCI_DEV_HANDLE   hHandle,
+                                                      ULONG            ulVector,
+                                                      PINT_SVR_ROUTINE pfuncIsr,
+                                                      PVOID            pvArg);
 LW_API INT                  API_PciDevInterConnect(PCI_DEV_HANDLE   hHandle,
                                                    ULONG            ulVector,
                                                    PINT_SVR_ROUTINE pfuncIsr,
@@ -874,7 +874,7 @@ LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE hCtrl,
 
 #define pciDevInterDisable      API_PciDevInterDisable
 #define pciDevInterEnable       API_PciDevInterEnable
-#define pciDevInterDisonnect    API_PciDevInterDisonnect
+#define pciDevInterDisconnect   API_PciDevInterDisconnect
 #define pciDevInterConnect      API_PciDevInterConnect
 
 #define pciDevIntxEnableSet     API_PciDevIntxEnableSet

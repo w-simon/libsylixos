@@ -292,10 +292,10 @@ static INT  pciStorageNvmeVendorCtrlIntDisConnect (NVME_CTRL_HANDLE   hCtrl,
             return  (PX_ERROR);
         }
 
-        API_PciDevInterDisonnect(hPciDev,
-                                 hMsgHandle[usVector].PCIMSI_ulDevIrqVector,
-                                 (PINT_SVR_ROUTINE)pfuncIsr,
-                                 hQueue);
+        API_PciDevInterDisconnect(hPciDev,
+                                  hMsgHandle[usVector].PCIMSI_ulDevIrqVector,
+                                  (PINT_SVR_ROUTINE)pfuncIsr,
+                                  hQueue);
     } else {
         /*
          *  可能是 INTx 中断或 MSI 中断，INTx 中断只能为 0
@@ -304,10 +304,10 @@ static INT  pciStorageNvmeVendorCtrlIntDisConnect (NVME_CTRL_HANDLE   hCtrl,
             return  (PX_ERROR);
         }
 
-        API_PciDevInterDisonnect(hPciDev,
-                                 hPciDev->PCIDEV_ulDevIrqVector + usVector,
-                                 (PINT_SVR_ROUTINE)pfuncIsr,
-                                 hQueue);
+        API_PciDevInterDisconnect(hPciDev,
+                                  hPciDev->PCIDEV_ulDevIrqVector + usVector,
+                                  (PINT_SVR_ROUTINE)pfuncIsr,
+                                  hQueue);
     }
 
     return  (ERROR_NONE);
