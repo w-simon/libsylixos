@@ -52,7 +52,7 @@
 #endif
 
 #ifndef LW_CFG_NET_DEV_TXQ_MAX
-#define LW_CFG_NET_DEV_TXQ_MAX  4096
+#define LW_CFG_NET_DEV_TXQ_MAX  LW_CFG_LWIP_NUM_NETBUF
 #endif
 
 /*
