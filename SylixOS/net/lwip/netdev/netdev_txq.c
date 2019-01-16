@@ -146,12 +146,8 @@ static void netdev_txq_proc (void *arg)
 static LW_INLINE int 
 netdev_txq_can_ref (struct pbuf *p)
 {
-  u8_t type;
-  
   while (p) {
-    type = pbuf_get_allocsrc(p);
-    if ((type == PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP) || 
-        (type == PBUF_TYPE_ALLOC_SRC_MASK_STD_MEMP_PBUF_POOL)) {
+    if (!PBUF_NEEDS_COPY(p)) {
       p = p->next;
     } else {
       return (0);

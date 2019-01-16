@@ -1868,12 +1868,8 @@ struct pbuf *netdev_pbuf_alloc_ram (UINT16 len, UINT16 res)
 /* netdev transmit function can ref this packet? */
 BOOL netdev_pbuf_can_ref (struct pbuf *p)
 {
-  u8_t type;
-
   if (p->tot_len == p->len) {
-    type = pbuf_get_allocsrc(p);
-    if ((type == PBUF_TYPE_ALLOC_SRC_MASK_STD_HEAP) || 
-        (type == PBUF_TYPE_ALLOC_SRC_MASK_STD_MEMP_PBUF_POOL)) {
+    if (!PBUF_NEEDS_COPY(p)) {
       return (TRUE);
     }
   }

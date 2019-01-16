@@ -473,7 +473,9 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr,
 
 #define LWIP_ARP                        1
 #define ARP_QUEUEING                    1
+#define ARP_QUEUE_LEN                   10                              /*  每个查询可缓存 10 个数据包  */
 #define ARP_TABLE_SIZE                  LW_CFG_LWIP_ARP_TABLE_SIZE
+
 #define ETHARP_SUPPORT_VLAN             1                               /*  IEEE 802.1q VLAN            */
 #define ETH_PAD_SIZE                    2
 #define ETHARP_SUPPORT_STATIC_ENTRIES   1
@@ -487,6 +489,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr,
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 
 #define MEMP_NUM_ARP_QUEUE              LW_CFG_LWIP_NUM_ARP_QUEUE
+#define MEMP_NUM_ND6_QUEUE              LW_CFG_LWIP_NUM_ARP_QUEUE
 
 /*********************************************************************************************************
   loop interface
