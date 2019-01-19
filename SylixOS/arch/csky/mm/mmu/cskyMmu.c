@@ -26,6 +26,7 @@
 #if LW_CFG_VMM_EN > 0
 #include "cskyMmu.h"
 #include "arch/csky/inc/cskyregs.h"
+#include "arch/csky/param/cskyParam.h"
 /*********************************************************************************************************
   全局宏定义
 *********************************************************************************************************/
@@ -49,7 +50,7 @@
 #elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
 #define CSKY_MMU_PAGE_MASK              PM_64K
 #else
-#error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K)!
+#error "LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K)!"
 #endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
 /*********************************************************************************************************
   ENTRYLO 相关定义
@@ -59,12 +60,15 @@
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
+static BOOL                 _G_bMmuEnByBoot  = LW_TRUE;                 /*  BOOT 是否已经启动了 MMU     */
 static ULONG                _G_ulMmuTlbSize  = 128;                     /*  TLB 数组大小                */
 static LW_OBJECT_HANDLE     _G_hPGDPartition = LW_HANDLE_INVALID;       /*  系统目前仅使用一个 PGD      */
 static LW_OBJECT_HANDLE     _G_hPTEPartition = LW_HANDLE_INVALID;       /*  PTE 缓冲区                  */
 /*********************************************************************************************************
   外部函数
 *********************************************************************************************************/
+extern VOID  cskyMmuEnableHw(VOID);
+extern VOID  cskyMmuDisableHw(VOID);
 extern VOID  cskyMmuContextSet(ULONG  ulValue);
 extern VOID  cskyMmuPageMaskSet(ULONG  ulValue);
 extern INT   cskyCacheFlush(LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes);
@@ -76,8 +80,11 @@ extern INT   cskyCacheFlush(LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  cskyMmuEnable (VOID)
+LW_WEAK VOID  cskyMmuEnable (VOID)
 {
+    if (!_G_bMmuEnByBoot) {
+        cskyMmuEnableHw();
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: cskyMmuDisable
@@ -87,8 +94,11 @@ static VOID  cskyMmuEnable (VOID)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  cskyMmuDisable (VOID)
+LW_WEAK VOID  cskyMmuDisable (VOID)
 {
+    if (!_G_bMmuEnByBoot) {
+        cskyMmuDisableHw();
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: cskyMmuBuildPgdEntry
@@ -100,7 +110,11 @@ static VOID  cskyMmuDisable (VOID)
 *********************************************************************************************************/
 static LW_PGD_TRANSENTRY  cskyMmuBuildPgdEntry (addr_t  ulBaseAddr)
 {
-    return  (CSKY_SSEG0_PA(ulBaseAddr));                                /*  一级描述符就是二级页表基地址*/
+    if (_G_bMmuEnByBoot) {
+        return  (CSKY_SSEG0_PA(ulBaseAddr));                            /*  一级描述符就是二级页表基地址*/
+    } else {
+        return  (ulBaseAddr);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: cskyMmuBuildPteEntry
@@ -229,7 +243,12 @@ static  LW_PTE_TRANSENTRY  *cskyMmuPteOffset (LW_PMD_TRANSENTRY  *p_pmdentry, ad
     REGISTER LW_PMD_TRANSENTRY   pmdentry;
     REGISTER ULONG               ulPageNum;
 
-    pmdentry   = CSKY_SSEG0_VA(*p_pmdentry);                            /*  获得一级页表描述符          */
+    if (_G_bMmuEnByBoot) {
+        pmdentry = CSKY_SSEG0_VA(*p_pmdentry);                          /*  获得一级页表描述符          */
+    } else {
+        pmdentry = (*p_pmdentry);
+    }
+
     p_pteentry = (LW_PTE_TRANSENTRY *)(pmdentry);                       /*  获得二级页表基地址          */
 
     ulAddr    &= ~LW_CFG_VMM_PGD_MASK;
@@ -526,7 +545,11 @@ static VOID  cskyMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
 *********************************************************************************************************/
 static VOID  cskyMmuMakeCurCtx (PLW_MMU_CONTEXT  pmmuctx)
 {
-    cskyMmuContextSet(CSKY_SSEG0_PA((addr_t)pmmuctx->MMUCTX_pgdEntry));
+    if (_G_bMmuEnByBoot) {
+        cskyMmuContextSet(CSKY_SSEG0_PA((addr_t)pmmuctx->MMUCTX_pgdEntry));
+    } else {
+        cskyMmuContextSet((addr_t)pmmuctx->MMUCTX_pgdEntry);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: cskyMmuInvalidateTLB
@@ -641,7 +664,10 @@ static INT  cskyMmuGlobalInit (CPCHAR  pcMachineName)
 *********************************************************************************************************/
 VOID  cskyMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
 {
-    _G_ulMmuTlbSize = 128;                                              /*  没有寄存器可以读出 TLB 数目 */
+    CSKY_PARAM  *param;
+
+    param = archKernelParamGet();
+    _G_bMmuEnByBoot = param->CP_bMmuEnByBoot;
 
 #if LW_CFG_SMP_EN > 0
     pmmuop->MMUOP_ulOption = LW_VMM_MMU_FLUSH_TLB_MP;

@@ -33,7 +33,8 @@
   是否使用硬件单步
 *********************************************************************************************************/
 
-#ifdef LW_CFG_CPU_ARCH_X86
+#if defined(LW_CFG_CPU_ARCH_X86) || \
+    (defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_HARDWARE_STEP_EN > 0))
 #define LW_DTRACE_HW_ISTEP  1                                           /*  支持硬件单步断点            */
 #endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
 

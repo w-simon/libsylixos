@@ -159,6 +159,7 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
     UINT            uiExcClass;
     UINT            uiExcISS;
     ULONG           ulAbortAddr;
+    UINT            uiBpType;
     
     LW_TCB_GET_CUR(ptcbCur);
      
@@ -237,22 +238,37 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
         abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FATAL_ERROR;         /*  致命错误                    */
         break;
 
-    case EXC_BREAKPOINT_LO:
-    case EXC_BREAKPOINT:
     case EXC_SOFTWARE_STEP_LO:
     case EXC_SOFTWARE_STEP:
+#if LW_CFG_GDB_EN > 0
+        uiBpType = archDbgTrapType(ulAbortAddr,
+                                   (PVOID)ARM64_DBG_TRAP_STEP);         /*  单步指令探测                */
+        if (uiBpType) {
+            if (API_DtraceBreakTrap(ulAbortAddr, uiBpType)
+                == ERROR_NONE) {                                        /*  进入调试接口断点处理        */
+                return;
+            }
+        }
+#endif
+        break;
+
+    case EXC_BREAKPOINT_LO:
+    case EXC_BREAKPOINT:
     case EXC_WATCHPOINT_LO:
     case EXC_WATCHPOINT:
     case EXC_BKPT_AARCH32:
     case EXC_VECTOR_CATCH_AARCH32:
     case EXC_BRK_AARCH64:
         abtInfo.VMABT_uiMethod = 0;
-        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BREAK;               /*  断点异常                   */
+        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BREAK;               /*  断点异常                    */
 
 #if LW_CFG_GDB_EN > 0
-        if (API_DtraceBreakTrap(ulAbortAddr, LW_TRAP_BRKPT)
-            == ERROR_NONE) {                                            /*  进入调试接口断点处理        */
-            return;
+        uiBpType = archDbgTrapType(ulAbortAddr, LW_NULL);               /*  断点指令探测                */
+        if (uiBpType) {
+            if (API_DtraceBreakTrap(ulAbortAddr, uiBpType)
+                == ERROR_NONE) {                                        /*  进入调试接口断点处理        */
+                return;
+            }
         }
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
         break;
@@ -286,7 +302,7 @@ VOID  archInvalidExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType, UINT32  u
 {
     CPCHAR  pcException;
      
-    _DebugFormat(__ERRORMESSAGE_LEVEL, "FATAL ERROR: exception.");     /*  关键性错误                  */
+    _DebugFormat(__ERRORMESSAGE_LEVEL, "FATAL ERROR: exception.");      /*  关键性错误                  */
      
     switch (uiType) {
 
@@ -344,7 +360,7 @@ VOID  archInvalidExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType, UINT32  u
                  pcException, LW_CPU_GET_CUR_ID(), uiExcType);
 
     archTaskCtxPrint(LW_NULL, 0, pregctx);
-     
+
     API_KernelReboot(LW_REBOOT_FORCE);                                  /*  直接重新启动操作系统        */
 }
 /*********************************************************************************************************

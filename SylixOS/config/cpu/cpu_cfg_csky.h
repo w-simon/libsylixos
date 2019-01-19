@@ -66,8 +66,9 @@
         14 : 16K Bytes per page.
         16 : 64K Bytes per page.
 
-  LW_CFG_CSKY_PAGE_SHIFT == 12     LW_CFG_CSKY_HARD_TLB_REFILL 推荐为 1
-  LW_CFG_CSKY_PAGE_SHIFT == 14/16  LW_CFG_CSKY_HARD_TLB_REFILL 必须为 0
+  LW_CFG_CSKY_PAGE_SHIFT == 12         LW_CFG_CSKY_HARD_TLB_REFILL 推荐为 1
+  LW_CFG_CSKY_PAGE_SHIFT == 14/16      LW_CFG_CSKY_HARD_TLB_REFILL 必须为 0
+  如果没有 BOOT 启动 MMU, 必须硬件填充 LW_CFG_CSKY_HARD_TLB_REFILL 必须为 1
 *********************************************************************************************************/
 
 #define LW_CFG_CSKY_PAGE_SHIFT          12                              /*  MMU 页面大小                */

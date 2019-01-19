@@ -24,6 +24,7 @@
 #endif
 
 #include <arch/assembler.h>
+#include <config/cpu/cpu_cfg.h>
 #include <config/kernel/kernel_cfg.h>
 #include <config/mp/mp_cfg.h>
 
@@ -59,6 +60,13 @@
 
 FUNC_DEF(archTaskCtxStart)
     LDR     X18, [X0]                                                   ;/*  获取当前 TCB 的 REG_CTX 地址*/
+
+#if LW_CFG_ARM64_HARDWARE_STEP_EN > 0
+    MOV     X0,        #0
+    MSR     OSLAR_EL1, X0                                               ;/*  解锁 OS Lock                */
+    MOV     X0 ,       MDSCR_EL1_KDE_EN | MDSCR_EL1_SS_EN
+    MSR     MDSCR_EL1, X0                                               ;/*  使能 Software Step 功能     */
+#endif
 
 LINE_LABEL(archTaskCtxLoad)
     RESTORE_SMALL_REG_CTX                                               ;/*  恢复小寄存器上下文          */

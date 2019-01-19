@@ -282,7 +282,7 @@ INT  archGdbRegSetPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, ULONG  ulPc)
 *********************************************************************************************************/
 ULONG archGdbRegGetPc (GDB_REG_SET  *pRegs)
 {
-    return  (pRegs->regArr[ARM64_REG_INDEX_PC].GDBRA_ulValue);    
+    return  (pRegs->regArr[ARM64_REG_INDEX_PC].GDBRA_ulValue);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __arm64DecodeMaskedMatch

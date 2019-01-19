@@ -41,6 +41,8 @@
     EXPORT_LABEL(cskyMmuPageMaskSet)
     EXPORT_LABEL(cskyMmuTlbRefillExceptEntry)
     EXPORT_LABEL(cskyMmuTlbLdStExceptHandle)
+    EXPORT_LABEL(cskyMmuEnableHw)
+    EXPORT_LABEL(cskyMmuDisableHw)
 
     FILE_BEGIN()
    
@@ -64,6 +66,30 @@ FUNC_DEF(cskyMmuPageMaskSet)
     MTCR        A0 , CR<6, 15>
     RTS
     FUNC_END(cskyMmuPageMaskSet)
+
+;/*********************************************************************************************************
+;  使能 MMU
+;*********************************************************************************************************/
+
+FUNC_DEF(cskyMmuEnableHw)
+    MFCR        A0 , CR18
+    BSETI       A0 , 0
+    BCLRI       A0 , 1
+    MTCR        A0 , CR18
+    RTS
+    FUNC_END(cskyMmuEnableHw)
+
+;/*********************************************************************************************************
+;  禁能 MMU
+;*********************************************************************************************************/
+
+FUNC_DEF(cskyMmuDisableHw)
+    MFCR        A0 , CR18
+    BCLRI       A0 , 0
+    BCLRI       A0 , 1
+    MTCR        A0 , CR18
+    RTS
+    FUNC_END(cskyMmuDisableHw)
 
 ;/*********************************************************************************************************
 ;  TLB 重填

@@ -28,7 +28,7 @@
 /*********************************************************************************************************
   ARM64 断点使用未定义指令
 *********************************************************************************************************/
-#define ARM64_BREAKPOINT_INS        0xd4202000
+#define ARM64_BREAKPOINT_INS        0xd4200000
 #define ARM64_ABORTPOINT_INS        0xd4208021
 /*********************************************************************************************************
   SMP
@@ -49,21 +49,17 @@ static addr_t   ulLastBpAddr[LW_CFG_MAX_PROCESSORS];
 *********************************************************************************************************/
 VOID  archDbgBpInsert (addr_t  ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLocal)
 {
-#define AARCH64_BREAK_MON           0xd4200000
-#define KGDB_DYN_DBG_BRK_IMM        0x400
-#define AARCH64_BREAK_KGDB_DYN_DBG  (AARCH64_BREAK_MON | (KGDB_DYN_DBG_BRK_IMM << 5))
+    ARM64_INSTRUCTION  uiIns = ARM64_BREAKPOINT_INS;
 
-    ULONG  ulIns = ARM64_BREAKPOINT_INS;
-
-    lib_memcpy((PCHAR)pulIns, (PCHAR)ulAddr, stSize);                   /*  memcpy 避免 arm 对齐问题    */
-    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
+    lib_memcpy((PCHAR)pulIns, (PCHAR)ulAddr, sizeof(ARM64_INSTRUCTION));/*  memcpy 避免 arm 对齐问题    */
+    lib_memcpy((PCHAR)ulAddr, (PCHAR)&uiIns, sizeof(ARM64_INSTRUCTION));/*  memcpy 避免 arm 对齐问题    */
     KN_SMP_MB();
-    
+
 #if LW_CFG_CACHE_EN > 0
     if (bLocal) {
-        API_CacheLocalTextUpdate((PVOID)ulAddr, stSize);
+        API_CacheLocalTextUpdate((PVOID)ulAddr, sizeof(ARM64_INSTRUCTION));
     } else {
-        API_CacheTextUpdate((PVOID)ulAddr, stSize);
+        API_CacheTextUpdate((PVOID)ulAddr, sizeof(ARM64_INSTRUCTION));
     }
 #endif
 }
@@ -78,12 +74,12 @@ VOID  archDbgBpInsert (addr_t  ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLoc
 *********************************************************************************************************/
 VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 {
-    *pulIns          = *(ULONG *)ulAddr;
-    *(ULONG *)ulAddr = ARM64_ABORTPOINT_INS;
+    *pulIns                      = *(ULONG *)ulAddr;
+    *(ARM64_INSTRUCTION *)ulAddr = ARM64_ABORTPOINT_INS;
     KN_SMP_MB();
     
 #if LW_CFG_CACHE_EN > 0
-    API_CacheTextUpdate((PVOID)ulAddr, sizeof(ULONG));
+    API_CacheTextUpdate((PVOID)ulAddr, sizeof(ARM64_INSTRUCTION));
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
 /*********************************************************************************************************
@@ -91,7 +87,7 @@ VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 ** 功能描述: 删除一个断点.
 ** 输　入  : ulAddr         断点地址
 **           stSize         断点大小
-**           pulIns         返回的之前的指令
+**           ulIns          返回的之前的指令
 **           bLocal         是否仅更新当前 CPU I-CACHE
 ** 输　出  : NONE
 ** 全局变量: 
@@ -99,14 +95,14 @@ VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 *********************************************************************************************************/
 VOID  archDbgBpRemove (addr_t  ulAddr, size_t stSize, ULONG  ulIns, BOOL  bLocal)
 {
-    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, stSize);
+    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, sizeof(ARM64_INSTRUCTION));
     KN_SMP_MB();
     
 #if LW_CFG_CACHE_EN > 0
     if (bLocal) {
-        API_CacheLocalTextUpdate((PVOID)ulAddr, stSize);
+        API_CacheLocalTextUpdate((PVOID)ulAddr, sizeof(ARM64_INSTRUCTION));
     } else {
-        API_CacheTextUpdate((PVOID)ulAddr, stSize);
+        API_CacheTextUpdate((PVOID)ulAddr, sizeof(ARM64_INSTRUCTION));
     }
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
@@ -144,7 +140,11 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
         return  (LW_TRAP_INVAL);
     }
 
-    switch (*(ULONG *)ulAddr) {
+    if (pvArch == (PVOID)ARM64_DBG_TRAP_STEP) {
+        return  (LW_TRAP_ISTEP);
+    }
+
+    switch (*(ARM64_INSTRUCTION *)ulAddr) {
         
     case ARM64_BREAKPOINT_INS:
         return  (LW_TRAP_BRKPT);
@@ -165,7 +165,8 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
 
         } else {
             ulLastBpAddr[ulCPUId] = ulAddr;
-            API_CacheLocalTextUpdate((PVOID)ulAddr, sizeof(ulAddr));    /*  刷新一次 I CACHE 再去尝试   */
+            API_CacheLocalTextUpdate((PVOID)ulAddr, sizeof(ARM64_INSTRUCTION)); 
+                                                                        /*  刷新一次 I CACHE 再去尝试   */
             return  (LW_TRAP_RETRY);
         }
     } else
@@ -188,7 +189,31 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
 VOID  archDbgBpAdjust (PVOID  pvDtrace, PVOID   pvtm)
 {
 }
+/*********************************************************************************************************
+** 函数名称: archGdbSetStepMode
+** 功能描述: 设置单步运行模式.
+** 输　入  : pregctx        任务寄存器上下文
+**           bEnable        是否使能硬件单步模式
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 说  明  : armv8 在使用 Software Step 时，要保证 OS Lock 处于 unlocked 状态
+*********************************************************************************************************/
+#ifdef LW_DTRACE_HW_ISTEP
 
+VOID  archDbgSetStepMode (ARCH_REG_CTX  *pregctx, BOOL  bEnable)
+{
+    if (bEnable) {
+        pregctx->REG_ulPstate |= M_PSTATE_SS;                           /*  设置 SS 标志                */
+        pregctx->REG_ulPstate &= ~M_PSTATE_D;                           /*  不屏蔽 Debug 异常           */
+
+    } else {
+        pregctx->REG_ulPstate &= ~M_PSTATE_SS;                          /*  清除 SS 标志                */
+        pregctx->REG_ulPstate |= M_PSTATE_D;                            /*  屏蔽 Debug 异常             */
+    }
+}
+
+#endif                                                                  /*  LW_DTRACE_HW_ISTEP          */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************
   END

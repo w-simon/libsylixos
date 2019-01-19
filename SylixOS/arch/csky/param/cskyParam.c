@@ -24,7 +24,7 @@
 /*********************************************************************************************************
   启动参数
 *********************************************************************************************************/
-static CSKY_PARAM    cskyParam = { LW_TRUE };
+static CSKY_PARAM    cskyParam = { LW_TRUE, LW_TRUE };
 /*********************************************************************************************************
 ** 函数名称: archKernelParam
 ** 功能描述: C-SKY 体系架构启动参数设置.
@@ -41,6 +41,13 @@ VOID  archKernelParam (CPCHAR  pcParam)
             cskyParam.CP_bUnalign = LW_FALSE;
         } else {
             cskyParam.CP_bUnalign = LW_TRUE;
+        }
+
+    } else if (lib_strncmp(pcParam, "mmuenbyboot=", 12) == 0) {
+        if (pcParam[8] == 'n') {
+            cskyParam.CP_bMmuEnByBoot = LW_FALSE;
+        } else {
+            cskyParam.CP_bMmuEnByBoot = LW_TRUE;
         }
     }
 }
