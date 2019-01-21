@@ -753,6 +753,9 @@ netconn_alloc(enum netconn_type t, netconn_callback callback)
   conn->pending_err = ERR_OK;
   conn->type = t;
   conn->pcb.tcp = NULL;
+#if LWIP_NETCONN_FULLDUPLEX
+  conn->mbox_threads_waiting = 0;
+#endif
 
   /* If all sizes are the same, every compiler should optimize this switch to nothing */
   switch (NETCONNTYPE_GROUP(t)) {
@@ -1298,7 +1301,8 @@ lwip_netconn_do_bind_if(void *m)
 
   netif = netif_get_by_index(msg->msg.bc.if_idx);
 
-  if ((netif != NULL) && (msg->conn->pcb.tcp != NULL)) {
+  /* SylixOS Changed here, if idx == 0 clear device bind */
+  if (((netif != NULL) || (!msg->msg.bc.if_idx)) && (msg->conn->pcb.tcp != NULL)) {
     err = ERR_OK;
     switch (NETCONNTYPE_GROUP(msg->conn->type)) {
 #if LWIP_RAW

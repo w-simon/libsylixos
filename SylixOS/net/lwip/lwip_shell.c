@@ -57,6 +57,9 @@
 #include "lwip/inet.h"
 #include "lwip/dhcp.h"
 #include "lwip/tcpip.h"
+#if LWIP_SNMP
+#include "lwip/snmp/snmp.h"
+#endif                                                                  /*  LWIP_SNMP                   */
 #include "lwip_route.h"
 #include "lwip_flowsh.h"
 #if LW_CFG_NET_LOGINBL_EN > 0
@@ -1182,6 +1185,86 @@ __error:
 
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 /*********************************************************************************************************
+** 函数名称: __tshellServbind
+** 功能描述: 系统命令 "servbind"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellServbind (INT  iArgC, PCHAR  *ppcArgV)
+{
+    UINT  uiIndex;
+
+    if (iArgC == 2) {
+        if (sscanf(ppcArgV[1], "%d", &uiIndex) != 1) {
+            goto    __error;
+        }
+
+        if (uiIndex >= LW_CFG_NET_DEV_MAX) {
+            fprintf(stderr, "no such device!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+
+#if LW_CFG_NET_FTPD_EN > 0
+        API_INetFtpServerBindDev(uiIndex);
+#endif
+#if LW_CFG_NET_TELNET_EN > 0
+        API_INetTelnetBindDev(uiIndex);
+#endif
+#if LW_CFG_NET_NETBIOS_EN > 0
+        API_INetNetBiosBindDev(uiIndex);
+#endif
+#if LW_CFG_NET_TFTP_EN > 0
+        API_INetTftpServerBindDev(uiIndex);
+#endif
+#if LWIP_SNMP
+        snmp_bind_if((UINT8)uiIndex);
+#endif
+
+    } else if (iArgC == 3) {
+        if (sscanf(ppcArgV[2], "%d", &uiIndex) != 1) {
+            goto    __error;
+        }
+
+        if (uiIndex >= LW_CFG_NET_DEV_MAX) {
+            fprintf(stderr, "no such device!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+
+        if (lib_strcmp(ppcArgV[1], "ftpd") == 0) {
+#if LW_CFG_NET_FTPD_EN > 0
+            API_INetFtpServerBindDev(uiIndex);
+#endif
+        } else if (lib_strcmp(ppcArgV[1], "telnetd") == 0) {
+#if LW_CFG_NET_TELNET_EN > 0
+            API_INetTelnetBindDev(uiIndex);
+#endif
+        } else if (lib_strcmp(ppcArgV[1], "netbiosd") == 0) {
+#if LW_CFG_NET_NETBIOS_EN > 0
+            API_INetNetBiosBindDev(uiIndex);
+#endif
+        } else if (lib_strcmp(ppcArgV[1], "tftpd") == 0) {
+#if LW_CFG_NET_TFTP_EN > 0
+            API_INetTftpServerBindDev(uiIndex);
+#endif
+        } else if (lib_strcmp(ppcArgV[1], "snmpd") == 0) {
+#if LWIP_SNMP
+            snmp_bind_if((UINT8)uiIndex);
+#endif
+        } else {
+            goto    __error;
+        }
+    }
+
+    return  (ERROR_NONE);
+
+__error:
+    fprintf(stderr, "arguments error!\n");
+    return  (-ERROR_TSHELL_EPARAM);
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellIpQos
 ** 功能描述: 系统命令 "ipqos"
 ** 输　入  : iArgC         参数个数
@@ -1505,6 +1588,12 @@ VOID  __tshellNetInit (VOID)
     API_TShellFormatAdd("loginwl", " [{add | del}] [ipaddr]");
     API_TShellHelpAdd("loginwl", "show remote login whitelist.\n");
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+
+    API_TShellKeywordAdd("servbind", __tshellServbind);
+    API_TShellFormatAdd("servbind", " [{ftpd | telnetd | netbiosd | tftpd | snmpd}] [if_index]");
+    API_TShellHelpAdd("servbind", "bind SylixOS build-in service to specified network interface.\n"
+                                  "eg. servbind 2       bind ALL build-in service to network interface 2\n"
+                                  "    servbind ftpd 2  bind 'ftpd' service to network interface 2\n");
 
     API_TShellKeywordAdd("ipqos", __tshellIpQos);
     API_TShellFormatAdd("ipqos", " [[ipv4 / ipv6] 0 / 1]");

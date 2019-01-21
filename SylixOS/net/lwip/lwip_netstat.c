@@ -278,6 +278,9 @@ static CPCHAR  __RawGetProto (u8_t  proto)
     case IPPROTO_ICMP:
         return  ("icmp");
         
+    case IPPROTO_ICMPV6:
+        return  ("icmpv6");
+
     case IPPROTO_TCP:
         return  ("tcp");
         
@@ -308,24 +311,45 @@ static VOID  __RawPrint (struct raw_pcb  *pcb, PCHAR  pcBuffer,
     CHAR    cBuffer1[INET6_ADDRSTRLEN];
     CHAR    cBuffer2[INET6_ADDRSTRLEN];
     
-    if (IP_IS_V4_VAL(pcb->local_ip)) {
-        *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                           "%-15s %-15s %s\n",
-                           (ip_2_ip4(&pcb->local_ip)->addr == IPADDR_ANY) ?
-                           "*" : ip4addr_ntoa_r(ip_2_ip4(&pcb->local_ip), cBuffer1, sizeof(cBuffer1)),
-                           (ip_2_ip4(&pcb->remote_ip)->addr == IPADDR_ANY) ?
-                           "*" : ip4addr_ntoa_r(ip_2_ip4(&pcb->remote_ip), cBuffer2, sizeof(cBuffer2)),
-                           __RawGetProto(pcb->protocol));
+    if (pcb->netif_idx != NETIF_NO_INDEX) {
+        if (IP_IS_V4_VAL(pcb->local_ip)) {
+            *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                               "%Ifidx_%-9d %-15s %s\n",
+                               pcb->netif_idx,
+                               (ip_2_ip4(&pcb->remote_ip)->addr == IPADDR_ANY) ?
+                               "*" : ip4addr_ntoa_r(ip_2_ip4(&pcb->remote_ip), cBuffer2, sizeof(cBuffer2)),
+                               __RawGetProto(pcb->protocol));
 #if LWIP_IPV6
-    } else {
-        *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                           "%-39s %-39s %s\n",
-                           ip6_addr_isany(ip_2_ip6(&pcb->local_ip)) ? 
-                           "*" : ip6addr_ntoa_r(ip_2_ip6(&pcb->local_ip), cBuffer1, sizeof(cBuffer1)),
-                           ip6_addr_isany(ip_2_ip6(&pcb->remote_ip)) ? 
-                           "*" : ip6addr_ntoa_r(ip_2_ip6(&pcb->remote_ip), cBuffer2, sizeof(cBuffer2)),
-                           __RawGetProto(pcb->protocol));
+        } else {
+            *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                               "%Ifidx_%-33d %-39s %s\n",
+                               pcb->netif_idx,
+                               ip6_addr_isany(ip_2_ip6(&pcb->remote_ip)) ?
+                               "*" : ip6addr_ntoa_r(ip_2_ip6(&pcb->remote_ip), cBuffer2, sizeof(cBuffer2)),
+                               __RawGetProto(pcb->protocol));
 #endif                                                                  /*  LWIP_IPV6                   */
+        }
+
+    } else {
+        if (IP_IS_V4_VAL(pcb->local_ip)) {
+            *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                               "%-15s %-15s %s\n",
+                               (ip_2_ip4(&pcb->local_ip)->addr == IPADDR_ANY) ?
+                               "*" : ip4addr_ntoa_r(ip_2_ip4(&pcb->local_ip), cBuffer1, sizeof(cBuffer1)),
+                               (ip_2_ip4(&pcb->remote_ip)->addr == IPADDR_ANY) ?
+                               "*" : ip4addr_ntoa_r(ip_2_ip4(&pcb->remote_ip), cBuffer2, sizeof(cBuffer2)),
+                               __RawGetProto(pcb->protocol));
+#if LWIP_IPV6
+        } else {
+            *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                               "%-39s %-39s %s\n",
+                               ip6_addr_isany(ip_2_ip6(&pcb->local_ip)) ?
+                               "*" : ip6addr_ntoa_r(ip_2_ip6(&pcb->local_ip), cBuffer1, sizeof(cBuffer1)),
+                               ip6_addr_isany(ip_2_ip6(&pcb->remote_ip)) ?
+                               "*" : ip6addr_ntoa_r(ip_2_ip6(&pcb->remote_ip), cBuffer2, sizeof(cBuffer2)),
+                               __RawGetProto(pcb->protocol));
+#endif                                                                  /*  LWIP_IPV6                   */
+        }
     }
 }
 
@@ -415,6 +439,7 @@ VOID  __tshellNetstatRaw (INT  iNetType)
 ** 函数名称: __ProtoAddrBuild
 ** 功能描述: 创建协议地址字段
 ** 输　入  : addr      地址
+**           idx       绑定设备
 **           usPort    端口
 **           pcBuffer  缓冲区
 **           stSize    缓冲区大小
@@ -424,22 +449,27 @@ VOID  __tshellNetstatRaw (INT  iNetType)
 *********************************************************************************************************/
 #if LWIP_UDP || LWIP_TCP
 
-static PCHAR  __ProtoAddrBuild (ip_addr_t  *addr, u16_t usPort, PCHAR  pcBuffer, size_t  stSize)
+static PCHAR  __ProtoAddrBuild (ip_addr_t  *addr, u8_t idx, u16_t usPort, PCHAR  pcBuffer, size_t  stSize)
 {
     CHAR    cBuffer[INET6_ADDRSTRLEN];
 
-    if (IP_IS_V4(addr)) {
-        bnprintf(pcBuffer, stSize, 0, "%s:%d", 
-                 (ip_2_ip4(addr)->addr == IPADDR_ANY) ?
-                 "*" : ip4addr_ntoa_r(ip_2_ip4(addr), cBuffer, sizeof(cBuffer)),
-                 usPort);
-#if LWIP_IPV6
+    if (idx != NETIF_NO_INDEX) {
+        bnprintf(pcBuffer, stSize, 0, "Ifidx_%d:%d", idx, usPort);
+
     } else {
-        bnprintf(pcBuffer, stSize, 0, "%s:%d", 
-                 ip6_addr_isany(ip_2_ip6(addr)) ? 
-                 "*" : ip6addr_ntoa_r(ip_2_ip6(addr), cBuffer, sizeof(cBuffer)),
-                 usPort);
+        if (IP_IS_V4(addr)) {
+            bnprintf(pcBuffer, stSize, 0, "%s:%d",
+                     (ip_2_ip4(addr)->addr == IPADDR_ANY) ?
+                     "*" : ip4addr_ntoa_r(ip_2_ip4(addr), cBuffer, sizeof(cBuffer)),
+                     usPort);
+#if LWIP_IPV6
+        } else {
+            bnprintf(pcBuffer, stSize, 0, "%s:%d",
+                     ip6_addr_isany(ip_2_ip6(addr)) ?
+                     "*" : ip6addr_ntoa_r(ip_2_ip6(addr), cBuffer, sizeof(cBuffer)),
+                     usPort);
 #endif                                                                  /*  LWIP_IPV6                   */
+        }
     }
     
     return  (pcBuffer);
@@ -500,7 +530,7 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
         if (pcb->state == LISTEN) {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%-20s %-20s %-8s %7d %7d %7d\n",
-                               __ProtoAddrBuild(&pcb->local_ip, pcb->local_port, 
+                               __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                                 cBuffer1, sizeof(cBuffer1)),
                                "*:*",
                                __TcpGetStat((u8_t)pcb->state),
@@ -508,9 +538,9 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
         } else {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%-20s %-20s %-8s %7d %7d %7d\n",
-                               __ProtoAddrBuild(&pcb->local_ip, pcb->local_port, 
+                               __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                                 cBuffer1, sizeof(cBuffer1)),
-                               __ProtoAddrBuild(&pcb->remote_ip, pcb->remote_port, 
+                               __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
                                                 cBuffer2, sizeof(cBuffer2)),
                                __TcpGetStat((u8_t)pcb->state),
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
@@ -521,7 +551,7 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
         if (pcb->state == LISTEN) {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%-44s %-44s %-8s %-9s %7d %7d %7d\n",
-                               __ProtoAddrBuild(&pcb->local_ip, pcb->local_port, 
+                               __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                                 cBuffer1, sizeof(cBuffer1)),
                                "*:*",
                                __TcpGetStat((u8_t)pcb->state),
@@ -530,9 +560,9 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
         } else {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                                "%-44s %-44s %-8s %7d %7d %7d\n",
-                               __ProtoAddrBuild(&pcb->local_ip, pcb->local_port, 
+                               __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                                 cBuffer1, sizeof(cBuffer1)),
-                               __ProtoAddrBuild(&pcb->remote_ip, pcb->remote_port, 
+                               __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
                                                 cBuffer2, sizeof(cBuffer2)),
                                __TcpGetStat((u8_t)pcb->state),
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
@@ -754,18 +784,18 @@ static VOID  __UdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
     if (IP_IS_V4_VAL(pcb->local_ip)) {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%-20s %-20s %s\n",
-                           __ProtoAddrBuild(&pcb->local_ip, pcb->local_port, 
+                           __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                             cBuffer1, sizeof(cBuffer1)),
-                           __ProtoAddrBuild(&pcb->remote_ip, pcb->remote_port, 
+                           __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
                                             cBuffer2, sizeof(cBuffer2)),
                            (pcb->flags & UDP_FLAGS_UDPLITE) ? "yes" : "no");
 #if LWIP_IPV6
     } else {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
                            "%-44s %-44s %s\n",
-                           __ProtoAddrBuild(&pcb->local_ip, pcb->local_port, 
+                           __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                             cBuffer1, sizeof(cBuffer1)),
-                           __ProtoAddrBuild(&pcb->remote_ip, pcb->remote_port, 
+                           __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
                                             cBuffer2, sizeof(cBuffer2)),
                            (pcb->flags & UDP_FLAGS_UDPLITE) ? "yes" : "no");
 #endif                                                                  /*  LWIP_IPV6                   */

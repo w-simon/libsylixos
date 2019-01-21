@@ -28,10 +28,12 @@
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_NETBIOS_EN > 0)
 
 LW_API VOID     API_INetNetBiosInit(VOID);
+LW_API INT      API_INetNetBiosBindDev(UINT  uiIndex);
 LW_API ULONG    API_INetNetBiosNameSet(CPCHAR  pcLocalName);
 LW_API ULONG    API_INetNetBiosNameGet(PCHAR   pcLocalNameBuffer, INT  iMaxLen);
 
 #define inetNetBiosInit         API_INetNetBiosInit
+#define inetNetBiosBindDev      API_INetNetBiosBindDev
 #define inetNetBiosNameSet      API_INetNetBiosNameSet
 #define inetNetBiosNameGet      API_INetNetBiosNameGet
 

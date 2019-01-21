@@ -437,7 +437,7 @@ PCHAR  lib_strerror (INT  iNum)
      */
 #if LW_CFG_MODULELOADER_EN > 0
     case ERROR_LOADER_FORMAT:           return  ("Invalid format");
-    case ERROR_LOADER_ARCH:             return  ("Invalid architectural");
+    case ERROR_LOADER_ARCH:             return  ("Invalid architecture");
     case ERROR_LOADER_RELOCATE:         return  ("Reloacate error");
     case ERROR_LOADER_EXPORT_SYM:       return  ("Can not export symbol(s)");
     case ERROR_LOADER_NO_MODULE:        return  ("Can not find module");

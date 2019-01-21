@@ -120,4 +120,19 @@ snmp_init(void)
   sys_thread_new("t_snmp", snmp_netconn_thread, NULL, SNMP_STACK_SIZE, SNMP_THREAD_PRIO); /* SylixOS Changed to name 't_snmp' */
 }
 
+#ifdef SYLIXOS /* SylixOS Add device bind support */
+/**
+ * SNMP Agent bind to device.
+ */
+err_t
+snmp_bind_if(u8_t if_idx)
+{
+  if (snmp_traps_handle) {
+    return netconn_bind_if(snmp_traps_handle, if_idx);
+  }
+
+  return ERR_CLSD;
+}
+#endif /* SYLIXOS */
+
 #endif /* LWIP_SNMP && SNMP_USE_NETCONN */

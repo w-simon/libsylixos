@@ -76,6 +76,10 @@ struct snmp_varbind
 void snmp_init(void);
 void snmp_set_mibs(const struct snmp_mib **mibs, u8_t num_mibs);
 
+#ifdef SYLIXOS /* SylixOS Add device bind support */
+err_t snmp_bind_if(u8_t if_idx);
+#endif /* SYLIXOS */
+
 void snmp_set_device_enterprise_oid(const struct snmp_obj_id* device_enterprise_oid);
 const struct snmp_obj_id* snmp_get_device_enterprise_oid(void);
 

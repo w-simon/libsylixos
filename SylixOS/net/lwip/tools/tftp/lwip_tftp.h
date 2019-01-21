@@ -23,6 +23,11 @@
 #define __LWIP_TFTP_H
 
 /*********************************************************************************************************
+  裁剪控制
+*********************************************************************************************************/
+#if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_TFTP_EN > 0)
+
+/*********************************************************************************************************
   tftp 配置
 *********************************************************************************************************/
 
@@ -77,10 +82,15 @@ LW_API VOID         API_INetTftpServerInit(CPCHAR  pcPath);             /*  启动
                                                                         /*  仅支持二进制传输            */
 LW_API INT          API_INetTftpServerPath(CPCHAR  pcPath);             /*  设置服务器路径              */
 
+LW_API INT          API_INetTftpServerBindDev(UINT  uiIndex);
+
 
 #define inetTftpServerInit          API_INetTftpServerInit
 #define inetTftpServerPath          API_INetTftpServerPath
+#define inetTftpServerBindDev       API_INetTftpServerBindDev
 
+#endif                                                                  /*  LW_CFG_NET_EN > 0           */
+                                                                        /*  LW_CFG_NET_TFTP_EN > 0      */
 #endif                                                                  /*  __LWIP_TFTP_H               */
 /*********************************************************************************************************
   END

@@ -35,10 +35,12 @@
 LW_API VOID     API_INetFtpServerInit(CPCHAR  pcPath);
 LW_API VOID     API_INetFtpServerShow(VOID);
 LW_API INT      API_INetFtpServerPath(CPCHAR  pcPath);
+LW_API INT      API_INetFtpServerBindDev(UINT  uiIndex);
 
 #define inetFtpServerInit           API_INetFtpServerInit
 #define inetFtpServerShow           API_INetFtpServerShow
 #define inetFtpServerPath           API_INetFtpServerPath
+#define inetFtpServerBindDev        API_INetFtpServerBindDev
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_FTPD_EN > 0      */

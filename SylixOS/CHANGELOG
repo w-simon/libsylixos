@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-01-22: han.hui
+    加入系统内建网络服务绑定设备功能, 提高安全性.
+
     2019-01-07: han.hui
     针对 SPARC v8e (LEON3/4) 处理器支持 CASA 指令实现 atomic 操作.
 

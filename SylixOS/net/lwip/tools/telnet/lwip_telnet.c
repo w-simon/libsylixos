@@ -53,6 +53,7 @@
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_TELNET_EN > 0) && (LW_CFG_SHELL_EN > 0)
 #include "netdb.h"
 #include "arpa/inet.h"
+#include "net/if.h"
 #include "sys/socket.h"
 #include "sys/ioctl.h"
 #if LW_CFG_NET_LOGINBL_EN > 0
@@ -76,6 +77,7 @@
 static CHAR           _G_cTelnetPtyStartName[MAX_FILENAME_LENGTH] = "/dev/pty";
 static const CHAR     _G_cTelnetAbort[] = __TTINY_SHELL_FORCE_ABORT "\n";
 static atomic_t       _G_atomicTelnetLinks;
+static INT            _G_iListenSocket  = PX_ERROR;
 /*********************************************************************************************************
   登录黑名单
 *********************************************************************************************************/
@@ -538,6 +540,8 @@ static VOID  __telnetListener (VOID)
         return;
     }
     
+    _G_iListenSocket = iSock;                                           /*  记录侦听 socket             */
+
     for (;;) {
         iSockNew = accept(iSock, (struct sockaddr *)&inaddrRmt, &uiLen);
         if (iSockNew < 0) {
@@ -660,6 +664,41 @@ VOID  API_INetTelnetInit (const PCHAR  pcPtyStartName)
     if (ulId) {
         bIsInit = LW_TRUE;
     }
+}
+/*********************************************************************************************************
+** 函数名称: API_INetTelnetBindDev
+** 功能描述: 设置 telnet 服务器绑定设备
+** 输　入  : uiIndex        网络设备索引
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_INetTelnetBindDev (UINT  uiIndex)
+{
+    struct ifreq  ifreq;
+
+    if (_G_iListenSocket < 0) {
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    if (uiIndex == 0) {
+        ifreq.ifr_name[0] = '\0';
+
+    } else if (uiIndex >= LW_CFG_NET_DEV_MAX) {
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+
+    } else {
+        if (!if_indextoname(uiIndex, ifreq.ifr_name)) {
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (setsockopt(_G_iListenSocket, SOL_SOCKET, SO_BINDTODEVICE,
+                        (const void *)&ifreq, sizeof(ifreq)));
 }
 
 #endif                                                                  /*  (LW_CFG_NET_EN > 0)         */

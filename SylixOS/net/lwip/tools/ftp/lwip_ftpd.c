@@ -53,6 +53,7 @@
 #include "shadow.h"
 #include "netdb.h"
 #include "arpa/inet.h"
+#include "net/if.h"
 #include "sys/socket.h"
 #if LW_CFG_NET_LOGINBL_EN > 0
 #include "sys/loginbl.h"
@@ -125,6 +126,7 @@ typedef __FTPD_SESSION         *__PFTPD_SESSION;
 static PCHAR                    _G_pcFtpdRootPath         = LW_NULL;    /*  FTPd 服务器根目录           */
 static LW_LIST_LINE_HEADER      _G_plineFtpdSessionHeader = LW_NULL;    /*  会话管理链表表头            */
 static atomic_t                 _G_atomicFtpdLinks;                     /*  链接数量                    */
+static INT                      _G_iListenSocket          = PX_ERROR;   /*  侦听 socket                 */
 static INT                      _G_iFtpdDefaultTimeout    = 20 * 1000;  /*  默认数据链接超时时间        */
 static INT                      _G_iFtpdIdleTimeout       = 60 * 1000;  /*  1 分钟不访问将会关闭控制连接*/
 static INT                      _G_iFtpdNoLoginTimeout    = 20 * 1000;  /*  20 秒等待输入密码           */
@@ -1650,6 +1652,8 @@ static VOID  __inetFtpServerListen (VOID)
         return;
     }
     
+    _G_iListenSocket = iSock;                                           /*  记录侦听 socket             */
+
     for (;;) {
         iSockNew = accept(iSock, (struct sockaddr *)&inaddrRmt, &uiLen);
         if (iSockNew < 0) {
@@ -1928,6 +1932,41 @@ INT  API_INetFtpServerPath (CPCHAR  pcPath)
     }
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_INetFtpServerBindDev
+** 功能描述: 设置 ftp 服务器绑定设备
+** 输　入  : uiIndex        网络设备索引
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_INetFtpServerBindDev (UINT  uiIndex)
+{
+    struct ifreq  ifreq;
+
+    if (_G_iListenSocket < 0) {
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    if (uiIndex == 0) {
+        ifreq.ifr_name[0] = '\0';
+
+    } else if (uiIndex >= LW_CFG_NET_DEV_MAX) {
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+
+    } else {
+        if (!if_indextoname(uiIndex, ifreq.ifr_name)) {
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (setsockopt(_G_iListenSocket, SOL_SOCKET, SO_BINDTODEVICE,
+                        (const void *)&ifreq, sizeof(ifreq)));
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellNetFtpdShow

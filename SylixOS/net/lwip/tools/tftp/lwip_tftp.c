@@ -47,6 +47,7 @@
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_TFTP_EN > 0)
 #include "netdb.h"
 #include "arpa/inet.h"
+#include "net/if.h"
 #include "sys/socket.h"
 #include "lwip_tftp.h"
 /*********************************************************************************************************
@@ -81,6 +82,7 @@ typedef struct __tftp_hdr      *__PTFTP_HDR;
   全局变量
 *********************************************************************************************************/
 static PCHAR    _G_pcTftpRootPath = LW_NULL;
+static INT      _G_iListenSocket  = PX_ERROR;
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
@@ -976,6 +978,8 @@ static VOID  __inetTftpServerListen (VOID)
         return;
     }
     
+    _G_iListenSocket = iSock;                                           /*  记录侦听 socket             */
+
     for (;;) {
         sstRecv = recvfrom(iSock, (void *)cRecvBuffer, (MAX_FILENAME_LENGTH + 8), 0,
                            (struct sockaddr *)&sockaddrinRemote, &uiAddrLen);
@@ -1178,6 +1182,41 @@ INT  API_INetTftpServerPath (CPCHAR  pcPath)
     }
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_INetTftpServerBindDev
+** 功能描述: 设置 tftp 服务器绑定设备
+** 输　入  : uiIndex        网络设备索引
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_INetTftpServerBindDev (UINT  uiIndex)
+{
+    struct ifreq  ifreq;
+
+    if (_G_iListenSocket < 0) {
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    if (uiIndex == 0) {
+        ifreq.ifr_name[0] = '\0';
+
+    } else if (uiIndex >= LW_CFG_NET_DEV_MAX) {
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+
+    } else {
+        if (!if_indextoname(uiIndex, ifreq.ifr_name)) {
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (setsockopt(_G_iListenSocket, SOL_SOCKET, SO_BINDTODEVICE,
+                        (const void *)&ifreq, sizeof(ifreq)));
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellNetTftpdPath

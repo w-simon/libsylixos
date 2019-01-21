@@ -28,8 +28,10 @@
 #if (LW_CFG_NET_EN > 0) && (LW_CFG_NET_TELNET_EN > 0) && (LW_CFG_SHELL_EN > 0)
 
 LW_API VOID  API_INetTelnetInit(const PCHAR  pcPtyStartName);           /*  初始化 telnet 服务器        */
+LW_API INT   API_INetTelnetBindDev(UINT  uiIndex);                      /*  设置 telnet 绑定设备        */
 
 #define inetTelnetInit          API_INetTelnetInit
+#define inetTelnetBindDev       API_INetTelnetBindDev
 
 #endif                                                                  /*  (LW_CFG_NET_EN > 0)         */
                                                                         /*  (LW_CFG_NET_TELNET_EN > 0)  */

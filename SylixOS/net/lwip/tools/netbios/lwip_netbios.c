@@ -38,6 +38,7 @@
 #if LWIP_UDP  /* don't build if not configured for use in lwipopts.h */
 
 #include "lwip/udp.h"
+#include "lwip/tcpip.h"
 #include "lwip/netif.h"
 
 /** This is an example implementation of a NetBIOS name server.
@@ -75,7 +76,7 @@ static int  __inetBiosNameSet (int  iArgC, char  *pcArgV[])
         return  (PX_ERROR);
     }
 }
-#endif
+#endif /* LW_CFG_SHELL_EN > 0 */
 
 LW_API 
 VOID  API_INetNetBiosInit (VOID)
@@ -100,6 +101,41 @@ VOID  API_INetNetBiosInit (VOID)
 }
 
 LW_API 
+INT  API_INetNetBiosBindDev (UINT  uiIndex)
+{
+    err_t err;
+
+    err_t netbiosns_binddev(u8_t if_idx);
+
+    if (uiIndex >= LW_CFG_NET_DEV_MAX) {
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+    }
+
+    LOCK_TCPIP_CORE();
+    err = netbiosns_binddev((u8_t)uiIndex);
+    UNLOCK_TCPIP_CORE();
+
+    switch (err) {
+
+    case ERR_VAL:
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+
+    case ERR_CLSD:
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+
+    case ERR_OK:
+        return  (ERROR_NONE);
+
+    default:
+        _ErrorHandle(EIO);
+        return  (PX_ERROR);
+    }
+}
+
+LW_API
 ULONG  API_INetNetBiosNameSet (CPCHAR  pcLocalName)
 {
     REGISTER PCHAR   pcSrc = (PCHAR)pcLocalName;
@@ -422,6 +458,26 @@ netbiosns_init(void)
     udp_bind(netbiosns_pcb, IP_ANY_TYPE, NETBIOS_PORT);
     udp_recv(netbiosns_pcb, netbiosns_recv, netbiosns_pcb);
   }
+}
+
+/**
+ * @ingroup netbiosns
+ * Bind to device
+ */
+err_t
+netbiosns_binddev(u8_t if_idx)
+{
+  struct netif *netif;
+
+  netif = netif_get_by_index(if_idx);
+
+  if (!netbiosns_pcb) {
+    return (ERR_CLSD);
+  }
+
+  udp_bind_netif(netbiosns_pcb, netif);
+
+  return (ERR_OK);
 }
 
 #ifndef NETBIOS_LWIP_NAME
