@@ -25,6 +25,7 @@
 2009.08.27  打开关闭时增加对设备引用的计数处理.
 2009.10.22  read write 返回值为 ssize_t.
 2012.01.11  _PtyHostIoctl() 加入对 SIO 硬件参数命令和波特率命令的相应.
+2019.01.21  _PtyHostWrite() 不需要操作 sel list.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -127,18 +128,10 @@ ssize_t  _PtyHostWrite (P_PTY_DEV     p_ptydev,
                         PCHAR         pcBuffer, 
                         size_t        stNBytes)
 {
-    REGISTER P_PTY_D_DEV    p_ptyddev = &p_ptydev->PTYDEV_ptyddev;
     REGISTER P_PTY_H_DEV    p_ptyhdev = &p_ptydev->PTYDEV_ptyhdev;
-    
     REGISTER ssize_t        sstWrite  = _TyWrite(&p_ptyhdev->PTYHDEV_tydevTyDev, 
                                                  pcBuffer, 
                                                  stNBytes);             /*  向发送缓冲区写入数据        */
-
-    if (rngNBytes(p_ptyhdev->PTYHDEV_tydevTyDev.TYDEV_vxringidWrBuf)
-        > 0) {
-        SEL_WAKE_UP_ALL(&p_ptyddev->PTYDDEV_selwulList, SELREAD);       /*  select() 激活               */
-    }
-    
     return  (sstWrite);
 }
 /*********************************************************************************************************

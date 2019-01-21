@@ -127,8 +127,12 @@ static INT  armMmuFlags2Attr (ULONG   ulFlag,
     }
 
     if (ulFlag & LW_VMM_FLAG_CACHEABLE) {                               /*  回写                        */
-        *pucTEX = 0x1;                                                  /*  Outer: 回写, 写分配         */
-        *pucCB  = 0x3;                                                  /*  Inner: 回写, 写分配         */
+        if (LW_NCPUS > 1) {                                             /*  SMP 写分配                  */
+            *pucTEX = 0x1;                                              /*  Outer: 回写, 写分配         */
+        } else {
+            *pucTEX = 0x0;                                              /*  Outer: 回写, 不具备写分配   */
+        }
+        *pucCB = 0x3;                                                   /*  Inner: 回写, 写分配         */
 
     } else if (ulFlag & LW_VMM_FLAG_WRITETHROUGH) {                     /*  写穿透                      */
         *pucTEX = 0x0;                                                  /*  Outer: 写穿透, 不具备写分配 */

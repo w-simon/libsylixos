@@ -40,8 +40,12 @@
 #define L1_CACHE_EN                        (L1_CACHE_I_EN | L1_CACHE_D_EN)
 #define L1_CACHE_DIS                       0x00
 
-static INT  iCacheStatus = L1_CACHE_DIS;
+static INT      iCacheStatus = L1_CACHE_DIS;
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
+/*********************************************************************************************************
+  CACHE 配置
+*********************************************************************************************************/
+static UINT32   uiCacheCfg = 0;
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
@@ -53,7 +57,7 @@ extern VOID  cskyDCacheInvalidateAll(VOID);
 extern VOID  cskyDCacheClearAll(VOID);
 extern VOID  cskyDCacheFlushAll(VOID);
 extern VOID  cskyDCacheDisableHw(VOID);
-extern VOID  cskyDCacheEnableHw(VOID);
+extern VOID  cskyDCacheEnableHw(UINT32  uiCacheCfg);
 
 extern VOID  cskyBranchPredictorInvalidate(VOID);
 extern VOID  cskyBranchPredictionEnable(VOID);
@@ -123,7 +127,7 @@ static INT  cskyCacheEnable (LW_CACHE_TYPE  cachetype)
             iCacheStatus |= L1_CACHE_D_EN;
         }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
-        cskyDCacheEnableHw();                                           /*  使能 DCACHE                 */
+        cskyDCacheEnableHw(uiCacheCfg);                                 /*  使能 DCACHE                 */
     }
 
 #if LW_CFG_CSKY_CACHE_L2 > 0
@@ -662,8 +666,15 @@ VOID  cskyCacheInit (LW_CACHE_OP *pcacheop,
                      CACHE_MODE   uiData,
                      CPCHAR       pcMachineName)
 {
+    if (uiData & CACHE_COPYBACK) {
+        uiCacheCfg |= M_CACHE_CFG_WB;
+    }
+
 #if LW_CFG_SMP_EN > 0
     pcacheop->CACHEOP_ulOption = CACHE_TEXT_UPDATE_MP;
+    if (LW_NCPUS > 1) {
+        uiCacheCfg |= M_CACHE_CFG_WA;                                   /*  多核使能 CACHE 写分配       */
+    }
 #else
     pcacheop->CACHEOP_ulOption = 0ul;
 #endif                                                                  /*  LW_CFG_SMP_EN               */

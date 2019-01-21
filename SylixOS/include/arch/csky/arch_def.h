@@ -155,6 +155,15 @@ typedef UINT16                      CSKY_INSTRUCTION;
 #define M_MSA1_V        (0x1 << S_MSA1_V)                               /*  指示 SSEG1 区映射是否有效   */
 #define S_MSA1_V        1                                                                          
 
+/*********************************************************************************************************
+  C-SKY CACHE 属性
+*********************************************************************************************************/
+
+#define M_CACHE_CFG_WB  (0x1 << S_CACHE_CFG_WB)
+#define S_CACHE_CFG_WB  4
+#define M_CACHE_CFG_WA  (0x1 << S_CACHE_CFG_WA)
+#define S_CACHE_CFG_WA  12
+
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
                                                                         /*  __ASSEMBLY__                */
 #endif                                                                  /*  __CSKY_ARCH_DEF_H           */

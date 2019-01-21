@@ -314,15 +314,24 @@ INT  archE500MmuTLB1GlobalMap (CPCHAR               pcMachineName,
         uiMAS2.MAS2_uiEPN   = desc.TLB1D_ulVirMap >> LW_CFG_VMM_PAGE_SHIFT;
         uiMAS2.MAS2_bLittleEndian = LW_FALSE;
 
-        if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_GUARDED) {               /*  进行严格的权限检查          */
+        if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_GUARDED) {               /*  阻止猜测访问                */
             uiMAS2.MAS2_bGuarded = LW_TRUE;
         }
 
-        if (!(desc.TLB1D_ulFlag & E500_TLB1_FLAG_CACHEABLE)) {
-            uiMAS2.MAS2_bUnCache = LW_TRUE;                             /*  不可 Cache                  */
+        if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_CACHEABLE) {             /*  回写 CACHE                  */
+            uiMAS2.MAS2_bUnCache = LW_FALSE;
+            uiMAS2.MAS2_bWT      = LW_FALSE;
+
+        } else if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_WRITETHROUGH) {   /*  写穿透 CACHE                */
+            uiMAS2.MAS2_bUnCache = LW_FALSE;
+            uiMAS2.MAS2_bWT      = LW_TRUE;
+
+        } else {                                                        /*  UNCACHE                     */
+            uiMAS2.MAS2_bUnCache = LW_TRUE;
+            uiMAS2.MAS2_bWT      = LW_TRUE;
         }
 
-        if ((desc.TLB1D_ulFlag & E500_TLB1_FLAG_CACHEABLE) && MMU_MAS2_M) {
+        if (MMU_MAS2_M) {
             uiMAS2.MAS2_bMemCoh = LW_TRUE;                              /*  多核一致性                  */
         }
 

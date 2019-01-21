@@ -836,9 +836,6 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
     if (stNBytes == 0) {
         return  (0);
     }
-         
-    ptyDev->TYDEV_tydevwrstat.TYDEVWRSTAT_bCanceled = LW_FALSE;
-    ptyDev->TYDEV_iAbortFlag &= ~OPT_WABORT;                            /*  清除 abort                  */
     
     LW_THREAD_SAFE();                                                   /*  任务提前进入安全状态        */
     
@@ -850,9 +847,10 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
             return  (sstNbStart - stNBytes);
         }
         
-        TYDEV_LOCK(ptyDev, return (PX_ERROR));                          /*  等待设备使用权              */
+        TYDEV_LOCK(ptyDev, LW_THREAD_UNSAFE(); return (PX_ERROR));      /*  等待设备使用权              */
         
         if (ptyDev->TYDEV_iAbortFlag & OPT_WABORT) {                    /*  is abort?                   */
+            ptyDev->TYDEV_iAbortFlag &= ~OPT_WABORT;                    /*  清除 abort                  */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             LW_THREAD_UNSAFE();
             _ErrorHandle(ERROR_IO_ABORT);                               /*  abort                       */
@@ -860,6 +858,7 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
         }
         
         if (ptyDev->TYDEV_tydevwrstat.TYDEVWRSTAT_bCanceled) {          /*  检查是否被禁止输出了        */
+            ptyDev->TYDEV_tydevwrstat.TYDEVWRSTAT_bCanceled = LW_FALSE; /*  清除 canceled               */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             LW_THREAD_UNSAFE();
             _ErrorHandle(ERROR_IO_CANCELLED);
@@ -929,9 +928,6 @@ static ssize_t  _TyReadVtime (TY_DEV_ID  ptyDev,
     }
     
 __re_read:
-    ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bCanceled = LW_FALSE;
-    ptyDev->TYDEV_iAbortFlag &= ~OPT_RABORT;                            /*  清除 abort                  */
-    
     for (;;) {
         ulError = API_SemaphoreBPend(ptyDev->TYDEV_hRdSyncSemB, ulTimeout);
         if (ulError) {
@@ -942,12 +938,14 @@ __re_read:
         TYDEV_LOCK(ptyDev, return (PX_ERROR));                          /*  等待设备使用权              */
         
         if (ptyDev->TYDEV_iAbortFlag & OPT_RABORT) {                    /*  is abort                    */
+            ptyDev->TYDEV_iAbortFlag &= ~OPT_RABORT;                    /*  清除 abort                  */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             _ErrorHandle(ERROR_IO_ABORT);                               /*  abort                       */
             return  (sstNTotalBytes);
         }
         
         if (ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bCanceled) {          /*  检查设备是否被读禁止了      */
+            ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bCanceled = LW_FALSE; /*  清除 canceled               */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             _ErrorHandle(ERROR_IO_CANCELLED);
             return  (sstNTotalBytes);
@@ -1068,9 +1066,6 @@ ssize_t  _TyRead (TY_DEV_ID  ptyDev,
     }
 
 __re_read:
-    ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bCanceled = LW_FALSE;
-    ptyDev->TYDEV_iAbortFlag &= ~OPT_RABORT;                            /*  清除 abort                  */
-    
     for (;;) {
         if (__TTY_CC(ptyDev, VMIN) == 0) {                              /*  无需等待                    */
             ulError = API_SemaphoreBTryPend(ptyDev->TYDEV_hRdSyncSemB);
@@ -1085,12 +1080,14 @@ __re_read:
         TYDEV_LOCK(ptyDev, return (PX_ERROR));                          /*  等待设备使用权              */
         
         if (ptyDev->TYDEV_iAbortFlag & OPT_RABORT) {                    /*  is abort                    */
+            ptyDev->TYDEV_iAbortFlag &= ~OPT_RABORT;                    /*  清除 abort                  */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             _ErrorHandle(ERROR_IO_ABORT);                               /*  abort                       */
             return  (sstNTotalBytes);
         }
         
         if (ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bCanceled) {          /*  检查设备是否被读禁止了      */
+            ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bCanceled = LW_FALSE; /*  清除 canceled               */
             TYDEV_UNLOCK(ptyDev);                                       /*  释放设备使用权              */
             _ErrorHandle(ERROR_IO_CANCELLED);
             return  (sstNTotalBytes);

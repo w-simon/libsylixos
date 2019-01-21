@@ -144,11 +144,14 @@ typedef struct {
 #define E500_TLB1_FLAG_EXECABLE            0x08                         /*  可以执行代码                */
 #define E500_TLB1_FLAG_UNEXECABLE          0x00                         /*  不可以执行代码              */
 
-#define E500_TLB1_FLAG_CACHEABLE           0x10                         /*  可以缓冲                    */
-#define E500_TLB1_FLAG_UNCACHEABLE         0x00                         /*  不可以缓冲                  */
+#define E500_TLB1_FLAG_CACHEABLE           0x10                         /*  可以 CACHE Writeback        */
+#define E500_TLB1_FLAG_UNCACHEABLE         0x00                         /*  不可以 CACHE Writeback      */
 
-#define E500_TLB1_FLAG_GUARDED             0x40                         /*  进行严格的权限检查          */
-#define E500_TLB1_FLAG_UNGUARDED           0x00                         /*  不进行严格的权限检查        */
+#define E500_TLB1_FLAG_WRITETHROUGH        0x20                         /*  可以 CACHE Writethrough     */
+#define E500_TLB1_FLAG_UNWRITETHROUGH      0x00                         /*  不可以 CACHE Writethrough   */
+
+#define E500_TLB1_FLAG_GUARDED             0x40                         /*  阻止猜测访问                */
+#define E500_TLB1_FLAG_UNGUARDED           0x00                         /*  不阻止猜测访问              */
 
 #define E500_TLB1_FLAG_TEMP                0x80                         /*  临时映射                    */
 
@@ -161,9 +164,7 @@ typedef struct {
 #define E500_TLB1_FLAG_BOOTSFR  (E500_TLB1_FLAG_VALID      | \
                                  E500_TLB1_FLAG_GUARDED    | \
                                  E500_TLB1_FLAG_ACCESS     | \
-                                 E500_TLB1_FLAG_WRITABLE   | \
-                                 E500_TLB1_FLAG_UNEXECABLE | \
-                                 E500_TLB1_FLAG_UNCACHEABLE)            /*  特殊功能寄存器              */
+                                 E500_TLB1_FLAG_WRITABLE)               /*  特殊功能寄存器              */
 } E500_TLB1_MAP_DESC;
 typedef E500_TLB1_MAP_DESC      *PE500_TLB1_MAP_DESC;
 

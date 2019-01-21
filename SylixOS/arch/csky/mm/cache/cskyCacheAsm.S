@@ -133,14 +133,17 @@ FUNC_DEF(cskyICacheEnableHw)
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyDCacheEnableHw)
-    MOVI        A0 , B_CFR_CACHE_D | M_CFR_CLR | M_CFR_INV
-    MTCR        A0 , CR17
+    MOVI        A1 , B_CFR_CACHE_D | M_CFR_CLR | M_CFR_INV
+    MTCR        A1 , CR17
 
-    MFCR        A0 , CR18
-    BSETI       A0 , 3                                                  ;/*  DE 数据高速缓存设置位       */
-    BSETI       A0 , 4                                                  ;/*  WB 高速缓存写回设置位       */
-    BSETI       A0 , 12                                                 ;/*  WA 高速缓存写分配有效设置   */
-    MTCR        A0 , CR18
+    MFCR        A1 , CR18
+    BSETI       A1 , 3                                                  ;/*  DE 数据高速缓存设置位       */
+
+    BCLRI       A1 , S_CACHE_CFG_WB                                     ;/*  WB 高速缓存写回设置位       */
+    BCLRI       A1 , S_CACHE_CFG_WA                                     ;/*  WA 高速缓存写分配有效设置   */
+    OR          A1 , A0
+
+    MTCR        A1 , CR18
     RTS
     FUNC_END(cskyDCacheEnableHw)
 

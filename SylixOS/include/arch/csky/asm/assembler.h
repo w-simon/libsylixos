@@ -46,7 +46,7 @@
 #define LINE_LABEL(line)          line:
 
 #define FUNC_DEF(func)                  \
-        .balign     4;                  \
+        .align      4;                  \
         .type   func, %function;        \
 func:
 
@@ -61,7 +61,7 @@ func:
 
 #define FILE_BEGIN()                    \
         .text;                          \
-        .balign     4;
+        .align      4;
 
 #define FILE_END()
 
@@ -70,7 +70,7 @@ func:
 
 #define WEAK(name)                      \
         .weak       name;               \
-        .balign     4;
+        .align      4;
 
 /*********************************************************************************************************
   Size of a register

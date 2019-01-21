@@ -1390,9 +1390,9 @@ static INT  __tshellSysCmdVarload (INT  iArgC, PCHAR  ppcArgV[])
     
     if (iError == ERROR_NONE) {
         API_TShellColorRefresh();                                       /*  更新颜色方案                */
-        printf("envionment variables load from %s success.\n", pcFile);
+        printf("environment variables load from %s success.\n", pcFile);
     } else {
-        fprintf(stderr, "envionment variables load from %s fail, error: %s\n", 
+        fprintf(stderr, "environment variables load from %s fail, error: %s\n",
                 pcFile, lib_strerror(errno));
     }
     
@@ -1421,9 +1421,9 @@ static INT  __tshellSysCmdVarsave (INT  iArgC, PCHAR  ppcArgV[])
     iError = __tshellVarSave(pcFile);
     
     if (iError == ERROR_NONE) {
-        printf("envionment variables save to %s success.\n", pcFile);
+        printf("environment variables save to %s success.\n", pcFile);
     } else {
-        fprintf(stderr, "envionment variables save to %s fail, error: %s\n", 
+        fprintf(stderr, "environment variables save to %s fail, error: %s\n",
                 pcFile, lib_strerror(errno));
     }
     
@@ -2627,11 +2627,11 @@ VOID  __tshellSysCmdInit (VOID)
     
     API_TShellKeywordAdd("varload", __tshellSysCmdVarload);
     API_TShellFormatAdd("varload", " [profile]");
-    API_TShellHelpAdd("varload", "synchronize envionment variables from profile.\n");
+    API_TShellHelpAdd("varload", "synchronize environment variables from profile.\n");
     
     API_TShellKeywordAdd("varsave", __tshellSysCmdVarsave);
     API_TShellFormatAdd("varsave", " [profile]");
-    API_TShellHelpAdd("varsave", "synchronize envionment variables to profile.\n");
+    API_TShellHelpAdd("varsave", "synchronize environment variables to profile.\n");
 
     API_TShellKeywordAdd("free", __tshellSysCmdFree);
     API_TShellHelpAdd("free", "show system memory information.\n");

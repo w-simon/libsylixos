@@ -144,6 +144,9 @@ static LW_PTE_TRANSENTRY  cskyMmuBuildPteEntry (addr_t  ulBaseAddr, ULONG  ulFla
         if (ulFlag & LW_VMM_FLAG_CACHEABLE) {
             pteentry |= ENTRYLO_C;                                      /*  可以 CACHE                  */
             pteentry |= ENTRYLO_B;                                      /*  可以写缓冲                  */
+
+        } else if (ulFlag & LW_VMM_FLAG_WRITECOMBINING) {
+            pteentry |= ENTRYLO_B;                                      /*  可以写缓冲                  */
         }
 
         if (!(ulFlag & (LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_WRITETHROUGH))) {
@@ -454,6 +457,9 @@ static ULONG  cskyMmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
            
             if (pteentry & ENTRYLO_C) {
                 ulFlag |= LW_VMM_FLAG_CACHEABLE;                        /*  可以 CACHE                  */
+
+            } else if (pteentry & ENTRYLO_B) {
+                ulFlag |= LW_VMM_FLAG_WRITECOMBINING;                   /*  写合并                      */
             }
 
             return  (ulFlag);

@@ -440,7 +440,7 @@ INT  __tshellVarSave (CPCHAR  pcFileName)
         return  (PX_ERROR);
     }
     
-    fprintf(pfile, "#sylixos envionment variables profile.\n");
+    fprintf(pfile, "#sylixos environment variables profile.\n");
     __TTINY_SHELL_LOCK();                                               /*  ª•≥‚∑√Œ                     */
     for (plineNode  = _G_plineTSVarHeader;
          plineNode != LW_NULL;
