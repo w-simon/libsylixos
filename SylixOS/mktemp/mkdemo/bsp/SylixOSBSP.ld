@@ -68,12 +68,12 @@ SECTIONS
 *********************************************************************************************************/
 
     .ARM.exidx : {
-        . = ALIGN(8); 
+        . = ALIGN(4); 
         PROVIDE(__exidx_start = .); 
         
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
         
-        . = ALIGN(8); 
+        . = ALIGN(4); 
         PROVIDE(__exidx_end = .); 
     } > TEXT
 

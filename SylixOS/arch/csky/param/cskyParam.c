@@ -44,7 +44,7 @@ VOID  archKernelParam (CPCHAR  pcParam)
         }
 
     } else if (lib_strncmp(pcParam, "mmuenbyboot=", 12) == 0) {
-        if (pcParam[8] == 'n') {
+        if (pcParam[12] == 'n') {
             cskyParam.CP_bMmuEnByBoot = LW_FALSE;
         } else {
             cskyParam.CP_bMmuEnByBoot = LW_TRUE;
