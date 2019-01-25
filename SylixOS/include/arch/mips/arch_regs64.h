@@ -64,11 +64,11 @@ typedef UINT64      ARCH_REG_T;
 
 typedef struct {
     ARCH_REG_T  REG_ulReg[ARCH_GREG_NR];                                /*  32 个通用目的寄存器         */
-    ARCH_REG_T  REG_ulCP0DataLO;                                        /*  乘法结果低位寄存器          */
-    ARCH_REG_T  REG_ulCP0DataHI;                                        /*  乘法结果高位寄存器          */
+    ARCH_REG_T  REG_ulCP0DataLo;                                        /*  乘法结果低位寄存器          */
+    ARCH_REG_T  REG_ulCP0DataHi;                                        /*  乘法结果高位寄存器          */
     ARCH_REG_T  REG_ulCP0Cause;                                         /*  产生中断或者异常查看的寄存器*/
     ARCH_REG_T  REG_ulCP0Status;                                        /*  CP0 协处理器状态寄存器      */
-    ARCH_REG_T  REG_ulCP0EPC;                                           /*  程序计数器寄存器            */
+    ARCH_REG_T  REG_ulCP0Epc;                                           /*  程序计数器寄存器            */
     ARCH_REG_T  REG_ulCP0BadVAddr;                                      /*  出错地址寄存器              */
 
 /*********************************************************************************************************
@@ -122,7 +122,7 @@ typedef struct {
   从上下文中获取信息
 *********************************************************************************************************/
 
-#define ARCH_REG_CTX_GET_PC(ctx)    ((void *)(ctx).REG_ulCP0EPC)
+#define ARCH_REG_CTX_GET_PC(ctx)    ((void *)(ctx).REG_ulCP0Epc)
 
 #endif                                                                  /*  !defined(__ASSEMBLY__)      */
 #endif                                                                  /*  __MIPS_ARCH_REGS64_H        */

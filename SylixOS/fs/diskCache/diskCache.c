@@ -279,8 +279,8 @@ ULONG  API_DiskCacheCreateEx2 (PLW_BLK_DEV          pblkdDisk,
      */
     if (__diskCacheWpCreate(pdiskcDiskCache, 
                             &pdiskcDiskCache->DISKC_wpWrite,
-                            pdcattrl->DCATTR_bCacheCoherence,
                             pdcattrl->DCATTR_bParallel,
+                            pdcattrl->DCATTR_iBurstOpt,
                             pdcattrl->DCATTR_iPipeline,
                             pdcattrl->DCATTR_iMsgCount,
                             pdcattrl->DCATTR_iMaxRBurstSector,
@@ -399,7 +399,7 @@ ULONG  API_DiskCacheCreateEx (PLW_BLK_DEV   pblkdDisk,
     
     dcattrl.DCATTR_pvCacheMem       = pvDiskCacheMem;
     dcattrl.DCATTR_stMemSize        = stMemSize;
-    dcattrl.DCATTR_bCacheCoherence  = LW_FALSE;
+    dcattrl.DCATTR_iBurstOpt        = 0;
     dcattrl.DCATTR_iMaxRBurstSector = iMaxRBurstSector;
     dcattrl.DCATTR_iMaxWBurstSector = iMaxWBurstSector;
     dcattrl.DCATTR_iMsgCount        = 4;

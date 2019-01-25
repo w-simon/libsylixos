@@ -33,7 +33,7 @@
 
 /* Helpers for working with the instruction pointer */
 #ifndef GET_IP
-#define GET_IP(regs)      ((regs)->REG_ulPC)
+#define GET_IP(regs)      ((regs)->REG_ulPc)
 #endif
 #ifndef SET_IP
 #define SET_IP(regs, val) (GET_IP(regs) = (val))

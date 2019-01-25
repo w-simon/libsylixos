@@ -720,6 +720,20 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
 
     return  (ulNextPc);
 }
+/*********************************************************************************************************
+** 函数名称: archGdbGetStepSkip
+** 功能描述: 是否忽略此单步断点
+** 输　入  : pvDtrace       dtrace 句柄
+**           ulThread       被调试线程
+**           ulAddr         断点地址
+** 输　出  : 是否忽略
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archGdbGetStepSkip (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, addr_t ulAddr)
+{
+    return  (LW_FALSE);
+}
 
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************

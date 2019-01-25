@@ -70,6 +70,10 @@ ULONG   archGdbGetNextPc(PVOID             pvDtrace,
                          LW_OBJECT_HANDLE  ulThread,
                          GDB_REG_SET      *pRegs);                      /*  获取下一个 pc 值，含分支预测*/
 
+BOOL    archGdbGetStepSkip(PVOID            pvDtrace,
+                           LW_OBJECT_HANDLE ulThread,
+                           addr_t           ulAddr);                    /*  是否忽略本次单步点          */
+
 #endif                                                                  /*  __ARCH_ARM64_GDB_H          */
 /*********************************************************************************************************
   END

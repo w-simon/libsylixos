@@ -719,6 +719,7 @@ typedef struct {
     PVOID               PCIDEV_pvDevIrqArg;                             /* 中断服务参数                 */
 
     PVOID               PCIDEV_pvDevDriver;                             /* 驱动句柄                     */
+    PVOID               PCIDEV_pvPrivate;                               /* 用户驱动使用                 */
 } PCI_DEV_CB;
 typedef PCI_DEV_CB     *PCI_DEV_HANDLE;
 
@@ -784,6 +785,11 @@ LW_API VOID                 API_PciDevIoUnmap(PVOID pvVirtualAddr);
 
 LW_API INT                  API_PciDevMasterEnable(PCI_DEV_HANDLE hDevHandle, BOOL bEnable);
 
+LW_API INT                  API_PciDevInterDisableEx(PCI_DEV_HANDLE   hHandle,
+                                                     ULONG            ulVector,
+                                                     PINT_SVR_ROUTINE pfuncIsr,
+                                                     PVOID            pvArg,
+                                                     INT              iMaxServCnt);
 LW_API INT                  API_PciDevInterDisable(PCI_DEV_HANDLE   hHandle,
                                                    ULONG            ulVector,
                                                    PINT_SVR_ROUTINE pfuncIsr,
@@ -801,6 +807,9 @@ LW_API INT                  API_PciDevInterConnect(PCI_DEV_HANDLE   hHandle,
                                                    PINT_SVR_ROUTINE pfuncIsr,
                                                    PVOID            pvArg,
                                                    CPCHAR           pcName);
+LW_API INT                  API_PciDevInterServiceCnt(PCI_DEV_HANDLE    hHandle,
+                                                      ULONG             ulVector,
+                                                      INT              *piCnt);
 
 LW_API INT                  API_PciDevIntxEnableSet(PCI_DEV_HANDLE hHandle, INT iEnable);
 
@@ -872,10 +881,12 @@ LW_API INT                  API_PciAutoCtrlRegionSet(PCI_CTRL_HANDLE hCtrl,
 
 #define pciDevMasterEnable      API_PciDevMasterEnable
 
+#define pciDevInterDisableEx    API_PciDevInterDisableEx
 #define pciDevInterDisable      API_PciDevInterDisable
 #define pciDevInterEnable       API_PciDevInterEnable
 #define pciDevInterDisconnect   API_PciDevInterDisconnect
 #define pciDevInterConnect      API_PciDevInterConnect
+#define pciDevInterServiceCnt   API_PciDevInterServiceCnt
 
 #define pciDevIntxEnableSet     API_PciDevIntxEnableSet
 

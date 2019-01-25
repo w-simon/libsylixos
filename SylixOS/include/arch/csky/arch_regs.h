@@ -59,11 +59,11 @@ typedef UINT32      ARCH_REG_T;
 
 typedef struct {
     ARCH_REG_T  REG_ulReg[ARCH_GREG_NR];                                /*  32 个通用目的寄存器         */
-    ARCH_REG_T  REG_ulPC;                                               /*  程序计数器寄存器            */
-    ARCH_REG_T  REG_ulPSR;                                              /*  处理器状态寄存器            */
-    ARCH_REG_T  REG_ulLO;                                              
-    ARCH_REG_T  REG_ulHI;                                               
-    ARCH_REG_T  REG_ulMEH;
+    ARCH_REG_T  REG_ulPc;                                               /*  程序计数器寄存器            */
+    ARCH_REG_T  REG_ulPsr;                                              /*  处理器状态寄存器            */
+    ARCH_REG_T  REG_ulLo;                                              
+    ARCH_REG_T  REG_ulHi;                                               
+    ARCH_REG_T  REG_ulMeh;
     ARCH_REG_T  REG_ulPad;
 
 #ifdef __CSKYABIV2__
@@ -118,7 +118,7 @@ typedef struct {
   从上下文中获取信息
 *********************************************************************************************************/
 
-#define ARCH_REG_CTX_GET_PC(ctx)    ((void *)(ctx).REG_ulPC)
+#define ARCH_REG_CTX_GET_PC(ctx)    ((void *)(ctx).REG_ulPc)
 
 #endif                                                                  /*  !defined(__ASSEMBLY__)      */
 #endif                                                                  /*  __CSKY_ARCH_REGS_H          */

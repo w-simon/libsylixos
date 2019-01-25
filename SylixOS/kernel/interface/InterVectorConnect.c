@@ -297,5 +297,48 @@ __disconn:
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_InterVectorServiceCnt
+** 功能描述: 获得指定中断向量服务函数个数
+** 输　入  : ulVector                      中断向量号
+**           piCnt                         服务函数个数
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_InterVectorServiceCnt (ULONG  ulVector, INT  *piCnt)
+{
+    INTREG              iregInterLevel;
+    PLW_LIST_LINE       plineTemp;
+    PLW_CLASS_INTDESC   pidesc;
+    INT                 iCnt = 0;
+
+    if (_Inter_Vector_Invalid(ulVector)) {
+        _ErrorHandle(ERROR_KERNEL_VECTOR_NULL);
+        return  (ERROR_KERNEL_VECTOR_NULL);
+    }
+
+    if (!piCnt) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+
+    pidesc = LW_IVEC_GET_IDESC(ulVector);
+
+    LW_SPIN_LOCK_QUICK(&pidesc->IDESC_slLock, &iregInterLevel);         /*  关闭中断同时锁住 spinlock   */
+
+    for (plineTemp  = pidesc->IDESC_plineAction;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        iCnt++;
+    }
+
+    LW_SPIN_UNLOCK_QUICK(&pidesc->IDESC_slLock, iregInterLevel);        /*  打开中断, 同时打开 spinlock */
+
+    *piCnt = iCnt;
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
   END
 *********************************************************************************************************/

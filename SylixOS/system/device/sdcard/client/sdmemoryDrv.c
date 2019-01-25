@@ -133,12 +133,16 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
 
     dcattrl.DCATTR_pvCacheMem       = LW_NULL;
     dcattrl.DCATTR_stMemSize        = (size_t)lCacheSize;
-    dcattrl.DCATTR_bCacheCoherence  = (BOOL)lCoherence;
+    dcattrl.DCATTR_iBurstOpt        = 0;
     dcattrl.DCATTR_iMaxRBurstSector = (INT)lSectorBurst;
     dcattrl.DCATTR_iMaxWBurstSector = (INT)(lSectorBurst << 1);
     dcattrl.DCATTR_iMsgCount        = 4;
     dcattrl.DCATTR_iPipeline        = (INT)lPl;
     dcattrl.DCATTR_bParallel        = LW_FALSE;
+
+    if (lCoherence) {
+        dcattrl.DCATTR_iBurstOpt |= LW_DCATTR_BOPT_CACHE_COHERENCE;
+    }
 
     poemdisk = oemDiskMount2(__SDMEM_MEDIA,
                              pblkdev,

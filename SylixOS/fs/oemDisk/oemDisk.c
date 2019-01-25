@@ -556,7 +556,7 @@ PLW_OEMDISK_CB  API_OemDiskMountEx (CPCHAR        pcVolName,
     
     dcattrl.DCATTR_pvCacheMem       = pvDiskCacheMem;
     dcattrl.DCATTR_stMemSize        = stMemSize;
-    dcattrl.DCATTR_bCacheCoherence  = LW_FALSE;
+    dcattrl.DCATTR_iBurstOpt        = 0;
     dcattrl.DCATTR_iMaxRBurstSector = iMaxRBurstSector;
     dcattrl.DCATTR_iMaxWBurstSector = iMaxBurstSector;
     dcattrl.DCATTR_iMsgCount        = 4;
@@ -835,7 +835,7 @@ PLW_OEMDISK_CB  API_OemDiskMount (CPCHAR        pcVolName,
     
     dcattrl.DCATTR_pvCacheMem       = pvDiskCacheMem;
     dcattrl.DCATTR_stMemSize        = stMemSize;
-    dcattrl.DCATTR_bCacheCoherence  = LW_FALSE;
+    dcattrl.DCATTR_iBurstOpt        = 0;
     dcattrl.DCATTR_iMaxRBurstSector = iMaxRBurstSector;
     dcattrl.DCATTR_iMaxWBurstSector = iMaxBurstSector;
     dcattrl.DCATTR_iMsgCount        = 4;

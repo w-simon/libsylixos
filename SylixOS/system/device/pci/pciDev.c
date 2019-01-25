@@ -77,6 +77,36 @@ INT  API_PciDevIntxEnableSet (PCI_DEV_HANDLE  hHandle, INT  iEnable)
 /*********************************************************************************************************
 ** 函数名称: API_PciDevInterDisable
 ** 功能描述: 禁能 PCI 设备中断
+** 输　入  : hHandle        设备句柄
+**           ulVector       中断向量
+**           pfuncIsr       中断服务函数
+**           pvArg          中断服务函数参数
+**           iMaxServCnt    当服务函数数量 > 此值时, 不禁能
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevInterDisableEx (PCI_DEV_HANDLE   hHandle,
+                               ULONG            ulVector,
+                               PINT_SVR_ROUTINE pfuncIsr,
+                               PVOID            pvArg,
+                               INT              iMaxServCnt)
+{
+    if (hHandle == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (API_InterVectorDisableEx(ulVector, iMaxServCnt)) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevInterDisable
+** 功能描述: 禁能 PCI 设备中断
 ** 输　入  : hHandle    设备句柄
 **           ulVector   中断向量
 **           pfuncIsr   中断服务函数
@@ -200,6 +230,32 @@ INT  API_PciDevInterConnect (PCI_DEV_HANDLE    hHandle,
     lib_strlcpy(hHandle->PCIDEV_cDevIrqName, pcName, PCI_DEV_IRQ_NAME_MAX);
     hHandle->PCIDEV_pfuncDevIrqHandle = pfuncIsr;
     hHandle->PCIDEV_pvDevIrqArg       = pvArg;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDevInterServiceCnt
+** 功能描述: 获取 PCI 设备中断向量服务函数个数
+** 输　入  : hHandle    设备句柄
+**           ulVector   中断向量
+**           piCnt      中断服务函数个数
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDevInterServiceCnt (PCI_DEV_HANDLE    hHandle,
+                                ULONG             ulVector,
+                                INT              *piCnt)
+{
+    if (hHandle == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (API_InterVectorServiceCnt(ulVector, piCnt)) {
+        return  (PX_ERROR);
+    }
 
     return  (ERROR_NONE);
 }

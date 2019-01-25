@@ -65,6 +65,10 @@ INT     archGdbRegSetPc(PVOID              pvDtrace,
 
 ULONG   archGdbRegGetPc(GDB_REG_SET       *pRegs);                      /*  获取 PC 寄存器值            */
 
+BOOL    archGdbGetStepSkip(PVOID            pvDtrace,
+                           LW_OBJECT_HANDLE ulThread,
+                           addr_t           ulAddr);                    /*  是否忽略本次单步点          */
+
 #endif                                                                  /*  __ARCH_X86_GDB_H            */
 /*********************************************************************************************************
   END

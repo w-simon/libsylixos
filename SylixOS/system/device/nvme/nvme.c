@@ -1256,7 +1256,7 @@ static VOID  __nvmeNamespacesAlloc (NVME_CTRL_HANDLE      hCtrl,
 
     dcattrl.DCATTR_pvCacheMem       = LW_NULL;
     dcattrl.DCATTR_stMemSize        = (size_t)ulCacheSize;              /* 配置为0，不使用cache         */
-    dcattrl.DCATTR_bCacheCoherence  = LW_TRUE;                          /* 保证 CACHE 一致性            */
+    dcattrl.DCATTR_iBurstOpt        = LW_DCATTR_BOPT_CACHE_COHERENCE;   /* 保证 CACHE 一致性            */
     dcattrl.DCATTR_iMaxRBurstSector = (INT)__MIN(ulBurstSizeRd, hDev->NVMEDEV_uiMaxHwSectors);
     dcattrl.DCATTR_iMaxWBurstSector = (INT)__MIN(ulBurstSizeWr, hDev->NVMEDEV_uiMaxHwSectors);
     dcattrl.DCATTR_iMsgCount        = (INT)ulDcMsgCount;                /* 管线消息队列缓存个数         */

@@ -137,7 +137,7 @@ VOID  archTlbLoadExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     if (abtInfo.VMABT_uiType) {
-        API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulMEH, &abtInfo, ptcbCur);
+        API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulMeh, &abtInfo, ptcbCur);
     }
 }
 /*********************************************************************************************************
@@ -164,7 +164,7 @@ VOID  archTlbStoreExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     if (abtInfo.VMABT_uiType) {
-        API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulMEH, &abtInfo, ptcbCur);
+        API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulMeh, &abtInfo, ptcbCur);
     }
 }
 /*********************************************************************************************************
@@ -185,7 +185,7 @@ VOID  archTlbModExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_PERM;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulMEH, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulMeh, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archTrapExceptHandle
@@ -205,7 +205,7 @@ VOID  archTrapExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_SYS;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulMEH, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulMeh, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archTrap0ExceptHandle
@@ -277,7 +277,7 @@ VOID  archTlbFatalExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = 0;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FATAL_ERROR;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulMEH, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulMeh, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archTlbRefillExceptHandle
@@ -299,7 +299,7 @@ VOID  archTlbRefillExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = 0;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FATAL_ERROR;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulMEH, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulMeh, &abtInfo, ptcbCur);
 }
 
 #endif                                                                  /*  LW_CFG_VMM_EN == 0          */
@@ -356,7 +356,7 @@ VOID  archReservedExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
     if (abtInfo.VMABT_uiType) {
-        API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+        API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur);
     }
 }
 /*********************************************************************************************************
@@ -377,7 +377,7 @@ VOID  archIdlyExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = 0;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FATAL_ERROR;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archFatalErrExceptHandle
@@ -397,7 +397,7 @@ VOID  archFatalErrExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = 0;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FATAL_ERROR;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archBreakPointExceptHandle
@@ -419,9 +419,9 @@ VOID  archBreakPointExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
     LW_TCB_GET_CUR(ptcbCur);
 
 #if LW_CFG_GDB_EN > 0
-    uiBpType = archDbgTrapType(pregctx->REG_ulPC, LW_NULL);             /*  断点指令探测                */
+    uiBpType = archDbgTrapType(pregctx->REG_ulPc, LW_NULL);             /*  断点指令探测                */
     if (uiBpType) {
-        if (API_DtraceBreakTrap(pregctx->REG_ulPC, uiBpType) == ERROR_NONE) {
+        if (API_DtraceBreakTrap(pregctx->REG_ulPc, uiBpType) == ERROR_NONE) {
             return;                                                     /*  进入调试接口断点处理        */
         }
     }
@@ -429,7 +429,7 @@ VOID  archBreakPointExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BREAK;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archPrivilegeExceptHandle
@@ -449,7 +449,7 @@ VOID  archPrivilegeExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_PERM;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archIllegalInstExceptHandle
@@ -469,7 +469,7 @@ VOID  archIllegalInstExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archDivideZeroExceptHandle
@@ -489,7 +489,7 @@ VOID  archDivideZeroExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_TERMINAL;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archAccessExceptHandle
@@ -509,7 +509,7 @@ VOID  archAccessExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = 0;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
-    API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulMEH, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulMeh, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archUnalignedHandle
@@ -547,10 +547,10 @@ VOID  archUnalignedExceptHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
     abtInfo.VMABT_uiMethod = BUS_ADRALN;
 
     if (param->CP_bUnalign) {
-        API_VmmAbortIsrEx(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur, archUnalignedHandle);
+        API_VmmAbortIsrEx(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur, archUnalignedHandle);
 
     } else {
-        API_VmmAbortIsr(pregctx->REG_ulPC, pregctx->REG_ulPC, &abtInfo, ptcbCur);
+        API_VmmAbortIsr(pregctx->REG_ulPc, pregctx->REG_ulPc, &abtInfo, ptcbCur);
     }
 }
 /*********************************************************************************************************

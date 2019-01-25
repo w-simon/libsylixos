@@ -81,6 +81,53 @@ ULONG  API_InterVectorDisable (ULONG  ulVector)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_InterVectorDisableEx
+** 功能描述: 禁能指定向量的中断
+** 输　入  : ulVector                      中断向量号
+**           iMaxServCnt                   当服务函数数量 > 此值时, 不禁能
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+** 注  意  : 如果 ulVector 为可嵌套中断, 则在中断上下文中禁能本中断, 退出中断时会自动打开.
+             所以禁能操作需要在任务状态下操作.
+
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_InterVectorDisableEx (ULONG  ulVector, INT  iMaxServCnt)
+{
+    INTREG              iregInterLevel;
+    PLW_LIST_LINE       plineTemp;
+    PLW_CLASS_INTDESC   pidesc;
+    INT                 iCnt = 0;
+
+
+    if (_Inter_Vector_Invalid(ulVector)) {
+        _ErrorHandle(ERROR_KERNEL_VECTOR_NULL);
+        return  (ERROR_KERNEL_VECTOR_NULL);
+    }
+
+    pidesc = LW_IVEC_GET_IDESC(ulVector);
+
+    LW_SPIN_LOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, &iregInterLevel);
+    for (plineTemp  = pidesc->IDESC_plineAction;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+        iCnt++;
+    }
+    if (iCnt > iMaxServCnt) {
+        LW_SPIN_UNLOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, iregInterLevel);
+        _ErrorHandle(EBUSY);
+        return  (EBUSY);
+
+    } else {
+        __ARCH_INT_VECTOR_DISABLE(ulVector);
+    }
+    LW_SPIN_UNLOCK_QUICK(&_K_slcaVectorTable.SLCA_sl, iregInterLevel);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: API_InterVectorIsEnable
 ** 功能描述: 获得系统对指定向量中断响应状态
 ** 输　入  : ulVector                      中断向量号

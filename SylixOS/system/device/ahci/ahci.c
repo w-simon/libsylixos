@@ -1669,8 +1669,8 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         ulDcParallel = ulDcParallel ? LW_TRUE : LW_FALSE;
         
         dcattrl.DCATTR_pvCacheMem       = LW_NULL;
-        dcattrl.DCATTR_stMemSize        = (size_t)ulCacheSize;
-        dcattrl.DCATTR_bCacheCoherence  = LW_TRUE;                      /* 保证 CACHE 一致性            */
+        dcattrl.DCATTR_stMemSize        = (size_t)ulCacheSize;          /* 保证 CACHE 一致性            */
+        dcattrl.DCATTR_iBurstOpt        = LW_DCATTR_BOPT_CACHE_COHERENCE;
         dcattrl.DCATTR_iMaxRBurstSector = (INT)ulBurstSizeRd;
         dcattrl.DCATTR_iMaxWBurstSector = (INT)ulBurstSizeWr;
         dcattrl.DCATTR_iMsgCount        = (INT)ulDcMsgCount;

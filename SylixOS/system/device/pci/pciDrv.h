@@ -34,8 +34,7 @@
 /*********************************************************************************************************
   驱动配置
 *********************************************************************************************************/
-#define PCI_DRV_NAME_MAX        (24 + 1)                                /*  驱动名称最大值              */
-#define PCI_DRV_FLAG_ACTIVE     0x01                                    /*  是否激活                    */
+#define PCI_DRV_NAME_MAX    (24 + 1)                                    /*  驱动名称最大值              */
 
 /*********************************************************************************************************
   驱动支持设备列表控制块
@@ -90,6 +89,7 @@ typedef PCI_DRV_CB         *PCI_DRV_HANDLE;
 
 LW_API PCI_DRV_HANDLE       API_PciDrvHandleGet(CPCHAR pcName);
 LW_API INT                  API_PciDrvRegister(PCI_DRV_HANDLE hHandle);
+LW_API INT                  API_PciDrvUnregister(PCI_DRV_HANDLE hDrvHandle);
 
 /*********************************************************************************************************
   API Macro
@@ -97,6 +97,7 @@ LW_API INT                  API_PciDrvRegister(PCI_DRV_HANDLE hHandle);
 
 #define pciDrvHandleGet     API_PciDrvHandleGet
 #define pciDrvRegister      API_PciDrvRegister
+#define pciDrvUnregister    API_PciDrvUnregister
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_PCI_EN > 0)         */

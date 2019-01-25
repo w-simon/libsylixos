@@ -165,7 +165,7 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
      
     uiExcClass  = (uiExcType >> 26) & 0x3f;
     uiExcISS    = uiExcType & 0x1ffffff;
-    ulAbortAddr = pregctx->REG_ulPC;
+    ulAbortAddr = pregctx->REG_ulPc;
 
     switch (uiExcClass) {
 
@@ -279,7 +279,7 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
     
 #if LW_CFG_CPU_EXC_HOOK_EN > 0
     if (bspCpuExcHook(ptcbCur, 
-                      pregctx->REG_ulPC, 
+                      pregctx->REG_ulPc, 
                       ulAbortAddr,
                       abtInfo.VMABT_uiType, 
                       abtInfo.VMABT_uiMethod)) {
@@ -287,7 +287,7 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
     }
 #endif
   
-    API_VmmAbortIsr(pregctx->REG_ulPC, ulAbortAddr, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulPc, ulAbortAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: archInvalidExcHandle

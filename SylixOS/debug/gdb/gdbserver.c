@@ -788,7 +788,7 @@ static INT gdbRemoveBP (LW_GDB_PARAM *pparam, PCHAR pcInBuff, PCHAR pcOutBuff)
             }
             _List_Line_Del(&pbpItem->BP_plistBpLine, &pparam->GDB_plistBpHead);
             LW_GDB_SAFEFREE(pbpItem);
-            return  (ERROR_NONE);
+            break;                                                      /* 删除成功                     */
         }
     }
 
@@ -1927,18 +1927,13 @@ static INT gdbRspPkgHandle (LW_GDB_PARAM    *pparam,
                                        pdmsg, 0) == ERROR_NONE) {
                 if (gdbIsStepBp(pparam, pdmsg)) {
                     gdbClearStepMode(pparam, pdmsg->DTM_ulThread);
-#if defined(LW_CFG_CPU_ARCH_X86) && (LW_CFG_CPU_WORD_LENGHT == 32)
-                    /*
-                     *  x86单步时需跳过 push %ebp (0x55) 和 mov %esp %ebp指令，
-                     *  因为当停在这两条指令时可能导致gdb堆栈错误
-                     */
-                    if ((*(PUCHAR)pdmsg->DTM_ulAddr) == 0x55 ||
-                        (*(PUCHAR)pdmsg->DTM_ulAddr) == 0x89) {
+                    if (archGdbGetStepSkip(pparam->GDB_pvDtrace,
+                                           pdmsg->DTM_ulThread,
+                                           pdmsg->DTM_ulAddr)) {        /*  是否忽略此单步断点          */
                     	gdbSetStepMode(pparam, pdmsg->DTM_ulThread);
                         API_DtraceContinueThread(pparam->GDB_pvDtrace, pdmsg->DTM_ulThread);
                         continue;
                     }
-#endif
                 }
 
                 gdbUpdateThreadList(pparam);
@@ -2324,17 +2319,10 @@ static INT gdbEventLoop (LW_GDB_PARAM *pparam)
 
             if (gdbIsStepBp(pparam, &dmsg)) {                           /* 自动移除单步断点             */
                 gdbClearStepMode(pparam, dmsg.DTM_ulThread);
-#if defined(LW_CFG_CPU_ARCH_X86) && (LW_CFG_CPU_WORD_LENGHT == 32)
-                /*
-                 *  x86单步时需跳过 push %ebp (0x55) 和 mov %esp %ebp指令，
-                 *  因为当停在这两条指令是可能导致gdb堆栈错误
-                 */
-                if (gdbInStepRange(pparam, &dmsg)        ||
-                    ((*(PUCHAR)dmsg.DTM_ulAddr) == 0x55) ||
-                    ((*(PUCHAR)dmsg.DTM_ulAddr) == 0x89)) {
-#else
-                if (gdbInStepRange(pparam, &dmsg)) {
-#endif
+                if (gdbInStepRange(pparam, &dmsg) ||
+                    archGdbGetStepSkip(pparam->GDB_pvDtrace,
+                                       dmsg.DTM_ulThread,
+                                       dmsg.DTM_ulAddr)) {              /* 是否需要忽略此单步断点       */
                     gdbSetStepMode(pparam, dmsg.DTM_ulThread);
                     if (pparam->GDB_lOpCThreadId <= 0) {
                         API_DtraceContinueProcess(pparam->GDB_pvDtrace);

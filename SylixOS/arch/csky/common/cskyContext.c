@@ -41,7 +41,7 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
                               ULONG                  ulOpt)
 {
     ARCH_FP_CTX  *pfpctx;
-    ARCH_REG_T    ulPSR;
+    ARCH_REG_T    ulPsr;
     INT           i;
 
     pstkTop = (PLW_STACK)ROUND_DOWN(pstkTop, ARCH_STK_ALIGN_SIZE);      /*  保证出栈后 SP 8 字节对齐    */
@@ -59,13 +59,13 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     pregctx->REG_ulReg[REG_RA] = (ARCH_REG_T)0x0;
     pregctx->REG_ulReg[REG_SP] = (ARCH_REG_T)pfpctx;
 
-    ulPSR  = archGetPSR();                                              /*  获得当前的 PSR 寄存器       */
-    ulPSR |= bspIntInitEnableStatus() | M_PSR_IE | M_PSR_EE;            /*  使能中断和异常              */
-    pregctx->REG_ulPSR = (ARCH_REG_T)ulPSR;
-    pregctx->REG_ulPC  = (ARCH_REG_T)pfuncTask;
-    pregctx->REG_ulLO  = (ARCH_REG_T)0x0;
-    pregctx->REG_ulHI  = (ARCH_REG_T)0x0;
-    pregctx->REG_ulMEH = (ARCH_REG_T)0x0;
+    ulPsr  = archGetPSR();                                              /*  获得当前的 PSR 寄存器       */
+    ulPsr |= bspIntInitEnableStatus() | M_PSR_IE | M_PSR_EE;            /*  使能中断和异常              */
+    pregctx->REG_ulPsr = (ARCH_REG_T)ulPsr;
+    pregctx->REG_ulPc  = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_ulLo  = (ARCH_REG_T)0x0;
+    pregctx->REG_ulHi  = (ARCH_REG_T)0x0;
+    pregctx->REG_ulMeh = (ARCH_REG_T)0x0;
 
     return  ((PLW_STACK)pfpctx);
 }
@@ -84,7 +84,7 @@ VOID  archTaskCtxSetFp (PLW_STACK            pstkDest,
                         const ARCH_REG_CTX  *pregctxSrc)
 {    
     pregctxDest->REG_ulReg[REG_FP] = (ARCH_REG_T)pregctxSrc->REG_ulReg[REG_SP];
-    pregctxDest->REG_ulReg[REG_RA] = (ARCH_REG_T)pregctxSrc->REG_ulPC;
+    pregctxDest->REG_ulReg[REG_RA] = (ARCH_REG_T)pregctxSrc->REG_ulPc;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskRegsGet
@@ -149,11 +149,11 @@ VOID  archTaskRegsSet (ARCH_REG_CTX  *pregctxDest, const ARCH_REG_CTX  *pregctxS
     pregctxDest->REG_ulReg[30] = pregctxSrc->REG_ulReg[30];   
     pregctxDest->REG_ulReg[31] = pregctxSrc->REG_ulReg[31];
     
-    pregctxDest->REG_ulLO  = pregctxSrc->REG_ulLO;                      /*  除数低位寄存器              */
-    pregctxDest->REG_ulHI  = pregctxSrc->REG_ulHI;                      /*  除数高位寄存器              */
-    pregctxDest->REG_ulPSR = pregctxSrc->REG_ulPSR;                     /*  PSR 寄存器                  */
-    pregctxDest->REG_ulPC  = pregctxSrc->REG_ulPC;                      /*  程序计数器寄存器            */
-    pregctxDest->REG_ulMEH = pregctxSrc->REG_ulMEH;                     /*  错误地址寄存器              */
+    pregctxDest->REG_ulLo  = pregctxSrc->REG_ulLo;                      /*  除数低位寄存器              */
+    pregctxDest->REG_ulHi  = pregctxSrc->REG_ulHi;                      /*  除数高位寄存器              */
+    pregctxDest->REG_ulPsr = pregctxSrc->REG_ulPsr;                     /*  PSR 寄存器                  */
+    pregctxDest->REG_ulPc  = pregctxSrc->REG_ulPc;                      /*  程序计数器寄存器            */
+    pregctxDest->REG_ulMeh = pregctxSrc->REG_ulMeh;                     /*  错误地址寄存器              */
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskCtxShow
@@ -168,17 +168,17 @@ VOID  archTaskRegsSet (ARCH_REG_CTX  *pregctxDest, const ARCH_REG_CTX  *pregctxS
 
 VOID  archTaskCtxShow (INT  iFd, const ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_T  ulPSR = pregctx->REG_ulPSR;
+    ARCH_REG_T  ulPsr = pregctx->REG_ulPsr;
 
 #define LX_FMT      "0x%08x"
 
     if (iFd >= 0) {
         fdprintf(iFd, "\n");
 
-        fdprintf(iFd, "PC      = "LX_FMT"\n", pregctx->REG_ulPC);
-        fdprintf(iFd, "LO      = "LX_FMT"\n", pregctx->REG_ulLO);
-        fdprintf(iFd, "HI      = "LX_FMT"\n", pregctx->REG_ulHI);
-        fdprintf(iFd, "MEH     = "LX_FMT"\n", pregctx->REG_ulMEH);
+        fdprintf(iFd, "PC      = "LX_FMT"\n", pregctx->REG_ulPc);
+        fdprintf(iFd, "LO      = "LX_FMT"\n", pregctx->REG_ulLo);
+        fdprintf(iFd, "HI      = "LX_FMT"\n", pregctx->REG_ulHi);
+        fdprintf(iFd, "MEH     = "LX_FMT"\n", pregctx->REG_ulMeh);
         
 #ifdef __CSKYABIV2__
         fdprintf(iFd, "R0(A0)  = "LX_FMT"\n", pregctx->REG_ulReg[0]);
@@ -233,15 +233,15 @@ VOID  archTaskCtxShow (INT  iFd, const ARCH_REG_CTX  *pregctx)
         fdprintf(iFd, "R31     = "LX_FMT"\n", pregctx->REG_ulReg[31]);
         
         fdprintf(iFd, "PSR Status Register:\n");
-        fdprintf(iFd, "S   = %d  ", (ulPSR & M_PSR_S)  >> S_PSR_S);
-        fdprintf(iFd, "TE  = %d\n", (ulPSR & M_PSR_TE) >> S_PSR_TE);
-        fdprintf(iFd, "MM  = %d  ", (ulPSR & M_PSR_MM) >> S_PSR_MM);
-        fdprintf(iFd, "EE  = %d\n", (ulPSR & M_PSR_EE) >> S_PSR_EE);
-        fdprintf(iFd, "IC  = %d  ", (ulPSR & M_PSR_IC) >> S_PSR_IC);
-        fdprintf(iFd, "IE  = %d\n", (ulPSR & M_PSR_IE) >> S_PSR_IE);
-        fdprintf(iFd, "FE  = %d  ", (ulPSR & M_PSR_FE) >> S_PSR_FE);
-        fdprintf(iFd, "AF  = %d\n", (ulPSR & M_PSR_AF) >> S_PSR_AF);
-        fdprintf(iFd, "C   = %d\n", (ulPSR & M_PSR_C)  >> S_PSR_C);
+        fdprintf(iFd, "S   = %d  ", (ulPsr & M_PSR_S)  >> S_PSR_S);
+        fdprintf(iFd, "TE  = %d\n", (ulPsr & M_PSR_TE) >> S_PSR_TE);
+        fdprintf(iFd, "MM  = %d  ", (ulPsr & M_PSR_MM) >> S_PSR_MM);
+        fdprintf(iFd, "EE  = %d\n", (ulPsr & M_PSR_EE) >> S_PSR_EE);
+        fdprintf(iFd, "IC  = %d  ", (ulPsr & M_PSR_IC) >> S_PSR_IC);
+        fdprintf(iFd, "IE  = %d\n", (ulPsr & M_PSR_IE) >> S_PSR_IE);
+        fdprintf(iFd, "FE  = %d  ", (ulPsr & M_PSR_FE) >> S_PSR_FE);
+        fdprintf(iFd, "AF  = %d\n", (ulPsr & M_PSR_AF) >> S_PSR_AF);
+        fdprintf(iFd, "C   = %d\n", (ulPsr & M_PSR_C)  >> S_PSR_C);
 
     } else {
         archTaskCtxPrint(LW_NULL, 0, pregctx);
@@ -263,7 +263,7 @@ VOID  archTaskCtxShow (INT  iFd, const ARCH_REG_CTX  *pregctx)
 *********************************************************************************************************/
 VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pregctx)
 {
-    ARCH_REG_T  ulPSR = pregctx->REG_ulPSR;
+    ARCH_REG_T  ulPsr = pregctx->REG_ulPsr;
 
     if (pvBuffer && stSize) {
 
@@ -271,10 +271,10 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
 
         size_t  stOft = 0;
 
-        stOft = bnprintf(pvBuffer, stSize, stOft, "PC      = "LX_FMT"\n", pregctx->REG_ulPC);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "LO      = "LX_FMT"\n", pregctx->REG_ulLO);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "HI      = "LX_FMT"\n", pregctx->REG_ulHI);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "MEH     = "LX_FMT"\n", pregctx->REG_ulMEH);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "PC      = "LX_FMT"\n", pregctx->REG_ulPc);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "LO      = "LX_FMT"\n", pregctx->REG_ulLo);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "HI      = "LX_FMT"\n", pregctx->REG_ulHi);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "MEH     = "LX_FMT"\n", pregctx->REG_ulMeh);
     
 #ifdef __CSKYABIV2__
         stOft = bnprintf(pvBuffer, stSize, stOft, "R0(A0)  = "LX_FMT"\n", pregctx->REG_ulReg[0]);
@@ -329,15 +329,15 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
         stOft = bnprintf(pvBuffer, stSize, stOft, "R31     = "LX_FMT"\n", pregctx->REG_ulReg[31]);
         
         stOft = bnprintf(pvBuffer, stSize, stOft, "PSR Status Register:\n");
-        stOft = bnprintf(pvBuffer, stSize, stOft, "S   = %d  ", (ulPSR & M_PSR_S)  >> S_PSR_S);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "TE  = %d\n", (ulPSR & M_PSR_TE) >> S_PSR_TE);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "MM  = %d  ", (ulPSR & M_PSR_MM) >> S_PSR_MM);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "EE  = %d\n", (ulPSR & M_PSR_EE) >> S_PSR_EE);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "IC  = %d  ", (ulPSR & M_PSR_IC) >> S_PSR_IC);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "IE  = %d\n", (ulPSR & M_PSR_IE) >> S_PSR_IE);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "FE  = %d  ", (ulPSR & M_PSR_FE) >> S_PSR_FE);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "AF  = %d\n", (ulPSR & M_PSR_AF) >> S_PSR_AF);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "C   = %d\n", (ulPSR & M_PSR_C)  >> S_PSR_C);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "S   = %d  ", (ulPsr & M_PSR_S)  >> S_PSR_S);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "TE  = %d\n", (ulPsr & M_PSR_TE) >> S_PSR_TE);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "MM  = %d  ", (ulPsr & M_PSR_MM) >> S_PSR_MM);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EE  = %d\n", (ulPsr & M_PSR_EE) >> S_PSR_EE);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IC  = %d  ", (ulPsr & M_PSR_IC) >> S_PSR_IC);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "IE  = %d\n", (ulPsr & M_PSR_IE) >> S_PSR_IE);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "FE  = %d  ", (ulPsr & M_PSR_FE) >> S_PSR_FE);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "AF  = %d\n", (ulPsr & M_PSR_AF) >> S_PSR_AF);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "C   = %d\n", (ulPsr & M_PSR_C)  >> S_PSR_C);
 
 #undef LX_FMT
     } else {
@@ -345,10 +345,10 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
 
         _PrintFormat("\r\n");
 
-        _PrintFormat("PC      = "LX_FMT"\r\n", pregctx->REG_ulPC);
-        _PrintFormat("LO      = "LX_FMT"\r\n", pregctx->REG_ulLO);
-        _PrintFormat("HI      = "LX_FMT"\r\n", pregctx->REG_ulHI);
-        _PrintFormat("MEH     = "LX_FMT"\r\n", pregctx->REG_ulMEH);
+        _PrintFormat("PC      = "LX_FMT"\r\n", pregctx->REG_ulPc);
+        _PrintFormat("LO      = "LX_FMT"\r\n", pregctx->REG_ulLo);
+        _PrintFormat("HI      = "LX_FMT"\r\n", pregctx->REG_ulHi);
+        _PrintFormat("MEH     = "LX_FMT"\r\n", pregctx->REG_ulMeh);
         
 #ifdef __CSKYABIV2__
         _PrintFormat("R0(A0)  = "LX_FMT"\r\n", pregctx->REG_ulReg[0]);
@@ -403,15 +403,15 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
         _PrintFormat("R31     = "LX_FMT"\r\n", pregctx->REG_ulReg[31]);
         
         _PrintFormat("PSR Status Register:\r\n");
-        _PrintFormat("S   = %d  ",   (ulPSR & M_PSR_S)  >> S_PSR_S);
-        _PrintFormat("TE  = %d\r\n", (ulPSR & M_PSR_TE) >> S_PSR_TE);
-        _PrintFormat("MM  = %d  ",   (ulPSR & M_PSR_MM) >> S_PSR_MM);
-        _PrintFormat("EE  = %d\r\n", (ulPSR & M_PSR_EE) >> S_PSR_EE);
-        _PrintFormat("IC  = %d  ",   (ulPSR & M_PSR_IC) >> S_PSR_IC);
-        _PrintFormat("IE  = %d\r\n", (ulPSR & M_PSR_IE) >> S_PSR_IE);
-        _PrintFormat("FE  = %d  ",   (ulPSR & M_PSR_FE) >> S_PSR_FE);
-        _PrintFormat("AF  = %d\r\n", (ulPSR & M_PSR_AF) >> S_PSR_AF);
-        _PrintFormat("C   = %d\r\n", (ulPSR & M_PSR_C)  >> S_PSR_C);
+        _PrintFormat("S   = %d  ",   (ulPsr & M_PSR_S)  >> S_PSR_S);
+        _PrintFormat("TE  = %d\r\n", (ulPsr & M_PSR_TE) >> S_PSR_TE);
+        _PrintFormat("MM  = %d  ",   (ulPsr & M_PSR_MM) >> S_PSR_MM);
+        _PrintFormat("EE  = %d\r\n", (ulPsr & M_PSR_EE) >> S_PSR_EE);
+        _PrintFormat("IC  = %d  ",   (ulPsr & M_PSR_IC) >> S_PSR_IC);
+        _PrintFormat("IE  = %d\r\n", (ulPsr & M_PSR_IE) >> S_PSR_IE);
+        _PrintFormat("FE  = %d  ",   (ulPsr & M_PSR_FE) >> S_PSR_FE);
+        _PrintFormat("AF  = %d\r\n", (ulPsr & M_PSR_AF) >> S_PSR_AF);
+        _PrintFormat("C   = %d\r\n", (ulPsr & M_PSR_C)  >> S_PSR_C);
 
 #undef LX_FMT
     }

@@ -1010,8 +1010,8 @@ static INT  ataDriveConfig (ATA_DRV_HANDLE  hCtrlDrv, UINT  uiCtrl, UINT  uiDriv
     }
 
 #if (ATA_DISK_MOUNTEX_EN > 0)
-    dcattrl.DCATTR_pvCacheMem       = LW_NULL;
-    dcattrl.DCATTR_bCacheCoherence  = LW_TRUE;
+    dcattrl.DCATTR_pvCacheMem = LW_NULL;
+    dcattrl.DCATTR_iBurstOpt  = LW_DCATTR_BOPT_CACHE_COHERENCE;
 
     if (hInfo->ATADINFO_stCacheMemSize) {
         dcattrl.DCATTR_stMemSize = hInfo->ATADINFO_stCacheMemSize;

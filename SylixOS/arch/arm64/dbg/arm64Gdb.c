@@ -202,7 +202,7 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
         pregset->regArr[i].GDBRA_ulValue = regctx.REG_ulReg[i];
     }
     pregset->regArr[ARM64_REG_INDEX_SP].GDBRA_ulValue     = regSp;
-    pregset->regArr[ARM64_REG_INDEX_PC].GDBRA_ulValue     = regctx.REG_ulPC;
+    pregset->regArr[ARM64_REG_INDEX_PC].GDBRA_ulValue     = regctx.REG_ulPc;
     pregset->regArr[ARM64_REG_INDEX_PSTATE].GDBRA_ulValue = regctx.REG_ulPstate;
 
 #if LW_CFG_CPU_FPU_EN > 0
@@ -241,8 +241,8 @@ INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
         regctx.REG_ulReg[i] = pregset->regArr[i].GDBRA_ulValue;
     }
 
-    regctx.REG_ulSP     = pregset->regArr[ARM64_REG_INDEX_SP].GDBRA_ulValue;
-    regctx.REG_ulPC     = pregset->regArr[ARM64_REG_INDEX_PC].GDBRA_ulValue;
+    regctx.REG_ulSp     = pregset->regArr[ARM64_REG_INDEX_SP].GDBRA_ulValue;
+    regctx.REG_ulPc     = pregset->regArr[ARM64_REG_INDEX_PC].GDBRA_ulValue;
     regctx.REG_ulPstate = pregset->regArr[ARM64_REG_INDEX_PSTATE].GDBRA_ulValue;
 
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);
@@ -266,7 +266,7 @@ INT  archGdbRegSetPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, ULONG  ulPc)
 
     API_DtraceGetRegs(pvDtrace, ulThread, &regctx, &regSp);
 
-    regctx.REG_ulPC = (ARCH_REG_T)ulPc;
+    regctx.REG_ulPc = (ARCH_REG_T)ulPc;
 
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);
     
@@ -419,6 +419,20 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
     }
 
     return  (ulNextPc);
+}
+/*********************************************************************************************************
+** 函数名称: archGdbGetStepSkip
+** 功能描述: 是否忽略此单步断点
+** 输　入  : pvDtrace       dtrace 句柄
+**           ulThread       被调试线程
+**           ulAddr         断点地址
+** 输　出  : 是否忽略
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archGdbGetStepSkip (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, addr_t ulAddr)
+{
+    return  (LW_FALSE);
 }
 
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */

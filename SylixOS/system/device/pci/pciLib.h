@@ -87,7 +87,6 @@ LW_API INT                  API_PciDrvLoad(PCI_DRV_HANDLE       hDrvHandle,
 LW_API PCI_DRV_DEV_HANDLE   API_PciDrvDevFind(PCI_DRV_HANDLE hDrvHandle, PCI_DEV_HANDLE hDevHandle);
 LW_API INT                  API_PciDrvDevDel(PCI_DRV_HANDLE hDrvHandle, PCI_DEV_HANDLE hDevHandle);
 LW_API INT                  API_PciDrvDevAdd(PCI_DRV_HANDLE hDrvHandle, PCI_DEV_HANDLE hDevHandle);
-LW_API INT                  API_PciDrvDelete(PCI_DRV_HANDLE  hDrvHandle);
 LW_API INT                  API_PciDrvInit(VOID);
 
 LW_API INT                  API_PciDevInterVectorGet(PCI_DEV_HANDLE  hHandle, ULONG *pulVector);

@@ -212,10 +212,10 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
     pregset->regArr[GDB_REG_INDEX_GREG(29)].GDBRA_ulValue = regctx.REG_ulReg[29];
     pregset->regArr[GDB_REG_INDEX_GREG(30)].GDBRA_ulValue = regctx.REG_ulReg[30];
     pregset->regArr[GDB_REG_INDEX_GREG(31)].GDBRA_ulValue = regctx.REG_ulReg[31];
-    pregset->regArr[GDB_REG_INDEX_PSR].GDBRA_ulValue      = regctx.REG_ulPSR;
-    pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue       = regctx.REG_ulLO;
-    pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue       = regctx.REG_ulHI;
-    pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue       = regctx.REG_ulPC;
+    pregset->regArr[GDB_REG_INDEX_PSR].GDBRA_ulValue      = regctx.REG_ulPsr;
+    pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue       = regctx.REG_ulLo;
+    pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue       = regctx.REG_ulHi;
+    pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue       = regctx.REG_ulPc;
 
     pregset->regArr[GDB_REG_INDEX_FP( 0)].GDBRA_ulValue  = fpuctx.FPUCTX_uiDreg[ 0].val32[0];
     pregset->regArr[GDB_REG_INDEX_FP( 1)].GDBRA_ulValue  = fpuctx.FPUCTX_uiDreg[ 0].val32[1];
@@ -305,10 +305,10 @@ INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
     regctx.REG_ulReg[29] = pregset->regArr[GDB_REG_INDEX_GREG(29)].GDBRA_ulValue;
     regctx.REG_ulReg[30] = pregset->regArr[GDB_REG_INDEX_GREG(30)].GDBRA_ulValue;
     regctx.REG_ulReg[31] = pregset->regArr[GDB_REG_INDEX_GREG(31)].GDBRA_ulValue;
-    regctx.REG_ulPSR     = pregset->regArr[GDB_REG_INDEX_PSR].GDBRA_ulValue;
-    regctx.REG_ulLO      = pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue;
-    regctx.REG_ulHI      = pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue;
-    regctx.REG_ulPC      = pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue;
+    regctx.REG_ulPsr     = pregset->regArr[GDB_REG_INDEX_PSR].GDBRA_ulValue;
+    regctx.REG_ulLo      = pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue;
+    regctx.REG_ulHi      = pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue;
+    regctx.REG_ulPc      = pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue;
   
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);
 
@@ -368,7 +368,7 @@ INT  archGdbRegSetPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, ULONG  ulPc)
 
     API_DtraceGetRegs(pvDtrace, ulThread, &regctx, &regSp);
 
-    regctx.REG_ulPC = (ARCH_REG_T)ulPc;
+    regctx.REG_ulPc = (ARCH_REG_T)ulPc;
 
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);
 
@@ -543,6 +543,20 @@ ULONG  archGdbGetNextPc (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SE
     } else {
         return  (uiPc + iInsnLen);
     }
+}
+/*********************************************************************************************************
+** 函数名称: archGdbGetStepSkip
+** 功能描述: 是否忽略此单步断点
+** 输　入  : pvDtrace       dtrace 句柄
+**           ulThread       被调试线程
+**           ulAddr         断点地址
+** 输　出  : 是否忽略
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archGdbGetStepSkip (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, addr_t ulAddr)
+{
+    return  (LW_FALSE);
 }
 
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */

@@ -37,7 +37,7 @@
 #define CONFIG_32BIT    0
 #endif
 
-#define cp0_epc         REG_ulCP0EPC
+#define cp0_epc         REG_ulCP0Epc
 #define regs            REG_ulReg
 
 #define fpr             FPUCTX_reg

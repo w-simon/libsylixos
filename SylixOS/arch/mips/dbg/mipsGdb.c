@@ -187,11 +187,11 @@ INT  archGdbRegsGet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
     pregset->regArr[GDB_REG_INDEX_GREG(30)].GDBRA_ulValue = regctx.REG_ulReg[30];
     pregset->regArr[GDB_REG_INDEX_GREG(31)].GDBRA_ulValue = regctx.REG_ulReg[31];
     pregset->regArr[GDB_REG_INDEX_SR].GDBRA_ulValue       = regctx.REG_ulCP0Status;
-    pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue       = regctx.REG_ulCP0DataLO;
-    pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue       = regctx.REG_ulCP0DataHI;
+    pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue       = regctx.REG_ulCP0DataLo;
+    pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue       = regctx.REG_ulCP0DataHi;
     pregset->regArr[GDB_REG_INDEX_BAD].GDBRA_ulValue      = regctx.REG_ulCP0BadVAddr;
     pregset->regArr[GDB_REG_INDEX_CAUSE].GDBRA_ulValue    = regctx.REG_ulCP0Cause;
-    pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue       = regctx.REG_ulCP0EPC;
+    pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue       = regctx.REG_ulCP0Epc;
 
     /*
      * 如果 Cause 寄存器 BD 位置为 1，则说明引发中断的为分支延时槽指令，PC 寄存器值需调整
@@ -307,11 +307,11 @@ INT  archGdbRegsSet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
     regctx.REG_ulReg[30]     = pregset->regArr[GDB_REG_INDEX_GREG(30)].GDBRA_ulValue;
     regctx.REG_ulReg[31]     = pregset->regArr[GDB_REG_INDEX_GREG(31)].GDBRA_ulValue;
     regctx.REG_ulCP0Status   = pregset->regArr[GDB_REG_INDEX_SR].GDBRA_ulValue;
-    regctx.REG_ulCP0DataLO   = pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue;
-    regctx.REG_ulCP0DataHI   = pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue;
+    regctx.REG_ulCP0DataLo   = pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue;
+    regctx.REG_ulCP0DataHi   = pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue;
     regctx.REG_ulCP0BadVAddr = pregset->regArr[GDB_REG_INDEX_BAD].GDBRA_ulValue;
     regctx.REG_ulCP0Cause    = pregset->regArr[GDB_REG_INDEX_CAUSE].GDBRA_ulValue;
-    regctx.REG_ulCP0EPC      = pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue;
+    regctx.REG_ulCP0Epc      = pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue;
 
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);
 
@@ -390,7 +390,7 @@ INT  archGdbRegSetPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, ULONG ulPc)
 
     API_DtraceGetRegs(pvDtrace, ulThread, &regctx, &regSp);
 
-    regctx.REG_ulCP0EPC = (ARCH_REG_T)ulPc;
+    regctx.REG_ulCP0Epc = (ARCH_REG_T)ulPc;
 
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);
 
@@ -647,6 +647,20 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
                                                                         /*  普通指令                    */
     }
     return  (npc);
+}
+/*********************************************************************************************************
+** 函数名称: archGdbGetStepSkip
+** 功能描述: 是否忽略此单步断点
+** 输　入  : pvDtrace       dtrace 句柄
+**           ulThread       被调试线程
+**           ulAddr         断点地址
+** 输　出  : 是否忽略
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archGdbGetStepSkip (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, addr_t ulAddr)
+{
+    return  (LW_FALSE);
 }
 
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */

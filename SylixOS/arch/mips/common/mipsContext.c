@@ -88,10 +88,10 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     pregctx->REG_ulReg[REG_SP] = (ARCH_REG_T)pfpctx;
 
     pregctx->REG_ulCP0Status   = (ARCH_REG_T)ulCP0Status;
-    pregctx->REG_ulCP0EPC      = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_ulCP0Epc      = (ARCH_REG_T)pfuncTask;
     pregctx->REG_ulCP0Cause    = (ARCH_REG_T)0x0;
-    pregctx->REG_ulCP0DataLO   = (ARCH_REG_T)0x0;
-    pregctx->REG_ulCP0DataHI   = (ARCH_REG_T)0x0;
+    pregctx->REG_ulCP0DataLo   = (ARCH_REG_T)0x0;
+    pregctx->REG_ulCP0DataHi   = (ARCH_REG_T)0x0;
     pregctx->REG_ulCP0BadVAddr = (ARCH_REG_T)0x0;
 
     return  ((PLW_STACK)pfpctx);
@@ -111,7 +111,7 @@ VOID  archTaskCtxSetFp (PLW_STACK               pstkDest,
                         const ARCH_REG_CTX     *pregctxSrc)
 {
     pregctxDest->REG_ulReg[REG_FP] = (ARCH_REG_T)pregctxSrc->REG_ulReg[REG_SP];
-    pregctxDest->REG_ulReg[REG_RA] = (ARCH_REG_T)pregctxSrc->REG_ulCP0EPC;
+    pregctxDest->REG_ulReg[REG_RA] = (ARCH_REG_T)pregctxSrc->REG_ulCP0Epc;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskRegsGet
@@ -173,10 +173,10 @@ VOID  archTaskRegsSet (ARCH_REG_CTX  *pregctxDest, const ARCH_REG_CTX  *pregctxS
      */
     pregctxDest->REG_ulReg[31] = pregctxSrc->REG_ulReg[31];
 
-    pregctxDest->REG_ulCP0DataLO = pregctxSrc->REG_ulCP0DataLO;         /*  除数低位寄存器              */
-    pregctxDest->REG_ulCP0DataHI = pregctxSrc->REG_ulCP0DataHI;         /*  除数高位寄存器              */
+    pregctxDest->REG_ulCP0DataLo = pregctxSrc->REG_ulCP0DataLo;         /*  除数低位寄存器              */
+    pregctxDest->REG_ulCP0DataHi = pregctxSrc->REG_ulCP0DataHi;         /*  除数高位寄存器              */
     pregctxDest->REG_ulCP0Status = pregctxSrc->REG_ulCP0Status;         /*  CP0 STATUS 寄存器           */
-    pregctxDest->REG_ulCP0EPC    = pregctxSrc->REG_ulCP0EPC;            /*  程序计数器寄存器            */
+    pregctxDest->REG_ulCP0Epc    = pregctxSrc->REG_ulCP0Epc;            /*  程序计数器寄存器            */
     /*
      * CP0 的 Cause BadVAddr 寄存器不设置, 保持原值
      */
@@ -205,11 +205,11 @@ VOID  archTaskCtxShow (INT  iFd, const ARCH_REG_CTX  *pregctx)
     if (iFd >= 0) {
         fdprintf(iFd, "\n");
 
-        fdprintf(iFd, "EPC       = "LX_FMT"\n", pregctx->REG_ulCP0EPC);
+        fdprintf(iFd, "EPC       = "LX_FMT"\n", pregctx->REG_ulCP0Epc);
         fdprintf(iFd, "BADVADDR  = "LX_FMT"\n", pregctx->REG_ulCP0BadVAddr);
         fdprintf(iFd, "CAUSE     = "LX_FMT"\n", pregctx->REG_ulCP0Cause);
-        fdprintf(iFd, "LO        = "LX_FMT"\n", pregctx->REG_ulCP0DataLO);
-        fdprintf(iFd, "HI        = "LX_FMT"\n", pregctx->REG_ulCP0DataHI);
+        fdprintf(iFd, "LO        = "LX_FMT"\n", pregctx->REG_ulCP0DataLo);
+        fdprintf(iFd, "HI        = "LX_FMT"\n", pregctx->REG_ulCP0DataHi);
 
         fdprintf(iFd, "$00(ZERO) = "LX_FMT"\n", pregctx->REG_ulReg[REG_ZERO]);
         fdprintf(iFd, "$01(AT)   = "LX_FMT"\n", pregctx->REG_ulReg[REG_AT]);
@@ -317,11 +317,11 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
         size_t  stOft = 0;
 
-        stOft = bnprintf(pvBuffer, stSize, stOft, "EPC       = "LX_FMT"\n", pregctx->REG_ulCP0EPC);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "EPC       = "LX_FMT"\n", pregctx->REG_ulCP0Epc);
         stOft = bnprintf(pvBuffer, stSize, stOft, "BADVADDR  = "LX_FMT"\n", pregctx->REG_ulCP0BadVAddr);
         stOft = bnprintf(pvBuffer, stSize, stOft, "CAUSE     = "LX_FMT"\n", pregctx->REG_ulCP0Cause);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "LO        = "LX_FMT"\n", pregctx->REG_ulCP0DataLO);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "HI        = "LX_FMT"\n", pregctx->REG_ulCP0DataHI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "LO        = "LX_FMT"\n", pregctx->REG_ulCP0DataLo);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "HI        = "LX_FMT"\n", pregctx->REG_ulCP0DataHi);
 
         stOft = bnprintf(pvBuffer, stSize, stOft, "$00(ZERO) = "LX_FMT"\n", pregctx->REG_ulReg[REG_ZERO]);
         stOft = bnprintf(pvBuffer, stSize, stOft, "$01(AT)   = "LX_FMT"\n", pregctx->REG_ulReg[REG_AT]);
@@ -407,11 +407,11 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
 
         _PrintFormat("\r\n");
 
-        _PrintFormat("EPC       = "LX_FMT"\r\n", pregctx->REG_ulCP0EPC);
+        _PrintFormat("EPC       = "LX_FMT"\r\n", pregctx->REG_ulCP0Epc);
         _PrintFormat("BADVADDR  = "LX_FMT"\r\n", pregctx->REG_ulCP0BadVAddr);
         _PrintFormat("CAUSE     = "LX_FMT"\r\n", pregctx->REG_ulCP0Cause);
-        _PrintFormat("LO        = "LX_FMT"\r\n", pregctx->REG_ulCP0DataLO);
-        _PrintFormat("HI        = "LX_FMT"\r\n", pregctx->REG_ulCP0DataHI);
+        _PrintFormat("LO        = "LX_FMT"\r\n", pregctx->REG_ulCP0DataLo);
+        _PrintFormat("HI        = "LX_FMT"\r\n", pregctx->REG_ulCP0DataHi);
 
         _PrintFormat("$00(ZERO) = "LX_FMT"\r\n", pregctx->REG_ulReg[REG_ZERO]);
         _PrintFormat("$01(AT)   = "LX_FMT"\r\n", pregctx->REG_ulReg[REG_AT]);

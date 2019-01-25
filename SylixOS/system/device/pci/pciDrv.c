@@ -259,13 +259,6 @@ INT  API_PciDrvLoad (PCI_DRV_HANDLE       hDrvHandle,
         return  (PX_ERROR);
     }
 
-    if (!(hDrvHandle->PCIDRV_iDrvFlag & PCI_DRV_FLAG_ACTIVE)) {
-        hDrvHandle->PCIDRV_iDrvFlag |= PCI_DRV_FLAG_ACTIVE;
-        __PCI_DRV_LOCK();                                               /*  锁定 PCI 驱动               */
-        _GuiPciDrvActiveNum += 1;
-        __PCI_DRV_UNLOCK();                                             /*  解锁 PCI 驱动               */
-    }
-
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -315,37 +308,11 @@ PCI_DRV_DEV_HANDLE  API_PciDrvDevFind (PCI_DRV_HANDLE  hDrvHandle, PCI_DEV_HANDL
 LW_API
 INT  API_PciDrvDevDel (PCI_DRV_HANDLE  hDrvHandle, PCI_DEV_HANDLE  hDevHandle)
 {
-    PLW_LIST_LINE           plineTemp = LW_NULL;
     PCI_DRV_DEV_HANDLE      hDrvDevHandle = LW_NULL;
 
-    if (hDrvHandle == LW_NULL) {
+    if ((hDrvHandle == LW_NULL) ||
+        (hDevHandle == LW_NULL)) {
         return  (PX_ERROR);
-    }
-
-    if (hDevHandle == LW_NULL) {
-        __PCI_DRV_UNLOCK();
-        plineTemp = hDrvHandle->PCIDRV_plineDrvDevHeader;
-        while (plineTemp) {
-            hDrvDevHandle = _LIST_ENTRY(plineTemp, PCI_DRV_DEV_CB, PDDCB_lineDrvDevNode);
-            plineTemp     = _list_line_get_next(plineTemp);
-            
-            _List_Line_Del(&hDrvDevHandle->PDDCB_lineDrvDevNode, &hDrvHandle->PCIDRV_plineDrvDevHeader);
-            hDrvHandle->PCIDRV_uiDrvDevNum -= 1;
-            if (hDrvHandle->PCIDRV_uiDrvDevNum < 1) {
-                hDrvHandle->PCIDRV_iDrvFlag &= ~(PCI_DRV_FLAG_ACTIVE);
-                hDrvHandle->PCIDRV_plineDrvDevHeader = LW_NULL;
-            }
-            
-            API_PciDevDrvDel(hDrvDevHandle->PDDCB_hDrvDevHandle, hDrvHandle);
-            hDrvHandle->PCIDRV_pfuncDevRemove(hDrvDevHandle->PDDCB_hDrvDevHandle);
-            hDrvDevHandle->PDDCB_hDrvDevHandle = LW_NULL;
-            __SHEAP_FREE(hDrvDevHandle);
-        }
-        __PCI_DRV_UNLOCK();
-
-        API_PciDrvDelete(hDrvHandle);
-
-        return  (ERROR_NONE);
     }
 
     hDrvDevHandle = API_PciDrvDevFind(hDrvHandle, hDevHandle);
@@ -355,10 +322,9 @@ INT  API_PciDrvDevDel (PCI_DRV_HANDLE  hDrvHandle, PCI_DEV_HANDLE  hDevHandle)
 
     __PCI_DRV_LOCK();                                                   /*  锁定 PCI 驱动               */
     _List_Line_Del(&hDrvDevHandle->PDDCB_lineDrvDevNode, &hDrvHandle->PCIDRV_plineDrvDevHeader);
-    hDrvHandle->PCIDRV_uiDrvDevNum -= 1;
-    if (hDrvHandle->PCIDRV_uiDrvDevNum < 1) {
-        hDrvHandle->PCIDRV_iDrvFlag &= ~(PCI_DRV_FLAG_ACTIVE);
-        hDrvHandle->PCIDRV_plineDrvDevHeader = LW_NULL;
+    hDrvHandle->PCIDRV_uiDrvDevNum--;
+    if (!hDrvHandle->PCIDRV_uiDrvDevNum) {
+        _GuiPciDrvActiveNum -= 1;
     }
     
     API_PciDevDrvDel(hDrvDevHandle->PDDCB_hDrvDevHandle, hDrvHandle);
@@ -367,8 +333,6 @@ INT  API_PciDrvDevDel (PCI_DRV_HANDLE  hDrvHandle, PCI_DEV_HANDLE  hDevHandle)
     __PCI_DRV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
 
     __SHEAP_FREE(hDrvDevHandle);
-
-    API_PciDrvDelete(hDrvHandle);
 
     return  (ERROR_NONE);
 }
@@ -406,7 +370,10 @@ INT  API_PciDrvDevAdd (PCI_DRV_HANDLE  hDrvHandle, PCI_DEV_HANDLE  hDevHandle)
     __PCI_DRV_LOCK();                                                   /*  锁定 PCI 驱动               */
     hDrvDevHandle->PDDCB_hDrvDevHandle = hDevHandle;
     _List_Line_Add_Ahead(&hDrvDevHandle->PDDCB_lineDrvDevNode, &hDrvHandle->PCIDRV_plineDrvDevHeader);
-    hDrvHandle->PCIDRV_uiDrvDevNum += 1;
+    hDrvHandle->PCIDRV_uiDrvDevNum++;
+    if (hDrvHandle->PCIDRV_uiDrvDevNum == 1) {
+        _GuiPciDrvActiveNum += 1;
+    }
     __PCI_DRV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
 
     return  (ERROR_NONE);
@@ -443,39 +410,6 @@ PCI_DRV_HANDLE  API_PciDrvHandleGet (CPCHAR  cpcName)
     } else {
         return  (LW_NULL);
     }
-}
-/*********************************************************************************************************
-** 函数名称: API_PciDrvDelete
-** 功能描述: 删除一个 PCI 驱动
-** 输　入  : hDrvHandle     驱动控制块句柄
-** 输　出  : ERROR or OK
-** 全局变量:
-** 调用模块:
-                                           API 函数
-*********************************************************************************************************/
-LW_API
-INT  API_PciDrvDelete (PCI_DRV_HANDLE  hDrvHandle)
-{
-    if (hDrvHandle == LW_NULL) {
-        return  (PX_ERROR);
-    }
-
-    if ((hDrvHandle->PCIDRV_iDrvFlag & PCI_DRV_FLAG_ACTIVE) ||
-        (hDrvHandle->PCIDRV_uiDrvDevNum > 0)) {
-        return  (PX_ERROR);
-    }
-
-    __PCI_DRV_LOCK();                                                   /*  锁定 PCI 驱动               */
-    if (!(hDrvHandle->PCIDRV_iDrvFlag & PCI_DRV_FLAG_ACTIVE)) {
-        _GuiPciDrvActiveNum -= 1;
-    }
-    _List_Line_Del(&hDrvHandle->PCIDRV_lineDrvNode, &_GplinePciDrvHeader);
-    _GuiPciDrvTotalNum -= 1;
-    __PCI_DRV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
-
-    __SHEAP_FREE(hDrvHandle);
-
-    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciDrvRegister
@@ -534,20 +468,57 @@ INT  API_PciDrvRegister (PCI_DRV_HANDLE  hHandle)
     hDrvHandle->PCIDRV_pfuncDevShutdown    = hHandle->PCIDRV_pfuncDevShutdown;
     hDrvHandle->PCIDRV_hDrvErrHandler      = hHandle->PCIDRV_hDrvErrHandler;
 
-    hDrvHandle->PCIDRV_iDrvFlag         &= ~(PCI_DRV_FLAG_ACTIVE);
+    hDrvHandle->PCIDRV_iDrvFlag          = 0;
     hDrvHandle->PCIDRV_uiDrvDevNum       = 0;
     hDrvHandle->PCIDRV_plineDrvDevHeader = LW_NULL;
 
     __PCI_DRV_LOCK();                                                   /*  锁定 PCI 驱动               */
     _List_Line_Add_Ahead(&hDrvHandle->PCIDRV_lineDrvNode, &_GplinePciDrvHeader);
     _GuiPciDrvTotalNum += 1;
-    if (hDrvHandle->PCIDRV_iDrvFlag & PCI_DRV_FLAG_ACTIVE) {
-        _GuiPciDrvActiveNum += 1;
-    }
     __PCI_DRV_UNLOCK();                                                 /*  解锁 PCI 驱动               */
 
     API_PciDrvBindEachDev(hDrvHandle);                                  /*  尝试绑定设备                */
     
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PciDrvUnregister
+** 功能描述: 移除 PCI 驱动并卸载所有设备
+** 输　入  : hHandle       驱动注册控制块句柄
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PciDrvUnregister (PCI_DRV_HANDLE  hDrvHandle)
+{
+    PLW_LIST_LINE           plineTemp     = LW_NULL;
+    PCI_DRV_DEV_HANDLE      hDrvDevHandle = LW_NULL;
+
+    __PCI_DRV_UNLOCK();
+    if (hDrvHandle->PCIDRV_uiDrvDevNum) {
+        _GuiPciDrvActiveNum -= 1;
+    }
+    plineTemp = hDrvHandle->PCIDRV_plineDrvDevHeader;
+    while (plineTemp) {
+        hDrvDevHandle = _LIST_ENTRY(plineTemp, PCI_DRV_DEV_CB, PDDCB_lineDrvDevNode);
+        plineTemp     = _list_line_get_next(plineTemp);
+
+        _List_Line_Del(&hDrvDevHandle->PDDCB_lineDrvDevNode, &hDrvHandle->PCIDRV_plineDrvDevHeader);
+        hDrvHandle->PCIDRV_uiDrvDevNum--;
+
+        API_PciDevDrvDel(hDrvDevHandle->PDDCB_hDrvDevHandle, hDrvHandle);
+        hDrvHandle->PCIDRV_pfuncDevRemove(hDrvDevHandle->PDDCB_hDrvDevHandle);
+        hDrvDevHandle->PDDCB_hDrvDevHandle = LW_NULL;
+        __SHEAP_FREE(hDrvDevHandle);
+    }
+    _List_Line_Del(&hDrvHandle->PCIDRV_lineDrvNode, &_GplinePciDrvHeader);
+    _GuiPciDrvTotalNum -= 1;
+    __PCI_DRV_UNLOCK();
+
+    __SHEAP_FREE(hDrvHandle);
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

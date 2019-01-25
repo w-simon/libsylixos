@@ -840,7 +840,7 @@ VOID  cskyUnalignedHandle (ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo)
         goto  fault;
     }
 
-    pregctx->REG_ulPC += isize;
+    pregctx->REG_ulPc += isize;
 
 #ifndef __CSKYABIV2__                                                   /*  abiv1                       */
     if ((instr & 0x9000) == 0x9000) {                                   /*  sth, stw                    */
@@ -940,7 +940,7 @@ VOID  cskyUnalignedHandle (ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo)
 
     err = handler(instr, pregctx);
     if (err != HANDLER_SUCCESS) {
-        pregctx->REG_ulPC -=2;
+        pregctx->REG_ulPc -=2;
         goto  sigbus;
     }
 

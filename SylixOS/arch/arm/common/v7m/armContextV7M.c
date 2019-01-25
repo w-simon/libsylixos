@@ -73,7 +73,7 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
 
     pregctx->REG_uiExcRet  = 0xfffffffd;                                /*  回线程模式，并使用线程堆栈  */
                                                                         /*  (SP=PSP)                    */
-    pregctx->REG_uiBASEPRI = 0;
+    pregctx->REG_uiBasePri = 0;
 
     return  ((PLW_STACK)pfpctx);
 }
@@ -146,7 +146,7 @@ VOID  archTaskCtxShow (INT  iFd, const ARCH_REG_CTX  *pregctx)
 {
     if (iFd >= 0) {
         fdprintf(iFd, "XPSR    = 0x%08x\n", pregctx->REG_uiXpsr);
-        fdprintf(iFd, "BASEPRI = 0x%08x\n", pregctx->REG_uiBASEPRI);
+        fdprintf(iFd, "BASEPRI = 0x%08x\n", pregctx->REG_uiBasePri);
         fdprintf(iFd, "EXCRET  = 0x%08x\n", pregctx->REG_uiExcRet);
 
         fdprintf(iFd, "r0  = 0x%08x  ", pregctx->REG_uiR0);
@@ -188,7 +188,7 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
         size_t  stOft = 0;
 
         stOft = bnprintf(pvBuffer, stSize, stOft, "XPSR    = 0x%08x\n", pregctx->REG_uiXpsr);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "BASEPRI = 0x%08x\n", pregctx->REG_uiBASEPRI);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "BASEPRI = 0x%08x\n", pregctx->REG_uiBasePri);
         stOft = bnprintf(pvBuffer, stSize, stOft, "EXCRET  = 0x%08x\n", pregctx->REG_uiExcRet);
 
         stOft = bnprintf(pvBuffer, stSize, stOft, "r0  = 0x%08x  ", pregctx->REG_uiR0);
@@ -210,7 +210,7 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
 
     } else {
         _PrintFormat("XPSR    = 0x%08x\r\n", pregctx->REG_uiXpsr);
-        _PrintFormat("BASEPRI = 0x%08x\r\n", pregctx->REG_uiBASEPRI);
+        _PrintFormat("BASEPRI = 0x%08x\r\n", pregctx->REG_uiBasePri);
         _PrintFormat("EXCRET  = 0x%08x\r\n", pregctx->REG_uiExcRet);
 
         _PrintFormat("r0  = 0x%08x  ",   pregctx->REG_uiR0);
@@ -265,7 +265,7 @@ VOID  archIntCtxSaveReg (PLW_CLASS_CPU  pcpu,
     }
 
     pregctx->REG_uiSp      = reg0;
-    pregctx->REG_uiBASEPRI = reg1;
+    pregctx->REG_uiBasePri = reg1;
     pregctx->REG_uiExcRet  = reg2;
 }
 /*********************************************************************************************************

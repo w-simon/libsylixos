@@ -1048,11 +1048,14 @@ LW_API ULONG            API_InterVectorDisconnectEx(ULONG             ulVector,
                                                     PVOID             pvArg,
                                                     ULONG             ulOption);
                                                                         /*  删除指定向量的服务程序      */
-                                                                        
+LW_API ULONG            API_InterVectorServiceCnt(ULONG  ulVector, INT  *piCnt);
+                                                                        /*  获得指定中断向量的服务个数  */
 LW_API ULONG            API_InterVectorEnable(ULONG  ulVector);         /*  使能指定向量中断            */
 
 LW_API ULONG            API_InterVectorDisable(ULONG  ulVector);        /*  禁能指定向量中断            */
 
+LW_API ULONG            API_InterVectorDisableEx(ULONG  ulVector, INT  iMaxServCnt);
+                                                                        /*  禁能指定向量中断            */
 LW_API ULONG            API_InterVectorIsEnable(ULONG  ulVector, 
                                                 BOOL  *pbIsEnable);     /*  获得指定中断状态            */
 

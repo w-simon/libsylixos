@@ -34,7 +34,7 @@
 #include "arch/mips/inc/inst.h"
 #include "arch/mips/inc/branch.h"
 
-#define cp0_epc         REG_ulCP0EPC
+#define cp0_epc         REG_ulCP0Epc
 #define regs            REG_ulReg
 
 /**

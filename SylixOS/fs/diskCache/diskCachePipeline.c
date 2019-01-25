@@ -175,7 +175,7 @@ static INT  __diskCacheWpTDelete (PLW_DISKCACHE_WP  pwp)
 ** 函数名称: __diskCacheWpMemCreate
 ** 功能描述: 创建缓存
 ** 输　入  : pwp                   并发写管线控制块
-**           bCacheCoherence       CACHE 一致性需求
+**           iBurstOpt             缓存属性
 **           iPipeline             写管线线程数
 **           iMsgCount             消息队列长度
 **           iMaxRBurstSector      读猝发长度
@@ -186,7 +186,7 @@ static INT  __diskCacheWpTDelete (PLW_DISKCACHE_WP  pwp)
 ** 调用模块: 
 *********************************************************************************************************/
 static INT  __diskCacheWpMemCreate (PLW_DISKCACHE_WP  pwp,
-                                    BOOL              bCacheCoherence,
+                                    INT               iBurstOpt,
                                     INT               iPipeline, 
                                     INT               iMsgCount, 
                                     INT               iMaxRBurstSector,
@@ -194,21 +194,25 @@ static INT  __diskCacheWpMemCreate (PLW_DISKCACHE_WP  pwp,
                                     ULONG             ulBytesPerSector)
 {
     INT     iMaxBurst;
+    size_t  stAlign = LW_CFG_CPU_ARCH_CACHE_LINE;
     PVOID   pvRBurstBuffer;
     PVOID   pvWBurstBuffer;
     
-    pwp->DISKCWP_bCacheCoherence = bCacheCoherence;
+    pwp->DISKCWP_iBurstOpt = iBurstOpt;
+    if (iBurstOpt & LW_DCATTR_BOPT_PAGE_ALIGN) {
+        stAlign = LW_CFG_VMM_PAGE_SIZE;
+    }
     
     if (iPipeline == 0) {                                               /*  不需要管线支持              */
         iMaxBurst = __MAX(iMaxRBurstSector, iMaxWBurstSector);
         
 #if LW_CFG_CACHE_EN > 0
-        if (bCacheCoherence) {
+        if (iBurstOpt & LW_DCATTR_BOPT_CACHE_COHERENCE) {
             pvRBurstBuffer = API_CacheDmaMalloc((size_t)(iMaxBurst * ulBytesPerSector));
         } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
         {
-            pvRBurstBuffer = __SHEAP_ALLOC((size_t)(iMaxBurst * ulBytesPerSector));
+            pvRBurstBuffer = __SHEAP_ALLOC_ALIGN((size_t)(iMaxBurst * ulBytesPerSector), stAlign);
         }
         if (pvRBurstBuffer == LW_NULL) {
             return  (PX_ERROR);
@@ -221,28 +225,28 @@ static INT  __diskCacheWpMemCreate (PLW_DISKCACHE_WP  pwp,
     
     } else {                                                            /*  需要管线写支持              */
 #if LW_CFG_CACHE_EN > 0
-        if (bCacheCoherence) {
+        if (iBurstOpt & LW_DCATTR_BOPT_CACHE_COHERENCE) {
             pvRBurstBuffer = API_CacheDmaMalloc((size_t)(iMaxRBurstSector * ulBytesPerSector));
         } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
         {
-            pvRBurstBuffer = __SHEAP_ALLOC((size_t)(iMaxRBurstSector * ulBytesPerSector));
+            pvRBurstBuffer = __SHEAP_ALLOC_ALIGN((size_t)(iMaxRBurstSector * ulBytesPerSector), stAlign);
         }
         if (pvRBurstBuffer == LW_NULL) {
             return  (PX_ERROR);
         }
     
 #if LW_CFG_CACHE_EN > 0
-        if (bCacheCoherence) {
+        if (iBurstOpt & LW_DCATTR_BOPT_CACHE_COHERENCE) {
             pvWBurstBuffer = API_CacheDmaMalloc((size_t)(iMaxWBurstSector * ulBytesPerSector * iMsgCount));
         } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
         {
-            pvWBurstBuffer = __SHEAP_ALLOC((size_t)(iMaxWBurstSector * ulBytesPerSector * iMsgCount));
+            pvWBurstBuffer = __SHEAP_ALLOC_ALIGN((size_t)(iMaxWBurstSector * ulBytesPerSector * iMsgCount), stAlign);
         }
         if (pvWBurstBuffer == LW_NULL) {
 #if LW_CFG_CACHE_EN > 0
-            if (bCacheCoherence) {
+            if (iBurstOpt & LW_DCATTR_BOPT_CACHE_COHERENCE) {
                 API_CacheDmaFree(pvRBurstBuffer);
             } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -270,7 +274,7 @@ static VOID  __diskCacheWpMemDelete (PLW_DISKCACHE_WP  pwp)
 {
     if (pwp->DISKCWP_iPipeline > 0) {                                   /*  使用管线线程                */
 #if LW_CFG_CACHE_EN > 0
-        if (pwp->DISKCWP_bCacheCoherence) {
+        if (pwp->DISKCWP_iBurstOpt & LW_DCATTR_BOPT_CACHE_COHERENCE) {
             API_CacheDmaFree(pwp->DISKCWP_pvWBurstBuffer);
         } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -280,7 +284,7 @@ static VOID  __diskCacheWpMemDelete (PLW_DISKCACHE_WP  pwp)
     }
     
 #if LW_CFG_CACHE_EN > 0
-    if (pwp->DISKCWP_bCacheCoherence) {
+    if (pwp->DISKCWP_iBurstOpt & LW_DCATTR_BOPT_CACHE_COHERENCE) {
         API_CacheDmaFree(pwp->DISKCWP_pvRBurstBuffer);
     } else 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -296,8 +300,8 @@ static VOID  __diskCacheWpMemDelete (PLW_DISKCACHE_WP  pwp)
 ** 功能描述: 创建写管线
 ** 输　入  : pdiskc                磁盘缓冲控制块
 **           pwp                   并发写管线控制块
-**           bCacheCoherence       CACHE 一致性需求
 **           bParallel             并发读写支持
+**           iBurstOpt             缓存属性
 **           iPipeline             写管线线程数
 **           iMsgCount             管线总消息个数
 **           iMaxRBurstSector      读猝发长度
@@ -309,8 +313,8 @@ static VOID  __diskCacheWpMemDelete (PLW_DISKCACHE_WP  pwp)
 *********************************************************************************************************/
 INT  __diskCacheWpCreate (PLW_DISKCACHE_CB  pdiskc,
                           PLW_DISKCACHE_WP  pwp, 
-                          BOOL              bCacheCoherence,
                           BOOL              bParallel,
+                          INT               iBurstOpt,
                           INT               iPipeline, 
                           INT               iMsgCount,
                           INT               iMaxRBurstSector,
@@ -325,11 +329,11 @@ INT  __diskCacheWpCreate (PLW_DISKCACHE_CB  pdiskc,
     pwp->DISKCWP_iMsgCount = iMsgCount;
     
     if (iPipeline == 0) {
-        return  (__diskCacheWpMemCreate(pwp, bCacheCoherence, iPipeline, iMsgCount,
+        return  (__diskCacheWpMemCreate(pwp, iBurstOpt, iPipeline, iMsgCount,
                                         iMaxRBurstSector, iMaxWBurstSector, ulBytesPerSector));
     
     } else {                                                            /*  需要并发写支持              */
-        if (__diskCacheWpMemCreate(pwp, bCacheCoherence, iPipeline, iMsgCount,
+        if (__diskCacheWpMemCreate(pwp, iBurstOpt, iPipeline, iMsgCount,
                                    iMaxRBurstSector, iMaxWBurstSector, ulBytesPerSector)) {
             return  (PX_ERROR);
         }

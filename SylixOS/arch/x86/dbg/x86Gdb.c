@@ -221,6 +221,28 @@ ULONG archGdbRegGetPc (GDB_REG_SET  *pRegs)
 {
     return  (pRegs->regArr[GDB_X86_EIP_INDEX].GDBRA_ulValue);
 }
+/*********************************************************************************************************
+** 函数名称: archGdbGetStepSkip
+** 功能描述: 是否忽略此单步断点
+** 输　入  : pvDtrace       dtrace 句柄
+**           ulThread       被调试线程
+**           ulAddr         断点地址
+** 输　出  : 是否忽略
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archGdbGetStepSkip (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, addr_t ulAddr)
+{
+    /*
+     * x86 单步时需跳过 push %ebp (0x55) 和 mov %esp %ebp (0x89) 指令,
+     * 因为当停在这两条指令时可能导致gdb堆栈错误.
+     */
+    if ((*(UINT8 *)ulAddr == 0x55) || (*(UINT8 *)ulAddr == 0x89)) {
+        return  (LW_TRUE);
+    }
+
+    return  (LW_FALSE);
+}
 
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************

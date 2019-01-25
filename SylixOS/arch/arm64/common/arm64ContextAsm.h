@@ -187,8 +187,8 @@ MACRO_DEF(EXC_COPY_VOLATILE)
     STP     X9  , X10 ,  [X0 , #XGREG_OFFSET(16)]
     LDP     X9  , X10 ,  [SP , #XGREG_OFFSET(29)]                       ;/*  X29, LR                     */
     STP     X9  , X10 ,  [X0 , #XGREG_OFFSET(29)]
-    LDP     X9  , X10 ,  [SP , #XPC_OFFSET]                             ;/*  PC,  SP                     */
-    STP     X9  , X10 ,  [X0 , #XPC_OFFSET]
+    LDP     X9  , X10 ,  [SP , #XSP_OFFSET]                             ;/*  SP, PC                      */
+    STP     X9  , X10 ,  [X0 , #XSP_OFFSET]
     LDR     X9  ,        [SP , #XPSTATE_OFFSET]                         ;/*  PSTATE                      */
     STR     X9  ,        [X0 , #XPSTATE_OFFSET]
     MACRO_END()

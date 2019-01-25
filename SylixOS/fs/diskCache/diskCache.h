@@ -75,10 +75,13 @@
     3. DCATTR_iMsgCount 最小为 DCATTR_iPipeline, 可以为 DCATTR_iPipeline 2 ~ 8 倍.
 *********************************************************************************************************/
 
+#define LW_DCATTR_BOPT_CACHE_COHERENCE  0x01                            /*  缓冲区需要 CACHE 一致性保障 */
+#define LW_DCATTR_BOPT_PAGE_ALIGN       0x02                            /*  缓冲区必须页面对齐          */
+
 typedef struct {
     PVOID           DCATTR_pvCacheMem;                                  /*  扇区缓存地址                */
     size_t          DCATTR_stMemSize;                                   /*  扇区缓存大小                */
-    BOOL            DCATTR_bCacheCoherence;                             /*  缓冲区需要 CACHE 一致性保障 */
+    INT             DCATTR_iBurstOpt;                                   /*  缓存属性                    */
     INT             DCATTR_iMaxRBurstSector;                            /*  磁盘猝发读的最大扇区数      */
     INT             DCATTR_iMaxWBurstSector;                            /*  磁盘猝发写的最大扇区数      */
     INT             DCATTR_iMsgCount;                                   /*  管线消息队列缓存个数        */
@@ -87,6 +90,12 @@ typedef struct {
     ULONG           DCATTR_ulReserved[8];                               /*  保留                        */
 } LW_DISKCACHE_ATTR;
 typedef LW_DISKCACHE_ATTR  *PLW_DISKCACHE_ATTR;
+
+/*********************************************************************************************************
+  前向兼容
+*********************************************************************************************************/
+
+#define DCATTR_bCacheCoherence      DCATTR_iBurstOpt                    /*  缓冲区需要 CACHE 一致性保障 */
 
 /*********************************************************************************************************
   API

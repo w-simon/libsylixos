@@ -163,7 +163,7 @@ VOID  archCacheErrorHandle (ARCH_REG_CTX  *pregctx)
 
     abtInfo.VMABT_uiMethod = 0;
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_FATAL_ERROR;
-    API_VmmAbortIsr(pregctx->REG_ulCP0EPC, pregctx->REG_ulCP0EPC, &abtInfo, ptcbCur);
+    API_VmmAbortIsr(pregctx->REG_ulCP0Epc, pregctx->REG_ulCP0Epc, &abtInfo, ptcbCur);
 }
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -804,7 +804,7 @@ VOID  archExceptionHandle (ARCH_REG_CTX  *pregctx)
         _BugFormat(LW_TRUE, LW_TRUE, "Unknown exception: %d\r\n", ulExcCode);
 
     } else {
-        pfuncExceptHandle(pregctx->REG_ulCP0EPC, pregctx->REG_ulCP0BadVAddr, pregctx);
+        pfuncExceptHandle(pregctx->REG_ulCP0Epc, pregctx->REG_ulCP0BadVAddr, pregctx);
     }
 }
 /*********************************************************************************************************

@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: pciNullDev.c
+** 文   件   名: pciNullDrv.c
 **
 ** 创   建   人: Gong.YuJian (弓羽箭)
 **
@@ -25,7 +25,7 @@
   裁剪宏
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0)
-#include "pciNullDev.h"
+#include "pciNullDrv.h"
 #include "pci_ids.h"
 /*********************************************************************************************************
   读取设备寄存器信息 read32((addr_t)((ULONG)(ctrl)->addr + reg)).
@@ -106,9 +106,30 @@ static INT  pciNullDevIdTblGet (PCI_DEV_ID_HANDLE *hPciDevId, UINT32 *puiSzie)
 *********************************************************************************************************/
 static VOID  pciNullDevRemove (PCI_DEV_HANDLE hPciDevHandle)
 {
+    PCI_RESOURCE_HANDLE     hResource;                                  /*  PCI 设备资源信息            */
+    ULONG                   ulIrqVector;                                /*  中断向量                    */
+
+    hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IRQ, 0);
+    if (!hResource) {
+        return;
+    }
+
+    ulIrqVector = (ULONG)(PCI_RESOURCE_START(hResource));               /*  获取中断向量                */
+
     /*
-     *  TODO 回收驱动创建的资源 (内存, 信号量, 线程等), 同时可用于处理设备的电源管理等.
+     *  TODO 关闭设备, 回收驱动创建的资源 (内存, 信号量, 线程等), 同时可用于处理设备的电源管理等.
      */
+
+    /*
+     *  中断解除链接并禁能中断
+     */
+    API_PciDevInterDisableEx(hPciDevHandle, ulIrqVector, pciNullDevIsr, LW_NULL, 1);
+    API_PciDevInterDisconnect(hPciDevHandle, ulIrqVector, pciNullDevIsr, LW_NULL);
+
+    /*
+     *  回收 I/O MEM
+     */
+    API_PciDevIoUnmap(hPciDevHandle->PCIDEV_pvPrivate);
 }
 /*********************************************************************************************************
 ** 函数名称: pciNullDevProbe
@@ -152,6 +173,7 @@ static INT  pciNullDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     if (!pvBaseAddr) {
         return  (PX_ERROR);
     }
+    hPciDevHandle->PCIDEV_pvPrivate = pvBaseAddr;                       /*  I/O MEM                     */
                                                                         /*  获取 IRQ 资源               */
     hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IRQ, 0);
     if (!hResource) {
@@ -173,14 +195,39 @@ static INT  pciNullDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: pciNullDevInit
+** 函数名称: pciNullDrvRemove
+** 功能描述: 设备驱动删除
+** 输　入  : NONE
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  pciNullDrvRemove (VOID)
+{
+    INT                 iRet;                                           /*  操作结果                    */
+    PCI_DRV_HANDLE      hPciDrv;                                        /*  驱动控制块句柄              */
+
+    hPciDrv = API_PciDrvHandleGet(PCI_NULL_DRV_NAME);                   /*  获取已经注册的驱动句柄      */
+    if (!hPciDrv) {                                                     /*  获取驱动句柄失败            */
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciDrvUnregister(hPciDrv);                               /*  删除驱动以及全部设备关联    */
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: pciNullDrvInit
 ** 功能描述: 设备驱动初始化
 ** 输　入  : NONE
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  pciNullDevInit (VOID)
+INT  pciNullDrvInit (VOID)
 {
     INT                 iRet;                                           /*  操作结果                    */
     PCI_DRV_CB          tPciDrv;                                        /*  驱动控制器用于注册驱动      */

@@ -44,8 +44,8 @@
 
 #define CTX_TYPE_OFFSET         (ARCH_REG_SIZE * 0)
 #define XGREG_OFFSET(n)         (ARCH_REG_SIZE * (n + 1))
-#define XPC_OFFSET              (ARCH_REG_SIZE * (ARCH_GREG_NR + 1))
-#define XSP_OFFSET              (ARCH_REG_SIZE * (ARCH_GREG_NR + 2))
+#define XSP_OFFSET              (ARCH_REG_SIZE * (ARCH_GREG_NR + 1))
+#define XPC_OFFSET              (ARCH_REG_SIZE * (ARCH_GREG_NR + 2))
 #define XPSTATE_OFFSET          (ARCH_REG_SIZE * (ARCH_GREG_NR + 3))
 #define CPUID_OFFSET            (ARCH_REG_SIZE * 0)
 
@@ -60,14 +60,14 @@ typedef UINT64          ARCH_REG_T;
 typedef struct {
     ARCH_REG_T          REG_ulSmallCtx;                                 /*  小上下文                    */
     ARCH_REG_T          REG_ulReg[ARCH_GREG_NR];                        /*  31 个通用目的寄存器         */
-    ARCH_REG_T          REG_ulPC;                                       /*  程序计数器寄存器            */
-    ARCH_REG_T          REG_ulSP;                                       /*  程序堆栈指针                */
+    ARCH_REG_T          REG_ulSp;                                       /*  程序堆栈指针                */
+    ARCH_REG_T          REG_ulPc;                                       /*  程序计数器寄存器            */
     ARCH_REG_T          REG_ulPstate;                                   /*  CPU 运行状态                */
                                                                         /*  [31 : 28]  NZCV             */
                                                                         /*  [ 9 :  6]  DAIF             */
     ARCH_REG_T          REG_ulPad;
-#define REG_ulFP        REG_ulReg[29]                                   /*  栈帧寄存器                  */
-#define REG_ulLR        REG_ulReg[30]                                   /*  链接寄存器                  */
+#define REG_ulFp        REG_ulReg[29]                                   /*  栈帧寄存器                  */
+#define REG_ulLr        REG_ulReg[30]                                   /*  链接寄存器                  */
 } ARCH_REG_CTX;
 
 /*********************************************************************************************************
@@ -83,7 +83,7 @@ typedef struct {
   从上下文中获取信息
 *********************************************************************************************************/
 
-#define ARCH_REG_CTX_GET_PC(ctx)    ((VOID *)(ctx).REG_ulPC)
+#define ARCH_REG_CTX_GET_PC(ctx)    ((VOID *)(ctx).REG_ulPc)
 
 #endif                                                                  /*  !defined(__ASSEMBLY__)      */
 #endif                                                                  /*  __ARM64_ARCH_REGS_H         */

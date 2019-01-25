@@ -296,7 +296,7 @@ static INT  _gpiofdClose (PLW_GPIOFD_FILE  pgpiofdfil)
             API_GpioFree(pgpiofdfil->GF_uiGpio);
             
             if (pgpiofdfil->GF_ulIrq != LW_VECTOR_INVALID) {
-                API_InterVectorDisable(pgpiofdfil->GF_ulIrq);
+                API_InterVectorDisableEx(pgpiofdfil->GF_ulIrq, 1);
                 API_InterVectorDisconnect(pgpiofdfil->GF_ulIrq, (PINT_SVR_ROUTINE)_gpiofdIsr,
                                           (PVOID)pgpiofdfil);
             }
@@ -524,7 +524,7 @@ static INT  _gpiofdSetFlagsOrg (PLW_GPIOFD_FILE pgpiofdfil, INT  iFlags)
     }
     
     if (pgpiofdfil->GF_ulIrq != LW_VECTOR_INVALID) {
-        API_InterVectorDisable(pgpiofdfil->GF_ulIrq);
+        API_InterVectorDisableEx(pgpiofdfil->GF_ulIrq, 1);
         API_InterVectorDisconnect(pgpiofdfil->GF_ulIrq, (PINT_SVR_ROUTINE)_gpiofdIsr, (PVOID)pgpiofdfil);
         pgpiofdfil->GF_ulIrq = LW_VECTOR_INVALID;
     }

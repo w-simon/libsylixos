@@ -114,7 +114,7 @@
 
 #define IS_ENABLED(config)  MIPS_##config
 
-#define cp0_epc             REG_ulCP0EPC
+#define cp0_epc             REG_ulCP0Epc
 #define regs                REG_ulReg
 
 #if BYTE_ORDER == BIG_ENDIAN
@@ -1394,7 +1394,7 @@ VOID  mipsUnalignedHandle (ARCH_REG_CTX  *pregctx, PLW_VMM_ABORT  pabtInfo)
      * Did we catch a fault trying to load an instruction?
      * Or are we running in MIPS16 mode?
      */
-    if ((pregctx->REG_ulCP0BadVAddr == pregctx->REG_ulCP0EPC) || (pregctx->REG_ulCP0EPC & 0x1)) {
+    if ((pregctx->REG_ulCP0BadVAddr == pregctx->REG_ulCP0Epc) || (pregctx->REG_ulCP0Epc & 0x1)) {
         goto  sigbus;
     }
 

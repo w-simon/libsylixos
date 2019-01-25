@@ -2441,7 +2441,7 @@ static INT  __sdhciTransTaskDeInit (__SDHCI_TRANS *psdhcitrans)
 *********************************************************************************************************/
 static VOID __sdhciTransDel (__SDHCI_TRANS *psdhcitrans)
 {
-    ULONG ulVector;
+    ULONG  ulVector;
 
     if (!psdhcitrans) {
         return;
@@ -2449,7 +2449,7 @@ static VOID __sdhciTransDel (__SDHCI_TRANS *psdhcitrans)
 
     ulVector = psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr.SDHCIHOST_ulIntVector;
 
-    API_InterVectorDisable(ulVector);
+    API_InterVectorDisableEx(ulVector, 1);
     API_InterVectorDisconnect(ulVector, __sdhciTransIrq, (VOID *)psdhcitrans);
 
     __sdhciTransTaskDeInit(psdhcitrans);

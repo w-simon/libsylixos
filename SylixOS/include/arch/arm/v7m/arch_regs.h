@@ -62,7 +62,7 @@ typedef struct {
 
 typedef struct {
     ARCH_REG_T      REG_uiR13;
-    ARCH_REG_T      REG_uiBASEPRI;
+    ARCH_REG_T      REG_uiBasePri;
     ARCH_REG_T      REG_uiR4;
     ARCH_REG_T      REG_uiR5;
     ARCH_REG_T      REG_uiR6;
@@ -76,7 +76,7 @@ typedef struct {
 
 typedef struct {
     ARCH_REG_T      REG_uiR13;
-    ARCH_REG_T      REG_uiBASEPRI;
+    ARCH_REG_T      REG_uiBasePri;
     ARCH_REG_T      REG_uiR4;
     ARCH_REG_T      REG_uiR5;
     ARCH_REG_T      REG_uiR6;

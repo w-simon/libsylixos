@@ -65,9 +65,9 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     
     pregctx->REG_ulSmallCtx = 1;                                        /*  小上下文                    */
     pregctx->REG_ulReg[0]   = (ARCH_REG_T)pvArg;
-    pregctx->REG_ulLR       = (ARCH_REG_T)pfuncTask;
-    pregctx->REG_ulPC       = (ARCH_REG_T)pfuncTask;
-    pregctx->REG_ulSP       = (ARCH_REG_T)pfpctx;
+    pregctx->REG_ulLr       = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_ulPc       = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_ulSp       = (ARCH_REG_T)pfpctx;
     
     return  ((PLW_STACK)pfpctx);
 }
@@ -87,10 +87,10 @@ VOID  archTaskCtxSetFp (PLW_STACK               pstkDest,
 {
     ARCH_FP_CTX  *pfpctx = (ARCH_FP_CTX *)pstkDest;
 
-    pfpctx->FP_ulFp = pregctxSrc->REG_ulFP;
-    pfpctx->FP_ulLr = pregctxSrc->REG_ulPC;
+    pfpctx->FP_ulFp = pregctxSrc->REG_ulFp;
+    pfpctx->FP_ulLr = pregctxSrc->REG_ulPc;
 
-    pregctxDest->REG_ulFP = (ARCH_REG_T)&pfpctx->FP_ulFp;
+    pregctxDest->REG_ulFp = (ARCH_REG_T)&pfpctx->FP_ulFp;
 }
 /*********************************************************************************************************
 ** 函数名称: archTaskRegsGet
@@ -103,7 +103,7 @@ VOID  archTaskCtxSetFp (PLW_STACK               pstkDest,
 *********************************************************************************************************/
 ARCH_REG_CTX  *archTaskRegsGet (ARCH_REG_CTX  *pregctx, ARCH_REG_T *pregSp)
 {
-    *pregSp = pregctx->REG_ulSP;
+    *pregSp = pregctx->REG_ulSp;
 
     return  (pregctx);
 }
@@ -202,9 +202,9 @@ VOID  archTaskCtxShow (INT  iFd, const ARCH_REG_CTX  *pregctx)
         archTaskCtxPstate(pregctx->REG_ulPstate, acPstate);
 
         fdprintf(iFd, "PSTATE   = %s\n",       acPstate);
-        fdprintf(iFd, "PC       = "LX_FMT"\n", pregctx->REG_ulPC);
-        fdprintf(iFd, "SP       = "LX_FMT"\n", pregctx->REG_ulSP);
-        fdprintf(iFd, "LR(X30)  = "LX_FMT"\n", pregctx->REG_ulLR);
+        fdprintf(iFd, "PC       = "LX_FMT"\n", pregctx->REG_ulPc);
+        fdprintf(iFd, "SP       = "LX_FMT"\n", pregctx->REG_ulSp);
+        fdprintf(iFd, "LR(X30)  = "LX_FMT"\n", pregctx->REG_ulLr);
         fdprintf(iFd, "X0  = "LX_FMT,          pregctx->REG_ulReg[0]);
         fdprintf(iFd, "X1  = "LX_FMT"\n",      pregctx->REG_ulReg[1]);
         fdprintf(iFd, "X2  = "LX_FMT,          pregctx->REG_ulReg[2]);
@@ -262,9 +262,9 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
         size_t  stOft = 0;
         
         stOft = bnprintf(pvBuffer, stSize, stOft, "PSTATE   = %s\n",       acPstate);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "PC       = "LX_FMT"\n", pregctx->REG_ulPC);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "SP       = "LX_FMT"\n", pregctx->REG_ulSP);
-        stOft = bnprintf(pvBuffer, stSize, stOft, "LR(X30)  = "LX_FMT"\n", pregctx->REG_ulLR);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "PC       = "LX_FMT"\n", pregctx->REG_ulPc);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "SP       = "LX_FMT"\n", pregctx->REG_ulSp);
+        stOft = bnprintf(pvBuffer, stSize, stOft, "LR(X30)  = "LX_FMT"\n", pregctx->REG_ulLr);
         stOft = bnprintf(pvBuffer, stSize, stOft, "X0  = "LX_FMT,          pregctx->REG_ulReg[0]);
         stOft = bnprintf(pvBuffer, stSize, stOft, "X1  = "LX_FMT"\n",      pregctx->REG_ulReg[1]);
         stOft = bnprintf(pvBuffer, stSize, stOft, "X2  = "LX_FMT,          pregctx->REG_ulReg[2]);
@@ -298,9 +298,9 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
     
     } else {
         _PrintFormat("PSTATE   = %s\r\n",       acPstate);
-        _PrintFormat("PC       = "LX_FMT"\r\n", pregctx->REG_ulPC);
-        _PrintFormat("SP       = "LX_FMT"\r\n", pregctx->REG_ulSP);
-        _PrintFormat("LR(X30)  = "LX_FMT"\r\n", pregctx->REG_ulLR);
+        _PrintFormat("PC       = "LX_FMT"\r\n", pregctx->REG_ulPc);
+        _PrintFormat("SP       = "LX_FMT"\r\n", pregctx->REG_ulSp);
+        _PrintFormat("LR(X30)  = "LX_FMT"\r\n", pregctx->REG_ulLr);
         _PrintFormat("X0  = "LX_FMT,            pregctx->REG_ulReg[0]);
         _PrintFormat("X1  = "LX_FMT"\r\n",      pregctx->REG_ulReg[1]);
         _PrintFormat("X2  = "LX_FMT,            pregctx->REG_ulReg[2]);
@@ -362,7 +362,7 @@ VOID  archIntCtxSaveReg (PLW_CLASS_CPU  pcpu,
 *********************************************************************************************************/
 PLW_STACK  archCtxStackEnd (const ARCH_REG_CTX  *pregctx)
 {
-    return  ((PLW_STACK)pregctx->REG_ulSP);
+    return  ((PLW_STACK)pregctx->REG_ulSp);
 }
 /*********************************************************************************************************
   END

@@ -53,10 +53,10 @@ static inline void set_delay_slot (ARCH_REG_CTX *regs)
 static inline unsigned long exception_epc (ARCH_REG_CTX *regs)
 {
     if (likely(!delay_slot(regs))) {
-        return 	(regs->REG_ulCP0EPC);
+        return 	(regs->REG_ulCP0Epc);
     }
 
-    return  (regs->REG_ulCP0EPC + 4);
+    return  (regs->REG_ulCP0Epc + 4);
 }
 
 #define BRANCH_LIKELY_TAKEN 0x0001
@@ -66,7 +66,7 @@ extern int __compute_return_epc(ARCH_REG_CTX *regs);
 static inline int compute_return_epc (ARCH_REG_CTX *regs)
 {
     if (!delay_slot(regs)) {
-        regs->REG_ulCP0EPC += 4;
+        regs->REG_ulCP0Epc += 4;
         return  (0);
     }
 

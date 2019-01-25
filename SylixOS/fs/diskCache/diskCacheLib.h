@@ -80,9 +80,9 @@ typedef LW_DISKCACHE_WPMSG *PLW_DISKCACHE_WPMSG;
 
 typedef struct {
     BOOL                    DISKCWP_bExit;                              /*  是否需要退出                */
-    BOOL                    DISKCWP_bCacheCoherence;                    /*  CACHE 一致性标志            */
     BOOL                    DISKCWP_bParallel;                          /*  并行化读写支持              */
     
+    INT                     DISKCWP_iBurstOpt;                          /*  缓存属性                    */
     INT                     DISKCWP_iPipeline;                          /*  写管线线程数                */
     INT                     DISKCWP_iMsgCount;                          /*  写消息缓冲个数              */
     
