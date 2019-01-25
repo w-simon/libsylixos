@@ -162,11 +162,19 @@ static void dd_output_status(int UNUSED_PARAM cur_signal)
     unsigned long long now_us = monotonic_us(); /* before fprintf */
 #endif
 
+#ifndef SYLIXOS
     /* Deliberately using %u, not %d */
     fprintf(stderr, "%"OFF_FMT"u+%"OFF_FMT"u records in\n"
             "%"OFF_FMT"u+%"OFF_FMT"u records out\n",
             G.in_full, G.in_part,
             G.out_full, G.out_part);
+#else
+    /* Deliberately using %u, not %d */
+    fprintf(stderr, "%llu+%llu records in\n"
+            "%llu+%llu records out\n",
+            G.in_full, G.in_part,
+            G.out_full, G.out_part);
+#endif
 
 #if ENABLE_FEATURE_DD_THIRD_STATUS_LINE
 # if ENABLE_FEATURE_DD_STATUS

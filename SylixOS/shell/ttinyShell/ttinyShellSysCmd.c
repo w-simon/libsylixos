@@ -1238,12 +1238,6 @@ static INT  __tshellSysCmdOpen (INT  iArgC, PCHAR  ppcArgV[])
     INT          iMode = DEFAULT_FILE_PERM;
     struct stat  statBuf;
     
-#if LW_CFG_CPU_WORD_LENGHT == 64
-#define __PRINT_TYPE    "%lx"
-#else
-#define __PRINT_TYPE    "%llx"
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT      */
-    
     if (iArgC < 2) {
         return  (PX_ERROR);
     }
@@ -1259,8 +1253,7 @@ static INT  __tshellSysCmdOpen (INT  iArgC, PCHAR  ppcArgV[])
     iFd = open(ppcArgV[1], iFlag, iMode);
     if (iFd >= 0) {
         fstat(iFd, &statBuf);
-        
-        printf("open file return: %d dev %lx inode %lx size " __PRINT_TYPE "\n", 
+        printf("open file return: %d dev %lx inode %lx size %llu\n",
                iFd, statBuf.st_dev, statBuf.st_ino, statBuf.st_size);
     
     } else {
