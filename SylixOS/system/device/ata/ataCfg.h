@@ -45,10 +45,10 @@
 #define ATA_DRV_NAME_MAX                    (32 + 1)                    /* 驱动名称最大值               */
 #define ATA_DEV_NAME_MAX                    (32 + 1)                    /* 设备名称最大值               */
 #define ATA_CTRL_IRQ_NAME_MAX               (32 + 1)                    /* 中断名称最大值               */
-#define ATA_ATA_DRV_NAME                    "ata"
-#define ATA_ATA_MEDIA_NAME                  "/media/hdd"
-#define ATA_ATAPI_DRV_NAME                  "ata"
-#define ATA_ATAPI_MEDIA_NAME                "/media/cdrom"
+#define ATA_ATA_DRV_NAME                    "ATA"                       /* 驱动器名称                   */
+#define ATA_ATA_MEDIA_NAME                  "/media/hdd"                /* 挂载目录名称                 */
+#define ATA_ATAPI_DRV_NAME                  "ATAPI"                     /* 驱动器名称                   */
+#define ATA_ATAPI_MEDIA_NAME                "/media/cdrom"              /* 挂载目录名称                 */
 /*********************************************************************************************************
   磁盘 CACHE 参数
 *********************************************************************************************************/

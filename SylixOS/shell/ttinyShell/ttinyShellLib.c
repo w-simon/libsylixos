@@ -105,7 +105,7 @@ static PLW_LIST_LINE    _G_plineTSKeyHeaderHashTbl[LW_CFG_SHELL_KEY_HASH_SIZE];
   强制使用内建命令表
 *********************************************************************************************************/
 static const PCHAR      _G_pcResBuildinCmd[] = {
-    "ts", "tp", "wjs", "ps", "modules", "ints", "cpuus", "sem", "msgq"
+    "help", "ts", "tp", "wjs", "ps", "modules", "ints", "cpuus", "sem", "msgq"
 };
 /*********************************************************************************************************
   shell 执行线程堆栈大小 (默认与 shell 相同)

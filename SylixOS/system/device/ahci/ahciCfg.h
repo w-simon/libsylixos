@@ -75,20 +75,15 @@
 #define AHCI_DRV_NAME_MAX                   (32 + 1)                    /* 驱动名称最大值               */
 #define AHCI_DEV_NAME_MAX                   (32 + 1)                    /* 设备名称最大值               */
 #define AHCI_CTRL_IRQ_NAME_MAX              (32 + 1)                    /* 中断名称最大值               */
-#define AHCI_NAME                           "ahci"
-#define AHCI_MEDIA_NAME                     "/media/hdd"
-/*********************************************************************************************************
-  容量参数
-*********************************************************************************************************/
-#define AHCI_KB                             LW_CFG_KB_SIZE
-#define AHCI_MB                             (AHCI_KB * AHCI_KB)
+#define AHCI_DRV_NAME                       "SATA"                      /* 驱动器名称                   */
+#define AHCI_MEDIA_NAME                     "/media/hdd"                /* 挂载目录名称                 */
 /*********************************************************************************************************
   磁盘 CACHE 参数
 *********************************************************************************************************/
 #define AHCI_CACHE_BURST_RD                 64                          /* 读猝发参数                   */
 #define AHCI_CACHE_BURST_WR                 64                          /* 写猝发参数                   */
 #define AHCI_CACHE_PL                       4                           /* 并发线程数量                 */
-#define AHCI_CACHE_SIZE                     (LW_CFG_AHCI_CACHE_SIZE_MB * AHCI_MB)
+#define AHCI_CACHE_SIZE                     (LW_CFG_AHCI_CACHE_SIZE_MB * LW_CFG_MB_SIZE)
                                                                         /* 磁盘缓存大小                 */
 /*********************************************************************************************************
   扇区操作参数 (扇区缓冲区大小依赖磁盘 CACHE)

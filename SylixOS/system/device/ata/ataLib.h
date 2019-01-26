@@ -335,6 +335,7 @@
 *********************************************************************************************************/
 typedef struct ata_dev_cb {
     BLK_DEV                 ATADEV_tBlkDev;                             /* 块设备                       */
+    CHAR                    ATADEV_cDevName[ATA_DEV_NAME_MAX];          /* 设备名                       */
 
     UINT                    ATADEV_uiCtrl;                              /* ctrl no.  0 - 1              */
     UINT                    ATADEV_uiDrive;                             /* drive no. 0 - 1              */
@@ -352,7 +353,6 @@ typedef struct ata_dev_cb {
     UINT16                  ATADEV_usTransSize;                         /* Byte Count Register          */
 
     struct ata_drive_cb    *ATADEV_hDrive;
-
     PVOID                   ATADEV_pvReserved[16];
 } ATA_DEV_CB;
 

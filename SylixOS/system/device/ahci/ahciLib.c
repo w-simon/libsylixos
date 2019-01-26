@@ -465,7 +465,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     printf("Sector Size (Byte)    : %lu\n", hDrive->AHCIDRIVE_ulByteSector);
     printf("Sector Count          : %lld\n", API_AhciDriveSectorCountGet(hCtrl, uiDrive));
     printf("Disk Size (MB)        : %lld MB\n",
-           (API_AhciDriveSectorCountGet(hCtrl, uiDrive) * hDrive->AHCIDRIVE_ulByteSector) / AHCI_MB);
+           (API_AhciDriveSectorCountGet(hCtrl, uiDrive) * hDrive->AHCIDRIVE_ulByteSector) / LW_CFG_MB_SIZE);
     printf("Media Serial Number   : %s\n", (PCHAR)&hParam->AHCIPARAM_usCurrentMediaSN[0]);
     printf("\n");
     printf("Hotplug Attach Number : %d\n", hDrive->AHCIDRIVE_uiAttachNum);

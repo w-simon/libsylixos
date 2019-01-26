@@ -76,8 +76,9 @@ VOID  API_VmmPhysicalShow (VOID)
              size_t                 stSize;
              size_t                 stUsed;
              
-             size_t                 stTotalSize = 0;
-             size_t                 stFreeSize  = 0;
+             size_t                 stPhyTotalSize = 0;
+             size_t                 stVmmTotalSize = 0;
+             size_t                 stVmmFreeSize  = 0;
 
     printf("vmm physical zone show >>\n");
     printf(_G_cZoneInfoHdr);                                            /*  打印欢迎信息                */
@@ -103,24 +104,23 @@ VOID  API_VmmPhysicalShow (VOID)
                i, ulPhysicalAddr, stSize, (size_t)LW_CFG_VMM_PAGE_SIZE,
                ulPgd, ulFreePage, pcDma, stUsed);
                
-        stTotalSize += stSize;
-        stFreeSize  += (ulFreePage << LW_CFG_VMM_PAGE_SHIFT);
+        stVmmTotalSize += stSize;
+        stVmmFreeSize  += (ulFreePage << LW_CFG_VMM_PAGE_SHIFT);
     }
     
     API_VmmPhysicalKernelDesc(&phydescKernel[0], &phydescKernel[1]);
     
+    stPhyTotalSize = phydescKernel[0].PHYD_stSize
+                   + phydescKernel[1].PHYD_stSize
+                   + stVmmTotalSize;
+
     printf("\n"
-           "ALL-Physical memory size: %zu MBytes (%zu Bytes)\n"
-           "VMM-Physical memory size: %zu MBytes (%zu Bytes)\n"
-           "VMM-Physical memory free: %zu MBytes (%zu Bytes)\n",
-           (phydescKernel[0].PHYD_stSize +
-            phydescKernel[1].PHYD_stSize +
-            stTotalSize) / LW_CFG_MB_SIZE,
-           (phydescKernel[0].PHYD_stSize +
-            phydescKernel[1].PHYD_stSize +
-            stTotalSize),
-           stTotalSize / LW_CFG_MB_SIZE, stTotalSize,
-           stFreeSize / LW_CFG_MB_SIZE, stFreeSize);
+           "ALL-Physical memory size: %5zuMB\n"
+           "VMM-Physical memory size: %5zuMB\n"
+           "VMM-Physical memory free: %5zuMB\n",
+           stPhyTotalSize / LW_CFG_MB_SIZE,
+           stVmmTotalSize / LW_CFG_MB_SIZE,
+           stVmmFreeSize  / LW_CFG_MB_SIZE);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmVirtualPrint

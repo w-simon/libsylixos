@@ -852,6 +852,10 @@ static INT  ataBlkDevFill (ATA_DEV_HANDLE  hDev)
             hDev->ATADEV_ullBlkCnt = ullBlkMax;
         }
 
+        snprintf(hDev->ATADEV_cDevName, ATA_DEV_NAME_MAX, ATA_ATA_DRV_NAME "-%d:%d",
+                 hDev->ATADEV_uiCtrl, hDev->ATADEV_uiDrive);
+
+        hBlk->BLKD_pcName            = hDev->ATADEV_cDevName;
         hBlk->BLKD_ulNSector         = hDev->ATADEV_ullBlkCnt;
         hBlk->BLKD_ulBytesPerSector  = uiBytes;
         hBlk->BLKD_ulBytesPerBlock   = uiBytes;

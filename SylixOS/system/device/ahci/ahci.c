@@ -1611,7 +1611,7 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         /*
          *  配置块设备参数
          */
-        hBlkDev->BLKD_pcName            = &hDrive->AHCIDRIVE_cDevName[0];
+        hBlkDev->BLKD_pcName            = hDrive->AHCIDRIVE_cDevName;
         hBlkDev->BLKD_ulNSector         = hDev->AHCIDEV_ulBlkCount;
         hBlkDev->BLKD_ulBytesPerSector  = hDrive->AHCIDRIVE_ulByteSector;
         hBlkDev->BLKD_ulBytesPerBlock   = hDrive->AHCIDRIVE_ulByteSector;
@@ -1739,7 +1739,7 @@ static INT  __ahciDiskConfig (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, CPCHAR  cp
     }
 
     hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获取驱动器句柄               */
-    lib_strlcpy(&hDrive->AHCIDRIVE_cDevName[0], cpcDevName, AHCI_DEV_NAME_MAX);
+    lib_strlcpy(hDrive->AHCIDRIVE_cDevName, cpcDevName, AHCI_DEV_NAME_MAX);
     if ((hDrive->AHCIDRIVE_ucState != AHCI_DEV_OK) &&
         (hDrive->AHCIDRIVE_ucState != AHCI_DEV_MED_CH)) {               /* 设备状态错误                 */
         hDrive->AHCIDRIVE_ucState = AHCI_DEV_NONE;
@@ -2880,7 +2880,7 @@ AHCI_CTRL_HANDLE  API_AhciCtrlCreate (CPCHAR  pcName, UINT  uiUnit, PVOID  pvArg
         goto    __error_handle;
     }
     for (i = 0; i < hCtrl->AHCICTRL_uiImpPortNum; i++) {                /* 驱动器初始化                 */
-        snprintf(cDriveName, AHCI_DEV_NAME_MAX, "/" AHCI_NAME "c%dd%d", hCtrl->AHCICTRL_uiIndex, i);
+        snprintf(cDriveName, AHCI_DEV_NAME_MAX, AHCI_DRV_NAME "-%d:%d", hCtrl->AHCICTRL_uiIndex, i);
         __ahciDiskConfig(hCtrl, i, &cDriveName[0]);                     /* 初始化指定驱动器             */
     }
 
