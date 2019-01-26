@@ -164,16 +164,35 @@ typedef uint64_t    uint_fast64_t;
 #define SIG_ATOMIC_MIN      INT_MIN
 #define SIG_ATOMIC_MAX      INT_MAX
 
-#define INTPTR_MIN          INT32_MIN
-#define INTPTR_MAX          INT32_MAX
-#define UINTPTR_MAX         UINT32_MAX
+/*********************************************************************************************************
+  Pointer
+*********************************************************************************************************/
+
+#ifdef __INTPTR_MAX__
+#define INTPTR_MIN          (-INTPTR_MAX-1)
+#define INTPTR_MAX          __INTPTR_MAX__
+#else
+#define INTPTR_MIN          LONG_MIN
+#define INTPTR_MAX          LONG_MAX
+#endif
+
+#ifdef __UINTPTR_MAX__
+#define UINTPTR_MAX         __UINTPTR_MAX__
+#else
+#define UINTPTR_MAX         ULONG_MAX
+#endif
 
 /*********************************************************************************************************
   This must match ptrdiff_t  in <stddef.h> (currently long int)
 *********************************************************************************************************/
 
+#ifdef __PTRDIFF_MAX__
+#define PTRDIFF_MIN         (-PTRDIFF_MAX-1)
+#define PTRDIFF_MAX         __PTRDIFF_MAX__
+#else
 #define PTRDIFF_MIN         LONG_MIN
 #define PTRDIFF_MAX         LONG_MAX
+#endif
 
 /*********************************************************************************************************
   Macros for minimum-width integer constant expressions 

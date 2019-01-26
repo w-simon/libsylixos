@@ -75,12 +75,20 @@ typedef UINT64      uint64_t;
 #define __int64_t_defined 1
 #endif
 
-#if defined(__PTRDIFF_TYPE__)
-typedef signed __PTRDIFF_TYPE__     intptr_t;
-typedef unsigned __PTRDIFF_TYPE__   uintptr_t;
+/*********************************************************************************************************
+  pointer
+*********************************************************************************************************/
+
+#if defined(__INTPTR_TYPE__)
+typedef __INTPTR_TYPE__     intptr_t;
 #else
-typedef LONG        intptr_t;
-typedef ULONG       uintptr_t;
+typedef LONG                intptr_t;
+#endif
+
+#if defined(__UINTPTR_TYPE__)
+typedef __UINTPTR_TYPE__    uintptr_t;
+#else
+typedef ULONG               uintptr_t;
 #endif
 
 /*********************************************************************************************************
