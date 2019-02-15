@@ -816,7 +816,7 @@ static INT  __rootFsReadDir (LW_DEV_HDR *pdevhdr, DIR  *dir)
 {
              INT                i;
              INT                iError = ERROR_NONE;
-    REGISTER LONG               iStart = dir->dir_pos;
+    REGISTER LONG               iStart;
              PLW_LIST_LINE      plineTemp;
 
 #if LW_CFG_PATH_VXWORKS == 0                                            /*  需要提供分级目录管理        */
@@ -842,6 +842,8 @@ static INT  __rootFsReadDir (LW_DEV_HDR *pdevhdr, DIR  *dir)
         plineHeader = prfsn->RFSN_plineSon;
     }
     
+    iStart = dir->dir_pos;
+
     for ((plineTemp  = plineHeader), (i = 0); 
          (plineTemp != LW_NULL) && (i < iStart); 
          (plineTemp  = _list_line_get_next(plineTemp)), (i++));         /*  忽略                        */

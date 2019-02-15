@@ -119,8 +119,13 @@ VOID    lib_tzset (VOID)
     /*
      *  TODO: daylight not support!
      */
-    
-    timezone = tempzone;
+    if (!lib_strcmp(tzname_buffer, "GMT") ||
+        !lib_strcmp(tzname_buffer, "UTC")) {                            /*  标准时间时差                */
+        timezone = -tempzone;
+
+    } else {                                                            /*  其他标准协调时间            */
+        timezone = tempzone;
+    }
 }
 
 #endif                                                                  /*  LW_CFG_RTC_EN               */

@@ -23,9 +23,7 @@
 2013.01.15  abort 应该使用 _exit() 调用.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
-#include "../SylixOS/kernel/include/k_kernel.h"
-#include "../SylixOS/system/include/s_system.h"
-#include "../SylixOS/shell/include/ttiny_shell.h"
+#include "unistd.h"
 /*********************************************************************************************************
 ** 函数名称: lib_abort
 ** 功能描述: 
@@ -36,11 +34,17 @@
 *********************************************************************************************************/
 VOID  lib_abort (VOID)
 {
+    LW_OBJECT_HANDLE  ulMe = API_ThreadIdSelf();
+
 #if LW_CFG_SIGNAL_EN > 0
-    raise(SIGABRT);
+    if (getpid() > 0) {
+        kill(getpid(), SIGABRT);
+    } else {
+        raise(SIGABRT);
+    }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
-    _exit(EXIT_FAILURE);
+    API_ThreadForceDelete(&ulMe, (PVOID)EXIT_FAILURE);
 }
 /*********************************************************************************************************
 ** 函数名称: lib_system

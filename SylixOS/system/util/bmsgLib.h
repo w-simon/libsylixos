@@ -59,7 +59,7 @@ INT       _bmsgIsEmpty(PLW_BMSG  pbmsg);
 
 INT       _bmsgIsFull(PLW_BMSG  pbmsg);
 
-INT       _bmsgSizeGet(PLW_BMSG  pbmsg);
+size_t    _bmsgSizeGet(PLW_BMSG  pbmsg);
 
 INT       _bmsgFreeByte(PLW_BMSG  pbmsg);
 

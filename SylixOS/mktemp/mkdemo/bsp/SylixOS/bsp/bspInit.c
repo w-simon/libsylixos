@@ -532,79 +532,6 @@ static VOID  halLoaderInit (VOID)
 
 #endif                                                                  /*  LW_CFG_SYMBOL_EN > 0        */
 /*********************************************************************************************************
-** 函数名称: halStdDirInit
-** 功能描述: 设备标准文件系统创建
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static VOID  halStdDirInit (VOID)
-{
-    /*
-     *  当 LW_CFG_PATH_VXWORKS == 0 时, 操作系统会在根目录下自动创建三个挂载点 /dev /mnt /var
-     *  其余挂载点需要通过手动创建, 例如: /etc /bin /sbin /tmp 等等,
-     *  一般来说 /tmp /bin /sbin /ftk /etc ... 可以做成链接文件, 链接到指定的文件系统.
-     */
-    mkdir("/usb", DEFAULT_DIR_PERM);
-    if (access("/yaffs2/n0/boot", R_OK) < 0) {
-        mkdir("/yaffs2/n0/boot", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n0/etc", R_OK) < 0) {
-        mkdir("/yaffs2/n0/etc", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/ftk", R_OK) < 0) {
-        mkdir("/yaffs2/n1/ftk", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/qt", R_OK) < 0) {
-        mkdir("/yaffs2/n1/qt", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/lib", R_OK) < 0) {
-        mkdir("/yaffs2/n1/lib", DEFAULT_DIR_PERM);
-        mkdir("/yaffs2/n1/lib/modules", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/usr", R_OK) < 0) {
-        mkdir("/yaffs2/n1/usr", DEFAULT_DIR_PERM);
-        mkdir("/yaffs2/n1/usr/lib", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/bin", R_OK) < 0) {
-        mkdir("/yaffs2/n1/bin", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/tmp", R_OK) < 0) {
-        mkdir("/yaffs2/n1/tmp", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/sbin", R_OK) < 0) {
-        mkdir("/yaffs2/n1/sbin", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/apps", R_OK) < 0) {
-        mkdir("/yaffs2/n1/apps", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/home", R_OK) < 0) {
-        mkdir("/yaffs2/n1/home", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/root", R_OK) < 0) {
-        mkdir("/yaffs2/n1/root", DEFAULT_DIR_PERM);
-    }
-    if (access("/yaffs2/n1/var", R_OK) < 0) {
-        mkdir("/yaffs2/n1/var", DEFAULT_DIR_PERM);
-    }
-
-    symlink("/yaffs2/n0/boot", "/boot");
-    symlink("/yaffs2/n0/etc",  "/etc");                                 /*  创建根目录符号链接          */
-    symlink("/yaffs2/n1/ftk",  "/ftk");                                 /*  创建 FTK 图形系统符号链接   */
-    symlink("/yaffs2/n1/qt",   "/qt");                                  /*  创建 Qt 图形系统符号链接    */
-    symlink("/yaffs2/n1/lib",  "/lib");
-    symlink("/yaffs2/n1/usr",  "/usr");
-    symlink("/yaffs2/n1/bin",  "/bin");
-    symlink("/yaffs2/n1/sbin", "/sbin");
-    symlink("/yaffs2/n1/apps", "/apps");
-    symlink("/yaffs2/n1/home", "/home");
-    symlink("/yaffs2/n1/root", "/root");
-    symlink("/yaffs2/n1/var",  "/var");
-    symlink("/yaffs2/n1/tmp",  "/var/tmp");
-    symlink("/yaffs2/n1/tmp",  "/tmp");
-}
-/*********************************************************************************************************
 ** 函数名称: halBootThread
 ** 功能描述: 多任务状态下的初始化启动任务
 ** 输　入  : NONE
@@ -655,14 +582,9 @@ static PVOID  halBootThread (PVOID  pvBootArg)
 #endif
 #endif                                                                  /*  参考代码结束                */
 
-    halStdDirInit();                                                    /*  创建标准目录                */
-
-    /*
-     *  只有初始化了 shell 并获得了 TZ 环境变量标示的时区, 才可以调用 rtcToRoot()
-     */
-    system("varload");                                                  /*  从/etc/profile中读取环境变量*/
-    lib_tzset();                                                        /*  通过 TZ 环境变量设置时区    */
-    rtcToRoot();                                                        /*  将 RTC 时间同步到根文件系统 */
+#if LW_CFG_DEVICE_EN > 0                                                /*  map rootfs                  */
+    rootFsMap(LW_ROOTFS_MAP_LOAD_VAR | LW_ROOTFS_MAP_SYNC_TZ | LW_ROOTFS_MAP_SET_TIME);
+#endif
 
     /*
      *  网络初始化一般放在 shell 初始化之后, 因为初始化网络组件时, 会自动注册 shell 命令.
@@ -776,7 +698,7 @@ INT bspInit (VOID)
      *
      *  TODO: 可以修改内核启动参数
      */
-    API_KernelStartParam("ncpus=1 kdlog=no kderror=yes kfpu=no heapchk=yes");
+    API_KernelStartParam("ncpus=1 kdlog=no kderror=yes kfpu=no heapchk=yes rfsmap=/:/media/hdd0");
                                                                         /*  操作系统启动参数设置        */
     API_KernelStart(usrStartup,
                     (PVOID)&__heap_start,

@@ -35,12 +35,6 @@
 #if LW_CFG_MAX_VOLUMES > 0
 #include "limits.h"
 /*********************************************************************************************************
-  文件名不能包含的字符 (特殊系统可由用户定义 __LW_FILE_ERROR_NAME_STR, 但是不推荐)
-*********************************************************************************************************/
-#ifndef __LW_FILE_ERROR_NAME_STR
-#define __LW_FILE_ERROR_NAME_STR        "\\*?<>:\"|\t\r\n"              /*  不能包含在文件内的字符      */
-#endif                                                                  /*  __LW_FILE_ERROR_NAME_STR    */
-/*********************************************************************************************************
   文件系统名对应的文件系统装载函数 (不针对 yaffs 系统)
 *********************************************************************************************************/
 typedef struct {
@@ -172,49 +166,6 @@ UINT8  __fsPartitionProb (PLW_BLK_DEV  pblkd)
     return  (LW_DISK_PART_TYPE_EMPTY);
 }
 /*********************************************************************************************************
-** 函数名称: __fsCheckFileName
-** 功能描述: 检查文件名操作
-** 输　入  : pcName           文件名
-** 输　出  : ERROR
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-INT  __fsCheckFileName (CPCHAR  pcName)
-{
-    REGISTER PCHAR  pcTemp;
-    
-    /*
-     *  不能建立 . 或 .. 文件
-     */
-    pcTemp = lib_rindex(pcName, PX_DIVIDER);
-    if (pcTemp) {
-        pcTemp++;
-        if (*pcTemp == PX_EOS) {                                        /*  文件名长度为 0              */
-            return  (PX_ERROR);
-        }
-        if ((lib_strcmp(pcTemp, ".")  == 0) ||
-            (lib_strcmp(pcTemp, "..") == 0)) {                          /*  . , .. 检查                 */
-            return  (PX_ERROR);
-        }
-    } else {
-        if (pcName[0] == PX_EOS) {                                      /*  文件名长度为 0              */
-            return  (PX_ERROR);
-        }
-    }
-    
-    /*
-     *  不能包含非法字符
-     */
-    pcTemp = (PCHAR)pcName;
-    for (; *pcTemp != PX_EOS; pcTemp++) {
-        if (lib_strchr(__LW_FILE_ERROR_NAME_STR, *pcTemp)) {            /*  检查合法性                  */
-            return  (PX_ERROR);
-        }
-    }
-    
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
 ** 函数名称: __fsDiskLinkCounterAdd
 ** 功能描述: 将物理磁盘链接数量加1
 ** 输　入  : pblkd           块设备控制块
@@ -289,6 +240,54 @@ UINT  __fsDiskLinkCounterGet (PLW_BLK_DEV  pblkd)
 }
 
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
+/*********************************************************************************************************
+** 函数名称: __fsCheckFileName
+** 功能描述: 检查文件名操作
+** 输　入  : pcName           文件名
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __fsCheckFileName (CPCHAR  pcName)
+{
+#ifndef __LW_FILE_ERROR_NAME_STR
+#define __LW_FILE_ERROR_NAME_STR        "\\*?<>:\"|\t\r\n"              /*  不能包含在文件内的字符      */
+#endif                                                                  /*  __LW_FILE_ERROR_NAME_STR    */
+
+    REGISTER PCHAR  pcTemp;
+
+    /*
+     *  不能建立 . 或 .. 文件
+     */
+    pcTemp = lib_rindex(pcName, PX_DIVIDER);
+    if (pcTemp) {
+        pcTemp++;
+        if (*pcTemp == PX_EOS) {                                        /*  文件名长度为 0              */
+            return  (PX_ERROR);
+        }
+        if ((lib_strcmp(pcTemp, ".")  == 0) ||
+            (lib_strcmp(pcTemp, "..") == 0)) {                          /*  . , .. 检查                 */
+            return  (PX_ERROR);
+        }
+
+    } else {
+        if (pcName[0] == PX_EOS) {                                      /*  文件名长度为 0              */
+            return  (PX_ERROR);
+        }
+    }
+
+    /*
+     *  不能包含非法字符
+     */
+    pcTemp = (PCHAR)pcName;
+    for (; *pcTemp != PX_EOS; pcTemp++) {
+        if (lib_strchr(__LW_FILE_ERROR_NAME_STR, *pcTemp)) {            /*  检查合法性                  */
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (ERROR_NONE);
+}
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

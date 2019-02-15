@@ -24,8 +24,9 @@
 #define __FSCOMMON_H
 
 /*********************************************************************************************************
-  函数声明
+  文件系统函数声明
 *********************************************************************************************************/
+#if LW_CFG_MAX_VOLUMES > 0
 
 INT      __fsRegister(CPCHAR   pcName, 
                       FUNCPTR  pfuncCreate, 
@@ -35,13 +36,20 @@ FUNCPTR  __fsCreateFuncGet(CPCHAR       pcName,
                            PLW_BLK_DEV  pblkd, 
                            UINT8        ucPartType);                    /*  获得文件系统创建函数        */
 UINT8    __fsPartitionProb(PLW_BLK_DEV  pblkd);                         /*  特殊分区探测                */
-INT      __fsCheckFileName(CPCHAR  pcName);                             /*  文件名正确性检查            */
 
 VOID     __fsDiskLinkCounterAdd(PLW_BLK_DEV  pblkd);                    /*  物理连接计数操作            */
 VOID     __fsDiskLinkCounterDec(PLW_BLK_DEV  pblkd);
 UINT     __fsDiskLinkCounterGet(PLW_BLK_DEV  pblkd);
 
-#endif
+#endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
+
+/*********************************************************************************************************
+  通用函数声明
+*********************************************************************************************************/
+
+INT      __fsCheckFileName(CPCHAR  pcName);                             /*  文件名正确性检查            */
+
+#endif                                                                  /*  __FSCOMMON_H                */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

@@ -92,16 +92,9 @@ __LW_RETU_FUNC_DEFINE(char *, setlocale, (int category, const char *locale), (ca
   assert
 *********************************************************************************************************/
 
-__LW_VOID_FUNC_DEFINE(assert, (int expression), (expression))
-
-void __assert_func (const char *file, int line, const char *func, const char *failedexpr)
+void __assert (const char *cond, const char *func, const char *file, int line)
 {
-    fprintf(stderr,
-            "__assert_func() assertion \"%s\" failed: file \"%s\", line %d%s%s\n",
-            failedexpr, file, line,
-            func ? ", function: " : "", func ? func : "");
-            
-    panic("");
+    archAssert(cond, __func__, __FILE__, __LINE__);
 }
 
 /*********************************************************************************************************

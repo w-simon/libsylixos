@@ -27,6 +27,7 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
+#include "../SylixOS/fs/fsCommon/fsCommon.h"
 #include "../SylixOS/fs/include/fs_fs.h"                                /*  需要根文件系统时间          */
 /*********************************************************************************************************
   加入裁剪支持
@@ -490,6 +491,10 @@ static LONG  __shmOpen (LW_DEV_HDR     *pdevhdr,
     }
     
     if (iFlags & O_CREAT) {                                             /*  这里不过滤 socket 文件      */
+        if (__fsCheckFileName(pcName)) {
+            _ErrorHandle(ENOENT);
+            return  (PX_ERROR);
+        }
         if (S_ISFIFO(iMode) || 
             S_ISBLK(iMode)  ||
             S_ISCHR(iMode)) {
@@ -880,12 +885,17 @@ static INT  __shmReadDir (PLW_SHM_NODE  pshmn, DIR  *dir)
 {
              INT                i;
              INT                iError = ERROR_NONE;
-    REGISTER LONG               iStart = dir->dir_pos;
+    REGISTER LONG               iStart;
              PLW_LIST_LINE      plineTemp;
              
              PLW_LIST_LINE      plineHeader;
              PLW_SHM_NODE       pshmnTemp;
              
+    if (!dir) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     __LW_SHM_LOCK();                                                    /*  锁定共享内存设备            */
     if (pshmn == LW_NULL) {
         plineHeader = _G_shmrRoot.SHMR_plineSon;
@@ -893,6 +903,8 @@ static INT  __shmReadDir (PLW_SHM_NODE  pshmn, DIR  *dir)
         plineHeader = pshmn->SHMN_plineSon;
     }
     
+    iStart = dir->dir_pos;
+
     for ((plineTemp  = plineHeader), (i = 0); 
          (plineTemp != LW_NULL) && (i < iStart); 
          (plineTemp  = _list_line_get_next(plineTemp)), (i++));         /*  忽略                        */

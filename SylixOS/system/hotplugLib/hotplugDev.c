@@ -287,9 +287,13 @@ static ssize_t  _hotplugRead (PLW_HOTPLUG_FILE  photplugfil,
     size_t     stMsgLen;
     ssize_t    sstRet;
 
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
+    }
+
+    if (!stMaxBytes) {
+        return  (0);
     }
     
     if (photplugfil->HOTPFIL_iFlag & O_NONBLOCK) {                      /*  ·Ç×èÈû IO                   */

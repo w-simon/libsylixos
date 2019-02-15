@@ -30,11 +30,13 @@
 extern "C" {
 #endif
 
-#ifdef  __SYLIXOS_DEBUG
-__LW_RETU_FUNC_DECLARE(void, assert, (int expression))
+#ifdef NDEBUG
+#define assert(condition)  ((void)0)
 #else
-#define assert(e)   ((void)0)
-#endif                                                                  /*  __SYLIXOS_DEBUG             */
+#define assert(condition)  (void)((condition) || (__assert(#condition, __func__, __FILE__, __LINE__), 0))
+#endif                                                                  /*  NDEBUG                      */
+
+extern void __assert(const char *cond, const char *func, const char *file, int line);
 
 #ifdef __cplusplus
 }

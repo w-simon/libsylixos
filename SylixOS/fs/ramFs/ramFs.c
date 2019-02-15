@@ -1071,7 +1071,7 @@ static INT  __ramFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
     PRAM_VOLUME   pramfs  = (PRAM_VOLUME)pfdnode->FDNODE_pvFsExtern;
     
     INT                i;
-    LONG               iStart = dir->dir_pos;
+    LONG               iStart;
     INT                iError = ERROR_NONE;
     PLW_LIST_LINE      plineTemp;
     PLW_LIST_LINE      plineHeader;
@@ -1098,6 +1098,8 @@ static INT  __ramFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         plineHeader = pramn->RAMN_plineSon;
     }
     
+    iStart = dir->dir_pos;
+
     for ((plineTemp  = plineHeader), (i = 0); 
          (plineTemp != LW_NULL) && (i < iStart); 
          (plineTemp  = _list_line_get_next(plineTemp)), (i++));         /*  ºöÂÔ                        */

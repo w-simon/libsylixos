@@ -552,6 +552,11 @@ INT  _IosInit (VOID)
     eventfdDrv();
     eventfdDevCreate();
 #endif                                                                  /*  LW_CFG_EVENTFD_EN > 0       */
+
+#if LW_CFG_BMSG_EN > 0
+    bmsgDrv();
+    bmsgDevCreate();
+#endif                                                                  /*  LW_CFG_BMSG_EN > 0          */
     
 #if LW_CFG_PTIMER_EN > 0 && LW_CFG_TIMERFD_EN > 0
     timerfdDrv();

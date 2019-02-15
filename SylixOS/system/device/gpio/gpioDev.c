@@ -326,11 +326,15 @@ static ssize_t  _gpiofdRead (PLW_GPIOFD_FILE pgpiofdfil,
 {
     INT  iValue;
 
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (!stMaxBytes) {
+        return  (0);
+    }
+
     if (GPIO_IS_ROOT(pgpiofdfil->GF_uiGpio)) {
         _ErrorHandle(EISDIR);
         return  (PX_ERROR);
@@ -358,11 +362,15 @@ static ssize_t  _gpiofdWrite (PLW_GPIOFD_FILE pgpiofdfil,
                               PCHAR           pcBuffer, 
                               size_t          stNBytes)
 {
-    if (!pcBuffer || !stNBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (!stNBytes) {
+        return  (0);
+    }
+
     if (GPIO_IS_ROOT(pgpiofdfil->GF_uiGpio)) {
         _ErrorHandle(EISDIR);
         return  (PX_ERROR);

@@ -241,7 +241,7 @@ INT  _bmsgIsFull (PLW_BMSG  pbmsg)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  _bmsgSizeGet (PLW_BMSG  pbmsg)
+size_t  _bmsgSizeGet (PLW_BMSG  pbmsg)
 {
     return  (pbmsg->BM_stSize);
 }

@@ -20,8 +20,7 @@
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
-#include "../SylixOS/kernel/include/k_kernel.h"
-#include "../SylixOS/system/include/s_system.h"
+#include "unistd.h"
 /*********************************************************************************************************
 ** 函数名称: panic
 ** 功能描述: 
@@ -32,33 +31,35 @@
 *********************************************************************************************************/
 void  panic (const char  *pcFormat, ...)
 {
-    va_list     arglist;
-    char        cName[LW_CFG_OBJECT_NAME_SIZE] = "";
+    va_list           arglist;
+    char              cName[LW_CFG_OBJECT_NAME_SIZE] = "";
+    LW_OBJECT_HANDLE  ulMe = API_ThreadIdSelf();
 
-    API_ThreadGetName(API_ThreadIdSelf(), cName);
+    API_ThreadGetName(ulMe, cName);
 
     va_start(arglist, pcFormat);
     
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_FIO_LIB_EN > 0)
-    perror("system panic");
+    fprintf(stderr, "[panic] ");
     vfprintf(stderr, pcFormat, arglist);
-    fprintf(stderr, "\n"
-                    "thread name: %s\n"
-                    "thread id:   %lx\n"
-                    "kernel time: %8lx\n",
-                    cName, 
-                    API_ThreadIdSelf(),
-                    API_TimeGet());
+    fprintf(stderr, "thread %lx[%s] clock: %lld\n", ulMe, cName, API_TimeGet64());
     fflush(stdout);
     fflush(stderr);
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
                                                                         /*  (LW_CFG_FIO_LIB_EN > 0)     */
+    if (getpid() > 0) {                                                 /*  进程内 panic                */
+#if LW_CFG_SIGNAL_EN > 0
+        kill(getpid(), SIGABRT);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+        API_ThreadForceDelete(&ulMe, (PVOID)EXIT_FAILURE);
 
+    } else {
 #if LW_CFG_PANIC_FUNC > 0
-    API_ThreadSuspend(API_ThreadIdSelf());
+        API_ThreadSuspend(ulMe);
 #else
-    API_KernelReboot(LW_REBOOT_WARM);                                   /*  系统重新启动                */
+        API_KernelReboot(LW_REBOOT_WARM);                               /*  系统重新启动                */
 #endif                                                                  /*  LW_CFG_PANIC_FUNC > 0       */
+    }
 
     va_end(arglist);
 }

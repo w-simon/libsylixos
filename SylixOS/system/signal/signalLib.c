@@ -169,6 +169,7 @@ static VOID  __signalExitHandle (INT  iSigNo, struct siginfo *psiginfo)
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     
     if ((iSigNo == SIGBUS)  ||
+        (iSigNo == SIGABRT) ||
         (iSigNo == SIGSEGV) ||
         (iSigNo == SIGILL)  ||
         (iSigNo == SIGFPE)  ||

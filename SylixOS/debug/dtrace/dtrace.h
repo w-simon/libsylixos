@@ -34,7 +34,7 @@
 *********************************************************************************************************/
 
 #if defined(LW_CFG_CPU_ARCH_X86) || \
-    (defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_HARDWARE_STEP_EN > 0))
+    (defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_HW_STEP_EN > 0))
 #define LW_DTRACE_HW_ISTEP  1                                           /*  支持硬件单步断点            */
 #endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
 

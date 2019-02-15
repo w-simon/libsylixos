@@ -1786,6 +1786,8 @@ SylixOS/system/device/ata/ataLib.c \
 SylixOS/system/device/block/blockIo.c \
 SylixOS/system/device/block/blockRaw.c \
 SylixOS/system/device/block/ramDisk.c \
+SylixOS/system/device/bmsg/bmsgDev.c \
+SylixOS/system/device/bmsg/bmsgfd.c \
 SylixOS/system/device/buzzer/buzzer.c \
 SylixOS/system/device/can/can.c \
 SylixOS/system/device/dma/dma.c \

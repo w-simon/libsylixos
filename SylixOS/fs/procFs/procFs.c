@@ -668,13 +668,17 @@ static INT  __procFsReadDir (PLW_PROCFS_NODE  p_pfsn, DIR  *dir)
 {
              INT                i;
              INT                iError = ERROR_NONE;
-             
-    REGISTER LONG               iStart = dir->dir_pos;
+    REGISTER LONG               iStart;
              PLW_PROCFS_NODE    p_pfsnTemp;
     
              PLW_LIST_LINE      plineTemp;
              PLW_LIST_LINE      plineHeader;                            /*  当前目录头                  */
     
+    if (!dir) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     __LW_PROCFS_LOCK();                                                 /*  锁 procfs                   */
     if (p_pfsn == LW_NULL) {                                            /*  procfs 根节点               */
         plineHeader = _G_pfsrRoot.PFSR_plineSon;                        /*  从根目录开始搜索            */
@@ -686,6 +690,8 @@ static INT  __procFsReadDir (PLW_PROCFS_NODE  p_pfsn, DIR  *dir)
         }
         plineHeader = p_pfsn->PFSN_plineSon;                            /*  从第一个儿子开始寻找        */
     }
+
+    iStart = dir->dir_pos;
         
     for ((plineTemp  = plineHeader), (i = 0); 
          (plineTemp != LW_NULL) && (i < iStart); 

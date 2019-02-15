@@ -23,15 +23,16 @@
 #define __LIB_ASSERT_H
 
 /*********************************************************************************************************
-  根据 __SYLIXOS_STDARG 选择是否执行 arch assert 函数
+  根据 NDEBUG 选择是否执行 arch assert 函数
 *********************************************************************************************************/
 
-#ifdef  __SYLIXOS_DEBUG
-#define lib_assert(iCond)       archAssert(iCond, __func__, __FILE__, __LINE__)
-                                                                        /*  系统将调用 arch assert 处理 */
+#ifdef NDEBUG
+#define lib_assert(condition)   \
+        ((void)0)
 #else
-#define lib_assert(iCond)
-#endif                                                                  /*  __SYLIXOS_DEBUG             */
+#define lib_assert(condition)   \
+        (void)((condition) || (archAssert(#condition, __func__, __FILE__, __LINE__), 0))
+#endif
 
 #endif                                                                  /*  __LIB_ASSERT_H              */
 /*********************************************************************************************************

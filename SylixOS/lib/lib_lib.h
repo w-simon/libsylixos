@@ -27,11 +27,11 @@
 #define __LW_RETU_FUNC_DECLARE(ret, name, declare) \
         ret name declare;
 
+#include "./libc/assert/lib_assert.h"
 #include "./libc/string/lib_string.h"
 #include "./libc/stdlib/lib_stdlib.h"
 #include "./libc/ctype/lib_ctype.h"
 #include "./libc/time/lib_time.h"
-#include "./libc/assert/lib_assert.h"
 #include "./libc/float/lib_float.h"
 
 #if defined(__SYLIXOS_STDARG) || !defined(__SYLIXOS_KERNEL)

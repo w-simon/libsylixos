@@ -364,10 +364,14 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
     
              PLW_SPIPE_DEV  pspipedev = pspipefil->SPIPEFIL_pspipedev;
     
-    if (!pcBuffer || !stMaxBytes) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
+     if (!pcBuffer) {
+         _ErrorHandle(EINVAL);
+         return  (PX_ERROR);
+     }
+
+     if (!stMaxBytes) {
+         return  (0);
+     }
     
     if (LW_CPU_GET_CUR_NESTING()) {                                     /*  是否在中断中调用            */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");

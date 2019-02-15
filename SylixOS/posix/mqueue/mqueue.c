@@ -185,7 +185,7 @@ static uint_t  __mqueueSeekPrio (__PX_MSG  *pmq)
 {
     REGISTER uint32_t    u32Map = pmq->PMSG_u32Map;
 
-    archAssert(u32Map, __func__, __FILE__, __LINE__);                   /*  这里 u32Map 绝对不为 0      */
+    lib_assert(u32Map != 0);                                            /*  这里 u32Map 绝对不为 0      */
 
     return  ((uint_t)archFindLsb(u32Map) - 1);
 }

@@ -936,6 +936,11 @@ static ssize_t __canWrite (__CAN_DEV  *pcanDev, PVOID  pvCanFrame, size_t  stNBy
     size_t         stNumber;
     size_t         stUnit;
 
+    if (!pvCanFrame) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     if (pcanDev->CAN_uiFileFrameType == CAN_STD_CAN) {
         uiFrameType = CAN_STD_CAN;
         stUnit      = sizeof(CAN_FRAME);
@@ -1012,6 +1017,15 @@ static ssize_t __canRead (__CAN_DEV  *pcanDev, PVOID  pvCanFrame, size_t  stNByt
              size_t       stNumber;
              size_t       stUnit;
              ULONG        ulError;
+
+    if (!pvCanFrame) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (!stNBytes) {
+        return  (0);
+    }
 
     if (pcanDev->CAN_uiFileFrameType == CAN_STD_CAN) {
         uiFrameType = CAN_STD_CAN;

@@ -375,11 +375,15 @@ static ssize_t  _MemRead (PLW_MEM_FILE  pmemfile,
     MEM_DRV_DIRENTRY  *pmemdirFile;
     size_t             stCopeBytes;
     
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (!stMaxBytes) {
+        return  (0);
+    }
+
     pmemdirFile = pmemfile->MEMF_pmemdir;
     if (pmemdirFile->pDir) {
         _ErrorHandle(EISDIR);
@@ -416,11 +420,15 @@ static ssize_t  _MemPRead (PLW_MEM_FILE  pmemfile,
     MEM_DRV_DIRENTRY  *pmemdirFile;
     size_t             stCopeBytes;
     
-    if (!pcBuffer || !stMaxBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (!stMaxBytes) {
+        return  (0);
+    }
+
     pmemdirFile = pmemfile->MEMF_pmemdir;
     if (pmemdirFile->pDir) {
         _ErrorHandle(EISDIR);
@@ -453,11 +461,15 @@ static ssize_t  _MemWrite (PLW_MEM_FILE  pmemfile,
     MEM_DRV_DIRENTRY  *pmemdirFile;
     size_t             stCopeBytes;
     
-    if (!pcBuffer || !stNBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (!stNBytes) {
+        return  (0);
+    }
+
     pmemdirFile = pmemfile->MEMF_pmemdir;
     if (pmemdirFile->pDir) {
         _ErrorHandle(EISDIR);
@@ -496,11 +508,15 @@ static ssize_t  _MemPWrite (PLW_MEM_FILE  pmemfile,
     MEM_DRV_DIRENTRY  *pmemdirFile;
     size_t             stCopeBytes;
     
-    if (!pcBuffer || !stNBytes) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (!stNBytes) {
+        return  (0);
+    }
+
     pmemdirFile = pmemfile->MEMF_pmemdir;
     if (pmemdirFile->pDir) {
         _ErrorHandle(EISDIR);

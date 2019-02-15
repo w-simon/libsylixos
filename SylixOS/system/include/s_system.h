@@ -108,6 +108,7 @@
 #include "../SylixOS/system/device/sdcard/include/sdcardLib.h"          /*  sd 卡相关驱动框架           */
 #include "../SylixOS/system/device/mem/memDev.h"                        /*  VxWorks memDev              */
 #include "../SylixOS/system/device/mii/miiDev.h"                        /*  mii phy 接口驱动            */
+#include "../SylixOS/system/device/bmsg/bmsgDev.h"                      /*  bmsg 设备                   */
 #include "../SylixOS/system/device/eventfd/eventfdDev.h"                /*  eventfd 设备                */
 /*********************************************************************************************************
   ATA 总线及其设备驱动模型

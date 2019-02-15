@@ -550,11 +550,15 @@ static ssize_t  _hstmrfdRead (PLW_HSTMRFD_FILE  phstmrfdfil,
     UINT64          u64Overruns;
     ULONG           ulTimeout;
 
-    if (!pcBuffer || (stMaxBytes < sizeof(UINT64))) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (stMaxBytes < sizeof(UINT64)) {
+        return  (0);
+    }
+
     if (phstmrfdfil->HF_iFlag & O_NONBLOCK) {
         ulTimeout = LW_OPTION_NOT_WAIT;
     } else {

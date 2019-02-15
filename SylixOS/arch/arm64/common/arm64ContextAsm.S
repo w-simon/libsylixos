@@ -61,7 +61,7 @@
 FUNC_DEF(archTaskCtxStart)
     LDR     X18, [X0]                                                   ;/*  获取当前 TCB 的 REG_CTX 地址*/
 
-#if LW_CFG_ARM64_HARDWARE_STEP_EN > 0
+#if LW_CFG_ARM64_HW_STEP_EN > 0
     MOV     X0,        #0
     MSR     OSLAR_EL1, X0                                               ;/*  解锁 OS Lock                */
     MOV     X0 ,       MDSCR_EL1_KDE_EN | MDSCR_EL1_SS_EN

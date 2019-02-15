@@ -221,9 +221,9 @@ VOID  __socketInit (VOID)
         return;
     }
     
-    DRIVER_LICENSE(iDrv,     "Dual BSD/GPL->Ver 1.0");
-    DRIVER_AUTHOR(iDrv,      "SICS");
-    DRIVER_DESCRIPTION(iDrv, "lwip socket driver v2.0");
+    DRIVER_LICENSE(iDrv,     "GPL->Ver 2.0");
+    DRIVER_AUTHOR(iDrv,      "Han.hui");
+    DRIVER_DESCRIPTION(iDrv, "socket driver v2.0");
     
     iosDevAddEx(&_G_devhdrSocket, LWIP_SYLIXOS_SOCKET_NAME, iDrv, DT_SOCK);
     

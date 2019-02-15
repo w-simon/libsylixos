@@ -298,11 +298,15 @@ static ssize_t  _evtfdRead (PLW_EVTFD_FILE  pevtfdfil,
     ULONG   ulTimeout;
     BOOL    bRelease = LW_FALSE;
 
-    if (!pcBuffer || (stMaxBytes < sizeof(UINT64))) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (stMaxBytes < sizeof(UINT64)) {
+        return  (0);
+    }
+
     if (LW_CPU_GET_CUR_NESTING()) {                                     /*  是否在中断中调用            */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
         _ErrorHandle(ERROR_KERNEL_IN_ISR);
@@ -374,11 +378,15 @@ static ssize_t  _evtfdWrite (PLW_EVTFD_FILE pevtfdfil,
     ULONG   ulTimeout;
     BOOL    bRelease = LW_FALSE;
     
-    if (!pcBuffer || (stNBytes < sizeof(UINT64))) {
+    if (!pcBuffer) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+    if (stNBytes < sizeof(UINT64)) {
+        return  (0);
+    }
+
     if (LW_CPU_GET_CUR_NESTING()) {                                     /*  是否在中断中调用            */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
         _ErrorHandle(ERROR_KERNEL_IN_ISR);

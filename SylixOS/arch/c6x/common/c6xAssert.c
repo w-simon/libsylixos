@@ -25,7 +25,7 @@
 /*********************************************************************************************************
 ** 函数名称: archAssert
 ** 功能描述: 系统断言.
-** 输　入  : iCond          条件
+** 输　入  : pcCond         条件表达式
 **           pcFunc         调用函数
 **           pcFile         所在文件
 **           iLine          文件行号
@@ -33,18 +33,15 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  archAssert (INT  iCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine)
+VOID  archAssert (CPCHAR  pcCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine)
 {
-    if (!iCond) {
 #if LW_CFG_DEVICE_EN > 0
-        fprintf(stderr, "function: %s() in file: %s line: %d serious error!\n",
-                pcFunc, pcFile, iLine);
-        panic("function: %s() in file: %s line: %d serious error!\n",
-              pcFunc, pcFile, iLine);
-#else
-        panic("");
-#endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
-    }
+    fprintf(stderr, "condition: %s function: %s() in file: %s line: %d assert error!\n",
+            pcCond, pcFunc, pcFile, iLine);
+#endif
+
+    panic("condition: %s function: %s() in file: %s line: %d assert error!\n",
+          pcCond, pcFunc, pcFile, iLine);
 }
 /*********************************************************************************************************
   END

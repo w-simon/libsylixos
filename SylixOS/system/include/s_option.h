@@ -130,7 +130,7 @@
 #define FIOLABELGET         LW_OSIOR('f', 33, LW_PATHB)         /* get volume label                     */
 #define FIOLABELSET         LW_OSIOW('f', 34, LW_PATHB)         /* set volume label                     */
 #define FIOATTRIBSET        LW_OSIOD('f', 35, LONG)             /* set file attribute                   */
-#define FIOCONTIG           LW_OSIOD('f', 36, UINT)             /* allocate contiguous space            */
+#define FIOCONTIG           LW_OSIOD('f', 36, size_t)           /* allocate contiguous space            */
 
 #ifdef __SYLIXOS_KERNEL
 #define FIOREADDIR          LW_OSIOR('f', 37, DIR)              /* read a directory entry (POSIX)       */
@@ -138,7 +138,7 @@
 #define FIOUNMOUNT          LW_OSIO( 'f', 39)                   /* unmount disk volume                  */
 #endif
 
-#define FIONCONTIG          LW_OSIOR('f', 41, UINT)             /* get size of max contig area on dev   */
+#define FIONCONTIG          LW_OSIOR('f', 41, size_t)           /* get size of max contig area on dev   */
 #define FIOTRUNC            LW_OSIOW('f', 42, off_t)            /* truncate file to specified length    */
 #define FIOGETFL            LW_OSIOR('f', 43, INT)              /* get file mode, like fcntl(F_GETFL)   */
 #define FIOTIMESET          LW_OSIOW('f', 44, struct utimbuf)   /* change times on a file for utime()   */
@@ -182,6 +182,16 @@
 #endif
 
 #define FIOFSTYPE           LW_OSIOR('f', 80, LW_PATHB)         /* get file system type sring           */
+
+/*********************************************************************************************************
+  SylixOS bmsg device (bind, unbind only for O_WRONLY file)
+*********************************************************************************************************/
+
+#define FIOBMSGGET          LW_OSIOR('f', 65, UINT32[4])        /* set bmsg file buffer setting         */
+#define FIOBMSGSET          LW_OSIOW('f', 66, UINT32[4])        /* get bmsg file buffer setting         */
+
+#define FIOBMSGBIND         LW_OSIOW('f', 67, LW_PATHB)         /* bind to a bmsg inode for send msg    */
+#define FIOBMSGUNBIND       LW_OSIO('f',  68)                   /* unbind from a bmsg inode             */
 
 /*********************************************************************************************************
   hardware rtc driver

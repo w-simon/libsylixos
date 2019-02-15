@@ -53,7 +53,7 @@ VOID    archKernelParam(CPCHAR  pcParam);
   RISC-V 处理器断言
 *********************************************************************************************************/
 
-VOID    archAssert(INT  iCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine);
+VOID    archAssert(CPCHAR  pcCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine);
 
 /*********************************************************************************************************
   RISC-V 处理器线程上下文相关接口

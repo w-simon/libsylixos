@@ -48,11 +48,11 @@ typedef struct {
     u32_t               NAT_uiLocalRcvNext;                             /*  TCP 期望接收                */
 
     ULONG               NAT_ulIdleTimer;                                /*  空闲定时器                  */
-    ULONG               NAT_ulTermTimer;                                /*  断链定时器                  */
     INT                 NAT_iStatus;                                    /*  通信状态                    */
 #define __NAT_STATUS_OPEN           0
-#define __NAT_STATUS_FIN            1
-#define __NAT_STATUS_CLOSING        2
+#define __NAT_STATUS_SYN            1
+#define __NAT_STATUS_FIN            2
+#define __NAT_STATUS_CLOSING        3
 } __NAT_CB;
 typedef __NAT_CB       *__PNAT_CB;
 /*********************************************************************************************************

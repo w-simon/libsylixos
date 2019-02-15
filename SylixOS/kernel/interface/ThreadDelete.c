@@ -467,7 +467,7 @@ void  exit (int  iCode)
 LW_API  
 void  _exit (int  iCode)
 {
-    LW_OBJECT_HANDLE    ulId   = API_ThreadIdSelf();
+    LW_OBJECT_HANDLE    ulId = API_ThreadIdSelf();
     
 #if LW_CFG_MODULELOADER_EN > 0
     LW_LD_VPROC        *pvprocCur = __LW_VP_GET_CUR_PROC();

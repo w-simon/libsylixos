@@ -37,6 +37,7 @@
 2017.12.19  加入 MAP 负载均衡功能.
 2018.01.16  使用 iphook 实现更加灵活的 NAT 管理.
 2018.04.06  NAT 支持提前分片重组.
+2019.02.15  本地 TCP SYN, CLOSING 仅保持 1 分钟.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -240,7 +241,6 @@ static __PNAT_CB  __natPoolAlloc (VOID)
         pnatcb->NAT_uiLocalSequence    = 0;
         pnatcb->NAT_uiLocalRcvNext     = 0;
         pnatcb->NAT_ulIdleTimer        = 0ul;
-        pnatcb->NAT_ulTermTimer        = 0ul;
         pnatcb->NAT_iStatus            = __NAT_STATUS_OPEN;
     }
 
@@ -437,7 +437,9 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
 {
     PLW_LIST_LINE   plineTemp;
     __PNAT_CB       pnatcb;
-    __PNAT_CB       pnatcbOldest = LW_NULL;
+    __PNAT_CB       pnatcbOldest  = LW_NULL;
+    __PNAT_CB       pnatcbSyn     = LW_NULL;
+    __PNAT_CB       pnatcbClosing = LW_NULL;
     
     pnatcb = __natPoolAlloc();
     if (pnatcb == LW_NULL) {                                            /*  需要删除最古老的            */
@@ -466,17 +468,50 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
                  plineTemp  = _list_line_get_next(plineTemp)) {
                 
                 pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                if ((pnatcb->NAT_iStatus == __NAT_STATUS_SYN) &&
+                    (pnatcb->NAT_ulIdleTimer > 40)) {                   /*  空闲 40s 以上的 SYN TCP     */
+                    if (pnatcbSyn) {
+                        if (pnatcb->NAT_ulIdleTimer > pnatcbSyn->NAT_ulIdleTimer) {
+                            pnatcbSyn = pnatcb;
+                        }
+
+                    } else {
+                        pnatcbSyn = pnatcb;
+                    }
+
+                } else if ((pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING) &&
+                           (pnatcb->NAT_ulIdleTimer > 30)) {            /*  空闲 30s 以上的 CLOSING TCP */
+                    if (pnatcbClosing) {
+                        if (pnatcb->NAT_ulIdleTimer > pnatcbClosing->NAT_ulIdleTimer) {
+                            pnatcbClosing = pnatcb;
+                        }
+
+                    } else {
+                        pnatcbClosing = pnatcb;
+                    }
+
+                }
+
                 if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
                     pnatcbOldest = pnatcb;
                 }
             }
-            for (plineTemp  = _G_plineNatcbUdp;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {
-                
-                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
-                    pnatcbOldest = pnatcb;
+
+            if (pnatcbClosing) {
+                pnatcbOldest = pnatcbClosing;                           /*  优先淘汰 CLOSING            */
+
+            } else if (pnatcbSyn) {
+                pnatcbOldest = pnatcbSyn;                               /*  其次淘汰 SYN                */
+
+            } else {
+                for (plineTemp  = _G_plineNatcbUdp;
+                     plineTemp != LW_NULL;
+                     plineTemp  = _list_line_get_next(plineTemp)) {
+
+                    pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                    if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
+                        pnatcbOldest = pnatcb;
+                    }
                 }
             }
         }
@@ -511,7 +546,6 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
     pnatcb->NAT_uiLocalRcvNext  = 0;
     
     pnatcb->NAT_ulIdleTimer = 0;
-    pnatcb->NAT_ulTermTimer = 0;
     pnatcb->NAT_iStatus     = __NAT_STATUS_OPEN;
     
     switch (ucProto) {
@@ -573,13 +607,14 @@ static VOID  __natClose (__PNAT_CB  pnatcb)
 /*********************************************************************************************************
 ** 函数名称: __natTimer
 ** 功能描述: NAT 定时器.
-** 输　入  : ulIdlTo       超时时间
+** 输　入  : ulPeriod      定时周期 (秒)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __natTimer (ULONG  ulIdlTo)
+static VOID  __natTimer (ULONG  ulPeriod)
 {
+    static ULONG    ulIdlTo = (LW_CFG_NET_NAT_IDLE_TIMEOUT * 60);
     __PNAT_CB       pnatcb;
     PLW_LIST_LINE   plineTemp;
     
@@ -589,15 +624,14 @@ static VOID  __natTimer (ULONG  ulIdlTo)
         pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
         plineTemp = _list_line_get_next(plineTemp);                     /*  指向下一个节点              */
         
-        pnatcb->NAT_ulIdleTimer++;
+        pnatcb->NAT_ulIdleTimer += ulPeriod;
         if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                       /*  空闲时间过长关闭            */
             __natClose(pnatcb);
         
         } else {
-            if (pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING) {
-                pnatcb->NAT_ulTermTimer++;
-                if ((pnatcb->NAT_ulTermTimer >= ulIdlTo) ||
-                    (pnatcb->NAT_ulTermTimer >= 3)) {                   /*  断链超时                    */
+            if ((pnatcb->NAT_iStatus == __NAT_STATUS_SYN) ||
+                (pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING)) {        /*  SYN 或者 CLOSING            */
+                if (pnatcb->NAT_ulIdleTimer >= 60) {                    /*  断链超时                    */
                     __natClose(pnatcb);
                 }
             }
@@ -609,7 +643,7 @@ static VOID  __natTimer (ULONG  ulIdlTo)
         pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
         plineTemp = _list_line_get_next(plineTemp);                     /*  指向下一个节点              */
         
-        pnatcb->NAT_ulIdleTimer++;
+        pnatcb->NAT_ulIdleTimer += ulPeriod;
         if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                       /*  空闲时间过长关闭            */
             __natClose(pnatcb);
         }
@@ -620,7 +654,7 @@ static VOID  __natTimer (ULONG  ulIdlTo)
         pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
         plineTemp = _list_line_get_next(plineTemp);                     /*  指向下一个节点              */
         
-        pnatcb->NAT_ulIdleTimer++;
+        pnatcb->NAT_ulIdleTimer += ulPeriod;
         if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                       /*  空闲时间过长关闭            */
             __natClose(pnatcb);
         }
@@ -629,7 +663,7 @@ static VOID  __natTimer (ULONG  ulIdlTo)
 }
 /*********************************************************************************************************
 ** 函数名称: __natApInput
-** 功能描述: NAT AP 网络接口输.
+** 功能描述: NAT AP 网络接口输入.
 ** 输　入  : p             数据包
 **           netifIn       网络接口
 ** 输　出  : 0: ok 1: eaten
@@ -842,7 +876,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                      *  防止 RST FIN 攻击.
                      */
                     if ((RemoteAck == LocalSequence + 1) || (RemoteSeq == LocalRcvNext)) {
-                        if (TCPH_FLAGS(tcphdr) & (TCP_RST | TCP_FIN)) {
+                        if (TCPH_FLAGS(tcphdr) & TCP_RST) {
                             pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
                         
                         } else if (TCPH_FLAGS(tcphdr) & TCP_FIN) {
@@ -1025,16 +1059,20 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
             if (TCPH_FLAGS(tcphdr) & TCP_ACK) {
                 pnatcb->NAT_uiLocalRcvNext = tcphdr->ackno;
             }
-            if (TCPH_FLAGS(tcphdr) & TCP_RST) {
-	            pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
-            
+
+            if (TCPH_FLAGS(tcphdr) & TCP_SYN) {
+                pnatcb->NAT_iStatus = __NAT_STATUS_SYN;
+
+            } else if (TCPH_FLAGS(tcphdr) & TCP_RST) {
+                pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
+
             } else if (TCPH_FLAGS(tcphdr) & TCP_FIN) {
-	            if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
-	                pnatcb->NAT_iStatus = __NAT_STATUS_FIN;
-	            
-	            } else {
-	                pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
-	            }
+                if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
+                    pnatcb->NAT_iStatus = __NAT_STATUS_FIN;
+
+                } else {
+                    pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
+                }
             }
         }
         
@@ -1272,8 +1310,8 @@ INT  __natStart (CPCHAR  pcLocal, CPCHAR  pcAp)
         return  (PX_ERROR);
     }
     
-    API_TimerStart(_G_ulNatcbTimer, (LW_TICK_HZ * 60), LW_OPTION_AUTO_RESTART,
-                   (PTIMER_CALLBACK_ROUTINE)__natTimer, (PVOID)LW_CFG_NET_NAT_IDLE_TIMEOUT);
+    API_TimerStart(_G_ulNatcbTimer, (LW_TICK_HZ * 10), LW_OPTION_AUTO_RESTART,
+                   (PTIMER_CALLBACK_ROUTINE)__natTimer, (PVOID)10);
     
     __NAT_LOCK();
     _G_bNatStart = LW_TRUE;
@@ -1756,14 +1794,28 @@ static ssize_t  __procFsNatAssNodeRead (PLW_PROCFS_NODE  p_pfsn,
             
             pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
             inaddr.s_addr = pnatcb->NAT_ipaddrLocalIp.addr;
-            if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
+
+            switch (pnatcb->NAT_iStatus) {
+
+            case __NAT_STATUS_OPEN:
                 pcStatus = "OPEN";
-            } else if (pnatcb->NAT_iStatus == __NAT_STATUS_FIN) {
+                break;
+
+            case __NAT_STATUS_SYN:
+                pcStatus = "SYN";
+                break;
+
+            case __NAT_STATUS_FIN:
                 pcStatus = "FIN";
-            } else if (pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING) {
+                break;
+
+            case __NAT_STATUS_CLOSING:
                 pcStatus = "CLOSING";
-            } else {
+                break;
+
+            default:
                 pcStatus = "?";
+                break;
             }
             
             inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
@@ -1787,10 +1839,6 @@ static ssize_t  __procFsNatAssNodeRead (PLW_PROCFS_NODE  p_pfsn,
             inaddr.s_addr = pnatcb->NAT_ipaddrLocalIp.addr;
             if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
                 pcStatus = "OPEN";
-            } else if (pnatcb->NAT_iStatus == __NAT_STATUS_FIN) {
-                pcStatus = "FIN";
-            } else if (pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING) {
-                pcStatus = "CLOSING";
             } else {
                 pcStatus = "?";
             }
@@ -1822,10 +1870,6 @@ static ssize_t  __procFsNatAssNodeRead (PLW_PROCFS_NODE  p_pfsn,
             
             if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
                 pcStatus = "OPEN";
-            } else if (pnatcb->NAT_iStatus == __NAT_STATUS_FIN) {
-                pcStatus = "FIN";
-            } else if (pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING) {
-                pcStatus = "CLOSING";
             } else {
                 pcStatus = "?";
             }
