@@ -71,6 +71,7 @@ typedef struct af_unix_t {
     LW_LIST_RING_HEADER UNIX_pringConnect;                              /*  等待连接的队列              */
     INT                 UNIX_iConnNum;                                  /*  等待连接的数量              */
     
+    INT                 UNIX_iReuse;                                    /*  REUSE flag                  */
     INT                 UNIX_iFlag;                                     /*  NONBLOCK or NOT             */
     INT                 UNIX_iType;                                     /*  STREAM / DGRAM / SEQPACKET  */
     
@@ -83,12 +84,10 @@ typedef struct af_unix_t {
 #define __AF_UNIX_SHUTD_R           0x01
 #define __AF_UNIX_SHUTD_W           0x02
     INT                 UNIX_iShutDFlag;                                /*  当前 shutdown 状态          */
-    
     INT                 UNIX_iBacklog;                                  /*  等待的背景连接数量          */
     
     struct af_unix_t   *UNIX_pafunxPeer;                                /*  连接的远程节点              */
     AF_UNIX_Q           UNIX_unixq;                                     /*  接收数据队列                */
-    
     size_t              UNIX_stMaxBufSize;                              /*  最大接收缓冲大小            */
                                                                         /*  超过此数量写入时, 需要阻塞  */
     LW_OBJECT_HANDLE    UNIX_hCanRead;                                  /*  可读                        */

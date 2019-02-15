@@ -255,16 +255,6 @@ static int netdev_desc_rx_buf_create (struct netdev_desc_helper *helper)
         }
         rx_buf[i].buffer = (void *)((addr_t)stbuf + helper->pad_size);
       }
-#if LW_CFG_NET_DEV_ZCBUF_EN > 0
-      if (helper->rx_hzcpool) {
-        rx_buf[i].p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, LW_OPTION_NOT_WAIT);
-#if LW_CFG_CACHE_EN > 0
-        if (rx_buf[i].p && helper->cache_zc_invalid) {
-          cacheInvalidate(DATA_CACHE, rx_buf[i].p->payload, rx_buf[i].p->tot_len);
-        }
-#endif /* LW_CFG_CACHE_EN */
-      }
-#endif /* LW_CFG_NET_DEV_ZCBUF_EN */
     }
 
   } else {
@@ -279,16 +269,6 @@ static int netdev_desc_rx_buf_create (struct netdev_desc_helper *helper)
         goto error;
       }
       rx_buf[i].buffer = (void *)((addr_t)stbuf + helper->pad_size);
-#if LW_CFG_NET_DEV_ZCBUF_EN > 0
-      if (helper->rx_hzcpool) {
-        rx_buf[i].p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, LW_OPTION_NOT_WAIT);
-#if LW_CFG_CACHE_EN > 0
-        if (rx_buf[i].p && helper->cache_zc_invalid) {
-          cacheInvalidate(DATA_CACHE, rx_buf[i].p->payload, rx_buf[i].p->tot_len);
-        }
-#endif /* LW_CFG_CACHE_EN */
-      }
-#endif /* LW_CFG_NET_DEV_ZCBUF_EN */
     }
   }
 
@@ -575,6 +555,33 @@ netdev_desc_btype netdev_desc_rx_refill (struct netdev_desc_helper *helper, int 
 
   if (helper->rx_hzcpool) {
     rx_buf->p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, LW_OPTION_NOT_WAIT);
+    if (rx_buf->p) {
+#if LW_CFG_CACHE_EN > 0
+      if (helper->cache_zc_invalid) {
+        cacheInvalidate(DATA_CACHE, rx_buf->p->payload, rx_buf->p->tot_len);
+      }
+#endif /* LW_CFG_CACHE_EN */
+      return (NETDEV_DESC_PBUF);
+    }
+  }
+#endif /* LW_CFG_NET_DEV_ZCBUF_EN */
+
+  return (NETDEV_DESC_SBUF);
+}
+
+/* netdev_desc_rx_refill_res (you must ensure 'idx' is valid) */
+netdev_desc_btype netdev_desc_rx_refill_res (struct netdev_desc_helper *helper, int idx, UINT16 res)
+{
+#if LW_CFG_NET_DEV_ZCBUF_EN > 0
+  struct netdev_desc_buf *rx_buf;
+
+  rx_buf = NETDEV_RX_DESC_BUF(helper, idx);
+  if (rx_buf->p) {
+    return (NETDEV_DESC_PBUF);
+  }
+
+  if (helper->rx_hzcpool) {
+    rx_buf->p = netdev_zc_pbuf_alloc_res(helper->rx_hzcpool, LW_OPTION_NOT_WAIT, res);
     if (rx_buf->p) {
 #if LW_CFG_CACHE_EN > 0
       if (helper->cache_zc_invalid) {

@@ -727,6 +727,7 @@ static AF_UNIX_T  *__unixCreate (INT  iType)
     }
     lib_bzero(pafunix, sizeof(AF_UNIX_T));
     
+    pafunix->UNIX_iReuse       = 0;
     pafunix->UNIX_iFlag        = O_RDWR;
     pafunix->UNIX_iType        = iType;
     pafunix->UNIX_iStatus      = __AF_UNIX_STATUS_NONE;
@@ -2101,6 +2102,11 @@ INT  unix_setsockopt (AF_UNIX_T  *pafunix, int level, int optname, const void *o
     case SOL_SOCKET:
         switch (optname) {
         
+        case SO_REUSEADDR:
+            pafunix->UNIX_iReuse = *(INT *)optval;
+            iRet = ERROR_NONE;
+            break;
+
         case SO_LINGER:
             if (optlen < sizeof(struct linger)) {
                 _ErrorHandle(EINVAL);
@@ -2216,6 +2222,11 @@ INT  unix_getsockopt (AF_UNIX_T  *pafunix, int level, int optname, void *optval,
             }
             break;
         
+        case SO_REUSEADDR:
+            *(INT *)optval = pafunix->UNIX_iReuse;
+            iRet = ERROR_NONE;
+            break;
+
         case SO_LINGER:
             if (*optlen < sizeof(struct linger)) {
                 _ErrorHandle(EINVAL);

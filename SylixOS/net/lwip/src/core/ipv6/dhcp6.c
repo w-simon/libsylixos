@@ -536,7 +536,12 @@ dhcp6_handle_config_reply(struct netif *netif, struct pbuf *p_msg_in)
     u16_t idx;
     u8_t n;
 
+#ifdef SYLIXOS /* SylixOS Fixed a warning */
+    ip6_addr_set_zero(ip_2_ip6(&dns_addr));
+    IP_SET_TYPE_VAL(dns_addr, IPADDR_TYPE_V6);
+#else /* SYLIXOS */
     ip_addr_set_zero_ip6(&dns_addr);
+#endif/* !SYLIXOS */
     dns_addr6 = ip_2_ip6(&dns_addr);
     for (n = 0, idx = op_start; (idx < op_start + op_len) && (n < LWIP_DHCP6_PROVIDE_DNS_SERVERS);
          n++, idx += sizeof(struct ip6_addr_packed)) {

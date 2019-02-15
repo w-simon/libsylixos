@@ -495,6 +495,7 @@ void netdev_desc_tx_clean(struct netdev_desc_helper *helper, int idx);
 struct pbuf *netdev_desc_rx_input(struct netdev_desc_helper *helper, int idx, int len);
 /* refill Rx descriptor buffer (you must ensure 'idx' is valid) */
 netdev_desc_btype netdev_desc_rx_refill(struct netdev_desc_helper *helper, int idx);
+netdev_desc_btype netdev_desc_rx_refill_res(struct netdev_desc_helper *helper, int idx, UINT16 res);
 #endif /* LW_CFG_NET_DEV_DESC_HELPER_EN */
 
 #endif /* __NETDEV_H */
