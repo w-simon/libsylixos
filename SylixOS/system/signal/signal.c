@@ -47,6 +47,8 @@
   内部函数声明
 *********************************************************************************************************/
 extern PLW_CLASS_SIGCONTEXT  _signalGetCtx(PLW_CLASS_TCB  ptcb);
+extern VOID                  _sigGetAction(PLW_CLASS_TCB  ptcb, INT  iSigNo,
+                                           struct sigaction *psigaction);
 extern VOID                  _sigPendFree(PLW_CLASS_SIGPEND  psigpendFree);
 extern BOOL                  _sigPendRun(PLW_CLASS_TCB  ptcb);
 extern INT                   _sigPendGet(PLW_CLASS_SIGCONTEXT  psigctx, 
@@ -1104,6 +1106,58 @@ INT  sigTrap (LW_OBJECT_HANDLE  ulId, const union sigval  sigvalue)
     
     _excJobAdd(__sig_trap, (PVOID)ulId, (PVOID)ptcbCur->TCB_ulId, sigvalue.sival_ptr, 0, 0, 0);
     
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: sigGetAction
+** 功能描述: 获取指定任务的 Notify action
+** 输　入  : ulId          任务 ID
+**           iSigNo        信号
+**           psigaction    获取的 action
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  sigGetAction (LW_OBJECT_HANDLE  ulId, INT  iSigNo, struct sigaction *psigaction)
+{
+    REGISTER UINT16         usIndex;
+    REGISTER PLW_CLASS_TCB  ptcb;
+
+    if (!__issig(iSigNo) || !psigaction) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+#if LW_CFG_MODULELOADER_EN > 0
+    if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
+        ulId  = vprocMainThread((pid_t)ulId);
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
+    usIndex = _ObjectGetIndex(ulId);
+
+    if (!_ObjectClassOK(ulId, _OBJECT_THREAD)) {                        /*  检查 ID 类型有效性          */
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+    if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    __KERNEL_ENTER();                                                   /*  进入内核                    */
+    if (_Thread_Invalid(usIndex)) {
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    ptcb = __GET_TCB_FROM_INDEX(usIndex);
+    _sigGetAction(ptcb, iSigNo, psigaction);
+    __KERNEL_EXIT();                                                    /*  退出内核                    */
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

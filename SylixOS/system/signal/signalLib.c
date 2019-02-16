@@ -197,7 +197,7 @@ static VOID  __signalExitHandle (INT  iSigNo, struct siginfo *psiginfo)
 static VOID  __signalWaitHandle (INT  iSigNo, struct siginfo *psiginfo)
 {
 #if LW_CFG_MODULELOADER_EN > 0
-    reclaimchild();
+    reclaimchild(psiginfo->si_pid);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
 }
 /*********************************************************************************************************
@@ -678,10 +678,9 @@ static VOID  __sigRunHandle (PLW_CLASS_SIGCONTEXT  psigctx,
             break;
             
         case SIGCHLD:
-            if (((psiginfo->si_code == CLD_EXITED) ||
-                 (psiginfo->si_code == CLD_KILLED) ||
-                 (psiginfo->si_code == CLD_DUMPED)) &&
-                (psigaction->sa_flags & SA_NOCLDWAIT)) {                /*  回收子进程资源              */
+            if ((psiginfo->si_code == CLD_EXITED) ||
+                (psiginfo->si_code == CLD_KILLED) ||
+                (psiginfo->si_code == CLD_DUMPED)) {                    /*  回收子进程资源              */
                 __signalWaitHandle(iSigNo, psiginfo);
             }
             break;
@@ -802,6 +801,27 @@ static INT  _sigGetLsb (sigset_t  *psigset)
 PLW_CLASS_SIGCONTEXT  _signalGetCtx (PLW_CLASS_TCB  ptcb)
 {
     return  (&_K_sigctxTable[_ObjectGetIndex(ptcb->TCB_ulId)]);
+}
+/*********************************************************************************************************
+** 函数名称: _sigGetAction
+** 功能描述: 获得指定线程的信号 action
+** 输　入  : ptcb                   目的线程控制块
+**           iSigNo                 信号数值
+**           psigaction             信号服务
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  _sigGetAction (PLW_CLASS_TCB  ptcb, INT  iSigNo, struct sigaction *psigaction)
+{
+    PLW_CLASS_SIGCONTEXT  psigctx;
+
+    psigctx = _signalGetCtx(ptcb);
+
+    psigaction->sa_handler  = psigctx->SIGCTX_sigaction[iSigNo].sa_handler;
+    psigaction->sa_flags    = psigctx->SIGCTX_sigaction[iSigNo].sa_flags;
+    psigaction->sa_mask     = psigctx->SIGCTX_sigaction[iSigNo].sa_mask;
+    psigaction->sa_restorer = psigctx->SIGCTX_sigaction[iSigNo].sa_restorer;
 }
 /*********************************************************************************************************
 ** 函数名称: _sigPendAlloc

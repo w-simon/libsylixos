@@ -82,7 +82,7 @@ pid_t wait4(pid_t pid, int *stat_loc, int options, struct rusage *prusage);
   SylixOS extern API.
 *********************************************************************************************************/
 
-void  reclaimchild(void);
+void  reclaimchild(pid_t pid);
 int   detach(pid_t pid);
 
 #ifdef __cplusplus

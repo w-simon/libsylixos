@@ -668,14 +668,14 @@ pid_t wait4 (pid_t pid, int *stat_loc, int options, struct rusage *prusage)
 /*********************************************************************************************************
 ** 函数名称: reclaimchild
 ** 功能描述: reclaim child process
-** 输　入  : NONE
+** 输　入  : pid     child process
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-void reclaimchild (void)
+void reclaimchild (pid_t pid)
 {
     INT             iError;
     pid_t           pidChld;
@@ -688,7 +688,7 @@ void reclaimchild (void)
     __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
     
     do {
-        iError = __reclaimAChild(pvproc, -1, &pidChld, 
+        iError = __reclaimAChild(pvproc, pid, &pidChld,
                                  LW_NULL, 0, LW_NULL);                  /*  试图回收一个子进程          */
         if (iError <= 0) {
             break;

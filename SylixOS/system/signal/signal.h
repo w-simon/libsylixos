@@ -355,6 +355,7 @@ __END_NAMESPACE_STD
 
 #ifdef __SYLIXOS_KERNEL
 LW_API  INT             sigTrap(LW_OBJECT_HANDLE  ulId, const union sigval  sigvalue);
+LW_API  INT             sigGetAction(LW_OBJECT_HANDLE  ulId, INT  iSigNo, struct sigaction *psigaction);
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
