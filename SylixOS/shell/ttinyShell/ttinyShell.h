@@ -44,7 +44,7 @@ LW_API INT                  API_TShellStartup(VOID);                    /*  shel
 
 LW_API VOID                 API_TShellTermAlert(INT  iFd);              /*  响铃警报                    */
 
-LW_API VOID                 API_TShellSetTitel(INT  iFd, CPCHAR  pcTitel);
+LW_API VOID                 API_TShellSetTitle(INT  iFd, CPCHAR  pcTitle);
                                                                         /*  设置标题                    */
 LW_API VOID                 API_TShellScrClear(INT  iFd);               /*  清屏                        */
 
@@ -61,8 +61,9 @@ LW_API LW_OBJECT_HANDLE     API_TShellCreate(INT  iTtyFd,
 
 LW_API LW_OBJECT_HANDLE     API_TShellCreateEx(INT      iTtyFd, 
                                                ULONG    ulOption,
-                                               FUNCPTR  pfuncRunCallback);
-                                                                        /*  创建一个 tshell 终端扩展    */
+                                               FUNCPTR  pfuncRunCallback,
+                                               PVOID    pvCbArg);       /*  创建一个 tshell 终端扩展    */
+
 LW_API INT                  API_TShellGetUserName(uid_t  uid, PCHAR  pcName, size_t  stSize);
                                                                         /*  通过 shell 缓冲获取用户名   */
 LW_API INT                  API_TShellGetUserHome(uid_t  uid, PCHAR  pcHome, size_t  stSize);
@@ -124,7 +125,7 @@ LW_API INT                  API_TShellGetOption(LW_OBJECT_HANDLE  hTShellHandle,
 #define tshellExec          API_TShellExec
 #define tshellExecBg        API_TShellExecBg
 #define tshellTermAlert     API_TShellTermAlert
-#define tshellSetTitel      API_TShellSetTitel
+#define tshellSetTitle      API_TShellSetTitle
 #define tshellScrClear      API_TShellScrClear
                                                                         
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */

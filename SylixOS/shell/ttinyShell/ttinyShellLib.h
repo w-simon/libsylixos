@@ -82,6 +82,8 @@ extern  LW_OBJECT_HANDLE            _G_hTShellLock;
 
 #define __TTINY_SHELL_SET_CALLBACK(ptcb, pfunc) ptcb->TCB_shc.SHC_pfuncShellCallback = pfunc
 #define __TTINY_SHELL_GET_CALLBACK(ptcb)        ptcb->TCB_shc.SHC_pfuncShellCallback
+#define __TTINY_SHELL_SET_CBARG(ptcb, pvArg)    ptcb->TCB_shc.SHC_pvCallbackArg = pvArg
+#define __TTINY_SHELL_GET_CBARG(ptcb)           ptcb->TCB_shc.SHC_pvCallbackArg
 
 /*********************************************************************************************************
   shell 历史输入相关

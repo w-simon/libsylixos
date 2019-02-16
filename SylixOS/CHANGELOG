@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-02-15: han.hui
+    加入 Bmsg IPC 服务.
+
     2019-01-22: han.hui
     加入系统内建网络服务绑定设备功能, 提高安全性.
 

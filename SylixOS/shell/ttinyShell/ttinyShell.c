@@ -101,7 +101,7 @@ VOID  API_TShellTermAlert (INT  iFd)
     fdprintf(iFd, "\a");
 }
 /*********************************************************************************************************
-** 函数名称: API_TShellSetTitel
+** 函数名称: API_TShellSetTitle
 ** 功能描述: tty 终端设置标题
 ** 输　入  : iFd       输出目标
 **           pcTitel   标题
@@ -111,7 +111,7 @@ VOID  API_TShellTermAlert (INT  iFd)
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-VOID  API_TShellSetTitel (INT  iFd, CPCHAR  pcTitel)
+VOID  API_TShellSetTitle (INT  iFd, CPCHAR  pcTitle)
 {
     PLW_CLASS_TCB   ptcbCur;
     
@@ -121,7 +121,7 @@ VOID  API_TShellSetTitel (INT  iFd, CPCHAR  pcTitel)
         return;
     }
     
-    fdprintf(iFd, "\x1B]0;%s\x07", pcTitel);
+    fdprintf(iFd, "\x1B]0;%s\x07", pcTitle);
 }
 /*********************************************************************************************************
 ** 函数名称: API_TShellScrClear
@@ -336,13 +336,15 @@ ULONG  API_TShellSigEvent (LW_OBJECT_HANDLE  ulShell, struct sigevent *psigevent
 ** 输　入  : iTtyFd                终端设备的文件描述符
 **           ulOption              启动参数
 **           pfuncRunCallback      初始化完毕后, 启动回调
+**           pvCbArg               回调参数 (第一个参数为 shell stdout, 此参数为第二个参数)
 ** 输　出  : shell 线程的句柄.
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfuncRunCallback)
+LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption,
+                                      FUNCPTR  pfuncRunCallback, PVOID  pvCbArg)
 {
     LW_CLASS_THREADATTR     threadattrTShell;
     LW_OBJECT_HANDLE        hTShellHandle;
@@ -415,6 +417,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
     ptcbShell = __GET_TCB_FROM_INDEX(_ObjectGetIndex(hTShellHandle));
     __TTINY_SHELL_SET_OPT(ptcbShell, ulOption);                         /*  初始化选项                  */
     __TTINY_SHELL_SET_CALLBACK(ptcbShell, pfuncRunCallback);            /*  初始化启动回调              */
+    __TTINY_SHELL_SET_CBARG(ptcbShell, pvCbArg);
     
     API_ThreadStart(hTShellHandle);                                     /*  启动 shell 线程             */
     
@@ -434,7 +437,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption, FUNCPTR  pfu
 LW_API  
 LW_OBJECT_HANDLE  API_TShellCreate (INT  iTtyFd, ULONG  ulOption)
 {
-    return  (API_TShellCreateEx(iTtyFd, ulOption, LW_NULL));
+    return  (API_TShellCreateEx(iTtyFd, ulOption, LW_NULL, LW_NULL));
 }
 /*********************************************************************************************************
 ** 函数名称: API_TShellLogout

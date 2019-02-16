@@ -1254,17 +1254,17 @@ __reauthen:
         exit(-1);
     }
     
+    API_TShellSetTitle(STD_OUT, "SylixOS Terminal");                    /*  修改标题设置                */
+    API_TShellColorEnd(STD_OUT);
+
     pfuncRunCallback = __TTINY_SHELL_GET_CALLBACK(ptcbCur);
-    if (pfuncRunCallback) {
-        iRetValue = pfuncRunCallback(iTtyFd);                           /*  调用启动回调函数            */
+    if (pfuncRunCallback) {                                             /*  调用启动回调函数            */
+        iRetValue = pfuncRunCallback(iTtyFd, __TTINY_SHELL_GET_CBARG(ptcbCur));
         if (iRetValue < 0) {
             perror("shell run callback fail");
             exit(-1);
         }
     }
-    
-    API_TShellSetTitel(STD_OUT, "SylixOS Terminal [t-tiny-shell]");     /*  修改标题设置                */
-    API_TShellColorEnd(STD_OUT);
     
     if ((__TTINY_SHELL_GET_OPT(ptcbCur) & 
          LW_OPTION_TSHELL_NOLOGO) == 0) {                               /*  是否需要打印 logo           */

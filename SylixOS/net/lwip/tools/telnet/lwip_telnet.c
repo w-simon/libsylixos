@@ -328,6 +328,45 @@ static VOID  __telnetCommunication (INT  iDevFd)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __telnetShellCallback
+** 功能描述: telnet shell 启动后回调
+** 输　入  : iStdOut   PTY 标准输出
+**           iSock     服务器 socket
+** 输　出  : ERROR_NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __telnetShellCallback (INT  iStdOut, INT  iSock)
+{
+    struct sockaddr      sa;
+    struct sockaddr_in  *psain;
+    struct sockaddr_in6 *psain6;
+    socklen_t            namelen = sizeof(struct sockaddr);
+    CHAR                 cLocalAddr[48];
+    CHAR                 cTitle[80];
+
+    if (getsockname(iSock, &sa, &namelen) == ERROR_NONE) {
+        if (sa.sa_family == AF_INET) {
+            psain = (struct sockaddr_in *)&sa;
+            if (inet_ntoa_r(psain->sin_addr, cLocalAddr, sizeof(cLocalAddr))) {
+                snprintf(cTitle, sizeof(cTitle), "SylixOS Terminal %s", cLocalAddr);
+                API_TShellSetTitle(iStdOut, cTitle);
+            }
+
+#if LWIP_IPV6
+        } else if (sa.sa_family == AF_INET6) {
+            psain6 = (struct sockaddr_in6 *)&sa;
+            if (inet6_ntoa_r(psain6->sin6_addr, cLocalAddr, sizeof(cLocalAddr))) {
+                snprintf(cTitle, sizeof(cTitle), "SylixOS Terminal %s", cLocalAddr);
+                API_TShellSetTitle(iStdOut, cTitle);
+            }
+#endif
+        }
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __telnetServer
 ** 功能描述: telnet 服务器(建立完成后, 等待 shell 线程结束回收资源)
 ** 输　入  : iSock     服务器 socket
@@ -426,10 +465,12 @@ static VOID  __telnetServer (INT  iSock)
     /*
      *  创建 TSHELL 服务线程
      */
-    ulTShell = API_TShellCreate(iHostFd, LW_OPTION_TSHELL_VT100 | 
-                                         LW_OPTION_TSHELL_AUTHEN |
-                                         LW_OPTION_TSHELL_PROMPT_FULL |
-                                         LW_OPTION_TSHELL_NODETACH);    /*  需用户登陆                  */
+    ulTShell = API_TShellCreateEx(iHostFd, LW_OPTION_TSHELL_VT100 |
+                                           LW_OPTION_TSHELL_AUTHEN |
+                                           LW_OPTION_TSHELL_PROMPT_FULL |
+                                           LW_OPTION_TSHELL_NODETACH,
+                                           __telnetShellCallback,
+                                           (PVOID)iSock);               /*  需用户登陆                  */
     if (ulTShell == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 5;
         goto    __error_handle;

@@ -767,8 +767,6 @@ static INT  _bmsgSetFnode (PLW_BMSG_FILE  pbmsgfil, struct bmsg_param *param)
 *********************************************************************************************************/
 static INT  _bmsgGetFnode (PLW_BMSG_FILE  pbmsgfil, struct bmsg_param *param)
 {
-    INT  iRet;
-
     if (!param) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -790,7 +788,7 @@ static INT  _bmsgGetFnode (PLW_BMSG_FILE  pbmsgfil, struct bmsg_param *param)
     }
     BMSG_DEV_UNLOCK();
 
-    return  (iRet);
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: _bmsgBindFnode
