@@ -100,6 +100,10 @@ ENTRY(stpcpy)
 #elif defined(STRCPY)
 ENTRY(strcpy)
 #endif
+#ifdef SYLIXOS
+    stp     x29, x30, [sp, #-16]!
+    mov     x29, sp
+#endif
     mov     zeroones, #REP8_01
 #if defined(STRCPY)
     mov     dst, dstin
@@ -138,6 +142,9 @@ ENTRY(strcpy)
 #elif defined(STRCPY)
     str     data1, [dst]
 #endif
+#ifdef SYLIXOS
+    ldp     x29, x30, [sp], #16
+#endif
     ret
 1:
     tbz     tmp1, #5, 1f
@@ -151,12 +158,18 @@ ENTRY(strcpy)
     tbz     tmp1, #3, 1f
     strb    data1_w, [dst]
 #if defined(STPCPY)
+#ifdef SYLIXOS
+    ldp     x29, x30, [sp], #16
+#endif
     ret
 #endif
 1:
 #if defined(STPCPY)
     // Back up one so that dst points to the '\0' string terminator.
     sub     dst, dst, #1
+#endif
+#ifdef SYLIXOS
+    ldp     x29, x30, [sp], #16
 #endif
     ret
 
@@ -172,6 +185,9 @@ ENTRY(strcpy)
 #elif defined(STRCPY)
     str     data2, [dst]
 #endif
+#ifdef SYLIXOS
+    ldp     x29, x30, [sp], #16
+#endif
     ret
 1:
     tbz     tmp1, #5, 1f
@@ -185,12 +201,18 @@ ENTRY(strcpy)
     tbz     tmp1, #3, 1f
     strb    data2_w, [dst]
 #if defined(STPCPY)
+#ifdef SYLIXOS
+    ldp     x29, x30, [sp], #16
+#endif
     ret
 #endif
 1:
 #if defined(STPCPY)
     // Back up one so that dst points to the '\0' string terminator.
     sub     dst, dst, #1
+#endif
+#ifdef SYLIXOS
+    ldp     x29, x30, [sp], #16
 #endif
     ret
 
@@ -202,6 +224,9 @@ ENTRY(strcpy)
 #if defined(STPCPY)
     // Back up one so that dst points to the '\0' string terminator.
     sub     dst, dst, #1
+#endif
+#ifdef SYLIXOS
+    ldp     x29, x30, [sp], #16
 #endif
     ret
 1:
@@ -216,6 +241,9 @@ ENTRY(strcpy)
 #if defined(STPCPY)
     // Back up one so that dst points to the '\0' string terminator.
     sub     dst, dst, #1
+#endif
+#ifdef SYLIXOS
+    ldp     x29, x30, [sp], #16
 #endif
     ret
 1:

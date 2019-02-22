@@ -114,7 +114,7 @@ int bmsgfd_unbind (int fd)
 ** µ÷ÓÃÄ£¿é:
 *********************************************************************************************************/
 LW_API
-int bmsgfd_timeout (int fd, long int *send_ms, long int *recv_ms)
+int bmsgfd_timeout (int fd, unsigned long *send_ms, unsigned long *recv_ms)
 {
     INT            iRet;
     struct timeval tv;

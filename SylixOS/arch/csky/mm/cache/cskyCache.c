@@ -405,8 +405,10 @@ static INT  cskyCacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
                 ulEnd &= ~((addr_t)CSKY_DCACHE_LINE_SIZE - 1);
                 cskyDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, CSKY_DCACHE_LINE_SIZE);
             }
-                                                                        /*  仅无效对齐部分              */
-            cskyDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, CSKY_DCACHE_LINE_SIZE);
+
+            if (ulStart < ulEnd) {                                      /*  仅无效对齐部分              */
+                cskyDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, CSKY_DCACHE_LINE_SIZE);
+            }
 
 #if LW_CFG_CSKY_CACHE_L2 > 0
             cskyL2Invalidate(pvAdrs, stBytes);                          /*  虚拟与物理地址必须相同      */
@@ -457,8 +459,10 @@ static INT  cskyCacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
                 ulEnd &= ~((addr_t)CSKY_DCACHE_LINE_SIZE - 1);
                 cskyDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, CSKY_DCACHE_LINE_SIZE);
             }
-                                                                        /*  仅无效对齐部分              */
-            cskyDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, CSKY_DCACHE_LINE_SIZE);
+
+            if (ulStart < ulEnd) {                                      /*  仅无效对齐部分              */
+                cskyDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, CSKY_DCACHE_LINE_SIZE);
+            }
 
 #if LW_CFG_CSKY_CACHE_L2 > 0
             cskyL2Invalidate(pvPdrs, stBytes);                          /*  虚拟与物理地址必须相同      */

@@ -106,6 +106,7 @@ static ULONG  __threadRestart (PLW_CLASS_TCB          ptcb,
     ppcb = _GetPcb(ptcb);                                               /*  重新获取 ppcb 防止被修改    */
     
     ptcb->TCB_iDeleteProcStatus = LW_TCB_DELETE_PROC_NONE;              /*  退出虚拟删除过程            */
+    ptcb->TCB_bRestartReq       = LW_FALSE;
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     
@@ -293,11 +294,11 @@ ULONG  API_ThreadRestartEx (LW_OBJECT_HANDLE  ulId, PTHREAD_START_ROUTINE  pfunc
         }
     }
     
-    if (ptcb->TCB_ulThreadSafeCounter) {                                /*  在安全模式下的线程不能重启  */
+    if (ptcb->TCB_ulThreadSafeCounter) {                                /*  在安全模式下的线程请求重启  */
+        ptcb->TCB_bRestartReq = LW_TRUE;
         __KERNEL_EXIT();                                                /*  退出内核                    */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "called from SAFE mode.\r\n");
-        _ErrorHandle(ERROR_THREAD_IN_SAFE);
-        return  (ERROR_THREAD_IN_SAFE);
+        _ErrorHandle(ERROR_THREAD_RESTART_DELAY);
+        return  (ERROR_THREAD_RESTART_DELAY);
     }
     if (ptcb->TCB_ptcbJoin) {                                           /*  是否已和其他线程合并        */
         __KERNEL_EXIT();                                                /*  退出内核                    */

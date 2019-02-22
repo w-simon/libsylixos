@@ -61,10 +61,17 @@ ENTRY(wmemmove)
 #else
 ENTRY(memmove)
 #endif
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	cmp	dstin, src
 	b.lo	.Ldownwards
 	add	tmp1, src, count
 	cmp	dstin, tmp1
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	b.hs	memcpy		/* No overlap.  */
 
 	/* Upwards move with potential overlap.
@@ -114,6 +121,9 @@ ENTRY(memmove)
 	ldrb	tmp1w, [src, #-1]
 	strb	tmp1w, [dst, #-1]
 1:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 .Lmov_not_short_up:
@@ -160,6 +170,9 @@ ENTRY(memmove)
 	stp	D_l, D_h, [dst, #48]
 	tst	count, #0x3f
 	b.ne	.Ltail63up
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	/* Critical loop.  Start at a new Icache line boundary.  Assuming
@@ -188,6 +201,9 @@ ENTRY(memmove)
 	stp	D_l, D_h, [dst, #-64]!
 	tst	count, #0x3f
 	b.ne	.Ltail63up
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 
@@ -196,6 +212,9 @@ ENTRY(memmove)
 	 * DST is more than 16 bytes away from SRC.  */
 	sub	tmp1, src, #16
 	cmp	dstin, tmp1
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	b.ls	memcpy		/* May overlap, but not critically.  */
 
 	mov	dst, dstin	/* Preserve DSTIN for return value.  */
@@ -241,6 +260,9 @@ ENTRY(memmove)
 	ldrb	tmp1w, [src]
 	strb	tmp1w, [dst]
 1:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 .Lmov_not_short_down:
@@ -290,6 +312,9 @@ ENTRY(memmove)
 	add	src, src, #64
 	add	dst, dst, #64
 	b.ne	.Ltail63down
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	/* Critical loop.  Start at a new cache line boundary.  Assuming
@@ -321,6 +346,9 @@ ENTRY(memmove)
 	add	dst, dst, #64 + 16
 	tst	count, #0x3f
 	b.ne	.Ltail63down
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 #if defined(WMEMMOVE)
 END(wmemmove)

@@ -31,7 +31,7 @@
 
 #define LW_CFG_MAX_THREAD_POOLS                 2       /*  系统管理的最大线程池数量，          < 65535 */
 #define LW_CFG_MAX_EXCEMSGS                     20      /*  系统异常消息缓冲的最大数量          < 65536 */
-#define LW_CFG_MAX_LOGMSGS                      20      /*  系统日志消息缓冲的最大数量          < 65536 */
+#define LW_CFG_MAX_LOGMSGS                      64      /*  系统日志消息缓冲的最大数量          < 65536 */
 
 #define LW_CFG_MAX_DMA_CHANNELS                 64      /*  系统的 DMA 通道数量                 < 65535 */
 #define LW_CFG_MAX_DMA_LISTNODES                64      /*  系统 DMA 请求作业队列的数量, 超过此数量,    */

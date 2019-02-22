@@ -1930,7 +1930,7 @@ static INT gdbRspPkgHandle (LW_GDB_PARAM    *pparam,
                     if (archGdbGetStepSkip(pparam->GDB_pvDtrace,
                                            pdmsg->DTM_ulThread,
                                            pdmsg->DTM_ulAddr)) {        /*  是否忽略此单步断点          */
-                    	gdbSetStepMode(pparam, pdmsg->DTM_ulThread);
+                        gdbSetStepMode(pparam, pdmsg->DTM_ulThread);
                         API_DtraceContinueThread(pparam->GDB_pvDtrace, pdmsg->DTM_ulThread);
                         continue;
                     }

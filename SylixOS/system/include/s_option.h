@@ -193,6 +193,8 @@
 #define FIOBMSGBIND         LW_OSIOW('f', 67, LW_PATHB)         /* bind to a bmsg inode for send msg    */
 #define FIOBMSGUNBIND       LW_OSIO('f',  68)                   /* unbind from a bmsg inode             */
 
+#define FIOBMSGNNEXT        LW_OSIOR('f', 69, INT)              /* get num chars available to read next */
+
 /*********************************************************************************************************
   hardware rtc driver
 *********************************************************************************************************/

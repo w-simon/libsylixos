@@ -596,6 +596,7 @@ typedef struct __lw_tcb {
 #endif                                                                  /*  LW_CFG_THREAD_CANCEL_EN     */
     
 #if LW_CFG_THREAD_RESTART_EN > 0
+    BOOL                  TCB_bRestartReq;                              /*  在 safe 模式被 restart 请求 */
     PTHREAD_START_ROUTINE TCB_pthreadStartAddress;                      /*  线程重新启动时的启动地址    */
 #endif
 

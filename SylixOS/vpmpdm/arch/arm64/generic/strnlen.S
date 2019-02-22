@@ -66,9 +66,16 @@
 	/* Put this code here to avoid wasting more space with pre-padding.  */
 .Lhit_limit:
 	mov	len, limit
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 ENTRY(strnlen)
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	cbz	limit, .Lhit_limit
 	mov	zeroones, #REP8_01
 	bic	src, srcin, #15
@@ -133,6 +140,9 @@ ENTRY(strnlen)
 	add	len, len, pos, lsr #3		/* Bits to bytes.  */
 	cmp	len, limit
 	csel	len, len, limit, ls		/* Return the lower value.  */
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 .Lmisaligned:

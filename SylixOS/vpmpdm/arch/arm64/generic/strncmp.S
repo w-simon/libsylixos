@@ -65,6 +65,10 @@
 	nop	/* Pad so that the loop below fits a cache line.  */
 	.endr
 ENTRY(strncmp)
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	cbz	limit, .Lret0
 	eor	tmp1, src1, src2
 	mov	zeroones, #REP8_01
@@ -132,6 +136,9 @@ ENTRY(strncmp)
 	   perform a signed 32-bit subtraction.  */
 	lsr	data1, data1, #56
 	sub	result, data1, data2, lsr #56
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 #else
 	/* For big-endian we cannot use the trick with the syndrome value
@@ -144,6 +151,9 @@ ENTRY(strncmp)
 	cmp	data1, data2
 	cset	result, ne
 	cneg	result, result, lo
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 1:
 	/* Re-compute the NUL-byte detection, using a byte-reversed value.  */
@@ -164,6 +174,9 @@ ENTRY(strncmp)
 	   perform a signed 32-bit subtraction.  */
 	lsr	data1, data1, #56
 	sub	result, data1, data2, lsr #56
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 #endif
 
@@ -199,6 +212,9 @@ ENTRY(strncmp)
 
 .Lret0:
 	mov	result, #0
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	.p2align 6
@@ -213,5 +229,8 @@ ENTRY(strncmp)
 	ccmp	data1w, data2w, #0, cs	/* NZCV = 0b0000.  */
 	b.eq	1b
 	sub	result, data1, data2
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 END(strncmp)

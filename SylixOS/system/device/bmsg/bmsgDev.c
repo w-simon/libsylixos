@@ -705,6 +705,33 @@ static INT  _bmsgNReadFnode (PLW_BMSG_FILE  pbmsgfil, INT  *piNRead)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: _bmsgNNextFnode
+** 功能描述: bmsg 获得文件中下一次读取数据字节数
+** 输　入  : pbmsgfil            bmsg 文件
+**           piNRead             数据字节数
+** 输　出  : < 0 表示错误
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  _bmsgNNextFnode (PLW_BMSG_FILE  pbmsgfil, INT  *piNNext)
+{
+    if (!piNNext) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (!pbmsgfil->BMSGF_pinode) {
+        _ErrorHandle(EISDIR);
+        return  (PX_ERROR);
+    }
+
+    BMSG_DEV_LOCK();
+    *piNNext = _bmsgNBytesNext(pbmsgfil->BMSGF_pinode->BMSGI_pbmsg);
+    BMSG_DEV_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: _bmsgFlushFnode
 ** 功能描述: bmsg 清除文件缓存
 ** 输　入  : pbmsgfil            bmsg 文件
@@ -954,7 +981,7 @@ static INT  _bmsgStatfs (PLW_BMSG_FILE  pbmsgfil, struct statfs *pstatfs)
 
             pbmsginode = _LIST_ENTRY(plineTemp, LW_BMSG_INODE, BMSGI_lineManage);
             if (pbmsginode->BMSGI_pbmsg) {
-                stTotal += (size_t)_bmsgNBytes(pbmsginode->BMSGI_pbmsg);
+                stTotal += _bmsgSizeGet(pbmsginode->BMSGI_pbmsg);       /*  消耗的总内存数              */
             }
         }
     }
@@ -1098,6 +1125,9 @@ static INT  _bmsgIoctl (PLW_BMSG_FILE   pbmsgfil,
 
     case FIONREAD:
         return  (_bmsgNReadFnode(pbmsgfil, (INT *)lArg));
+
+    case FIOBMSGNNEXT:
+        return  (_bmsgNNextFnode(pbmsgfil, (INT *)lArg));
 
     case FIOFLUSH:
         return  (_bmsgFlushFnode(pbmsgfil));

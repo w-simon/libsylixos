@@ -74,6 +74,10 @@ ENTRY(memchr)
 	 * Magic constant 0x40100401 allows us to identify which lane matches
 	 * the requested byte.
 	 */
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	cbz	cntin, .Lzero_length
 	mov	wtmp2, #0x0401
 	movk	wtmp2, #0x4010, lsl #16
@@ -156,9 +160,15 @@ ENTRY(memchr)
 	add	result, src, synd, lsr #1
 	/* Select result or NULL */
 	csel	result, xzr, result, eq
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 .Lzero_length:
 	mov	result, xzr
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 END(memchr)

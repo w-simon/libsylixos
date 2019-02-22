@@ -77,6 +77,10 @@ ENTRY(strchr)
 	/* Magic constant 0x40100401 to allow us to identify which lane
 	   matches the requested byte.  Magic constant 0x80200802 used
 	   similarly for NUL termination.  */
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	mov	wtmp2, #0x0401
 	movk	wtmp2, #0x4010, lsl #16
 	dup	vrepchr.16b, chrin
@@ -149,5 +153,8 @@ ENTRY(strchr)
 	tst	tmp1, #1
 	add	result, src, tmp1, lsr #1
 	csel	result, result, xzr, eq
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 END(strchr)

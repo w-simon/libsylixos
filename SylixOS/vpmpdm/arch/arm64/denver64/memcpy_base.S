@@ -58,6 +58,10 @@
 #define QB_l	q2
 #define QB_h	q3
 
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	mov	dst, dstin
 	cmp	count, #64
 	b.ge	.Lcpy_not_short
@@ -93,6 +97,9 @@
 	add	dst, dst, count
 	stp	A_l, A_h, [dst, #-16]
 1:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 .Ltail15tiny:
@@ -114,6 +121,9 @@
 	ldrb	tmp1w, [src]
 	strb	tmp1w, [dst]
 1:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 .Lcpy_not_short:
@@ -147,6 +157,9 @@
 	add	src, src, #64
 	add	dst, dst, #64
 	b.ne	.Ltail63
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	/* Critical loop.  Start at a new cache line boundary.  Assuming
@@ -174,6 +187,9 @@
 	add	dst, dst, #64 + 32
 	tst	count, #0x3f
 	b.ne	.Ltail63
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 .Lcpy_body_huge:
 	/* There are at least 128 bytes to copy.  */
@@ -196,4 +212,7 @@
 	add	dst, dst, #64 + 32
 	tst	count, #0x3f
 	b.ne	.Ltail63
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret

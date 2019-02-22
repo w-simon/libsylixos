@@ -514,7 +514,6 @@ static VOID  armDCacheV7MInvalidate (PVOID  pvStart, PVOID  pvEnd, UINT32  uiSte
     armDsb();
     armIsb();
 }
-
 /*********************************************************************************************************
 ** 函数名称: armDCacheV7MFlush
 ** 功能描述: 回写指定区间的 DCACHE
@@ -765,8 +764,10 @@ static INT  armCacheV7MInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size
                 ulEnd &= ~((addr_t)uiArmV7MDCacheLineSize - 1);
                 armDCacheV7MClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV7MDCacheLineSize);
             }
-                                                                        /*  仅无效对齐部分              */
-            armDCacheV7MInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV7MDCacheLineSize);
+
+            if (ulStart < ulEnd) {                                      /*  仅无效对齐部分              */
+                armDCacheV7MInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV7MDCacheLineSize);
+            }
 
 #if LW_CFG_ARM_CACHE_L2 > 0
             armL2Invalidate(pvAdrs, stBytes);                           /*  虚拟与物理地址必须相同      */

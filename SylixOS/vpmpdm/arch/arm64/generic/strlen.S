@@ -95,6 +95,10 @@
 	   boundary.  */
 
 ENTRY(strlen)
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	and	tmp1, srcin, MIN_PAGE_SIZE - 1
 	mov	zeroones, REP8_01
 	cmp	tmp1, MIN_PAGE_SIZE - 16
@@ -124,6 +128,9 @@ ENTRY(strlen)
 	clz	tmp1, has_nul1
 	csel	len, xzr, len, cc
 	add	len, len, tmp1, lsr 3
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	/* The inner loop processes 32 bytes per iteration and uses the fast
@@ -178,6 +185,9 @@ L(tail):
 	clz	tmp1, has_nul1
 	csel	len, len, tmp2, cc
 	add	len, len, tmp1, lsr 3
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 L(nonascii_loop):

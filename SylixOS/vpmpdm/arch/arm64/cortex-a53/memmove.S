@@ -89,9 +89,16 @@ ENTRY(wmemmove)
 #else
 ENTRY(memmove)
 #endif
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	sub	tmp1, dstin, src
 	cmp	count, 96
 	ccmp	tmp1, count, 2, hi
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	b.hs	memcpy
 
 	cbz	tmp1, 3f
@@ -144,7 +151,11 @@ ENTRY(memmove)
 	stp	A_l, A_h, [dstin, 32]
 	stp	B_l, B_h, [dstin, 16]
 	stp	C_l, C_h, [dstin]
-3:	ret
+3:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
+	ret
 
 #if defined(WMEMMOVE)
 END(wmemmove)

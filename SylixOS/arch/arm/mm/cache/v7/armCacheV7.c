@@ -248,8 +248,10 @@ static INT	armCacheV7Invalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
                 ulEnd &= ~((addr_t)uiArmV7DCacheLineSize - 1);
                 armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV7DCacheLineSize);
             }
-                                                                        /*  仅无效对齐部分              */
-            armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV7DCacheLineSize);
+
+            if (ulStart < ulEnd) {                                      /*  仅无效对齐部分              */
+                armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV7DCacheLineSize);
+            }
             
 #if LW_CFG_ARM_CACHE_L2 > 0
             armL2Invalidate(pvAdrs, stBytes);                           /*  虚拟与物理地址必须相同      */
@@ -300,8 +302,10 @@ static INT	armCacheV7InvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
                 ulEnd &= ~((addr_t)uiArmV7DCacheLineSize - 1);
                 armDCacheClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV7DCacheLineSize);
             }
-                                                                        /*  仅无效对齐部分              */
-            armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV7DCacheLineSize);
+
+            if (ulStart < ulEnd) {                                      /*  仅无效对齐部分              */
+                armDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV7DCacheLineSize);
+            }
             
 #if LW_CFG_ARM_CACHE_L2 > 0
             armL2Invalidate(pvPdrs, stBytes);                           /*  虚拟与物理地址必须相同      */

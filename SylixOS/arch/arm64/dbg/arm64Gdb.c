@@ -27,10 +27,6 @@
 #include "dtrace.h"
 #include "../arm64_gdb.h"
 /*********************************************************************************************************
-  修正 GDB Bug.
-*********************************************************************************************************/
-#define ARM64_GDB_BUG_FIX       1
-/*********************************************************************************************************
   Xfer:features:read:arch-core.xml 回应包
 *********************************************************************************************************/
 static const CHAR   _G_cArm64CoreXml[] = \
@@ -206,16 +202,6 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
     for (i = 0; i < ARCH_GREG_NR; i++) {
         pregset->regArr[i].GDBRA_ulValue = regctx.REG_ulReg[i];
     }
-
-#if ARM64_GDB_BUG_FIX > 0
-    /*
-     * 解决gdb bug，gdb计算LR寄存器在栈中的偏移时有错误
-     */
-    if ((*(UINT32 *)regctx.REG_ulPc == 0x910003fd) ||
-        (*(((UINT32 *)regctx.REG_ulPc) - 1) == 0x910003fd)) {
-        pregset->regArr[ARM64_REG_INDEX_FP].GDBRA_ulValue = regSp - 16;
-    }
-#endif
 
     pregset->regArr[ARM64_REG_INDEX_SP].GDBRA_ulValue     = regSp;
     pregset->regArr[ARM64_REG_INDEX_PC].GDBRA_ulValue     = regctx.REG_ulPc;
@@ -448,7 +434,9 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
 *********************************************************************************************************/
 BOOL  archGdbGetStepSkip (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, addr_t ulAddr)
 {
-    if ((*(UINT32 *)ulAddr == 0x910003fd) || (*(((UINT32 *)ulAddr) + 1) == 0x910003fd)) {
+    if ((*(UINT32 *)ulAddr         == 0x910003fd) ||
+        (*(((UINT32 *)ulAddr) + 1) == 0x910003fd) ||
+        (*(((UINT32 *)ulAddr) + 2) == 0x910003fd)) {
         return  (LW_TRUE);
     }
 

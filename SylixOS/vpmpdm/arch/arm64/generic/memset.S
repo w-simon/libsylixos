@@ -99,7 +99,10 @@ ENTRY(__memset_chk)
 END(__memset_chk)
 #endif
 ENTRY(memset)
-
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	dup	v0.16B, valw
 	add	dstend, dstin, count
 
@@ -113,17 +116,27 @@ ENTRY(memset)
 	tbz	count, 3, 1f
 	str	val, [dstin]
 	str	val, [dstend, -8]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 	nop
 1:	tbz	count, 2, 2f
 	str	valw, [dstin]
 	str	valw, [dstend, -4]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 2:	cbz	count, 3f
 	strb	valw, [dstin]
 	tbz	count, 1, 3f
 	strh	valw, [dstend, -2]
-3:	ret
+3:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
+	ret
 
 	/* Set 17..96 bytes.  */
 L(set_medium):
@@ -133,7 +146,11 @@ L(set_medium):
 	tbz	count, 5, 1f
 	str	q0, [dstin, 16]
 	str	q0, [dstend, -32]
-1:	ret
+1:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
+	ret
 
 	.p2align 4
 	/* Set 64..96 bytes.  Write 64 bytes from the start and
@@ -142,6 +159,9 @@ L(set96):
 	str	q0, [dstin, 16]
 	stp	q0, q0, [dstin, 32]
 	stp	q0, q0, [dstend, -32]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	.p2align 3
@@ -166,6 +186,9 @@ L(tail64):
 	b.hi	1b
 2:	stp	q0, q0, [dstend, -64]
 	stp	q0, q0, [dstend, -32]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	.p2align 3
@@ -197,6 +220,9 @@ L(zva_64):
 	stp	q0, q0, [dst, 32]
 	stp	q0, q0, [dstend, -64]
 	stp	q0, q0, [dstend, -32]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	.p2align 3
@@ -220,6 +246,9 @@ L(zva_128):
 	stp	q0, q0, [dstend, -96]
 	stp	q0, q0, [dstend, -64]
 	stp	q0, q0, [dstend, -32]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 L(zva_other):

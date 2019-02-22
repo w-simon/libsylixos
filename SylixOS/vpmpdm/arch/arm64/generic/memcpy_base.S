@@ -93,7 +93,10 @@
    kind of overlap, and memmove tailcalls memcpy for these cases as
    well as non-overlapping copies.
 */
-
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	prfm    PLDL1KEEP, [src]
 	add	srcend, src, count
 	add	dstend, dstin, count
@@ -115,6 +118,9 @@
 1:
 	stp	A_l, A_h, [dstin]
 	stp	D_l, D_h, [dstend, -16]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	.p2align 4
@@ -127,6 +133,9 @@ L(copy16):
 	ldr	A_h, [srcend, -8]
 	str	A_l, [dstin]
 	str	A_h, [dstend, -8]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 	.p2align 4
 1:
@@ -135,6 +144,9 @@ L(copy16):
 	ldr	A_hw, [srcend, -4]
 	str	A_lw, [dstin]
 	str	A_hw, [dstend, -4]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	/* Copy 0..3 bytes.  Use a branchless sequence that copies the same
@@ -148,7 +160,11 @@ L(copy16):
 	strb	A_lw, [dstin]
 	strb	B_lw, [dstin, tmp1]
 	strb	A_hw, [dstend, -1]
-2:	ret
+2:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
+	ret
 
 	.p2align 4
 	/* Copy 64..96 bytes.  Copy 64 bytes from the start and
@@ -165,6 +181,9 @@ L(copy96):
 	stp	D_l, D_h, [dstin, 48]
 	stp	E_l, E_h, [dstend, -32]
 	stp	F_l, F_h, [dstend, -16]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	/* Align DST to 16 byte alignment so that we don't cross cache line
@@ -214,4 +233,7 @@ L(copy_long):
 	stp	A_l, A_h, [dstend, -48]
 	stp	B_l, B_h, [dstend, -32]
 	stp	C_l, C_h, [dstend, -16]
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret

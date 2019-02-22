@@ -102,6 +102,7 @@ VOID    archDbgBpRemove(addr_t   ulAddr, size_t stSize, ULONG   ulIns, BOOL  bLo
 VOID    archDbgBpPrefetch(addr_t ulAddr);
 UINT    archDbgTrapType(addr_t   ulAddr, PVOID   pvArch);
 VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);
+VOID    archDbgSetStepMode(ARCH_REG_CTX  *pregctx, BOOL  bEnable);
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 /*********************************************************************************************************

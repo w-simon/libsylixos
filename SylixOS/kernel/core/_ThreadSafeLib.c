@@ -172,6 +172,13 @@ VOID  _ThreadUnsafeInternalEx (PLW_CLASS_TCB   ptcbDes)
         API_ThreadDelete(&ulIdMe, pvRetValue);                          /*  删除自己                    */
 #endif
     
+#if LW_CFG_THREAD_RESTART_EN > 0
+    } else if (ptcbDes->TCB_bRestartReq) {                              /*  需要重启                    */
+        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核同时打开中断        */
+
+        API_ThreadRestart(ptcbDes->TCB_ulId, LW_NULL);                  /*  重启自己                    */
+#endif
+
     } else {
         __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核同时打开中断        */
     }

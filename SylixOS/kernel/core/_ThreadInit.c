@@ -176,6 +176,7 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     ptcb->TCB_iDeleteProcStatus   = LW_TCB_DELETE_PROC_NONE;            /*  没有被删除                  */
     
 #if	LW_CFG_THREAD_RESTART_EN > 0
+    ptcb->TCB_bRestartReq         = LW_FALSE;                           /*  没有请求重启                */
     ptcb->TCB_pthreadStartAddress = pThread;                            /*  保存任务起始代码指针        */
 #endif
 

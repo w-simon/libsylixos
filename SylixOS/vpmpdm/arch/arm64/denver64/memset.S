@@ -82,7 +82,10 @@ ENTRY(__memset_chk)
 END(__memset_chk)
 #endif
 ENTRY(memset)
-
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	mov	dst, dstin		/* Preserve return value.  */
 	ands	A_lw, val, #255
 #ifndef DONT_USE_DC
@@ -129,6 +132,9 @@ ENTRY(memset)
 	and	count, count, #15
 	add	dst, dst, count
 	stp	A_l, A_l, [dst, #-16]	/* Repeat some/all of last store. */
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 .Ltail15tiny:
@@ -146,6 +152,9 @@ ENTRY(memset)
 	tbz	count, #0, 1f
 	strb	A_lw, [dst]
 1:
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	/* Critical loop.  Start at a new cache line boundary.  Assuming
@@ -183,6 +192,9 @@ ENTRY(memset)
 	b.ge	2b
 	tst	count, #0xff
 	b.ne	.Ltail255
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 3:
 	sub	count, count, #64
@@ -194,6 +206,9 @@ ENTRY(memset)
 	b.ge	4b
 	tst	count, #0x3f
 	b.ne	.Ltail63
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 #ifndef DONT_USE_DC
@@ -277,6 +292,9 @@ ENTRY(memset)
 	b.ge	3b
 	ands	count, count, zva_bits_x
 	b.ne	.Ltail_maybe_long
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 END(memset)
 

@@ -54,6 +54,10 @@
 #define mask		x13
 
 ENTRY(memcmp)
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	cbz	limit, .Lret0
 	eor	tmp1, src1, src2
 	tst	tmp1, #7
@@ -109,6 +113,9 @@ ENTRY(memcmp)
 	   perform a signed 32-bit subtraction.  */
 	lsr	data1, data1, #56
 	sub	result, data1, data2, lsr #56
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 .Lmutual_align:
@@ -138,6 +145,9 @@ ENTRY(memcmp)
 
 .Lret0:
 	mov	result, #0
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 
 	.p2align 6
@@ -151,5 +161,8 @@ ENTRY(memcmp)
 	ccmp	data1w, data2w, #0, cs	/* NZCV = 0b0000.  */
 	b.eq	1b
 	sub	result, data1, data2
+#ifdef SYLIXOS
+	ldp     x29, x30, [sp], #16
+#endif
 	ret
 END(memcmp)

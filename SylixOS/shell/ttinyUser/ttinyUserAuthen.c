@@ -148,7 +148,8 @@ ULONG  __tshellUserAuthen (INT  iTtyFd, BOOL  bWaitInf)
      *  转为无回显终端模式
      */
     iRetValue = ioctl(iTtyFd, FIOSETOPTIONS, 
-                      (OPT_TERMINAL & (~(OPT_ECHO | OPT_MON_TRAP))));   /*  没有回显                    */
+                      (OPT_TERMINAL &
+                       (~(OPT_ECHO | OPT_MON_TRAP | OPT_ABORT))));      /*  没有回显                    */
     if (iRetValue < 0) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not set terminal mode.\r\n");
         return  (ERROR_TSHELL_EUSER);

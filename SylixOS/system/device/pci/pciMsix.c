@@ -17,6 +17,9 @@
 ** 文件创建日期: 2017 年 07 月 26 日
 **
 ** 描        述: PCI 总线 MSI-X 管理.
+
+** BUG:
+2019.02.22  修复获取资源地址错误的问题. Gong.YuJian (弓羽箭)
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -108,7 +111,8 @@ INT  API_PciMsixPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsix
     UINT32                  iBarIndex  = 0;
     UINT32                  iOffset    = 0;
     phys_addr_t             paBaseAddr = 0;
-    PCI_RESOURCE_HANDLE     hResource  = LW_NULL;
+    ULONG                   ulFlags    = 0;
+    PCI_DEV_HANDLE          hDevHandle = LW_NULL;
                                                                         /*  读取 MSI-X PBA 字段         */
     iRet = API_PciConfigInDword(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSIX_PBA, &uiMsiTab);
     if (iRet != ERROR_NONE) {
@@ -118,8 +122,16 @@ INT  API_PciMsixPendingPosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsix
     iBarIndex  = uiMsiTab & PCI_MSIX_PBA_BIR;                           /* MSI-X PBA所在BAR空间索引     */
     iOffset    = uiMsiTab & PCI_MSIX_PBA_OFFSET;                        /* MSI-X PBA所在BAR空间中偏移   */
 
-    hResource  = API_PciResourceGet(iBus, iSlot, iFunc, PCI_IORESOURCE_MEM, iBarIndex);
-    paBaseAddr = (phys_addr_t)(PCI_RESOURCE_START(hResource));          /* MSI-X PBA所在BAR空间基址     */
+    hDevHandle = API_PciDevHandleGet(iBus, iSlot, iFunc);               /* 获取设备句柄                 */
+    if (!hDevHandle) {
+        return  (PX_ERROR);
+    }
+
+    ulFlags = PCI_DEV_RESOURCE_FLAG(hDevHandle, iBarIndex);             /* 获取资源类型                 */
+    if (!ulFlags || (ulFlags & PCI_IORESOURCE_UNSET)){
+        return  (PX_ERROR);
+    }
+    paBaseAddr = (phys_addr_t)PCI_DEV_RESOURCE_START(hDevHandle, iBarIndex);
 
     if (ppaPos) {
         *ppaPos = paBaseAddr + iOffset;                                 /* MSI-X PBA 的PCI总线域地址    */
@@ -196,7 +208,8 @@ INT  API_PciMsixTablePosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCa
     UINT32                  iBarIndex  = 0;
     UINT32                  iOffset    = 0;
     phys_addr_t             paBaseAddr = 0;
-    PCI_RESOURCE_HANDLE     hResource  = LW_NULL;
+    ULONG                   ulFlags    = 0;
+    PCI_DEV_HANDLE          hDevHandle = LW_NULL;
                                                                         /*  读取 MSI-X Table 字段       */
     iRet = API_PciConfigInDword(iBus, iSlot, iFunc, uiMsixCapOft + PCI_MSIX_TABLE, &uiMsiTab);
     if (iRet != ERROR_NONE) {
@@ -206,8 +219,16 @@ INT  API_PciMsixTablePosGet (INT  iBus, INT  iSlot, INT  iFunc, UINT32  uiMsixCa
     iBarIndex  = uiMsiTab & PCI_MSIX_TABLE_BIR;                         /* MSI-X Table所在BAR空间索引   */
     iOffset    = uiMsiTab & PCI_MSIX_TABLE_OFFSET;                      /* MSI-X Table所在BAR空间中偏移 */
 
-    hResource  = API_PciResourceGet(iBus, iSlot, iFunc, PCI_IORESOURCE_MEM, iBarIndex);
-    paBaseAddr = (phys_addr_t)(PCI_RESOURCE_START(hResource));          /* MSI-X Table所在BAR空间基址   */
+    hDevHandle = API_PciDevHandleGet(iBus, iSlot, iFunc);               /* 获取设备句柄                 */
+    if (!hDevHandle) {
+        return  (PX_ERROR);
+    }
+
+    ulFlags = PCI_DEV_RESOURCE_FLAG(hDevHandle, iBarIndex);             /* 获取资源类型                 */
+    if (!ulFlags || (ulFlags & PCI_IORESOURCE_UNSET)){
+        return  (PX_ERROR);
+    }
+    paBaseAddr = (phys_addr_t)PCI_DEV_RESOURCE_START(hDevHandle, iBarIndex);
 
     if (ppaTablePos) {
         *ppaTablePos = paBaseAddr + iOffset;                            /* MSI-X Table 的PCI总线域地址  */

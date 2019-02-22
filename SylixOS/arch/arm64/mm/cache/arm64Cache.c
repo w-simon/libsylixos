@@ -190,8 +190,10 @@ static INT  arm64CacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_
                 ulEnd &= ~((addr_t)uiArmV8DCacheLineSize - 1);
                 arm64DCacheClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV8DCacheLineSize);
             }
-                                                                        /*  仅无效对齐部分              */
-            arm64DCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV8DCacheLineSize);
+
+            if (ulStart < ulEnd) {                                      /*  仅无效对齐部分              */
+                arm64DCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV8DCacheLineSize);
+            }
             
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");
@@ -239,8 +241,10 @@ static INT  arm64CacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVO
                 ulEnd &= ~((addr_t)uiArmV8DCacheLineSize - 1);
                 arm64DCacheClear((PVOID)ulEnd, (PVOID)ulEnd, uiArmV8DCacheLineSize);
             }
-                                                                        /*  仅无效对齐部分              */
-            arm64DCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV8DCacheLineSize);
+
+            if (ulStart < ulEnd) {                                      /*  仅无效对齐部分              */
+                arm64DCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, uiArmV8DCacheLineSize);
+            }
             
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");

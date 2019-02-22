@@ -461,8 +461,10 @@ static INT  mipsCacheR4kInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, siz
             ulEnd &= ~((addr_t)_G_DCache.CACHE_uiLineSize - 1);
             mipsDCacheR4kClear((PVOID)ulEnd, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
         }
-                                                                        /*  仅无效对齐部分              */
-        mipsDCacheR4kInvalidate((PVOID)ulStart, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
+
+        if (ulStart < ulEnd) {                                          /*  仅无效对齐部分              */
+            mipsDCacheR4kInvalidate((PVOID)ulStart, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
+        }
     }
 
     return  (ERROR_NONE);
@@ -514,8 +516,10 @@ static INT  mipsCacheR4kInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, P
             ulEnd &= ~((addr_t)_G_DCache.CACHE_uiLineSize - 1);
             mipsDCacheR4kClear((PVOID)ulEnd, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
         }
-                                                                        /*  仅无效对齐部分              */
-        mipsDCacheR4kInvalidate((PVOID)ulStart, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
+
+        if (ulStart < ulEnd) {                                          /*  仅无效对齐部分              */
+            mipsDCacheR4kInvalidate((PVOID)ulStart, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
+        }
     }
 
     return  (ERROR_NONE);
