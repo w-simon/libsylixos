@@ -10,67 +10,71 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: bmsgfd.h
+** 文   件   名: semfd.h
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
-** 文件创建日期: 2019 年 02 月 02 日
+** 文件创建日期: 2019 年 02 月 23 日
 **
-** 描        述: 有边界消息设备实现.
+** 描        述: 信号量设备实现.
 *********************************************************************************************************/
 
-#ifndef __SYS_BMSGFD_H
-#define __SYS_BMSGFD_H
+#ifndef __SYS_SEMFD_H
+#define __SYS_SEMFD_H
 
 #include <unistd.h>
 #include <fcntl.h>
 
 /*********************************************************************************************************
- bmsgfd() flags
+ semfd() type
 *********************************************************************************************************/
 
-#define BMSGFD_SETBUFFER    O_TRUNC
+typedef enum {
+    SEMFD_TYPE_BINARY = 0,
+    SEMFD_TYPE_COUNTING,
+    SEMFD_TYPE_MUTEX
+} semfd_type;
 
 /*********************************************************************************************************
- bmsgfd() fd ioctl command: FIOBMSGGET, FIOBMSGSET
- If (param_flags & BMSGFD_PARAM_FLAG_FORCE) is true,
- FIOBMSGSET will set buffer parameters regardless of previous settings.
+ semfd() options (Currently, only wait queue type options can be set)
 *********************************************************************************************************/
 
-struct bmsg_param {
-    UINT32   param_flags;                                               /*  FIOBMSGSET set options      */
-    UINT32   total_size;                                                /*  total buffer size           */
-    UINT32   atomic_size;                                               /*  max atomic size in buffer   */
-    UINT32   auto_unlink;                                               /*  unlink on last close        */
-    UINT32   reserved[4];
+#define SEMFD_OPT_WAIT_PRIO     LW_OPTION_WAIT_PRIORITY
+
+/*********************************************************************************************************
+ set/get parameter
+*********************************************************************************************************/
+
+struct semfd_param {
+    semfd_type      sem_type;                                           /*  Type                        */
+    UINT32          sem_opts;                                           /*  Options                     */
+    UINT32          sem_value;                                          /*  Initialize value            */
+    UINT32          sem_max;                                            /*  Max value                   */
+    UINT32          auto_unlink;                                        /*  unlink on last close        */
+    UINT32          reserved[3];
 };
 
-#define BMSGFD_PARAM_FLAG_FORCE    1
-
 /*********************************************************************************************************
- bmsgfd() api
+ semfd() api
 
  NOTICE:
- The ... arguments is: mode_t mode, struct bmsg_param *param.
- If (flags & O_CREAT) You must add 'mode' argument.
- If ((flags & O_CREAT) && (flags & BMSGFD_SETBUFFER)) You must add 'mode' 'param' arguments.
- If bmsg file already exist, bmsgfd() did not change the buffer parameters.
+ The ... arguments is: mode_t mode, struct semfd_param *param.
+ If (flags & O_CREAT) You must add 'mode' 'param' argument.
+ If semfd file already exist, semfd() did not change the type value and options.
 *********************************************************************************************************/
 
 #ifdef __cplusplus
 extern "C" {
 #endif                                                                  /*  __cplusplus                 */
 
-int bmsgfd(const char *name, int flags, ...);
-int bmsgfd_bind(int fd, const char *name);
-int bmsgfd_unbind(int fd);
-int bmsgfd_timeout(int fd, unsigned long *send_ms, unsigned long *recv_ms);
+int semfd(const char *name, int flags, ...);
+int semfd_timeout(int fd, unsigned long *ms);
 
 #ifdef __cplusplus
 }
 #endif                                                                  /*  __cplusplus                 */
 
-#endif                                                                  /*  __SYS_BMSGFD_H              */
+#endif                                                                  /*  __SYS_SEMFD_H               */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

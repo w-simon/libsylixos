@@ -1841,6 +1841,8 @@ SylixOS/system/device/sdcard/core/sdiocoreLib.c \
 SylixOS/system/device/sdcard/core/sdiodrvm.c \
 SylixOS/system/device/sdcard/core/sdutil.c \
 SylixOS/system/device/sdcard/host/sdhci.c \
+SylixOS/system/device/semfd/semfd.c \
+SylixOS/system/device/semfd/semfdDev.c \
 SylixOS/system/device/shm/shm.c \
 SylixOS/system/device/spi/spiLib.c \
 SylixOS/system/device/spipe/spipe.c \

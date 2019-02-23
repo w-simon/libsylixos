@@ -23,6 +23,7 @@
 2007.11.13  使用链表库对链表操作进行完全封装.
 2008.10.17  改使用精度单调调度进行延迟.
 2011.11.29  调用回调时, 不能锁定内核.
+2019.02.23  最优时间等待.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -42,26 +43,46 @@ PVOID  _ITimerThread (PVOID  pvArg)
     REGISTER PLW_CLASS_TIMER            ptmr;
              PTIMER_CALLBACK_ROUTINE    pfuncRoutine;
              PVOID                      pvRoutineArg;
-    
-#if (LW_CFG_RMS_EN > 0) && (LW_CFG_MAX_RMSS > 0)
-             LW_OBJECT_HANDLE           ulRms = API_RmsCreate("rms_timer", 
-                                                               LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-#endif
+
+             PLW_CLASS_TCB              ptcbCur;
+             PLW_CLASS_PCB              ppcb;
+
+             PLW_CLASS_WAKEUP_NODE      pwun;
+             INT64                      i64LastTime;
+             INT64                      i64CurTime;
+             ULONG                      ulCounter;
     
     (VOID)pvArg;
     
+    LW_TCB_GET_CUR_SAFE(ptcbCur);                                       /*  当前任务控制块              */
+
     for (;;) {
-        PLW_CLASS_WAKEUP_NODE  pwun;
-        ULONG                  ulCounter = LW_ITIMER_RATE;
-        
-#if (LW_CFG_RMS_EN > 0) && (LW_CFG_MAX_RMSS > 0)
-        API_RmsPeriod(ulRms, LW_ITIMER_RATE);                           /*  使用 RMS 进行周期运行       */
-#else
-        API_TimeSleep(LW_ITIMER_RATE);                                  /*  等待一个扫描周期            */
-#endif
+        iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核同时关闭中断        */
+
+        __KERNEL_TIME_GET_NO_SPINLOCK(i64LastTime, INT64);              /*  原始时间                    */
+
+        __WAKEUP_GET_FIRST(&_K_wuITmr, pwun);                           /*  获得第一个节点              */
+
+        if (pwun) {
+            ulCounter = pwun->WUN_ulCounter;                            /*  已第一个节点等待时间 Sleep  */
+        } else {
+            ulCounter = LW_ITIMER_RATE;                                 /*  没有任何节点                */
+        }
+
+        ppcb = _GetPcb(ptcbCur);
+        __DEL_FROM_READY_RING(ptcbCur, ppcb);                           /*  从就绪表中删除              */
+
+        ptcbCur->TCB_ulDelay = ulCounter;
+        __ADD_TO_WAKEUP_LINE(ptcbCur);                                  /*  加入等待扫描链              */
+
+        __KERNEL_EXIT_IRQ(iregInterLevel);                              /*  退出内核同时打开中断        */
 
         iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核同时关闭中断        */
         
+        __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);               /*  获得 Sleep 后时间           */
+
+        ulCounter = (ULONG)(i64CurTime - i64LastTime);                  /*  真正睡眠时间                */
+
         __WAKEUP_PASS_FIRST(&_K_wuITmr, pwun, ulCounter);
         
         ptmr = _LIST_ENTRY(pwun, LW_CLASS_TIMER, TIMER_wunTimer);
@@ -98,6 +119,18 @@ PVOID  _ITimerThread (PVOID  pvArg)
     }
     
     return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: _ITimerWakeup
+** 功能描述: 唤醒 ITimer 线程。
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  _ITimerWakeup (VOID)
+{
+    API_ThreadWakeup(_K_ulThreadItimerId);
 }
 
 #endif                                                                  /*  (LW_CFG_ITIMER_EN > 0)      */

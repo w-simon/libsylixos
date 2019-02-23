@@ -54,6 +54,7 @@ typedef struct {
     LW_SEL_WAKEUPLIST   BMSGI_selwulist;
     size_t              BMSGI_stAtSize;                                 /*  一次原子操作最大范围        */
     INT                 BMSGI_iOpenNum;                                 /*  打开的次数                  */
+    INT                 BMSGI_iAutoUnlink;                              /*  最后一次释放自动删除        */
     mode_t              BMSGI_mode;
     time_t              BMSGI_time;                                     /*  节点时间, 一般为当前时间    */
     uid_t               BMSGI_uid;

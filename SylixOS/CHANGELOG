@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-02-23: han.hui
+    加入 Sem file IPC 服务.
+
     2019-02-15: han.hui
     加入 Bmsg IPC 服务.
 

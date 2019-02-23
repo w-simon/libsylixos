@@ -142,7 +142,8 @@ ULONG  API_TimerStartEx (LW_OBJECT_HANDLE         ulId,
     
     if (ptmr->TIMER_ucType == LW_TYPE_TIMER_ITIMER) {                   /*  加入扫描队列                */
         _WakeupAdd(&_K_wuITmr, &ptmr->TIMER_wunTimer);
-    
+        _ITimerWakeup();                                                /*  唤醒 itimer 服务线程        */
+
     } else {
         _WakeupAdd(&_K_wuHTmr, &ptmr->TIMER_wunTimer);
     }

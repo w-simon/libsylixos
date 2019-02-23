@@ -187,13 +187,20 @@
   SylixOS bmsg device (bind, unbind only for O_WRONLY file)
 *********************************************************************************************************/
 
-#define FIOBMSGGET          LW_OSIOR('f', 65, UINT32[4])        /* set bmsg file buffer setting         */
-#define FIOBMSGSET          LW_OSIOW('f', 66, UINT32[4])        /* get bmsg file buffer setting         */
+#define FIOBMSGGET          LW_OSIOR('f', 65, UINT32[8])        /* set bmsg file buffer setting         */
+#define FIOBMSGSET          LW_OSIOW('f', 66, UINT32[8])        /* get bmsg file buffer setting         */
 
 #define FIOBMSGBIND         LW_OSIOW('f', 67, LW_PATHB)         /* bind to a bmsg inode for send msg    */
 #define FIOBMSGUNBIND       LW_OSIO('f',  68)                   /* unbind from a bmsg inode             */
 
 #define FIOBMSGNNEXT        LW_OSIOR('f', 69, INT)              /* get num chars available to read next */
+
+/*********************************************************************************************************
+  SylixOS semfd device.
+*********************************************************************************************************/
+
+#define FIOSEMFDGET         LW_OSIOR('f', 81, UINT32[8])        /* set bmsg file buffer setting         */
+#define FIOSEMFDSET         LW_OSIOW('f', 82, UINT32[8])        /* get bmsg file buffer setting         */
 
 /*********************************************************************************************************
   hardware rtc driver

@@ -40,6 +40,7 @@ extern INT      __hashHorner(CPCHAR  pcKeyword, INT  iTableSize);
   驱动程序
 *********************************************************************************************************/
 static LONG     _bmsgOpen(PLW_BMSG_DEV    pbmsgdev, PCHAR  pcName, INT  iFlags, INT  iMode);
+static INT      _bmsgRemove(PLW_BMSG_DEV  pbmsgdev, PCHAR  pcName);
 static INT      _bmsgClose(PLW_BMSG_FILE  pbmsgfil);
 static ssize_t  _bmsgRead(PLW_BMSG_FILE   pbmsgfil, PCHAR  pcBuffer, size_t  stMaxBytes);
 static ssize_t  _bmsgWrite(PLW_BMSG_FILE  pbmsgfil, PCHAR  pcBuffer, size_t  stNBytes);
@@ -69,7 +70,7 @@ INT  API_BmsgDrvInstall (VOID)
 {
     if (_G_iBmsgDrvNum <= 0) {
         _G_iBmsgDrvNum  = iosDrvInstall(_bmsgOpen,
-                                        LW_NULL,
+                                        _bmsgRemove,
                                         _bmsgOpen,
                                         _bmsgClose,
                                         _bmsgRead,
@@ -271,8 +272,9 @@ static INT  _bmsgSetInode (PLW_BMSG_INODE  pbmsginode, struct bmsg_param *param)
         _bmsgDelete(pbmsginode->BMSGI_pbmsg);
     }
 
-    pbmsginode->BMSGI_pbmsg    = bmsg;
-    pbmsginode->BMSGI_stAtSize = param->atomic_size;
+    pbmsginode->BMSGI_pbmsg       = bmsg;
+    pbmsginode->BMSGI_stAtSize    = param->atomic_size;
+    pbmsginode->BMSGI_iAutoUnlink = param->auto_unlink;
 
     API_SemaphoreBClear(pbmsginode->BMSGI_ulReadLock);
     API_SemaphoreBPost(pbmsginode->BMSGI_ulWriteLock);
@@ -312,7 +314,7 @@ static INT  _bmsgFlushInode (PLW_BMSG_INODE  pbmsginode)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LONG  _bmsgOpen (PLW_BMSG_DEV  pevtfddev,
+static LONG  _bmsgOpen (PLW_BMSG_DEV  pmsgfddev,
                         PCHAR         pcName,
                         INT           iFlags,
                         INT           iMode)
@@ -431,6 +433,60 @@ static LONG  _bmsgOpen (PLW_BMSG_DEV  pevtfddev,
     return  ((LONG)pbmsgfil);
 }
 /*********************************************************************************************************
+** 函数名称: _bmsgRemove
+** 功能描述: 删除 inode 文件
+** 输　入  : pbmsgdev          bmsg 设备
+**           pcName            需要删除的文件
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  _bmsgRemove (PLW_BMSG_DEV  pbmsgdev, PCHAR  pcName)
+{
+    PLW_BMSG_INODE pbmsginode;
+    INT            iKey;
+
+    if (pcName == LW_NULL) {
+        _ErrorHandle(ERROR_IO_NO_DEVICE_NAME_IN_PATH);
+        return  (PX_ERROR);
+    }
+
+    if (*pcName == PX_DIVIDER) {                                        /*  去掉首部目录分隔符          */
+        pcName++;
+    }
+
+    BMSG_DEV_LOCK();
+    pbmsginode = _bmsgFindInode(pcName);
+    if (pbmsginode) {
+        if (_IosCheckPermissions(O_WRONLY, LW_FALSE,
+                                 pbmsginode->BMSGI_mode,
+                                 pbmsginode->BMSGI_uid,
+                                 pbmsginode->BMSGI_gid) < ERROR_NONE) {
+            BMSG_DEV_UNLOCK();
+            _ErrorHandle(EACCES);                                       /*  没有权限                    */
+            return  (PX_ERROR);
+        }
+
+        if (pbmsginode->BMSGI_iOpenNum) {
+            BMSG_DEV_UNLOCK();
+            _ErrorHandle(EBUSY);                                        /*  文件正在操作                */
+            return  (PX_ERROR);
+        }
+
+        iKey = __hashHorner(pbmsginode->BMSGI_cName, LW_BMSG_DEV_HASH);
+        _List_Line_Del(&pbmsginode->BMSGI_lineManage, &_G_bmsgdev.BMSGD_plineInode[iKey]);
+        _bmsgDeleteInode(pbmsginode);
+
+    } else {                                                            /*  未找到                      */
+        BMSG_DEV_UNLOCK();
+        _ErrorHandle(ENOENT);                                           /*  文件正在操作                */
+        return  (PX_ERROR);
+    }
+    BMSG_DEV_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: _bmsgClose
 ** 功能描述: 关闭 bmsg 文件
 ** 输　入  : pbmsgfil          bmsg 文件
@@ -447,7 +503,7 @@ static INT  _bmsgClose (PLW_BMSG_FILE  pbmsgfil)
     if (pbmsgfil->BMSGF_pinode) {
         pbmsginode = pbmsgfil->BMSGF_pinode;
         pbmsginode->BMSGI_iOpenNum--;
-        if (!pbmsginode->BMSGI_iOpenNum) {
+        if (!pbmsginode->BMSGI_iOpenNum && pbmsginode->BMSGI_iAutoUnlink) {
             iKey = __hashHorner(pbmsginode->BMSGI_cName, LW_BMSG_DEV_HASH);
             _List_Line_Del(&pbmsginode->BMSGI_lineManage, &_G_bmsgdev.BMSGD_plineInode[iKey]);
             _bmsgDeleteInode(pbmsginode);
@@ -466,7 +522,7 @@ static INT  _bmsgClose (PLW_BMSG_FILE  pbmsgfil)
 ** 输　入  : pbmsgfil         bmsgfd 文件
 **           pcBuffer         接收缓冲区
 **           stMaxBytes       接收缓冲区大小
-** 输　出  : ERROR
+** 输　出  : 读取字节数
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -546,7 +602,7 @@ static ssize_t  _bmsgRead (PLW_BMSG_FILE   pbmsgfil,
 ** 输　入  : pbmsgfil         bmsg 文件
 **           pcBuffer         将要写入的数据指针
 **           stNBytes         写入数据大小
-** 输　出  : ERROR
+** 输　出  : 写入字节数
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -698,6 +754,11 @@ static INT  _bmsgNReadFnode (PLW_BMSG_FILE  pbmsgfil, INT  *piNRead)
         return  (PX_ERROR);
     }
 
+    if (!pbmsgfil->BMSGF_pinode->BMSGI_pbmsg) {                         /*  没有初始化                  */
+        _ErrorHandle(ENOSPC);
+        return  (PX_ERROR);
+    }
+
     BMSG_DEV_LOCK();
     *piNRead = _bmsgNBytes(pbmsgfil->BMSGF_pinode->BMSGI_pbmsg);
     BMSG_DEV_UNLOCK();
@@ -722,6 +783,11 @@ static INT  _bmsgNNextFnode (PLW_BMSG_FILE  pbmsgfil, INT  *piNNext)
 
     if (!pbmsgfil->BMSGF_pinode) {
         _ErrorHandle(EISDIR);
+        return  (PX_ERROR);
+    }
+
+    if (!pbmsgfil->BMSGF_pinode->BMSGI_pbmsg) {                         /*  没有初始化                  */
+        _ErrorHandle(ENOSPC);
         return  (PX_ERROR);
     }
 
@@ -847,7 +913,7 @@ static INT  _bmsgBindFnode (PLW_BMSG_FILE  pbmsgfil, CPCHAR  pcName)
         if (pbmsgfil->BMSGF_pinode) {
             pbmsginodeOld = pbmsgfil->BMSGF_pinode;
             pbmsginodeOld->BMSGI_iOpenNum--;
-            if (!pbmsginodeOld->BMSGI_iOpenNum) {
+            if (!pbmsginodeOld->BMSGI_iOpenNum && pbmsginodeOld->BMSGI_iAutoUnlink) {
                 iKey = __hashHorner(pbmsginodeOld->BMSGI_cName, LW_BMSG_DEV_HASH);
                 _List_Line_Del(&pbmsginodeOld->BMSGI_lineManage, &_G_bmsgdev.BMSGD_plineInode[iKey]);
                 _bmsgDeleteInode(pbmsginodeOld);
@@ -882,7 +948,7 @@ static INT  _bmsgUnbindFnode (PLW_BMSG_FILE  pbmsgfil)
     if (pbmsgfil->BMSGF_pinode) {
         pbmsginodeOld = pbmsgfil->BMSGF_pinode;
         pbmsginodeOld->BMSGI_iOpenNum--;
-        if (!pbmsginodeOld->BMSGI_iOpenNum) {
+        if (!pbmsginodeOld->BMSGI_iOpenNum && pbmsginodeOld->BMSGI_iAutoUnlink) {
             iKey = __hashHorner(pbmsginodeOld->BMSGI_cName, LW_BMSG_DEV_HASH);
             _List_Line_Del(&pbmsginodeOld->BMSGI_lineManage, &_G_bmsgdev.BMSGD_plineInode[iKey]);
             _bmsgDeleteInode(pbmsginodeOld);
@@ -1032,6 +1098,11 @@ static INT  _bmsgSelect (PLW_BMSG_FILE  pbmsgfil, PLW_SEL_WAKEUPNODE  pselwunNod
             SEL_WAKE_UP(pselwunNode);
         }
         return  (ERROR_NONE);
+    }
+
+    if (!pbmsgfil->BMSGF_pinode->BMSGI_pbmsg) {                         /*  没有初始化                  */
+        _ErrorHandle(ENOSPC);
+        return  (PX_ERROR);
     }
 
     pbmsginode = pbmsgfil->BMSGF_pinode;
