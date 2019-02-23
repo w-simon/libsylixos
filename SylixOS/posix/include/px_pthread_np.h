@@ -43,6 +43,8 @@ extern "C" {
 
 LW_API int  pthread_null_attr_method_np(int  method, int *old_method);
 
+LW_API int  pthread_wakeup_np(pthread_t  thread, int  timeout_only);
+
 LW_API int  pthread_attr_get_np(pthread_t  thread, pthread_attr_t *pattr);
 LW_API int  pthread_getattr_np(pthread_t thread, pthread_attr_t *pattr);
 

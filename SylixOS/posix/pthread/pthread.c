@@ -826,6 +826,32 @@ int  pthread_getname_np (pthread_t  thread, char  *name, size_t len)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: pthread_wakeup_np
+** 功能描述: 唤醒一个阻塞的线程
+** 输　入  : thread        线程句柄
+**           timeout_only  是否仅唤醒带有超时设置的阻塞线程.
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  pthread_wakeup_np (pthread_t  thread, int  timeout_only)
+{
+    ULONG   ulError;
+    BOOL    bWithInfPend = timeout_only ? LW_FALSE : LW_TRUE;
+
+    PX_ID_VERIFY(thread, pthread_t);
+
+    ulError = API_ThreadWakeupEx(thread, bWithInfPend);
+    if (ulError) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: pthread_safe_np
 ** 功能描述: 线程进入安全模式, 任何对本线程的删除操作都会推迟到线程退出安全模式时进行.
 ** 输　入  : NONE
