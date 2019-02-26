@@ -168,6 +168,105 @@ VOID    API_SelWakeupAll (PLW_SEL_WAKEUPLIST  pselwulList, LW_SEL_TYPE  seltyp)
     SEL_LIST_UNLOCK(pselwulList);
 }
 /*********************************************************************************************************
+** 函数名称: API_SelWakeupFifo
+** 功能描述: 唤醒最早等待指定操作的线程
+** 输　入  : pselwulList        select wake up list 控制结构
+             seltyp             等待类型
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_SEMFD_EN > 0
+
+LW_API
+VOID    API_SelWakeupFifo (PLW_SEL_WAKEUPLIST  pselwulList, LW_SEL_TYPE  seltyp)
+{
+    REGISTER PLW_SEL_WAKEUPNODE     pselwunNode;
+    REGISTER PLW_SEL_WAKEUPNODE     pselwunOld = LW_NULL;
+    REGISTER PLW_LIST_LINE          plineNode;
+
+    if (!pselwulList || !pselwulList->SELWUL_plineHeader) {             /*  没有节点                    */
+        return;
+    }
+
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  在中断中                    */
+        _excJobAdd((VOIDFUNCPTR)API_SelWakeupFifo, (PVOID)pselwulList, (PVOID)seltyp,
+                   0, 0, 0, 0);                                         /*  底半中断处理                */
+        return;
+    }
+
+    SEL_LIST_LOCK(pselwulList);
+
+    for (plineNode  = pselwulList->SELWUL_plineHeader;
+         plineNode != LW_NULL;
+         plineNode  = _list_line_get_next(plineNode)) {                 /*  遍历所有节点                */
+
+        pselwunNode = _LIST_ENTRY(plineNode, LW_SEL_WAKEUPNODE, SELWUN_lineManage);
+        if (pselwunNode->SELWUN_seltypType == seltyp) {                 /*  检查类型                    */
+            pselwunOld = pselwunNode;
+        }
+    }
+
+    if (pselwunOld) {
+        API_SelWakeup(pselwunOld);                                      /*  释放                        */
+    }
+
+    SEL_LIST_UNLOCK(pselwulList);
+}
+/*********************************************************************************************************
+** 函数名称: API_SelWakeupPrio
+** 功能描述: 唤醒优先级最高等待指定操作的线程
+** 输　入  : pselwulList        select wake up list 控制结构
+             seltyp             等待类型
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+VOID    API_SelWakeupPrio (PLW_SEL_WAKEUPLIST  pselwulList, LW_SEL_TYPE  seltyp)
+{
+    REGISTER PLW_SEL_WAKEUPNODE     pselwunNode;
+    REGISTER PLW_SEL_WAKEUPNODE     pselwunPrio = LW_NULL;
+    REGISTER PLW_LIST_LINE          plineNode;
+             UINT8                  ucPrio, ucPrioHigh = LW_PRIO_LOWEST;
+
+    if (!pselwulList || !pselwulList->SELWUL_plineHeader) {             /*  没有节点                    */
+        return;
+    }
+
+    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  在中断中                    */
+        _excJobAdd((VOIDFUNCPTR)API_SelWakeupPrio, (PVOID)pselwulList, (PVOID)seltyp,
+                   0, 0, 0, 0);                                         /*  底半中断处理                */
+        return;
+    }
+
+    SEL_LIST_LOCK(pselwulList);
+
+    for (plineNode  = pselwulList->SELWUL_plineHeader;
+         plineNode != LW_NULL;
+         plineNode  = _list_line_get_next(plineNode)) {                 /*  遍历所有节点                */
+
+        pselwunNode = _LIST_ENTRY(plineNode, LW_SEL_WAKEUPNODE, SELWUN_lineManage);
+        if (pselwunNode->SELWUN_seltypType == seltyp) {                 /*  检查类型                    */
+            API_ThreadGetPriority(pselwunNode->SELWUN_hThreadId, &ucPrio);
+            if (pselwunPrio == LW_NULL || (ucPrio <= ucPrioHigh)) {
+                pselwunPrio = pselwunNode;
+                ucPrioHigh  = ucPrio;
+            }
+        }
+    }
+
+    if (pselwunPrio) {
+        API_SelWakeup(pselwunPrio);                                     /*  释放                        */
+    }
+
+    SEL_LIST_UNLOCK(pselwulList);
+}
+
+#endif                                                                  /*  LW_CFG_SEMFD_EN > 0         */
+/*********************************************************************************************************
 ** 函数名称: API_SelWakeupAllByFlags
 ** 功能描述: 唤醒所有等待指定操作的线程
 ** 输　入  : pselwulList        select wake up list 控制结构

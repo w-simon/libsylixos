@@ -40,6 +40,11 @@ LW_API LW_SEL_TYPE  API_SelWakeupType(PLW_SEL_WAKEUPNODE   pselwunNode);
 LW_API VOID         API_SelWakeup(PLW_SEL_WAKEUPNODE   pselwunNode);
 LW_API VOID         API_SelWakeupError(PLW_SEL_WAKEUPNODE   pselwunNode);
 
+#if LW_CFG_SEMFD_EN > 0
+LW_API VOID         API_SelWakeupFifo(PLW_SEL_WAKEUPLIST  pselwulList, LW_SEL_TYPE  seltyp);
+LW_API VOID         API_SelWakeupPrio(PLW_SEL_WAKEUPLIST  pselwulList, LW_SEL_TYPE  seltyp);
+#endif                                                                  /*  LW_CFG_SEMFD_EN > 0         */
+
 LW_API VOID         API_SelWakeupAll(PLW_SEL_WAKEUPLIST   pselwulList, LW_SEL_TYPE  seltyp);
 LW_API VOID         API_SelWakeupAllByFlags(PLW_SEL_WAKEUPLIST  pselwulList, UINT  uiFlags);
 LW_API VOID         API_SelWakeupTerm(PLW_SEL_WAKEUPLIST   pselwulList);
@@ -74,6 +79,14 @@ LW_API INT          API_SelNodeDelete(PLW_SEL_WAKEUPLIST   pselwulList,
 #define SEL_WAKE_UP_ALL_BY_FLAGS(pselwulList, uiFlags)      \
         API_SelWakeupAllByFlags(pselwulList, uiFlags)
         
+#if LW_CFG_SEMFD_EN > 0
+#define SEL_WAKE_UP_FIFO(pselwulList, seltyp)               \
+        API_SelWakeupFifo(pselwulList, seltyp)
+
+#define SEL_WAKE_UP_PRIO(pselwulList, seltyp)               \
+        API_SelWakeupPrio(pselwulList, seltyp)
+#endif                                                                  /*  LW_CFG_SEMFD_EN > 0         */
+
 #define SEL_WAKE_UP_TERM(pselwulList)                       \
         API_SelWakeupTerm(pselwulList)
 

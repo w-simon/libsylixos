@@ -33,9 +33,9 @@ LOCAL_TARGET_NAME := xinput.ko
 # Source list
 #*********************************************************************************************************
 LOCAL_SRCS := \
-SylixOS/xinput/xdev.c \
-SylixOS/xinput/xinput.c \
-SylixOS/xinput/xproc.c
+SylixOS/kmodule/xinput/xdev.c \
+SylixOS/kmodule/xinput/xinput.c \
+SylixOS/kmodule/xinput/xproc.c
 
 #*********************************************************************************************************
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")

@@ -52,6 +52,7 @@ typedef struct {
     LW_SEL_WAKEUPLIST   SEMFDI_selwulist;
     INT                 SEMFDI_iOpenNum;                                /*  打开的次数                  */
     INT                 SEMFDI_iAutoUnlink;                             /*  最后一次释放自动删除        */
+    ULONG               SEMFDI_ulOption;                                /*  事件选项                    */
     mode_t              SEMFDI_mode;
     time_t              SEMFDI_time;                                    /*  节点时间, 一般为当前时间    */
     uid_t               SEMFDI_uid;

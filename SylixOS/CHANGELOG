@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-02-26: han.hui
+    加入 xtimer 内核模块, 供驱动程序与其他内核模块使用.
+
     2019-02-23: han.hui
     加入 Sem file IPC 服务.
 

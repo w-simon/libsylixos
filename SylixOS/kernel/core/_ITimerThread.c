@@ -28,6 +28,10 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
+
+*********************************************************************************************************/
+#define LW_ITIMER_IDLE_TICK     (LW_TICK_HZ * 100)
+/*********************************************************************************************************
 ** 函数名称: _ITimerThread
 ** 功能描述: 这是系统普通定时器周期服务线程。
 ** 输　入  : 
@@ -51,6 +55,7 @@ PVOID  _ITimerThread (PVOID  pvArg)
              INT64                      i64LastTime;
              INT64                      i64CurTime;
              ULONG                      ulCounter;
+             BOOL                       bNoTimer;
     
     (VOID)pvArg;
     
@@ -65,8 +70,11 @@ PVOID  _ITimerThread (PVOID  pvArg)
 
         if (pwun) {
             ulCounter = pwun->WUN_ulCounter;                            /*  已第一个节点等待时间 Sleep  */
+            bNoTimer  = LW_FALSE;
+
         } else {
-            ulCounter = LW_ITIMER_RATE;                                 /*  没有任何节点                */
+            ulCounter = LW_ITIMER_IDLE_TICK;                            /*  没有任何节点 (会被自动唤醒) */
+            bNoTimer  = LW_TRUE;
         }
 
         ppcb = _GetPcb(ptcbCur);
@@ -79,6 +87,11 @@ PVOID  _ITimerThread (PVOID  pvArg)
 
         iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核同时关闭中断        */
         
+        if (bNoTimer) {
+            __KERNEL_EXIT_IRQ(iregInterLevel);                          /*  退出内核同时打开中断        */
+            continue;
+        }
+
         __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);               /*  获得 Sleep 后时间           */
 
         ulCounter = (ULONG)(i64CurTime - i64LastTime);                  /*  真正睡眠时间                */

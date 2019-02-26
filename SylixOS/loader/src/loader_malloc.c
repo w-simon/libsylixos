@@ -300,6 +300,41 @@ PVOID  __ldMallocArea (size_t  stLen)
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
+  c6x 特殊内存处理
+*********************************************************************************************************/
+#if defined(LW_CFG_CPU_ARCH_C6X) && (LW_CFG_C6X_CUSTOM_MEM > 0)
+/*********************************************************************************************************
+  bsp 自定义内存管理函数
+*********************************************************************************************************/
+extern PVOID  bspLibMemCustomAllocAlign(size_t  stLen, size_t  stAlign);
+extern VOID   bspLibMemCustomFree(PVOID  pvAddr);
+extern BOOL   bspLibIsInMemCustom(PVOID  pvAddr);
+/*********************************************************************************************************
+** 函数名称: __ldUseBspCustomMem
+** 功能描述: 判断是否从 bsp 自定义内存分配内存，由环境变量设置 "APP_MEM_CUSTOM=1" 决定
+** 输　入  : NONE
+** 输　出  : 使用 bsp 自定义内存分配内存返回 LW_TRUE, 否则返回 LW_FALSE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  __ldUseBspCustomMem (VOID)
+{
+    CHAR   cBuffer[8] = "";
+
+    if (lib_getenv_r("APP_MEM_CUSTOM", cBuffer,
+                     sizeof(cBuffer)) != ERROR_NONE) {
+        return  (LW_FALSE);
+    }
+
+    if (lib_strcmp(cBuffer, "1")) {
+        return  (LW_FALSE);
+    }
+
+    return  (LW_TRUE);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+/*********************************************************************************************************
 ** 函数名称: __ldMallocAreaAlign
 ** 功能描述: 分配内存(大容量, 装载 .so 共享库时使用此内存). 此内存仅是虚拟空间, 没有对应的物理内存
 ** 输　入  : stLen         分配内存长度
@@ -318,6 +353,16 @@ PVOID  __ldMallocAreaAlign (size_t  stLen, size_t  stAlign)
                                     LW_VMM_PRIVATE_CHANGE, 
                                     LW_VMM_FLAG_EXEC | LW_VMM_FLAG_RDWR));
 #else
+
+#ifdef defined(LW_CFG_CPU_ARCH_C6X) && (LW_CFG_C6X_CUSTOM_MEM > 0)
+    if (__ldUseBspCustomMem()) {
+        PVOID pvAddr = bspLibMemCustomAllocAlign(stLen, stAlign);
+        if (pvAddr != LW_NULL) {
+            return  (pvAddr);
+        }
+    }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+
     return  (__SHEAP_ALLOC_ALIGN(stLen, stAlign));
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
@@ -343,6 +388,14 @@ VOID   __ldFreeArea (PVOID  pvAddr)
     
     API_VmmFreeArea(pvAddr);
 #else
+
+#ifdef defined(LW_CFG_CPU_ARCH_C6X) && (LW_CFG_C6X_CUSTOM_MEM > 0)
+    if (bspLibIsInMemCustom(pvAddr)) {
+        bspLibMemCustomFree(pvAddr);
+        return;
+    }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
+
     __SHEAP_FREE(pvAddr);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }

@@ -734,6 +734,38 @@ __out:
     return  (iError);
 }
 /*********************************************************************************************************
+** 函数名称: _bmsgNFreeFnode
+** 功能描述: bmsg 获得文件中空闲字节数
+** 输　入  : pbmsgfil            bmsg 文件
+**           piNFree             数据字节数
+** 输　出  : < 0 表示错误
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  _bmsgNFreeFnode (PLW_BMSG_FILE  pbmsgfil, INT  *piNFree)
+{
+    if (!piNFree) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (!pbmsgfil->BMSGF_pinode) {
+        _ErrorHandle(EISDIR);
+        return  (PX_ERROR);
+    }
+
+    if (!pbmsgfil->BMSGF_pinode->BMSGI_pbmsg) {                         /*  没有初始化                  */
+        _ErrorHandle(ENOSPC);
+        return  (PX_ERROR);
+    }
+
+    BMSG_DEV_LOCK();
+    *piNFree = _bmsgFreeByte(pbmsgfil->BMSGF_pinode->BMSGI_pbmsg);
+    BMSG_DEV_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: _bmsgNReadFnode
 ** 功能描述: bmsg 获得文件中剩余的数据字节数
 ** 输　入  : pbmsgfil            bmsg 文件
@@ -1193,6 +1225,9 @@ static INT  _bmsgIoctl (PLW_BMSG_FILE   pbmsgfil,
             pbmsgfil->BMSGF_iFlag &= ~O_NONBLOCK;
         }
         break;
+
+    case FIONFREE:
+        return  (_bmsgNFreeFnode(pbmsgfil, (INT *)lArg));
 
     case FIONREAD:
         return  (_bmsgNReadFnode(pbmsgfil, (INT *)lArg));

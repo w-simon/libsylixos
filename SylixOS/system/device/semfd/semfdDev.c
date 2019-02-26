@@ -227,6 +227,8 @@ static INT  _semfdSetInode (PLW_SEMFD_INODE  psemfdinode, struct semfd_param *pa
         return  (PX_ERROR);
     }
 
+    ulOpt |= param->sem_opts;
+
     switch (param->sem_type) {
 
     case SEMFD_TYPE_BINARY:
@@ -257,6 +259,7 @@ static INT  _semfdSetInode (PLW_SEMFD_INODE  psemfdinode, struct semfd_param *pa
     }
 
     psemfdinode->SEMFDI_iAutoUnlink = param->auto_unlink;
+    psemfdinode->SEMFDI_ulOption    = ulOpt;
 
     SEL_WAKE_UP_ALL(&psemfdinode->SEMFDI_selwulist, SELWRITE);
 
@@ -523,7 +526,11 @@ static ssize_t  _semfdRead (PLW_SEMFD_FILE  psemfdfil,
         return  (0);
     }
 
-    SEL_WAKE_UP_ALL(&psemfdinode->SEMFDI_selwulist, SELWRITE);          /*  可写                        */
+    if (psemfdinode->SEMFDI_ulOption & LW_OPTION_WAIT_PRIORITY) {
+        SEL_WAKE_UP_PRIO(&psemfdinode->SEMFDI_selwulist, SELWRITE);     /*  可写                        */
+    } else {
+        SEL_WAKE_UP_FIFO(&psemfdinode->SEMFDI_selwulist, SELWRITE);
+    }
 
     *pcBuffer = 1;
 
@@ -574,7 +581,11 @@ static ssize_t  _semfdWrite (PLW_SEMFD_FILE  psemfdfil,
         return  (0);
     }
 
-    SEL_WAKE_UP_ALL(&psemfdinode->SEMFDI_selwulist, SELREAD);           /*  可读                        */
+    if (psemfdinode->SEMFDI_ulOption & LW_OPTION_WAIT_PRIORITY) {
+        SEL_WAKE_UP_PRIO(&psemfdinode->SEMFDI_selwulist, SELREAD);      /*  可读                        */
+    } else {
+        SEL_WAKE_UP_FIFO(&psemfdinode->SEMFDI_selwulist, SELREAD);
+    }
 
     return  (1);
 }
@@ -639,6 +650,68 @@ __out:
     SEMFD_DEV_UNLOCK();
 
     return  (iError);
+}
+/*********************************************************************************************************
+** 函数名称: _semfdNFreeFnode
+** 功能描述: semfd 获得文件中空闲字节数
+** 输　入  : psemfdfil           semfd 文件
+**           piNFree             数据字节数
+** 输　出  : < 0 表示错误
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  _semfdNFreeFnode (PLW_SEMFD_FILE  psemfdfil, INT  *piNFree)
+{
+    BOOL    bValue     = LW_FALSE;
+    ULONG   ulValue    = 0;
+    ULONG   ulMaxValue = 0;
+
+    if (!piNFree) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (!psemfdfil->SEMFDF_pinode) {
+        _ErrorHandle(EISDIR);
+        return  (PX_ERROR);
+    }
+
+    if (!psemfdfil->SEMFDF_pinode->SEMFDI_ulSem) {                      /*  没有初始化                  */
+        _ErrorHandle(ENOSPC);
+        return  (PX_ERROR);
+    }
+
+    *piNFree = 0;
+
+    switch (_ObjectGetClass(psemfdfil->SEMFDF_pinode->SEMFDI_ulSem)) {
+
+    case _OBJECT_SEM_B:
+        API_SemaphoreBStatus(psemfdfil->SEMFDF_pinode->SEMFDI_ulSem, &bValue, LW_NULL, LW_NULL);
+        if (!bValue) {
+            *piNFree = 1;
+        }
+        break;
+
+    case _OBJECT_SEM_C:
+        API_SemaphoreCStatusEx(psemfdfil->SEMFDF_pinode->SEMFDI_ulSem, &ulValue, LW_NULL, LW_NULL, &ulMaxValue);
+        if (ulValue < ulMaxValue) {
+            *piNFree = 1;
+        }
+        break;
+
+    case _OBJECT_SEM_M:
+        API_SemaphoreMStatus(psemfdfil->SEMFDF_pinode->SEMFDI_ulSem, &bValue, LW_NULL, LW_NULL);
+        if (!bValue) {
+            *piNFree = 1;
+        }
+        break;
+
+    default:
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: _bsemfdNReadFnode
@@ -1039,6 +1112,9 @@ static INT  _semfdIoctl (PLW_SEMFD_FILE  psemfdfil,
             psemfdfil->SEMFDF_iFlag &= ~O_NONBLOCK;
         }
         break;
+
+    case FIONFREE:
+        return  (_semfdNFreeFnode(psemfdfil, (INT *)lArg));
 
     case FIONREAD:
         return  (_semfdNReadFnode(psemfdfil, (INT *)lArg));

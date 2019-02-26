@@ -36,10 +36,11 @@ typedef enum {
 } semfd_type;
 
 /*********************************************************************************************************
- semfd() options (Currently, only wait queue type options can be set)
+ semfd() options (Currently, only wait queue type and delete safe options can be set)
 *********************************************************************************************************/
 
 #define SEMFD_OPT_WAIT_PRIO     LW_OPTION_WAIT_PRIORITY
+#define SEMFD_OPT_DELETE_SAFE   LW_OPTION_DELETE_SAFE                   /*  Only for mutex              */
 
 /*********************************************************************************************************
  set/get parameter

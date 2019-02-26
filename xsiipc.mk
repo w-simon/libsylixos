@@ -33,11 +33,11 @@ LOCAL_TARGET_NAME := xsiipc.ko
 # Source list
 #*********************************************************************************************************
 LOCAL_SRCS := \
-SylixOS/xsiipc/msg.c \
-SylixOS/xsiipc/proc.c \
-SylixOS/xsiipc/sem.c \
-SylixOS/xsiipc/shm.c \
-SylixOS/xsiipc/xsiipc.c
+SylixOS/kmodule/xsiipc/msg.c \
+SylixOS/kmodule/xsiipc/proc.c \
+SylixOS/kmodule/xsiipc/sem.c \
+SylixOS/kmodule/xsiipc/shm.c \
+SylixOS/kmodule/xsiipc/xsiipc.c
 
 #*********************************************************************************************************
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
