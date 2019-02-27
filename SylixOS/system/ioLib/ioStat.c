@@ -47,6 +47,7 @@
   加入裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_DEVICE_EN > 0
+#include "limits.h"
 /*********************************************************************************************************
   文件系统相关
 *********************************************************************************************************/
@@ -824,45 +825,84 @@ VOID  sync (VOID)
 LW_API 
 INT  access (CPCHAR pcPath, INT  iMode)
 {
-    REGISTER INT          iError;
+             INT          i, iNum;
+    REGISTER INT          iError, iErrCode;
+    REGISTER INT          iRead, iWrite, iExec;
     REGISTER INT          iFd = open(pcPath, O_RDONLY | O_PEEKONLY, 0);
+             uid_t        uid = geteuid();
+             gid_t        gid = getegid();
+             gid_t        gidList[NGROUPS_MAX];
              struct stat  statFile;
     
     if (iFd < 0) {
         return  (PX_ERROR);
     }
     
-    iError = fstat(iFd, &statFile);
+    iError   = fstat(iFd, &statFile);
+    iErrCode = errno;
+    close(iFd);
+
     if (iError < 0) {
-        iError = errno;
-        close(iFd);
-        errno  = iError;
+        errno = iErrCode;
         return  (PX_ERROR);
     }
     
+    if (uid == 0) {
+        iRead  = S_IRUSR | S_IRGRP | S_IROTH;
+        iWrite = S_IWUSR | S_IWGRP | S_IWOTH;
+        iExec  = S_IXUSR | S_IXGRP | S_IXOTH;
+
+    } else if (uid == statFile.st_uid) {
+        iRead  = S_IRUSR;
+        iWrite = S_IWUSR;
+        iExec  = S_IXUSR;
+
+    } else if (gid == statFile.st_gid) {
+        iRead  = S_IRGRP;
+        iWrite = S_IWGRP;
+        iExec  = S_IXGRP;
+
+    } else {
+        iNum = getgroups(NGROUPS_MAX, gidList);
+        for (i = 0; i < iNum; i++) {
+            if (gidList[i] == statFile.st_gid) {
+                break;
+            }
+        }
+
+        if (i < iNum) {
+            iRead  = S_IRGRP;
+            iWrite = S_IWGRP;
+            iExec  = S_IXGRP;
+
+        } else {
+            iRead  = S_IROTH;
+            iWrite = S_IWOTH;
+            iExec  = S_IXOTH;
+        }
+    }
+
     if (iMode & R_OK) {
-        if ((statFile.st_mode & S_IREAD) == 0) {
+        if ((statFile.st_mode & iRead) == 0) {
             goto    __error_handle;
         }
     }
     
     if (iMode & W_OK) {
-        if ((statFile.st_mode & S_IWRITE) == 0) {
+        if ((statFile.st_mode & iWrite) == 0) {
             goto    __error_handle;
         }
     }
     
     if (iMode & X_OK) {
-        if ((statFile.st_mode & S_IEXEC) == 0) {
+        if ((statFile.st_mode & iExec) == 0) {
             goto    __error_handle;
         }
     }
-    close(iFd);
     
     return  (ERROR_NONE);
     
 __error_handle:
-    close(iFd);
     errno = EACCES;
     return  (PX_ERROR);
 }

@@ -81,8 +81,8 @@ static LW_INLINE void xtimer_init (xtimer_t *timer)
 
 static LW_INLINE void xtimer_setup (xtimer_t *timer, void (*function)(ULONG), ULONG data)
 {
-    timer->data = 0;
-    timer->func = LW_NULL;
+    timer->data = data;
+    timer->func = function;
     xtimer_init(timer);
 }
 

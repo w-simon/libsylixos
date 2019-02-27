@@ -644,7 +644,7 @@ __out:
                     psemfdinode->SEMFDI_cName,
                     sizeof(dir->dir_dirent.d_name));
 
-        dir->dir_dirent.d_type = DT_FIFO;
+        dir->dir_dirent.d_type = DT_CHR;
         dir->dir_dirent.d_shortname[0] = PX_EOS;
     }
     SEMFD_DEV_UNLOCK();

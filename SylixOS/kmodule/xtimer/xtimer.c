@@ -72,9 +72,9 @@ static void xtimer_stop_internal(xtimer_t *timer, BOOL adj);
 static void xtimer_start_internal(xtimer_t *timer);
 
 /*
- * Timer serice task.
+ * Timer service task.
  */
-static PVOID xtimer_serive (PVOID arg)
+static PVOID xtimer_service (PVOID arg)
 {
     BOOL no_timer;
     INT64  last_tick, cur_tick;
@@ -352,7 +352,7 @@ int module_init (void)
                         (LW_CFG_ITIMER_OPTION | LW_OPTION_THREAD_SAFE |
                          LW_OPTION_OBJECT_GLOBAL | LW_OPTION_THREAD_DETACHED), LW_NULL);
 
-    xtimer_task = API_ThreadCreate("t_xtimer", xtimer_serive, &attr, LW_NULL);
+    xtimer_task = API_ThreadCreate("t_xtimer", xtimer_service, &attr, LW_NULL);
     if (xtimer_mutex == LW_HANDLE_INVALID) {
         API_SemaphoreMDelete(&xtimer_mutex);
         API_ThreadCondDestroy(&xtimer_cond);
