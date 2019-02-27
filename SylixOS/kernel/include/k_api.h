@@ -378,6 +378,7 @@ LW_API ULONG            API_ThreadSetNotePad(LW_OBJECT_HANDLE  ulId,
 LW_API ULONG            API_ThreadGetNotePad(LW_OBJECT_HANDLE  ulId,
                                              UINT8             ucNodeIndex);
                                                                         /*  获得线程记事本              */
+LW_API ULONG            API_ThreadCurNotePad(UINT8  ucNoteIndex);       /*  获得当前任务记事本          */
 #endif
 
 #if LW_CFG_SOFTWARE_WATCHDOG_EN > 0

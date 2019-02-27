@@ -86,6 +86,33 @@ ULONG  API_ThreadGetNotePad (LW_OBJECT_HANDLE  ulId,
     
     return  (ulValTemp);
 }
+/*********************************************************************************************************
+** 函数名称: API_ThreadCurNotePad
+** 功能描述: 获得线程记事本
+** 输　入  :
+**           ucNoteIndex                   线程记事本索引
+** 输　出  : 线程记事本值
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_ThreadCurNotePad (UINT8  ucNoteIndex)
+{
+    REGISTER PLW_CLASS_TCB  ptcbCur;
+
+#if LW_CFG_ARG_CHK_EN > 0
+    if (ucNoteIndex >= LW_CFG_MAX_NOTEPADS) {                           /*  检查记事本索引              */
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "notepad invalidate.\r\n");
+        _ErrorHandle(ERROR_THREAD_NOTEPAD_INDEX);
+        return  (0);
+    }
+#endif
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    return  (ptcbCur->TCB_notepadThreadNotePad.NOTEPAD_ulNotePad[ucNoteIndex]);
+}
 
 #endif                                                                  /*  (LW_CFG_THREAD_NOTE_PAD_... */
                                                                         /*  (LW_CFG_MAX_NOTEPADS > 0)   */
