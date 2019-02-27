@@ -192,12 +192,17 @@ long  sysconf (int name)
         {
             INT     i, iPages = 0;
             size_t  stPhySize;
+            LW_MMU_PHYSICAL_DESC  phydesc[2];
+
             for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) {
                 if (API_VmmZoneStatus((ULONG)i, LW_NULL, &stPhySize, 
                                       LW_NULL, LW_NULL, LW_NULL) == ERROR_NONE) {
                     iPages += (INT)(stPhySize >> LW_CFG_VMM_PAGE_SHIFT);
                 }
             }
+            API_VmmPhysicalKernelDesc(&phydesc[0], &phydesc[1]);
+            iPages += (INT)(phydesc[0].PHYD_stSize >> LW_CFG_VMM_PAGE_SHIFT);
+            iPages += (INT)(phydesc[1].PHYD_stSize >> LW_CFG_VMM_PAGE_SHIFT);
             return  (iPages);
         }
         
@@ -215,6 +220,36 @@ long  sysconf (int name)
         }
 #endif
         
+    case _SC_KERNS_PAGES:
+        {
+            size_t stGet, stTotal = 0;
+
+            if (API_KernelHeapInfo(LW_OPTION_HEAP_KERNEL, &stGet, LW_NULL,
+                                   LW_NULL, LW_NULL, LW_NULL) == ERROR_NONE) {
+                stTotal += stGet;
+            }
+            if (API_KernelHeapInfo(LW_OPTION_HEAP_SYSTEM, &stGet, LW_NULL,
+                                   LW_NULL, LW_NULL, LW_NULL) == ERROR_NONE) {
+                stTotal += stGet;
+            }
+            return  ((int)(stTotal >> LW_CFG_VMM_PAGE_SHIFT));
+        }
+
+    case _SC_AVKERNS_PAGES:
+        {
+            size_t stGet, stFree = 0;
+
+            if (API_KernelHeapInfo(LW_OPTION_HEAP_KERNEL, LW_NULL, LW_NULL,
+                                   LW_NULL, &stGet, LW_NULL) == ERROR_NONE) {
+                stFree += stGet;
+            }
+            if (API_KernelHeapInfo(LW_OPTION_HEAP_SYSTEM, LW_NULL, LW_NULL,
+                                   LW_NULL, &stGet, LW_NULL) == ERROR_NONE) {
+                stFree += stGet;
+            }
+            return  ((int)(stFree >> LW_CFG_VMM_PAGE_SHIFT));
+        }
+
     default:
         errno = EINVAL;
     }
