@@ -378,27 +378,26 @@ MACRO_DEF(SWITCH_EL, xreg, el3_label, el2_label, el1_label)
     MACRO_END()
 
 ;/*********************************************************************************************************
-;  切换到 EL1 
+;  切换到 EL1 (仅允许在操作系统启动前调用! 因为这里没有使用堆栈, 使用了 x18 寄存器)
 ;*********************************************************************************************************/
 
 FUNC_DEF(arm64SwitchToEl1)
-    STP         X29 , LR, [SP, #-16]!
-    MOV         X29 , SP
+    MOV         X18, LR
     SWITCH_EL   X6 , el3, el2, el1
 
 LINE_LABEL(el3)
     BL      arm64El3SwitchEl2
     BL      arm64EL2SwitchEL1
-    LDP     X29 , LR, [SP], #16
+    MOV     LR , X18
     RET
 
 LINE_LABEL(el2)
     BL      arm64EL2SwitchEL1
-    LDP     X29 , LR, [SP], #16
+    MOV     LR , X18
     RET
 
 LINE_LABEL(el1)
-    LDP     X29 , LR, [SP], #16
+    MOV     LR , X18
     RET
 
 ;/*********************************************************************************************************
