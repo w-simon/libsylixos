@@ -233,13 +233,13 @@ INT  lib_clock_nanosleep (clockid_t  clockid, int  iFlags,
 
     if ((clockid != CLOCK_REALTIME) && (clockid != CLOCK_MONOTONIC)) {
         _ErrorHandle(ENOTSUP);
-        return  (PX_ERROR);
+        return  (ENOTSUP);
     }
     
     if ((!rqtp) ||
         LW_NSEC_INVALD(rqtp->tv_nsec)) {                                /*  时间格式错误                */
         _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
+        return  (EINVAL);
     }
     
     tvValue = *rqtp;
@@ -262,11 +262,17 @@ INT  lib_clock_nanosleep (clockid_t  clockid, int  iFlags,
         
         __timespecSub(&tvValue, &tvNow);
         
-        return  (nanosleep(&tvValue, LW_NULL));
+        if (nanosleep(&tvValue, LW_NULL) < 0) {
+            return  (errno);
+        }
     
     } else {
-        return  (nanosleep(&tvValue, rmtp));
+        if (nanosleep(&tvValue, rmtp) < 0) {
+            return  (errno);
+        }
     }
+
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  LW_CFG_RTC_EN               */
