@@ -1166,8 +1166,7 @@ VOID  API_VmmAbortIsrEx (addr_t          ulRetAddr,
     pstkFailShell = archTaskCtxCreate(&ptcb->TCB_archRegCtx,
                                       (PTHREAD_START_ROUTINE)pfuncHandler,
                                       (PVOID)pabtctx,
-                                      (PLW_STACK)pucStkNow,
-                                      0);                               /*  建立访问异常陷阱外壳环境    */
+                                      ptcb, (PLW_STACK)pucStkNow, 0);   /*  建立访问异常陷阱外壳环境    */
 
     archTaskCtxSetFp(pstkFailShell,
                      &ptcb->TCB_archRegCtx,

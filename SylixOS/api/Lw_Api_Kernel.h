@@ -154,6 +154,7 @@
 #define Lw_Thread_SetNotePad                    API_ThreadSetNotePad
 #define Lw_Thread_GetNotePad                    API_ThreadGetNotePad
 #define Lw_Thread_CurNotePad                    API_ThreadCurNotePad
+#define Lw_Thread_FastNotePad                   API_ThreadFastNotePad
 
 #define Lw_Thread_FeedWatchDog                  API_ThreadFeedWatchDog
 #define Lw_Thread_CancelWatchDog                API_ThreadCancelWatchDog

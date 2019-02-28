@@ -117,6 +117,7 @@ VOID  __tshellSysVarInit (VOID)
      */
 #if LW_CFG_GDB_EN > 0
     API_TShellExec("DEBUG_CPU=-1");                                     /*  是否将被调对象锁定到一个 CPU*/
+    API_TShellExec("DEBUG_CRASHTRAP=0");                                /*  是否 crashtrap 所有进程     */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
     
 #if LW_CFG_NET_LOGINBL_EN > 0

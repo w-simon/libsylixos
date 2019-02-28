@@ -187,7 +187,7 @@ LW_OBJECT_HANDLE  API_ThreadCreate (CPCHAR                   pcName,
     archTaskCtxCreate(&ptcb->TCB_archRegCtx,
                       (PTHREAD_START_ROUTINE)_ThreadShell,
                       (PVOID)pfuncThread,                               /*  真正的可执行代码体          */
-                      pstkTop,
+                      ptcb, pstkTop,
                       pthreadattr->THREADATTR_ulOption);
     
     if (pcName) {                                                       /*  拷贝名字                    */

@@ -128,7 +128,7 @@ PVOID   API_CoroutineCreate (PCOROUTINE_START_ROUTINE pCoroutineStartAddr,
     archTaskCtxCreate(&pcrcbNew->COROUTINE_archRegCtx,
                       (PTHREAD_START_ROUTINE)_CoroutineShell,
                       (PVOID)pCoroutineStartAddr,                       /*  真正的可执行代码体          */
-                      pstkTop,
+                      ptcbCur, pstkTop,
                       ptcbCur->TCB_ulOption);
 
     pcrcbNew->COROUTINE_pstkStackTop     = pstkTop;                     /*  线程主堆栈栈顶              */

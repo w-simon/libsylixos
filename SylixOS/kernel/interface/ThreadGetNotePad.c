@@ -113,7 +113,29 @@ ULONG  API_ThreadCurNotePad (UINT8  ucNoteIndex)
 
     return  (ptcbCur->TCB_notepadThreadNotePad.NOTEPAD_ulNotePad[ucNoteIndex]);
 }
+/*********************************************************************************************************
+** 函数名称: API_ThreadFastNotePad
+** 功能描述: 快速获得线程记事本 (不做参数有效性检测, 仅支持多任务状态调用, 严禁在异常状态调用)
+** 输　入  :
+**           ucNoteIndex                   线程记事本索引
+** 输　出  : 线程记事本值
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_FAST_TCB_CUR > 0)
 
+LW_API
+ULONG  API_ThreadFastNotePad (UINT8  ucNoteIndex)
+{
+    REGISTER PLW_CLASS_TCB  ptcbCur;
+
+    asm volatile ("mov %0, x18" : "=r"(ptcbCur));
+
+    return  (ptcbCur->TCB_notepadThreadNotePad.NOTEPAD_ulNotePad[ucNoteIndex]);
+}
+
+#endif                                                                  /*  LW_CFG_ARM64_FAST_TCB_CUR   */
 #endif                                                                  /*  (LW_CFG_THREAD_NOTE_PAD_... */
                                                                         /*  (LW_CFG_MAX_NOTEPADS > 0)   */
 /*********************************************************************************************************

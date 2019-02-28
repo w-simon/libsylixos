@@ -401,6 +401,10 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
            INT   i;
            INT   iExitMode = LW_VPROC_EXIT_NORMAL;                      /*  正常模式退出                */
            INT   iErrLevel = 0;
+
+#if LW_CFG_GDB_EN > 0
+           INT   iDbgFlags = LW_VPROC_DEBUG_NORMAL;                     /*  异常自动退出                */
+#endif
            
     LW_LD_VPROC *pvproc;
     LW_LD_VPROC *pvprocFather = __LW_VP_GET_CUR_PROC();
@@ -411,6 +415,14 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
         }
     }
     
+#if LW_CFG_GDB_EN > 0
+    if (API_TShellVarGetRt("DEBUG_CRASHTRAP", cVarValue, 2) > 0) {
+        if (cVarValue[0] == '1') {
+            iDbgFlags = LW_VPROC_DEBUG_TRAP;
+        }
+    }
+#endif
+
     pvproc = (LW_LD_VPROC *)LW_LD_SAFEMALLOC(sizeof(LW_LD_VPROC));
     if (LW_NULL == pvproc) {
         return  (LW_NULL);
@@ -500,6 +512,10 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
     pvproc->VP_iExitMode = iExitMode;
     pvproc->VP_i64Tick   = -1ull;
     
+#if LW_CFG_GDB_EN > 0
+    pvproc->VP_iDbgFlags = iDbgFlags;
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
     _List_Line_Add_Tail(&pvproc->VP_lineManage, 
                         &_G_plineVProcHeader);                          /*  加入进程表                  */
     LW_LD_UNLOCK();

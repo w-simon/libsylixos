@@ -27,6 +27,7 @@
 ** 输　入  : pregctx        寄存器上下文
 **           pfuncTask      任务入口
 **           pvArg          入口参数
+**           ptcb           任务控制块
 **           pstkTop        初始化堆栈起点
 **           ulOpt          任务创建选项
 ** 输　出  : 初始化堆栈结束点
@@ -37,6 +38,7 @@
 PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
                               PTHREAD_START_ROUTINE  pfuncTask,
                               PVOID                  pvArg,
+                              PLW_CLASS_TCB          ptcb,
                               PLW_STACK              pstkTop, 
                               ULONG                  ulOpt)
 {
@@ -68,7 +70,11 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     pregctx->REG_ulLr       = (ARCH_REG_T)pfuncTask;
     pregctx->REG_ulPc       = (ARCH_REG_T)pfuncTask;
     pregctx->REG_ulSp       = (ARCH_REG_T)pfpctx;
-    
+
+#if LW_CFG_ARM64_FAST_TCB_CUR > 0
+    pregctx->REG_ulReg[18]  = (ARCH_REG_T)ptcb;                         /*  FAST_TCB_CUR                */
+#endif
+
     return  ((PLW_STACK)pfpctx);
 }
 /*********************************************************************************************************

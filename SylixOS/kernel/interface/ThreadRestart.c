@@ -157,7 +157,7 @@ static ULONG  __threadRestart (PLW_CLASS_TCB          ptcb,
     archTaskCtxCreate(&ptcb->TCB_archRegCtx,
                       _ThreadShell,                                     /*  ³õÊ¼»¯¶ÑÕ»£¬SHELL           */
                       (PVOID)ptcb->TCB_pthreadStartAddress,
-                      pstkTop,
+                      ptcb, pstkTop,
                       ptcb->TCB_ulOption);
                                           
     ptcb->TCB_pvArg = pvArg;

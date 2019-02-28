@@ -544,8 +544,7 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
     pstkSignalShell = archTaskCtxCreate(&ptcb->TCB_archRegCtx,
                                         (PTHREAD_START_ROUTINE)__sigShell,
                                         (PVOID)psigctlmsg,
-                                        (PLW_STACK)pucStkNow,
-                                        0);                             /*  建立信号外壳环境            */
+                                        ptcb, (PLW_STACK)pucStkNow, 0); /*  建立信号外壳环境            */
     
     archTaskCtxSetFp(pstkSignalShell,
                      &ptcb->TCB_archRegCtx,

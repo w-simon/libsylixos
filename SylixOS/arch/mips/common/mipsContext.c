@@ -38,6 +38,7 @@ extern ARCH_REG_T  archGetGP(VOID);
 ** 输　入  : pregctx        寄存器上下文
 **           pfuncTask      任务入口
 **           pvArg          入口参数
+**           ptcb           任务控制块
 **           pstkTop        初始化堆栈起点
 **           ulOpt          任务创建选项
 ** 输　出  : 初始化堆栈结束点
@@ -48,6 +49,7 @@ extern ARCH_REG_T  archGetGP(VOID);
 PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
                               PTHREAD_START_ROUTINE  pfuncTask,
                               PVOID                  pvArg,
+                              PLW_CLASS_TCB          ptcb,
                               PLW_STACK              pstkTop,
                               ULONG                  ulOpt)
 {

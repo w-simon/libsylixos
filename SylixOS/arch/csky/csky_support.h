@@ -58,6 +58,7 @@ VOID    archAssert(CPCHAR  pcCond, CPCHAR  pcFunc, CPCHAR  pcFile, INT  iLine);
 PLW_STACK       archTaskCtxCreate(ARCH_REG_CTX          *pregctx,
                                   PTHREAD_START_ROUTINE  pfuncTask,
                                   PVOID                  pvArg,
+                                  PLW_CLASS_TCB          ptcb,
                                   PLW_STACK              pstkTop,
                                   ULONG                  ulOpt);
 VOID            archTaskCtxSetFp(PLW_STACK               pstkDest,

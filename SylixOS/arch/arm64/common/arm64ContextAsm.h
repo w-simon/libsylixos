@@ -95,6 +95,10 @@ MACRO_DEF(RESTORE_SMALL_REG_CTX)
     LDP     X27 , X28 , [X18 , #XGREG_OFFSET(27)]
     LDP     X29 , LR  , [X18 , #XGREG_OFFSET(29)]
 
+#if LW_CFG_ARM64_FAST_TCB_CUR > 0
+    LDR     X18 ,       [X18 , #XGREG_OFFSET(18)]
+#endif
+
     ERET
     MACRO_END()
 
