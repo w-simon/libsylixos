@@ -1091,6 +1091,7 @@ INT  vprocExitModeGet (pid_t  pid, INT  *piMode)
     pvproc = vprocGet(pid);
     if (pvproc == LW_NULL) {
         LW_LD_UNLOCK();
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     
@@ -1119,19 +1120,95 @@ INT  vprocExitModeSet (pid_t  pid, INT  iMode)
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
-    
+
     LW_LD_LOCK();
     pvproc = vprocGet(pid);
     if (pvproc == LW_NULL) {
         LW_LD_UNLOCK();
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     
+    if ((pvproc->VP_pid != pid) && (geteuid() != 0)) {
+        LW_LD_UNLOCK();
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+
     pvproc->VP_iExitMode = iMode;
     LW_LD_UNLOCK();
     
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: vprocDebugFlagsGet
+** 功能描述: 获取进程调试选项
+** 输　入  : pid       进程 id
+**           piFlags   调试选项
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_GDB_EN > 0
+
+LW_API INT  vprocDebugFlagsGet (pid_t  pid, INT  *piFlags)
+{
+    LW_LD_VPROC *pvproc;
+
+    if (!piFlags) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (pvproc == LW_NULL) {
+        LW_LD_UNLOCK();
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    *piFlags = pvproc->VP_iDbgFlags;
+    LW_LD_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: vprocDebugFlagsSet
+** 功能描述: 设置进程调试选项
+** 输　入  : pid       进程 id
+**           iFlags    调试选项
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API INT  vprocDebugFlagsSet (pid_t  pid, INT  iFlags)
+{
+    LW_LD_VPROC *pvproc;
+
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (pvproc == LW_NULL) {
+        LW_LD_UNLOCK();
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    if ((pvproc->VP_pid != pid) && (geteuid() != 0)) {
+        LW_LD_UNLOCK();
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+
+    pvproc->VP_iDbgFlags = iFlags;
+    LW_LD_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: vprocSetImmediatelyTerm
 ** 功能描述: 将进程设置为强制立即关闭模式
@@ -1148,6 +1225,7 @@ INT  vprocSetImmediatelyTerm (pid_t  pid)
     pvproc = vprocGet(pid);
     if (pvproc == LW_NULL) {
         LW_LD_UNLOCK();
+        _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
     

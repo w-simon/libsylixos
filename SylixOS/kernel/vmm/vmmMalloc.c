@@ -279,40 +279,65 @@ PVOID  API_VmmMallocAlign (size_t  stSize, size_t  stAlign, ULONG  ulFlag)
     }
     
     ulVirtualAddr = pvmpageVirtual->PAGE_ulPageAddr;                    /*  起始虚拟内存地址            */
-    do {
-        ULONG   ulPageNumOnce = ulPageNum - ulPageNumTotal;
-        ULONG   ulMinContinue = __vmmPhysicalPageGetMinContinue(&ulZoneIndex, LW_ZONE_ATTR_NONE);
-                                                                        /*  优先分配碎片页面            */
-    
-        if (ulPageNumOnce > ulMinContinue) {                            /*  选择适当的页面长度          */
-            ulPageNumOnce = ulMinContinue;
-        }
-    
-        pvmpagePhysical = __vmmPhysicalPageAllocZone(ulZoneIndex, ulPageNumOnce, LW_ZONE_ATTR_NONE);
+
+    if (ulFlag & LW_VMM_FLAG_PHY_CONTINUOUS) {                          /*  必须为连续物理内存          */
+        pvmpagePhysical = __vmmPhysicalPageAlloc(ulPageNum, LW_ZONE_ATTR_NONE, &ulZoneIndex);
         if (pvmpagePhysical == LW_NULL) {
             _ErrorHandle(ERROR_VMM_LOW_PHYSICAL_PAGE);
             goto    __error_handle;
         }
-        
+
         ulError = __vmmLibPageMap(pvmpagePhysical->PAGE_ulPageAddr,     /*  使用 CACHE                  */
                                   ulVirtualAddr,
-                                  ulPageNumOnce, 
+                                  ulPageNum,
                                   ulFlag);                              /*  映射为连续虚拟地址          */
         if (ulError) {                                                  /*  映射错误                    */
             __vmmPhysicalPageFree(pvmpagePhysical);
             _ErrorHandle(ulError);
             goto    __error_handle;
         }
-        
+
         pvmpagePhysical->PAGE_ulMapPageAddr = ulVirtualAddr;
         pvmpagePhysical->PAGE_ulFlags = ulFlag;
-        
+
         __pageLink(pvmpageVirtual, pvmpagePhysical);                    /*  将物理页面连接入虚拟空间    */
+
+    } else {                                                            /*  最优物理内存使用            */
+        do {
+            ULONG   ulPageNumOnce = ulPageNum - ulPageNumTotal;
+            ULONG   ulMinContinue = __vmmPhysicalPageGetMinContinue(&ulZoneIndex, LW_ZONE_ATTR_NONE);
+                                                                        /*  优先分配碎片页面            */
         
-        ulPageNumTotal += ulPageNumOnce;
-        ulVirtualAddr  += (ulPageNumOnce << LW_CFG_VMM_PAGE_SHIFT);
+            if (ulPageNumOnce > ulMinContinue) {                        /*  选择适当的页面长度          */
+                ulPageNumOnce = ulMinContinue;
+            }
         
-    } while (ulPageNumTotal < ulPageNum);
+            pvmpagePhysical = __vmmPhysicalPageAllocZone(ulZoneIndex, ulPageNumOnce, LW_ZONE_ATTR_NONE);
+            if (pvmpagePhysical == LW_NULL) {
+                _ErrorHandle(ERROR_VMM_LOW_PHYSICAL_PAGE);
+                goto    __error_handle;
+            }
+
+            ulError = __vmmLibPageMap(pvmpagePhysical->PAGE_ulPageAddr, /*  使用 CACHE                  */
+                                      ulVirtualAddr,
+                                      ulPageNumOnce,
+                                      ulFlag);                          /*  映射为连续虚拟地址          */
+            if (ulError) {                                              /*  映射错误                    */
+                __vmmPhysicalPageFree(pvmpagePhysical);
+                _ErrorHandle(ulError);
+                goto    __error_handle;
+            }
+
+            pvmpagePhysical->PAGE_ulMapPageAddr = ulVirtualAddr;
+            pvmpagePhysical->PAGE_ulFlags = ulFlag;
+
+            __pageLink(pvmpageVirtual, pvmpagePhysical);                /*  将物理页面连接入虚拟空间    */
+
+            ulPageNumTotal += ulPageNumOnce;
+            ulVirtualAddr  += (ulPageNumOnce << LW_CFG_VMM_PAGE_SHIFT);
+
+        } while (ulPageNumTotal < ulPageNum);
+    }
     
     pvmpageVirtual->PAGE_ulFlags = ulFlag;
     __areaVirtualInsertPage(pvmpageVirtual->PAGE_ulPageAddr, 

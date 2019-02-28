@@ -32,6 +32,13 @@
 #define LW_VPROC_EXIT_FORCE     1                                       /*  强制退出 (杀死所有子线程)   */
 
 /*********************************************************************************************************
+  进程调试选项
+*********************************************************************************************************/
+
+#define LW_VPROC_DEBUG_NORMAL   0
+#define LW_VPROC_DEBUG_TRAP     1                                       /*  崩溃退出时等待调试器连接    */
+
+/*********************************************************************************************************
   进程退出模式设置
 *********************************************************************************************************/
 #ifdef __cplusplus
@@ -40,6 +47,11 @@ extern "C" {
 
 LW_API INT  vprocExitModeGet(pid_t  pid, INT  *piMode);
 LW_API INT  vprocExitModeSet(pid_t  pid, INT  iMode);
+
+#if LW_CFG_GDB_EN > 0
+LW_API INT  vprocDebugFlagsGet(pid_t  pid, INT  *piFlags);
+LW_API INT  vprocDebugFlagsSet(pid_t  pid, INT  piFlags);
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 #ifdef __cplusplus
 }

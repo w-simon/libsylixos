@@ -4,8 +4,14 @@ HISTORY
 
 ++ New features:
 
+    2019-02-28: han.hui
+    加入 crashtrap 命令, 可设置用户进程异常时停止并等待调试器链接.
+
     2019-02-26: han.hui
     加入 xtimer 内核模块, 供驱动程序与其他内核模块使用.
+
+    2019-02-24: han.hui
+    DSP 平台加入动态状态位置选择功能, 可支持将应用程序装载在 Cache 区域.
 
     2019-02-23: han.hui
     加入 Sem file IPC 服务.

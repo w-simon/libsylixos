@@ -1098,13 +1098,15 @@ INT  sigTrap (LW_OBJECT_HANDLE  ulId, const union sigval  sigvalue)
         return  (PX_ERROR);
     }
     
-    LW_TCB_GET_CUR_SAFE(ptcbCur);                                       /*  当前任务控制块              */
+    LW_TCB_GET_CUR(ptcbCur);                                            /*  当前任务控制块              */
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     _ThreadStop(ptcbCur);
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
-    _excJobAdd(__sig_trap, (PVOID)ulId, (PVOID)ptcbCur->TCB_ulId, sigvalue.sival_ptr, 0, 0, 0);
+    if (ulId) {                                                         /*  存在目标                    */
+        _excJobAdd(__sig_trap, (PVOID)ulId, (PVOID)ptcbCur->TCB_ulId, sigvalue.sival_ptr, 0, 0, 0);
+    }
     
     return  (ERROR_NONE);
 }

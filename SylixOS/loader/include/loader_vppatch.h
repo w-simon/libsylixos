@@ -107,6 +107,10 @@ typedef struct lw_ld_vproc {
     
     LW_LIST_LINE_HEADER     VP_plineMap;                                /*  虚拟内存空间                */
     
+#if LW_CFG_GDB_EN > 0
+    INT                     VP_iDbgFlags;                               /*  调试选项                    */
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
 #if LW_CFG_POSIX_EN > 0
     __PX_VPROC_CONTEXT      VP_pvpCtx;                                  /*  POSIX 进程上下文            */
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
@@ -210,8 +214,8 @@ INT                 vprocThreadAffinity(PVOID  pvVProc, size_t  stSize, const PL
 *********************************************************************************************************/
 
 #if LW_CFG_GDB_EN > 0
-VOID                vprocDebugStop(PVOID  pvVProc);
-VOID                vprocDebugContinue(PVOID  pvVProc);
+VOID                vprocDebugStop(PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp);
+VOID                vprocDebugContinue(PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp);
 VOID                vprocDebugThreadStop(PVOID  pvVProc, LW_OBJECT_HANDLE  ulId);
 VOID                vprocDebugThreadContinue(PVOID  pvVProc, LW_OBJECT_HANDLE  ulId);
 UINT                vprocDebugThreadGet(PVOID  pvVProc, LW_OBJECT_HANDLE  ulId[], UINT   uiTableNum);

@@ -39,7 +39,9 @@
 #include "../../mmu/armMmuCommon.h"
 #include "../../../common/cp15/armCp15.h"
 #if defined(__SYLIXOS_ARM_ARCH_R__)
+#if (LW_CFG_VMM_EN == 0) && (LW_CFG_ARM_MPU > 0)
 #include "../../mpu/v7r/armMpuV7R.h"
+#endif
 #endif
 /*********************************************************************************************************
   L2 CACHE Ö§³Ö

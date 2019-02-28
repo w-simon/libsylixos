@@ -32,6 +32,7 @@
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 #include "dtrace.h"
+#include "sys/vproc.h"
 /*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
@@ -250,10 +251,15 @@ INT  API_DtraceBreakTrap (addr_t  ulAddr, UINT  uiBpType)
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     pvproc = __LW_VP_GET_TCB_PROC(ptcbCur);
-    if (!pvproc || (pvproc->VP_pid <= 0) || !_G_plineDtraceHeader) {
+    if (!pvproc || (pvproc->VP_pid <= 0)) {
         return  (PX_ERROR);
     }
     
+    if (!(pvproc->VP_iDbgFlags & LW_VPROC_DEBUG_TRAP) &&
+        !_G_plineDtraceHeader) {                                        /*  没有 trap 属性且没有调试器  */
+        return  (PX_ERROR);
+    }
+
 #if LW_CFG_SMP_EN > 0
     if (uiBpType == LW_TRAP_RETRY) {
         return  (ERROR_NONE);                                           /*  可能是虚断点, 再尝试一次    */
@@ -278,7 +284,17 @@ INT  API_DtraceBreakTrap (addr_t  ulAddr, UINT  uiBpType)
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     if (plineTemp == LW_NULL) {                                         /*  此进程不存在调试器          */
-        return  (PX_ERROR);
+        if (pvproc->VP_iDbgFlags & LW_VPROC_DEBUG_TRAP) {
+            __DTRACE_MSG("[DTRACE] <KERN> Trap thread 0x%lx @ 0x%08lx CPU %ld.\r\n",
+                         dtm.DTM_ulThread, ulAddr, ptcbCur->TCB_ulCPUId);
+
+            sigvalue.sival_int = dtm.DTM_uiType;
+            sigTrap(LW_OBJECT_HANDLE_INVALID, sigvalue);                /*  等待调试器连接              */
+            return  (ERROR_NONE);
+
+        } else {
+            return  (PX_ERROR);
+        }
     
     } else {
         __DTRACE_MSG("[DTRACE] <KERN> Trap thread 0x%lx @ 0x%08lx CPU %ld.\r\n", 
@@ -296,6 +312,7 @@ INT  API_DtraceBreakTrap (addr_t  ulAddr, UINT  uiBpType)
         sigTrap(ulDbger, sigvalue);                                     /*  通知调试器线程              */
         return  (ERROR_NONE);
     }
+
 #else
     return  (PX_ERROR);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
@@ -326,6 +343,12 @@ INT  API_DtraceAbortTrap (addr_t  ulAddr)
         return  (PX_ERROR);
     }
     
+    if (pvproc->VP_iDbgFlags & LW_VPROC_DEBUG_TRAP) {                   /*  需要停止下来                */
+        archDbgAbInsert(ulAddr, &ulIns);                                /*  建立一个断点                */
+        vprocDebugStop(pvproc, ptcbCur);                                /*  需要停止进程内其他线程      */
+        return  (ERROR_NONE);
+    }
+
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     for (plineTemp  = _G_plineDtraceHeader;
          plineTemp != LW_NULL;
@@ -465,6 +488,20 @@ ULONG  API_DtraceDelete (PVOID  pvDtrace)
 LW_API 
 BOOL  API_DtraceIsValid (VOID)
 {
+#if LW_CFG_MODULELOADER_EN > 0
+    PLW_CLASS_TCB   ptcbCur;
+    LW_LD_VPROC    *pvproc;
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    pvproc = __LW_VP_GET_TCB_PROC(ptcbCur);
+    if (pvproc && pvproc->VP_pid) {
+        if (pvproc->VP_iDbgFlags & LW_VPROC_DEBUG_TRAP) {
+            return  (LW_TRUE);                                          /*  拥有 trap 属性进程          */
+        }
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
     return  ((_G_plineDtraceHeader) ? (LW_TRUE) : (LW_FALSE));
 }
 /*********************************************************************************************************
@@ -1005,7 +1042,7 @@ ULONG  API_DtraceStopProcess (PVOID  pvDtrace)
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
     
     if (pvproc) {
-        vprocDebugStop(pvproc);
+        vprocDebugStop(pvproc, LW_NULL);
     }
     
     return  (ERROR_NONE);
@@ -1026,7 +1063,7 @@ ULONG  API_DtraceContinueProcess (PVOID  pvDtrace)
     LW_LD_VPROC  *pvproc  = vprocGet(pdtrace->DTRACE_pid);
     
     if (pvproc) {
-        vprocDebugContinue(pvproc);
+        vprocDebugContinue(pvproc, LW_NULL);
     }
     
     return  (ERROR_NONE);

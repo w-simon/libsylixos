@@ -58,7 +58,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "2.1.2" /* vp patch version */
+#define __VP_PATCH_VERSION      "2.1.3" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -106,6 +106,7 @@ typedef struct vp_ctx {
     size_t  pagesize; /* vmm page size */
     size_t  blksize; /* vmm allocate size per time */
     int memdirect; /* vmm direct allocate memory */
+    int memcontin; /* vmm continuous physical memory */
     void  *vmem[MAX_MEM_BLKS]; /* vmm memory block pointer */
     void  *proc; /* this process */
     int alloc_en; /* allocate memory is enable */
@@ -116,6 +117,7 @@ static vp_ctx ctx = {
     .pagesize = 4096, /* default vmm page size */
     .blksize = 8192, /* default vmm block memory size */
     .memdirect = 0, /* default vmm do not direct allocate */
+    .memcontin = 0, /* default no continuous physical memory */
 };
 
 /*
@@ -250,6 +252,13 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
         ctx.memdirect = lib_atoi(buf);
     }
 
+    if (API_TShellVarGetRt("SO_MEM_CONTIN", buf, sizeof(buf)) > 0) { /* must not use getenv() */
+        ctx.memcontin = lib_atoi(buf);
+        if (ctx.memcontin) {
+            ctx.memdirect = 1;
+        }
+    }
+
 #if LW_CFG_VMM_EN > 0
     ctx.pagesize = (size_t)getpagesize();
 #endif /* LW_CFG_VMM_EN > 0 */
@@ -277,12 +286,16 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
                                       LW_OPTION_DELETE_SAFE |
                                       LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (!ctx.locker) {
-        fprintf(stderr, "WARNING: ctx.locker create error!\r");
+        fprintf(stderr, "WARNING: ctx.locker create error!\n");
     }
 
 #if LW_CFG_VMM_EN > 0
     if (ctx.memdirect) {
-        ctx.vmem[0] = vmmMalloc(ctx.blksize);
+        if (ctx.memcontin) {
+            ctx.vmem[0] = vmmMallocEx(ctx.blksize, LW_VMM_FLAG_RDWR | LW_VMM_FLAG_PHY_CONTINUOUS);
+        } else {
+            ctx.vmem[0] = vmmMalloc(ctx.blksize);
+        }
     } else {
         ctx.vmem[0] = vmmMallocArea(ctx.blksize, NULL, NULL);
     }
@@ -296,7 +309,7 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
         ctx.alloc_en = 1;
 
     } else {
-        fprintf(stderr, "WARNING: ctx.vmem create error!\r");
+        fprintf(stderr, "WARNING: ctx.vmem create error!\n");
     }
     
     if (ppfuncMalloc) {
@@ -358,7 +371,11 @@ void __vp_patch_sbrk (BOOL lock)
             if (ctx.vmem[i] == NULL) {
 #if LW_CFG_VMM_EN > 0
                 if (ctx.memdirect) {
-                    ctx.vmem[i] = vmmMalloc(ctx.blksize);
+                    if (ctx.memcontin) {
+                        ctx.vmem[i] = vmmMallocEx(ctx.blksize, LW_VMM_FLAG_RDWR | LW_VMM_FLAG_PHY_CONTINUOUS);
+                    } else {
+                        ctx.vmem[i] = vmmMalloc(ctx.blksize);
+                    }
                 } else {
                     ctx.vmem[i] = vmmMallocArea(ctx.blksize, NULL, NULL);
                 }

@@ -79,6 +79,7 @@ VOID  __tshellSysVarInit (VOID)
      *  SO_MEM_PAGES:  应用程序初始堆内存空间页面数.
      *  SO_MEM_MBYTES: 应用程序初始堆内存空间兆字节数 (优先被使用)
      *  SO_MEM_DIRECT: 应用程序不允许使用缺页中断分配内存.
+     *  SO_MEM_CONTIN: 应用程序不允许使用缺页中断分配内存, 且内存必须为物理空间连续.
      */
 #if !defined(LW_CFG_CPU_ARCH_C6X)
     API_TShellExec("SO_MEM_PAGES=8192");                                /*  动态内存虚拟页面数量        */

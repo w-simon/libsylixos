@@ -73,12 +73,13 @@ static VOID  vprocDebugCriResUnlock (VOID)
 ** 函数名称: vprocDebugStop
 ** 功能描述: 停止进程内的所有线程
 ** 输　入  : pvVProc    进程控制块指针
+**           ptcbExcp   除此任务之外
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : LW_VP_LOCK() 保证了进程内任务不可被删除性.
 *********************************************************************************************************/
-VOID  vprocDebugStop (PVOID  pvVProc)
+VOID  vprocDebugStop (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
 {
     LW_LD_VPROC    *pvproc = (LW_LD_VPROC *)pvVProc;
     PLW_LIST_LINE   plineTemp;
@@ -91,6 +92,9 @@ VOID  vprocDebugStop (PVOID  pvVProc)
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb == ptcbExcp) {
+            continue;                                                   /*  不停止此任务                */
+        }
         if (ptcb->TCB_iDeleteProcStatus == LW_TCB_DELETE_PROC_NONE) {
             __KERNEL_ENTER();                                           /*  进入内核                    */
             _ThreadStop(ptcb);
@@ -108,11 +112,12 @@ VOID  vprocDebugStop (PVOID  pvVProc)
 ** 函数名称: vprocDebugContinue
 ** 功能描述: 恢复进程内的所有停止的线程
 ** 输　入  : pvVProc    进程控制块指针
+**           ptcbExcp   除此任务之外
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  vprocDebugContinue (PVOID  pvVProc)
+VOID  vprocDebugContinue (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
 {
     LW_LD_VPROC    *pvproc = (LW_LD_VPROC *)pvVProc;
     PLW_LIST_LINE   plineTemp;
@@ -124,6 +129,9 @@ VOID  vprocDebugContinue (PVOID  pvVProc)
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb == ptcbExcp) {
+            continue;                                                   /*  不启动此任务                */
+        }
         __KERNEL_ENTER();                                               /*  进入内核                    */
         _ThreadContinue(ptcb, LW_FALSE);
         __KERNEL_EXIT();                                                /*  退出内核                    */

@@ -74,6 +74,7 @@
 *********************************************************************************************************/
 #if LW_CFG_SHELL_EN > 0
 #include "sys/ioctl.h"
+#include "sys/vproc.h"
 #include "crypt.h"
 #include "pwd.h"
 #include "ttinyShell.h"
@@ -2577,6 +2578,62 @@ static INT  __tshellSysCmdCdump (INT  iArgC, PCHAR  ppcArgV[])
 #endif                                                                  /*  LW_CFG_CDUMP_EN > 0         */
                                                                         /*  LW_CFG_DEVICE_EN > 0        */
 /*********************************************************************************************************
+** 函数名称: __tshellSysCmdCrashTrap
+** 功能描述: 系统命令 "crashtrap"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_GDB_EN > 0
+
+static INT  __tshellSysCmdCrashTrap (INT  iArgC, PCHAR  ppcArgV[])
+{
+    pid_t  pid;
+    INT    iEnable;
+    INT    iFlags;
+
+    if (iArgC == 2) {
+        if (sscanf(ppcArgV[1], "%d", &pid) != 1) {
+            fprintf(stderr, "pid error.\n");
+            return  (PX_ERROR);
+        }
+
+        if (vprocDebugFlagsGet(pid, &iFlags)) {
+            fprintf(stderr, "error: %s.\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+
+        printf("Crash Trap is: %s.\n", (iFlags & LW_VPROC_DEBUG_TRAP) ? "Enable" : "Disable");
+
+    } else if (iArgC == 3) {
+        if (sscanf(ppcArgV[1], "%d", &pid) != 1) {
+            fprintf(stderr, "pid error.\n");
+            return  (PX_ERROR);
+        }
+
+        if (sscanf(ppcArgV[2], "%d", &iEnable) != 1) {
+            fprintf(stderr, "option error.\n");
+            return  (PX_ERROR);
+        }
+
+        iFlags = iEnable ? LW_VPROC_DEBUG_TRAP : LW_VPROC_DEBUG_NORMAL;
+        if (vprocDebugFlagsSet(pid, iFlags)) {
+            fprintf(stderr, "error: %s.\n", lib_strerror(errno));
+            return  (PX_ERROR);
+        }
+
+    } else {
+        fprintf(stderr, "argument error.\n");
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+/*********************************************************************************************************
 ** 函数名称: __tshellSysCmdInit
 ** 功能描述: 初始化系统命令集
 ** 输　入  : NONE
@@ -2908,6 +2965,12 @@ VOID  __tshellSysCmdInit (VOID)
                                  "-c    after show or save clear the message\n");
 #endif                                                                  /*  LW_CFG_CDUMP_EN > 0         */
                                                                         /*  LW_CFG_DEVICE_EN > 0        */
+#if LW_CFG_GDB_EN > 0
+    API_TShellKeywordAdd("crashtrap", __tshellSysCmdCrashTrap);
+    API_TShellFormatAdd("crashtrap", " [pid] [1 | 0]");
+    API_TShellHelpAdd("crashtrap",   "set or get process crash trap setting.\n"
+                                     "if enable, the process crash will not be killed but waiting for debuger.\n");
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
