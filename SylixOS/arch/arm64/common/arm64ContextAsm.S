@@ -157,6 +157,7 @@ FUNC_DEF(archSigCtxLoad)
 ;/*********************************************************************************************************
 ;  拷贝任务上下文
 ;  参数 X0 为目的 ARCH_REG_CTX 指针, X1 为源 ARCH_REG_CTX 指针
+;  不拷贝 X18 寄存器
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxCopy)
@@ -190,8 +191,8 @@ FUNC_DEF(archTaskCtxCopy)
     LDP     X9 , X10 , [X1 , #XGREG_OFFSET(16)]
     STP     X9 , X10 , [X0 , #XGREG_OFFSET(16)]
 
-    LDP     X9 , X10 , [X1 , #XGREG_OFFSET(18)]
-    STP     X9 , X10 , [X0 , #XGREG_OFFSET(18)]
+    LDR     X9 , [X1 , #XGREG_OFFSET(19)]
+    STR     X9 , [X0 , #XGREG_OFFSET(19)]
 
     LDP     X9 , X10 , [X1 , #XGREG_OFFSET(20)]
     STP     X9 , X10 , [X0 , #XGREG_OFFSET(20)]

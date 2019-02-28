@@ -122,6 +122,8 @@ FUNC_DEF(archFindMsb)
 #define PAGE_SZ         4096
 
 FUNC_DEF(archPageCopy)
+    STR     X19 , [SP, #-16]!
+
     PRFM    PLDL1STRM , [X1 , #128]
     PRFM    PLDL1STRM , [X1 , #256]
     
@@ -134,10 +136,10 @@ FUNC_DEF(archPageCopy)
     LDP     X14 , X15 , [X1 , #96]
     LDP     X16 , X17 , [X1 , #112]
 
-    MOV     X18 , #(PAGE_SZ - 128)
+    MOV     X19 , #(PAGE_SZ - 128)
     ADD     X1  , X1  , #128
 1:
-    SUBS    X18 , X18 , #128
+    SUBS    X19 , X19 , #128
 
     PRFM    PLDL1STRM , [X1 , #384]
 
@@ -172,6 +174,7 @@ FUNC_DEF(archPageCopy)
     STNP    X14 , X15 , [X0 , #96]
     STNP    X16 , X17 , [X0 , #112]
 
+    LDR     X19 , [SP], #16
     RET
     FUNC_END()
 
@@ -379,22 +382,23 @@ MACRO_DEF(SWITCH_EL, xreg, el3_label, el2_label, el1_label)
 ;*********************************************************************************************************/
 
 FUNC_DEF(arm64SwitchToEl1)
-    MOV         X18, LR
+    STP         X29 , LR, [SP, #-16]!
+    MOV         X29 , SP
     SWITCH_EL   X6 , el3, el2, el1
 
 LINE_LABEL(el3)
     BL      arm64El3SwitchEl2
     BL      arm64EL2SwitchEL1
-    MOV     LR , X18
+    LDP     X29 , LR, [SP], #16
     RET
 
 LINE_LABEL(el2)
     BL      arm64EL2SwitchEL1
-    MOV     LR , X18
+    LDP     X29 , LR, [SP], #16
     RET
 
 LINE_LABEL(el1)
-    MOV     LR , X18
+    LDP     X29 , LR, [SP], #16
     RET
 
 ;/*********************************************************************************************************

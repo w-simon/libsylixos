@@ -54,10 +54,11 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(arm64VfpV4El2HwInit)
-    MOV     X18 , LR
+    STP     X29 , LR, [SP, #-16]!
+    MOV     X29 , SP
     MOV     X0  , #ARM64_FPU_DISABLE
     HVC     #HVC_CMD_FPU
-    MOV     LR  , X18
+    LDP     X29 , LR, [SP], #16
 
     MRS     X0 , CPACR_EL1                                              ;/*  禁能 FPU 操作               */
     BIC     X0 , X0, #CPACR_EL1_FPEN_EN                                 ;/*  先清零                      */
@@ -96,10 +97,11 @@ LINE_LABEL(DisableFpu)
     FUNC_END()
 
 FUNC_DEF(arm64VfpV4El2Enable)
-    MOV     X18 , LR
+    STP     X29 , LR, [SP, #-16]!
+    MOV     X29 , SP
     MOV     X0  , #ARM64_FPU_ENABLE
     HVC     #HVC_CMD_FPU
-    MOV     LR  , X18
+    LDP     X29 , LR, [SP], #16
 
     MRS     X0 , CPACR_EL1                                              ;/*  在 EL1 阶段也操作           */
     ORR     X0 , X0, #CPACR_EL1_FPEN_EN
@@ -108,10 +110,11 @@ FUNC_DEF(arm64VfpV4El2Enable)
     FUNC_END()
     
 FUNC_DEF(arm64VfpV4El2Disable)
-    MOV     X18 , LR
+    STP     X29 , LR, [SP, #-16]!
+    MOV     X29 , SP
     MOV     X0  , #ARM64_FPU_DISABLE
     HVC     #HVC_CMD_FPU
-    MOV     LR  , X18
+    LDP     X29 , LR, [SP], #16
 
     MRS     X0 , CPACR_EL1                                              ;/*  禁能 FPU 操作               */
     BIC     X0 , X0, #CPACR_EL1_FPEN_EN                                 ;/*  先清零                      */
@@ -129,12 +132,13 @@ FUNC_DEF(arm64VfpV4El2IsEnable)
     FUNC_END()
   
 FUNC_DEF(arm64VfpV4El2Save)
-    MOV     X18 , LR
+    STP     X29 , LR, [SP, #-16]!
+    MOV     X29 , SP
     MOV     X5  , X0
     MOV     X0  , #ARM64_FPU_ENABLE
     HVC     #HVC_CMD_FPU
-    MOV     LR  , X18
     MOV     X0  , X5
+    LDP     X29 , LR, [SP], #16
 
     STP     Q0  , Q1  , [X0 , #16 *  0]
     STP     Q2  , Q3  , [X0 , #16 *  2]
@@ -160,12 +164,13 @@ FUNC_DEF(arm64VfpV4El2Save)
     FUNC_END()
     
 FUNC_DEF(arm64VfpV4El2Restore)
-    MOV     X18 , LR
+    STP     X29 , LR, [SP, #-16]!
+    MOV     X29 , SP
     MOV     X5  , X0
     MOV     X0  , #ARM64_FPU_ENABLE
     HVC     #HVC_CMD_FPU
-    MOV     LR  , X18
     MOV     X0  , X5
+    LDP     X29 , LR, [SP], #16
 
     LDP     Q0   ,  Q1 , [X0 , #16 *  0]
     LDP     Q2   ,  Q3 , [X0 , #16 *  2]
