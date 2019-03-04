@@ -1183,20 +1183,6 @@ PVOID   __tshellThread (PVOID  pcArg)
 
     if (ioPrivateEnv() < 0) {                                           /*  使用私有线程 io 环境        */
         exit(-1);
-    
-    } else {
-        /*
-         *  TODO: control-C 重启 shell 线程后, 理论应该保持重启前的当前目录, 这里还没有支持.
-         */
-        if (API_TShellGetUserHome(getuid(), 
-                                  cRecvBuffer, 
-                                  LW_CFG_SHELL_MAX_COMMANDLEN + 1) == ERROR_NONE) {
-            if (chdir(cRecvBuffer) < ERROR_NONE) {
-                chdir(PX_STR_ROOT);
-            }
-        } else {
-            chdir(PX_STR_ROOT);                                         /*  初始化为根目录              */
-        }
     }
     
     if (iTtyFd >= 0) {
@@ -1228,6 +1214,16 @@ __reauthen:
         printf("\n");
     }
     
+    if (API_TShellGetUserHome(getuid(),                                 /*  切换当前工作目录            */
+                              cRecvBuffer,
+                              LW_CFG_SHELL_MAX_COMMANDLEN + 1) == ERROR_NONE) {
+        if (chdir(cRecvBuffer) < ERROR_NONE) {
+            chdir(PX_STR_ROOT);
+        }
+    } else {
+        chdir(PX_STR_ROOT);                                             /*  初始化为根目录              */
+    }
+
     if (__TTINY_SHELL_GET_OPT(ptcbCur) & LW_OPTION_TSHELL_NOECHO) {     /*  不需要回显                  */
         iRetValue = ioctl(iTtyFd, FIOSETOPTIONS, 
                           (OPT_TERMINAL & (~OPT_ECHO)));                /*  设置为终端模式              */

@@ -62,7 +62,7 @@ static LW_PROCFS_NODE_OP        _G_pfsnoSymbolFuncs = {
 static LW_PROCFS_NODE           _G_pfsnSymbol[] = 
 {          
     LW_PROCFS_INIT_NODE("ksymbol", 
-                        (S_IRUSR | S_IRGRP | S_IROTH | S_IFREG), 
+                        (S_IRUSR | S_IRGRP | S_IFREG),
                         &_G_pfsnoSymbolFuncs, 
                         "S",
                         0),

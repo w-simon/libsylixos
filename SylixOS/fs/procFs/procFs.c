@@ -263,6 +263,14 @@ static LONG  __procFsOpen (PLW_DEV_HDR     pdevhdr,
         _ErrorHandle(EBUSY);
         return  (PX_ERROR);
     }
+    if (_IosCheckPermissions(iFlags, LW_FALSE,
+                             p_pfsn->PFSN_mode,
+                             p_pfsn->PFSN_uid,
+                             p_pfsn->PFSN_gid)) {                       /*  È¨ÏÞ¼ì²â                    */
+        __LW_PROCFS_UNLOCK();                                           /*  ½âËø procfs                 */
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
     if ((iFlags & O_DIRECTORY) && 
         !S_ISDIR(p_pfsn->PFSN_mode) && 
         !S_ISLNK(p_pfsn->PFSN_mode)) {

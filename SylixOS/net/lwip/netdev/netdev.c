@@ -107,6 +107,18 @@ static void netdev_lowpan6_timer (void *arg)
 }
 #endif /* LWIP_IPV6 */
 
+/* lwip netif linkup hook function */
+static void  netdev_netif_linkup (struct netif *netif)
+{
+  netdev_t *netdev = (netdev_t *)(netif->state);
+
+  if (netif_is_flag_set(netif, NETIF_FLAG_LINK_UP)) {
+    netdev->if_flags |= IFF_RUNNING;
+  } else {
+    netdev->if_flags &= ~IFF_RUNNING;
+  }
+}
+
 /* lwip netif up hook function */
 static void  netdev_netif_up (struct netif *netif)
 {
@@ -534,7 +546,7 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
 }
 
 /* lwip netif linkup changed */
-static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_high, UINT32 speed_low)
+static void  netdev_netif_set_linkup (netdev_t *netdev, int linkup, UINT32 speed_high, UINT32 speed_low)
 {
   UINT64 speed = ((UINT64)speed_high << 32) + speed_low;
   struct netif *netif;
@@ -554,7 +566,6 @@ static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_hig
     } else {
       netif_set_flags(netif, NETIF_FLAG_LINK_UP);
     }
-    netdev->if_flags |= IFF_RUNNING;
 
     if (speed > 0xffffffff) {
       netif->link_speed = 0;
@@ -568,7 +579,6 @@ static void  netdev_netif_linkup (netdev_t *netdev, int linkup, UINT32 speed_hig
     } else {
       netif_clear_flags(netif, NETIF_FLAG_LINK_UP);
     }
-    netdev->if_flags &= ~IFF_RUNNING;
   }
   
 #if LW_CFG_NET_NETDEV_MIP_EN > 0
@@ -684,6 +694,7 @@ static err_t  netdev_netif_init (struct netif *netif)
   netif->remove_callback = netdev_netif_remove;
 #endif /* LWIP_NETIF_REMOVE_CALLBACK */
   
+  netif->link_callback = netdev_netif_linkup;
   netif->up = netdev_netif_up;
   netif->down = netdev_netif_down;
   netif->ioctl = netdev_netif_ioctl;
@@ -1370,7 +1381,7 @@ int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
   UINT32 speed_high = (UINT32)((speed >> 32) & 0xffffffff);
   UINT32 speed_low = (UINT32)(speed & 0xffffffff);
 
-  return (netJobAdd(netdev_netif_linkup, netdev, 
+  return (netJobAdd(netdev_netif_set_linkup, netdev,
                     (void *)linkup, (void *)speed_high, (void *)speed_low, 0, 0));
 }
 
