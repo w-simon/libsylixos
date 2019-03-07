@@ -51,11 +51,11 @@ VOID  API_TimerHTicks (VOID)
     
     ptmr = _LIST_ENTRY(pwun, LW_CLASS_TIMER, TIMER_wunTimer);
     
-    _WakeupDel(&_K_wuHTmr, pwun);
+    _WakeupDel(&_K_wuHTmr, pwun, LW_FALSE);
     
     if (ptmr->TIMER_ulOption & LW_OPTION_AUTO_RESTART) {
         ptmr->TIMER_ulCounter = ptmr->TIMER_ulCounterSave;
-        _WakeupAdd(&_K_wuHTmr, pwun);
+        _WakeupAdd(&_K_wuHTmr, pwun, LW_FALSE);
         
     } else {
         ptmr->TIMER_ucStatus = LW_TIMER_STATUS_STOP;                    /*  ÃÓ–¥Õ£÷π±Í÷æŒª              */

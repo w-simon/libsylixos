@@ -4705,6 +4705,23 @@ lwip_ioctl(int s, long cmd, void *argp)
 #endif /* LWIP_SO_RCVBUF */
 #endif /* LWIP_SO_RCVBUF || LWIP_FIONREAD_LINUXMODE */
 
+#ifdef SYLIXOS /* SylixOS Add 'FIONFREE' */
+    case FIONFREE:
+      if (!argp) {
+        sock_set_errno(sock, EINVAL);
+        done_socket(sock);
+        return -1;
+      }
+      if (sock->sendevent) {
+        *((int *)argp) = 32768; /* TODO: Real free size */
+      } else {
+        *((int *)argp) = 0;
+      }
+      LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_ioctl(%d, FIONFREE, %p) = %"U16_F"\n", s, argp, *((u16_t *)argp)));
+      done_socket(sock);
+      return 0;
+#endif /* SYLIXOS */
+
     case FIONBIO:
       val = 0;
       if (argp && *(int *)argp) {

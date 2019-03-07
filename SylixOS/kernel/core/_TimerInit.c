@@ -89,11 +89,11 @@ VOID  _TimerInit (VOID)
     _K_resrcTmr.RESRC_uiMaxUsed = 0;
 
 #if (LW_CFG_HTIMER_EN > 0)
-    __WAKEUP_INIT(&_K_wuHTmr);
+    __WAKEUP_INIT(&_K_wuHTmr, LW_NULL, LW_NULL);
 #endif
 
 #if (LW_CFG_ITIMER_EN > 0)
-    __WAKEUP_INIT(&_K_wuITmr);
+    __WAKEUP_INIT(&_K_wuITmr, _ITimerWakeup, LW_NULL);
 #endif
 
 #endif                                                                  /*  ((LW_CFG_HTIMER_EN > 0)     */

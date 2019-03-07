@@ -277,7 +277,7 @@ static ULONG  __wqDInsert (PLW_WORK_QUEUE  pwq,
     pwdn->DWQN_pvArg[5] = pvArg5;
     
     pwdn->DWQN_wun.WUN_ulCounter = ulDelay;
-    _WakeupAdd(&pwq->q.WQ_dq.DWQ_wakeup, &pwdn->DWQN_wun);
+    _WakeupAdd(&pwq->q.WQ_dq.DWQ_wakeup, &pwdn->DWQN_wun, LW_FALSE);
     pwq->q.WQ_dq.DWQ_uiCount++;
     
     API_SemaphoreBPost(pwq->q.WQ_dq.DWQ_ulSem);
@@ -356,7 +356,7 @@ static VOID  __wqDExec (PLW_WORK_QUEUE  pwq)
     
     pwdn = _LIST_ENTRY(pwun, LW_WORK_DNODE, DWQN_wun);
     
-    _WakeupDel(&pwq->q.WQ_dq.DWQ_wakeup, pwun);
+    _WakeupDel(&pwq->q.WQ_dq.DWQ_wakeup, pwun, LW_FALSE);
     pwq->q.WQ_dq.DWQ_uiCount--;
     
     pfunc = pwdn->DWQN_pfunc;

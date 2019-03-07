@@ -52,7 +52,6 @@ PVOID  _ITimerThread (PVOID  pvArg)
              PLW_CLASS_PCB              ppcb;
 
              PLW_CLASS_WAKEUP_NODE      pwun;
-             INT64                      i64LastTime;
              INT64                      i64CurTime;
              ULONG                      ulCounter;
              BOOL                       bNoTimer;
@@ -64,7 +63,7 @@ PVOID  _ITimerThread (PVOID  pvArg)
     for (;;) {
         iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核同时关闭中断        */
 
-        __KERNEL_TIME_GET_NO_SPINLOCK(i64LastTime, INT64);              /*  原始时间                    */
+        __KERNEL_TIME_GET_NO_SPINLOCK(_K_wuITmr.WU_i64LastTime, INT64); /*  原始时间                    */
 
         __WAKEUP_GET_FIRST(&_K_wuITmr, pwun);                           /*  获得第一个节点              */
 
@@ -93,18 +92,18 @@ PVOID  _ITimerThread (PVOID  pvArg)
         }
 
         __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);               /*  获得 Sleep 后时间           */
-
-        ulCounter = (ULONG)(i64CurTime - i64LastTime);                  /*  真正睡眠时间                */
+        ulCounter = (ULONG)(i64CurTime - _K_wuITmr.WU_i64LastTime);     /*  真正睡眠时间                */
+        _K_wuITmr.WU_i64LastTime = i64CurTime;
 
         __WAKEUP_PASS_FIRST(&_K_wuITmr, pwun, ulCounter);
         
         ptmr = _LIST_ENTRY(pwun, LW_CLASS_TIMER, TIMER_wunTimer);
         
-        _WakeupDel(&_K_wuITmr, pwun);
+        _WakeupDel(&_K_wuITmr, pwun, LW_FALSE);
         
         if (ptmr->TIMER_ulOption & LW_OPTION_AUTO_RESTART) {
             ptmr->TIMER_ulCounter = ptmr->TIMER_ulCounterSave;
-            _WakeupAdd(&_K_wuITmr, pwun);
+            _WakeupAdd(&_K_wuITmr, pwun, LW_FALSE);
             
         } else {
             ptmr->TIMER_ucStatus = LW_TIMER_STATUS_STOP;                /*  填写停止标志位              */

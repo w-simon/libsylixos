@@ -551,6 +551,10 @@ INT  _TyIoctl (TY_DEV_ID  ptyDev,
         *((INT *)lArg) = rngNBytes(ptyDev->TYDEV_vxringidWrBuf);
         break;
     
+    case FIONFREE:
+        *((INT *)lArg) = rngFreeBytes(ptyDev->TYDEV_vxringidWrBuf);     /*  可写入多少字节              */
+        break;
+
     case FIOFLUSH:                                                      /*  清空设备缓冲区              */
         _TyFlush(ptyDev);
         break;

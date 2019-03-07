@@ -94,10 +94,10 @@ ULONG  API_TimerDelete (LW_OBJECT_HANDLE  *pulId)
     ptmr->TIMER_ucStatus = LW_TIMER_STATUS_STOP;
     
     if (ptmr->TIMER_ucType == LW_TYPE_TIMER_ITIMER) {                   /*  从扫描队列删除              */
-        _WakeupDel(&_K_wuITmr, &ptmr->TIMER_wunTimer);
+        _WakeupDel(&_K_wuITmr, &ptmr->TIMER_wunTimer, LW_TRUE);
     
     } else {
-        _WakeupDel(&_K_wuHTmr, &ptmr->TIMER_wunTimer);
+        _WakeupDel(&_K_wuHTmr, &ptmr->TIMER_wunTimer, LW_FALSE);
     }
     
     ptmr->TIMER_ulCounter = 0ul;                                        /*  清除计数器                  */

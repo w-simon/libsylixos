@@ -77,20 +77,19 @@ ULONG  API_TimerReset (LW_OBJECT_HANDLE  ulId)
     }
     
     if (ptmr->TIMER_ucType == LW_TYPE_TIMER_ITIMER) {                   /*  从扫描队列删除              */
-        _WakeupDel(&_K_wuITmr, &ptmr->TIMER_wunTimer);
+        _WakeupDel(&_K_wuITmr, &ptmr->TIMER_wunTimer, LW_TRUE);
     
     } else {
-        _WakeupDel(&_K_wuHTmr, &ptmr->TIMER_wunTimer);
+        _WakeupDel(&_K_wuHTmr, &ptmr->TIMER_wunTimer, LW_FALSE);
     }
     
     ptmr->TIMER_ulCounter = ptmr->TIMER_ulCounterSave;                  /*  恢复计数值                  */
     
     if (ptmr->TIMER_ucType == LW_TYPE_TIMER_ITIMER) {                   /*  添加到扫描队列              */
-        _WakeupAdd(&_K_wuITmr, &ptmr->TIMER_wunTimer);
-        _ITimerWakeup();                                                /*  唤醒 itimer 服务线程        */
+        _WakeupAdd(&_K_wuITmr, &ptmr->TIMER_wunTimer, LW_TRUE);
     
     } else {
-        _WakeupAdd(&_K_wuHTmr, &ptmr->TIMER_wunTimer);
+        _WakeupAdd(&_K_wuHTmr, &ptmr->TIMER_wunTimer, LW_FALSE);
     }
     
     __KERNEL_EXIT_IRQ(iregInterLevel);                                  /*  退出内核并打开中断          */

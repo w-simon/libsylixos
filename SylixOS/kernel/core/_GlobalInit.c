@@ -245,9 +245,9 @@ VOID _GlobalPrimaryInit (VOID)
     _K_plineTCBHeader  = LW_NULL;                                       /*  TCB 管理链表头              */
     _K_ulNotRunError   = 0ul;                                           /*  系统未启动时错误存放变量    */
     
-    __WAKEUP_INIT(&_K_wuDelay);
+    __WAKEUP_INIT(&_K_wuDelay, LW_NULL, LW_NULL);
 #if LW_CFG_SOFTWARE_WATCHDOG_EN > 0
-    __WAKEUP_INIT(&_K_wuWatchDog);
+    __WAKEUP_INIT(&_K_wuWatchDog, LW_NULL, LW_NULL);
 #endif                                                                  /*  LW_CFG_SOFTWARE_WATCHDOG_EN */
     
 #if LW_CFG_THREAD_CPU_USAGE_CHK_EN > 0

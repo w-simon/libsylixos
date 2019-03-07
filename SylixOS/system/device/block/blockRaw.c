@@ -279,7 +279,7 @@ INT  API_BlkRawCreate (CPCHAR  pcBlkName, BOOL  bRdOnly, BOOL  bLogic, PLW_BLK_R
     lib_bzero(pblkraw, sizeof(LW_BLK_RAW));
     
     pblkraw->BLKRAW_blkd.BLKD_pcName = lib_strdup(pcBlkName);
-    if (pblkraw == LW_NULL) {
+    if (pblkraw->BLKRAW_blkd.BLKD_pcName == LW_NULL) {
         _ErrorHandle(ENOMEM);
         return  (PX_ERROR);
     }
@@ -289,7 +289,7 @@ INT  API_BlkRawCreate (CPCHAR  pcBlkName, BOOL  bRdOnly, BOOL  bLogic, PLW_BLK_R
     __KERNEL_SPACE_EXIT();
     
     if (iRet < ERROR_NONE) {
-        __SHEAP_FREE(pblkraw);
+        lib_free(pblkraw->BLKRAW_blkd.BLKD_pcName);
     }
     
     return  (iRet);

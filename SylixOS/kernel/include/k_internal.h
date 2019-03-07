@@ -310,8 +310,8 @@ VOID  _DelTCBFromReadyRing(PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb);
   ╩╫пя╤сап
 *********************************************************************************************************/
 
-VOID  _WakeupAdd(PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun);
-VOID  _WakeupDel(PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun);
+VOID  _WakeupAdd(PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bProcTime);
+VOID  _WakeupDel(PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bProcTime);
 VOID  _WakeupStatus(PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, ULONG  *pulLeft);
 
 /*********************************************************************************************************

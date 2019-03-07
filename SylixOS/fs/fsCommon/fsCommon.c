@@ -163,7 +163,7 @@ UINT8  __fsPartitionProb (PLW_BLK_DEV  pblkd)
         plineTemp = _list_line_get_next(plineTemp);
     }
     
-    return  (LW_DISK_PART_TYPE_EMPTY);
+    return  (ucPartType);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __fsDiskLinkCounterAdd

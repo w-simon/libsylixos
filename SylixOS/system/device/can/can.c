@@ -748,6 +748,17 @@ static INT __canIoctl (__CAN_DEV  *pcanDev, INT  iCmd, LONG  lArg)
             }
             break;
 
+        case FIONFREE:                                                  /*  可发送数量                  */
+            {
+                LONG  lNFrame = __canQFreeNum(pcanDev->CAN_pcanqSendQueue);
+                if (pcanDev->CAN_uiFileFrameType == CAN_STD_CAN) {
+                    *((INT *)lArg) = (INT)(lNFrame * sizeof(CAN_FRAME));
+                } else {
+                    *((INT *)lArg) = (INT)(lNFrame * sizeof(CAN_FD_FRAME));
+                }
+            }
+            break;
+
         case FIOSYNC:                                                   /*  等待发送完成                */
         case FIODATASYNC:
             iStatus = __canDrain(pcanDev);

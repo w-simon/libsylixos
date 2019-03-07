@@ -153,6 +153,9 @@ typedef LW_CLASS_WAKEUP_NODE   *PLW_CLASS_WAKEUP_NODE;
 typedef struct {
     LW_LIST_LINE_HEADER   WU_plineHeader;
     PLW_LIST_LINE         WU_plineOp;
+    INT64                 WU_i64LastTime;                               /*  最后一次等待时间            */
+    VOIDFUNCPTR           WU_pfuncWakeup;                               /*  非固定周期任务唤醒型定时器  */
+    PVOID                 WU_pvWakeupArg;
 } LW_CLASS_WAKEUP;
 typedef LW_CLASS_WAKEUP        *PLW_CLASS_WAKEUP;
 

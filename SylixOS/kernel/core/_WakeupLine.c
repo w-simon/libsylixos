@@ -30,16 +30,31 @@
 ** 功能描述: 将一个 wakeup 节点加入管理器
 ** 输　入  : pwu           wakeup 管理器
 **           pwun          节点
+**           bProcTime     是否尝试处理非周期任务时间.
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun)
+VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bProcTime)
 {
-    PLW_LIST_LINE           plineTemp;
-    PLW_CLASS_WAKEUP_NODE   pwunTemp;
-    
-    plineTemp = pwu->WU_plineHeader;
+    PLW_LIST_LINE           plineTemp = pwu->WU_plineHeader;
+    PLW_CLASS_WAKEUP_NODE   pwunTemp  = LW_NULL;
+    INT64                   i64CurTime;
+    ULONG                   ulCounter;
+
+    if (bProcTime && plineTemp && pwu->WU_pfuncWakeup) {                /*  非周期任务时间预处理        */
+        __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);
+        ulCounter = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
+        pwu->WU_i64LastTime = ulCounter;
+
+        pwunTemp = _LIST_ENTRY(plineTemp, LW_CLASS_WAKEUP_NODE, WUN_lineManage);
+        if (pwunTemp->WUN_ulCounter > ulCounter) {
+            pwunTemp->WUN_ulCounter -= ulCounter;
+        } else {
+            pwunTemp->WUN_ulCounter = 0;
+        }
+    }
+
     while (plineTemp) {
         pwunTemp = _LIST_ENTRY(plineTemp, LW_CLASS_WAKEUP_NODE, WUN_lineManage);
         if (pwun->WUN_ulCounter >= pwunTemp->WUN_ulCounter) {           /*  需要继续向后找              */
@@ -66,20 +81,27 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun)
     }
     
     pwun->WUN_bInQ = LW_TRUE;
+
+    if (bProcTime && pwu->WU_pfuncWakeup) {
+        pwu->WU_pfuncWakeup(pwu->WU_pvWakeupArg);                       /*  唤醒                        */
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: _WakeupDel
 ** 功能描述: 从 wakeup 管理器中删除指定节点
 ** 输　入  : pwu           wakeup 管理器
 **           pwun          节点
+**           bProcTime     是否尝试处理非周期任务时间.
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  _WakeupDel (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun)
+VOID  _WakeupDel (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bProcTime)
 {
     PLW_LIST_LINE           plineRight;
     PLW_CLASS_WAKEUP_NODE   pwunRight;
+    INT64                   i64CurTime;
+    ULONG                   ulCounter;
 
     if (&pwun->WUN_lineManage == pwu->WU_plineOp) {
         pwu->WU_plineOp = _list_line_get_next(pwu->WU_plineOp);
@@ -91,6 +113,20 @@ VOID  _WakeupDel (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun)
         pwunRight->WUN_ulCounter += pwun->WUN_ulCounter;
     }
     
+    if (bProcTime && !_list_line_get_prev(&pwun->WUN_lineManage) && pwu->WU_pfuncWakeup) {
+        __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);               /*  非周期任务时间预处理        */
+        ulCounter = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
+        pwu->WU_i64LastTime = ulCounter;
+
+        if (plineRight) {
+            if (pwunRight->WUN_ulCounter > ulCounter) {
+                pwunRight->WUN_ulCounter -= ulCounter;
+            } else {
+                pwunRight->WUN_ulCounter = 0;
+            }
+        }
+    }
+
     _List_Line_Del(&pwun->WUN_lineManage, &pwu->WU_plineHeader);
     pwun->WUN_bInQ = LW_FALSE;
 }

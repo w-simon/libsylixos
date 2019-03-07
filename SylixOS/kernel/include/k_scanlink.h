@@ -59,10 +59,12 @@
   初始化
 *********************************************************************************************************/
 
-#define __WAKEUP_INIT(pwu)  \
+#define __WAKEUP_INIT(pwu, pfuncWakeup, pvArg)   \
         do {    \
-            (pwu)->WU_plineHeader = LW_NULL;    \
-            (pwu)->WU_plineOp     = LW_NULL;    \
+            (pwu)->WU_plineHeader = LW_NULL;     \
+            (pwu)->WU_plineOp     = LW_NULL;     \
+            (pwu)->WU_pfuncWakeup = pfuncWakeup; \
+            (pwu)->WU_pvWakeupArg = pvArg;       \
         } while (0)
         
 #define __WAKEUP_NODE_INIT(pwun)    \
@@ -76,33 +78,33 @@
   将线程加入超时唤醒队列
 *********************************************************************************************************/
 
-#define __ADD_TO_WAKEUP_LINE(ptcb)                          \
-        do {                                                \
-            ptcb->TCB_usStatus |= LW_THREAD_STATUS_DELAY;   \
-            _WakeupAdd(&_K_wuDelay, &ptcb->TCB_wunDelay);   \
+#define __ADD_TO_WAKEUP_LINE(ptcb)                                  \
+        do {                                                        \
+            ptcb->TCB_usStatus |= LW_THREAD_STATUS_DELAY;           \
+            _WakeupAdd(&_K_wuDelay, &ptcb->TCB_wunDelay, LW_FALSE); \
         } while (0)
         
 /*********************************************************************************************************
   将线程从超时唤醒队列退出
 *********************************************************************************************************/
 
-#define __DEL_FROM_WAKEUP_LINE(ptcb)                        \
-        do {                                                \
-            ptcb->TCB_usStatus &= ~LW_THREAD_STATUS_DELAY;  \
-            _WakeupDel(&_K_wuDelay, &ptcb->TCB_wunDelay);   \
+#define __DEL_FROM_WAKEUP_LINE(ptcb)                                \
+        do {                                                        \
+            ptcb->TCB_usStatus &= ~LW_THREAD_STATUS_DELAY;          \
+            _WakeupDel(&_K_wuDelay, &ptcb->TCB_wunDelay, LW_FALSE); \
         } while (0)
         
 /*********************************************************************************************************
   将线程加入看门狗队列
 *********************************************************************************************************/
 
-#define __ADD_TO_WATCHDOG_LINE(ptcb)        _WakeupAdd(&_K_wuWatchDog, &ptcb->TCB_wunWatchDog)
+#define __ADD_TO_WATCHDOG_LINE(ptcb)        _WakeupAdd(&_K_wuWatchDog, &ptcb->TCB_wunWatchDog, LW_FALSE)
 
 /*********************************************************************************************************
   将线程从看门狗队列退出
 *********************************************************************************************************/
 
-#define __DEL_FROM_WATCHDOG_LINE(ptcb)      _WakeupDel(&_K_wuWatchDog, &ptcb->TCB_wunWatchDog)
+#define __DEL_FROM_WATCHDOG_LINE(ptcb)      _WakeupDel(&_K_wuWatchDog, &ptcb->TCB_wunWatchDog, LW_FALSE)
 
 #endif                                                                  /*  __K_SCANLINK_H              */
 /*********************************************************************************************************

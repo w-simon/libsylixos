@@ -51,7 +51,7 @@ static  PVOID  _PowerMThread (PVOID  pvArg)
         
         pmdev = _LIST_ENTRY(pwun, LW_PM_DEV, PMD_wunTimer);
         
-        _WakeupDel(&_G_wuPowerM, pwun);
+        _WakeupDel(&_G_wuPowerM, pwun, LW_FALSE);
         
         if (pmdev->PMD_pmdfunc &&
             pmdev->PMD_pmdfunc->PMDF_pfuncIdleEnter) {
@@ -132,12 +132,12 @@ INT  API_PowerMDevSetWatchDog (PLW_PM_DEV  pmdev, ULONG  ulSecs)
     
     __POWERM_LOCK();                                                    /*  上锁                        */
     if (pmdev->PMD_bInQ) {
-        _WakeupDel(&_G_wuPowerM, &pmdev->PMD_wunTimer);
+        _WakeupDel(&_G_wuPowerM, &pmdev->PMD_wunTimer, LW_FALSE);
     }
     
     pmdev->PMD_ulCounter = ulSecs;                                      /*  复位定时器                  */
     
-    _WakeupAdd(&_G_wuPowerM, &pmdev->PMD_wunTimer);
+    _WakeupAdd(&_G_wuPowerM, &pmdev->PMD_wunTimer, LW_FALSE);
     
     if (pmdev->PMD_uiStatus == LW_PMD_STAT_IDLE) {
         pmdev->PMD_uiStatus =  LW_PMD_STAT_NOR;
@@ -215,7 +215,7 @@ INT  API_PowerMDevWatchDogOff (PLW_PM_DEV  pmdev)
 
     __POWERM_LOCK();                                                    /*  上锁                        */
     if (pmdev->PMD_bInQ) {
-        _WakeupDel(&_G_wuPowerM, &pmdev->PMD_wunTimer);
+        _WakeupDel(&_G_wuPowerM, &pmdev->PMD_wunTimer, LW_FALSE);
     }
     if (pmdev->PMD_uiStatus == LW_PMD_STAT_IDLE) {
         pmdev->PMD_uiStatus =  LW_PMD_STAT_NOR;

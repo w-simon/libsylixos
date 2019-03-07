@@ -45,6 +45,9 @@ static LW_LIST_LINE_HEADER xtimer_list;
 /* Timer tick service node */
 static PLW_LIST_LINE xtimer_op;
 
+/* Timer service last sleep time */
+static INT64 xtimer_last_tick;
+
 /* Timer service task */
 static LW_HANDLE xtimer_task = LW_HANDLE_INVALID;
 
@@ -77,16 +80,16 @@ static void xtimer_start_internal(xtimer_t *timer);
 static PVOID xtimer_service (PVOID arg)
 {
     BOOL no_timer;
-    INT64  last_tick, cur_tick;
-    ULONG  count;
+    INT64 cur_tick;
+    ULONG count;
     xtimer_t *t;
     void (*func)(ULONG);
-    ULONG  data;
+    ULONG data;
 
     for (;;) {
         XTIMER_LOCK();
 
-        last_tick = API_TimeGet64();
+        xtimer_last_tick = API_TimeGet64();
 
         if (xtimer_list) {
             t = _LIST_ENTRY(xtimer_list, xtimer_t, pline);
@@ -106,7 +109,8 @@ static PVOID xtimer_service (PVOID arg)
         }
 
         cur_tick = API_TimeGet64();
-        count = cur_tick - last_tick;
+        count = cur_tick - xtimer_last_tick;
+        xtimer_last_tick = cur_tick;
 
         xtimer_op = xtimer_list;
         while (xtimer_op) {
@@ -153,6 +157,8 @@ static void xtimer_stop_internal (xtimer_t *timer, BOOL adj)
 {
     xtimer_t *right;
     PLW_LIST_LINE pline;
+    INT64 cur_tick;
+    ULONG count;
 
     if (&timer->pline == xtimer_op) {
         xtimer_op = _list_line_get_next(xtimer_op);
@@ -166,6 +172,20 @@ static void xtimer_stop_internal (xtimer_t *timer, BOOL adj)
             right = _LIST_ENTRY(pline, xtimer_t, pline);
             right->count += timer->count;
         }
+
+        if (!_list_line_get_prev(&timer->pline)) {
+            cur_tick = API_TimeGet64();
+            count = cur_tick - xtimer_last_tick;
+            xtimer_last_tick = cur_tick;
+
+            if (pline) {
+                if (right->count > count) {
+                    right->count -= count;
+                } else {
+                    right->count = 0;
+                }
+            }
+        }
     }
 
     _List_Line_Del(&timer->pline, &xtimer_list);
@@ -176,12 +196,25 @@ static void xtimer_stop_internal (xtimer_t *timer, BOOL adj)
  */
 static void xtimer_start_internal (xtimer_t *timer)
 {
-    xtimer_t *t;
+    xtimer_t *t, *first;
     PLW_LIST_LINE pline;
+    INT64 cur_tick;
+    ULONG count;
 
     timer->inq = LW_TRUE;
 
     if (xtimer_list) {
+        first = _LIST_ENTRY(xtimer_list, xtimer_t, pline);
+        cur_tick = API_TimeGet64();
+        count = cur_tick - xtimer_last_tick;
+        xtimer_last_tick = cur_tick;
+
+        if (first->count > count) {
+            first->count -= count;
+        } else {
+            first->count = 0;
+        }
+
         pline = xtimer_list;
         do {
             t = _LIST_ENTRY(pline, xtimer_t, pline);

@@ -1736,7 +1736,7 @@ static INT  __tshellFsCmdMount (INT  iArgC, PCHAR  ppcArgV[])
     INT         iC;
     INT         iOptInd;
     
-    if (iArgC < 3) {
+    if (iArgC < 3 || (iArgC == 4)) {
         fprintf(stderr, "option error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }

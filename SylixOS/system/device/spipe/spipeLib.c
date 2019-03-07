@@ -699,6 +699,11 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         }
         break;
         
+    case FIONFREE:                                                      /*  ¿ÕÏÐ¿Õ¼ä´óÐ¡                */
+        *(INT *)piArgPtr = (INT)(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes
+                         - pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes);
+        break;
+
     case FIONBIO:
         LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
         if (*piArgPtr) {
