@@ -36,6 +36,11 @@ typedef LW_BLK_RAW     *PLW_BLK_RAW;
   API
 *********************************************************************************************************/
 LW_API INT  API_BlkRawCreate(CPCHAR  pcBlkName, BOOL  bRdOnly, BOOL  bLogic, PLW_BLK_RAW  pblkraw);
+LW_API INT  API_BlkRawCreateEx(CPCHAR       pcBlkName,
+                               BOOL         bRdOnly,
+                               BOOL         bLogic,
+                               ULONG        ulSecSize,
+                               PLW_BLK_RAW  pblkraw);
 LW_API INT  API_BlkRawDelete(PLW_BLK_RAW  pblkraw);
 
 #endif                                                                  /*  __BLOCKRAW_H                */

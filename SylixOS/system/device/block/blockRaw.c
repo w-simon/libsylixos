@@ -174,11 +174,12 @@ static INT  __blkRawRead (PLW_BLK_RAW  pblkraw,
 ** 输　入  : pblkraw       BLOCK RAW 设备
 **           bRdOnly       只读
 **           bLogic        是否为逻辑分区
+**           ulSecSize     扇区大小
 ** 输　出  : ERROR_NONE or PX_ERROR
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  __blkRawCreate (PLW_BLK_RAW  pblkraw, INT  iFlag, BOOL  bLogic)
+static INT  __blkRawCreate (PLW_BLK_RAW  pblkraw, INT  iFlag, BOOL  bLogic, ULONG  ulSecSize)
 {
     struct stat       statBuf;
     PLW_BLK_DEV       pblkd = &pblkraw->BLKRAW_blkd;
@@ -210,8 +211,8 @@ static INT  __blkRawCreate (PLW_BLK_RAW  pblkraw, INT  iFlag, BOOL  bLogic)
     
     } else {
         pblkd->BLKD_ulNSector        = (ULONG)(statBuf.st_size / LW_BLKRAW_DEF_SEC_SIZE);
-        pblkd->BLKD_ulBytesPerSector = LW_BLKRAW_DEF_SEC_SIZE;
-        pblkd->BLKD_ulBytesPerBlock  = LW_BLKRAW_DEF_SEC_SIZE;
+        pblkd->BLKD_ulBytesPerSector = ulSecSize;
+        pblkd->BLKD_ulBytesPerBlock  = ulSecSize;
     }
     
     if (!pblkd->BLKD_ulNSector        ||
@@ -252,11 +253,12 @@ static INT  __blkRawDelete (PLW_BLK_RAW  pblkraw)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_BlkRawCreate
+** 函数名称: API_BlkRawCreateEx
 ** 功能描述: 通过 /dev/blk/xxx 块设备生成一个 BLOCK 控制块 (只能内核程序调用).
 ** 输　入  : pcBlkName     块设备名称
 **           bRdOnly       只读
 **           bLogic        是否为逻辑分区
+**           ulSecSize     扇区大小
 **           pblkraw       创建的 blk raw 控制块
 ** 输　出  : ERROR_NONE or PX_ERROR
 ** 全局变量:
@@ -264,7 +266,11 @@ static INT  __blkRawDelete (PLW_BLK_RAW  pblkraw)
 **                                            API 函数
 *********************************************************************************************************/
 LW_API 
-INT  API_BlkRawCreate (CPCHAR  pcBlkName, BOOL  bRdOnly, BOOL  bLogic, PLW_BLK_RAW  pblkraw)
+INT  API_BlkRawCreateEx (CPCHAR       pcBlkName,
+                         BOOL         bRdOnly,
+                         BOOL         bLogic,
+                         ULONG        ulSecSize,
+                         PLW_BLK_RAW  pblkraw)
 {
     INT         iFlag;
     INT         iRet;
@@ -285,7 +291,7 @@ INT  API_BlkRawCreate (CPCHAR  pcBlkName, BOOL  bRdOnly, BOOL  bLogic, PLW_BLK_R
     }
     
     __KERNEL_SPACE_ENTER();
-    iRet = __blkRawCreate(pblkraw, iFlag, bLogic);
+    iRet = __blkRawCreate(pblkraw, iFlag, bLogic, ulSecSize);
     __KERNEL_SPACE_EXIT();
     
     if (iRet < ERROR_NONE) {
@@ -293,6 +299,23 @@ INT  API_BlkRawCreate (CPCHAR  pcBlkName, BOOL  bRdOnly, BOOL  bLogic, PLW_BLK_R
     }
     
     return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: API_BlkRawCreate
+** 功能描述: 通过 /dev/blk/xxx 块设备生成一个 BLOCK 控制块 (只能内核程序调用).
+** 输　入  : pcBlkName     块设备名称
+**           bRdOnly       只读
+**           bLogic        是否为逻辑分区
+**           pblkraw       创建的 blk raw 控制块
+** 输　出  : ERROR_NONE or PX_ERROR
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_BlkRawCreate (CPCHAR  pcBlkName, BOOL  bRdOnly, BOOL  bLogic, PLW_BLK_RAW  pblkraw)
+{
+    return  (API_BlkRawCreateEx(pcBlkName, bRdOnly, bLogic, LW_BLKRAW_DEF_SEC_SIZE, pblkraw));
 }
 /*********************************************************************************************************
 ** 函数名称: API_BlkRawDelete

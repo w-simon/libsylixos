@@ -30,7 +30,7 @@
 ** 功能描述: 将一个 wakeup 节点加入管理器
 ** 输　入  : pwu           wakeup 管理器
 **           pwun          节点
-**           bProcTime     是否尝试处理非周期任务时间.
+**           bProcTime     是否尝试处理非周期任务时间. (LW_TRUE: 时必须在进入内核模式调用)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -45,7 +45,7 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
     if (bProcTime && plineTemp && pwu->WU_pfuncWakeup) {                /*  非周期任务时间预处理        */
         __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);
         ulCounter = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
-        pwu->WU_i64LastTime = ulCounter;
+        pwu->WU_i64LastTime = i64CurTime;
 
         pwunTemp = _LIST_ENTRY(plineTemp, LW_CLASS_WAKEUP_NODE, WUN_lineManage);
         if (pwunTemp->WUN_ulCounter > ulCounter) {
@@ -91,7 +91,7 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
 ** 功能描述: 从 wakeup 管理器中删除指定节点
 ** 输　入  : pwu           wakeup 管理器
 **           pwun          节点
-**           bProcTime     是否尝试处理非周期任务时间.
+**           bProcTime     是否尝试处理非周期任务时间. (LW_TRUE: 时必须在进入内核模式调用)
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -116,7 +116,7 @@ VOID  _WakeupDel (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
     if (bProcTime && !_list_line_get_prev(&pwun->WUN_lineManage) && pwu->WU_pfuncWakeup) {
         __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);               /*  非周期任务时间预处理        */
         ulCounter = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
-        pwu->WU_i64LastTime = ulCounter;
+        pwu->WU_i64LastTime = i64CurTime;
 
         if (plineRight) {
             if (pwunRight->WUN_ulCounter > ulCounter) {

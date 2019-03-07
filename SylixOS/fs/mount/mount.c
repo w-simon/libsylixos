@@ -55,6 +55,7 @@
 #define __LW_MOUNT_DEFAULT_FS       "vfat"                              /*  默认挂载文件系统格式        */
 #define __LW_MOUNT_NFS_FS           "nfs"                               /*  nfs 挂载                    */
 #define __LW_MOUNT_RAM_FS           "ramfs"                             /*  ram 挂载                    */
+#define __LW_MOUNT_ISO_FS           "iso9660"                           /*  iso 挂载                    */
 /*********************************************************************************************************
   挂载节点
 *********************************************************************************************************/
@@ -145,10 +146,19 @@ static INT  __mount (CPCHAR  pcDevName, CPCHAR  pcVolName, CPCHAR  pcFileSystem,
     pmnDev->MN_bNeedDelete = bNeedDelete;
     
     if (bNeedDelete) {
-        if (API_BlkRawCreate(pcDevName, bRdOnly, 
-                             LW_TRUE, &pmnDev->MN_blkraw) < ERROR_NONE) {
-            __SHEAP_FREE(pmnDev);
-            return  (PX_ERROR);
+        if (lib_strcmp(pcFs, __LW_MOUNT_ISO_FS) == 0) {
+            if (API_BlkRawCreateEx(pcDevName, bRdOnly,                  /*  ISO 扇区一定为 2048 字节    */
+                                   LW_TRUE, 2048, &pmnDev->MN_blkraw) < ERROR_NONE) {
+                __SHEAP_FREE(pmnDev);
+                return  (PX_ERROR);
+            }
+
+        } else {
+            if (API_BlkRawCreate(pcDevName, bRdOnly,
+                                 LW_TRUE, &pmnDev->MN_blkraw) < ERROR_NONE) {
+                __SHEAP_FREE(pmnDev);
+                return  (PX_ERROR);
+            }
         }
     
     } else {

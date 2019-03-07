@@ -114,7 +114,7 @@ ipc_id_t *ipc_get_instance (int  idnum, int type)
 {
     ipc_id_t *ipc_id;
 
-    if ((idnum < 0) || (idnum > IPC_MAX)) {
+    if ((idnum < 0) || (idnum >= IPC_MAX)) {
         return  (NULL);
     }
 

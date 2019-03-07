@@ -2341,6 +2341,7 @@ VOID  __tshellFsCmdInit (VOID)
                                 "    mount -t tpsfs /dev/blk/sata0 /mnt/hdd0\n"
                                 "    mount -t romfs /dev/blk/rom0 /mnt/rom0\n"
                                 "    mount -t romfs /root/romfile /mnt/rom1\n"
+                                "    mount -t iso9660 /root/cd.iso /mnt/cdrom\n"
                                 "    mount -t ramfs 100000 /mnt/ram\n"
                                 "    mount -t nfs -o ro 192.168.0.123:/nfstest /mnt/nfs\n"
                                 "-o \n"

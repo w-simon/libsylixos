@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-03-07: han.hui
+    加入 ISO9660 光盘文件系统支持.
+
     2019-02-28: han.hui
     加入 crashtrap 命令, 可设置用户进程异常时停止并等待调试器链接.
 
