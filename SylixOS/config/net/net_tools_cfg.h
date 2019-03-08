@@ -45,6 +45,8 @@
 *********************************************************************************************************/
 
 #define LW_CFG_NET_TELNET_EN                        1                   /*  是否使能 telnet 工具        */
+#define LW_CFG_NET_TELNET_LOGFD_EN                  0                   /*  是否添加到 logmsg 输出文件集*/
+#define LW_CFG_NET_TELNET_LOGIN_EN                  1                   /*  是否使能用户登陆            */
 #if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_NET_TELNET_STK_SIZE                  (6 * LW_CFG_KB_SIZE)/*  telnet 相关线程堆栈         */
 #else
@@ -89,6 +91,7 @@
 
 #define LW_CFG_NET_FTPD_EN                          1                   /*  是否使能 ftp 服务器         */
 #define LW_CFG_NET_FTPD_LOG_EN                      0                   /*  是否使能 ftp 服务器打印 log */
+#define LW_CFG_NET_FTPD_LOGIN_EN                    1                   /*  是否使能用户登陆            */
 #if LW_CFG_CPU_WORD_LENGHT == 32
 #define LW_CFG_NET_FTPD_STK_SIZE                    (12 * LW_CFG_KB_SIZE)
 #else

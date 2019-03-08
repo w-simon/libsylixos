@@ -383,6 +383,7 @@ static VOID  __telnetServer (INT  iSock)
     INT                 iDevFd;
     PVOID               pvRetValue;
     
+    ULONG               ulShellOption;
     LW_OBJECT_HANDLE    ulTShell;
     LW_OBJECT_HANDLE    ulCommunicatThread;
     
@@ -461,16 +462,20 @@ static VOID  __telnetServer (INT  iSock)
         API_IoTaskStdSet(ulCommunicatThread, STD_OUT, iSock);           /*  标准输出为 socket           */
         API_IoTaskStdSet(ulCommunicatThread, STD_IN,  iSock);           /*  标准输入为 socket           */
     }
-    
+
     /*
      *  创建 TSHELL 服务线程
      */
-    ulTShell = API_TShellCreateEx(iHostFd, LW_OPTION_TSHELL_VT100 |
-                                           LW_OPTION_TSHELL_AUTHEN |
-                                           LW_OPTION_TSHELL_PROMPT_FULL |
-                                           LW_OPTION_TSHELL_NODETACH,
-                                           __telnetShellCallback,
-                                           (PVOID)iSock);               /*  需用户登陆                  */
+    ulShellOption = LW_OPTION_TSHELL_VT100
+                  | LW_OPTION_TSHELL_PROMPT_FULL
+                  | LW_OPTION_TSHELL_NODETACH;
+
+#if LW_CFG_NET_TELNET_LOGIN_EN > 0
+    ulShellOption |= LW_OPTION_TSHELL_AUTHEN;
+#endif                                                                  /*  LW_CFG_NET_TELNET_LOGIN_EN  */
+
+    ulTShell = API_TShellCreateEx(iHostFd, ulShellOption,
+                                  __telnetShellCallback, (PVOID)iSock); /*  创建 Shell                  */
     if (ulTShell == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 5;
         goto    __error_handle;
@@ -486,8 +491,16 @@ static VOID  __telnetServer (INT  iSock)
     
     API_ThreadStart(ulCommunicatThread);                                /*  启动服务线程                */
     
+#if LW_CFG_NET_TELNET_LOGFD_EN > 0
+    API_LogFdAdd(iHostFd);
+#endif                                                                  /*  LW_CFG_NET_TELNET_LOGFD_EN  */
+
     API_ThreadJoin(ulTShell, &pvRetValue);                              /*  等待 shell 线程结束         */
     
+#if LW_CFG_NET_TELNET_LOGFD_EN > 0
+    API_LogFdDelete(iHostFd);
+#endif                                                                  /*  LW_CFG_NET_TELNET_LOGFD_EN  */
+
 #if LW_CFG_NET_LOGINBL_EN > 0
     if ((INT)pvRetValue == -ERROR_TSHELL_EUSER) {                       /*  用户登录错误                */
         if (bBlAdd) {
@@ -497,6 +510,7 @@ static VOID  __telnetServer (INT  iSock)
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
     
     API_ThreadCancel(&ulCommunicatThread);                              /*  通知停止 t_ptyproc 线程     */
+
     /*
      *  删除 pty 设备, 唤醒 t_ptyproc 线程.
      *  ptyDevRemove() 同时会将 pty 文件设置为预关闭模式, 保证 select() 正确性.

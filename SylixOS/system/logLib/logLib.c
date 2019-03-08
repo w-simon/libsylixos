@@ -127,7 +127,7 @@ INT  API_LogFdSet (INT  iWidth, fd_set  *pfdsetLog)
         _ErrorHandle(ERROR_LOG_FDSET_NULL);
         return  (PX_ERROR);
     }
-    
+
     __KERNEL_MODE_PROC(
         _G_fdsetLogFd = *pfdsetLog;
         _G_iMaxWidth  = iWidth;
@@ -158,12 +158,71 @@ INT  API_LogFdGet (INT  *piWidth, fd_set  *pfdsetLog)
         _ErrorHandle(ERROR_LOG_FDSET_NULL);
         return  (PX_ERROR);
     }
-    
+
     __KERNEL_MODE_PROC(
         *pfdsetLog = _G_fdsetLogFd;
         *piWidth   = _G_iMaxWidth;
     );
     
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_LogFdAdd
+** 功能描述: 添加 LOG 需要关心的文件
+** 输　入  : iFd                      文件描述符
+** 输　出  : PX_ERROR or ERROR_NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_LogFdAdd (INT  iFd)
+{
+    if (iFd < 0) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (__PROC_GET_PID_CUR() != 0) {
+        _ErrorHandle(ENOTSUP);
+        return  (PX_ERROR);
+    }
+
+    __KERNEL_ENTER();
+    FD_SET(iFd, &_G_fdsetLogFd);
+    if (iFd >= _G_iMaxWidth) {
+        _G_iMaxWidth = iFd + 1;
+    }
+    __KERNEL_EXIT();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_LogFdDelete
+** 功能描述: 删除 LOG 需要关心的文件
+** 输　入  : iFd                      文件描述符
+** 输　出  : PX_ERROR or ERROR_NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_LogFdDelete (INT  iFd)
+{
+    if (iFd < 0) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (__PROC_GET_PID_CUR() != 0) {
+        _ErrorHandle(ENOTSUP);
+        return  (PX_ERROR);
+    }
+
+    __KERNEL_ENTER();
+    FD_CLR(iFd, &_G_fdsetLogFd);
+    __KERNEL_EXIT();
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

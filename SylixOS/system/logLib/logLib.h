@@ -55,6 +55,10 @@ LW_API INT    API_LogFdSet(INT    iWidth, fd_set  *pfdsetLog);
 
 LW_API INT    API_LogFdGet(INT  *piWidth, fd_set  *pfdsetLog);
 
+LW_API INT    API_LogFdAdd(INT  iFd);
+
+LW_API INT    API_LogFdDelete(INT  iFd);
+
 LW_API INT    API_LogPrintk(CPCHAR    pcFormat, ...);
 
 LW_API INT    API_LogMsg(CPCHAR       pcFormat,
@@ -72,6 +76,9 @@ LW_API INT    API_LogMsg(CPCHAR       pcFormat,
                          
 #define logFdSet         API_LogFdSet
 #define logFdGet         API_LogFdGet
+
+#define logFdAdd         API_LogFdAdd
+#define logFdDelete      API_LogFdDelete
 
 #define logPrintk        API_LogPrintk
 #define logMsg           API_LogMsg

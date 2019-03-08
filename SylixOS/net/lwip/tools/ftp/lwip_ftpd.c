@@ -1169,7 +1169,7 @@ static INT  __ftpdCommandExec (__PFTPD_SESSION  pftpds, PCHAR  pcCmd, PCHAR  pcA
 {
     CHAR    cFileName[MAX_FILENAME_LENGTH];                             /*  文件名                      */
 
-#if LW_CFG_NET_LOGINBL_EN > 0
+#if (LW_CFG_NET_FTPD_LOGIN_EN > 0) && (LW_CFG_NET_LOGINBL_EN > 0)
     struct sockaddr_in  addr;
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 
@@ -1180,6 +1180,7 @@ static INT  __ftpdCommandExec (__PFTPD_SESSION  pftpds, PCHAR  pcCmd, PCHAR  pcA
         pftpds->FTPDS_iStatus &= ~__FTPD_SESSION_STATUS_LOGIN;
         
     } else if (!lib_strcmp("PASS", pcCmd)) {                            /*  密码输入                    */
+#if LW_CFG_NET_FTPD_LOGIN_EN > 0
         if (userlogin(pftpds->FTPDS_cUser, pcArg, 1) < 0) {
             __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_LOGIN_FAILED,
                             "Login failed.");                           /*  用户认证失败                */
@@ -1192,7 +1193,9 @@ static INT  __ftpdCommandExec (__PFTPD_SESSION  pftpds, PCHAR  pcCmd, PCHAR  pcA
             addr.sin_addr   = pftpds->FTPDS_inaddrRemote;
             API_LoginBlAdd((struct sockaddr *)&addr, _G_uiLoginFailBlRep, _G_uiLoginFailBlSec);
 #endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
-        } else {
+        } else
+#endif                                                                  /*  LW_CFG_NET_FTPD_LOGIN_EN    */
+        {
             setsockopt(pftpds->FTPDS_iSockCtrl, SOL_SOCKET, SO_RCVTIMEO, 
                        (const void *)&_G_iFtpdIdleTimeout, sizeof(INT));
             __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_USER_LOGIN,
