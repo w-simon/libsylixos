@@ -43,6 +43,47 @@ extern LW_OBJECT_HANDLE _G_ulNetLibcLock;
 
 extern struct protoent *getprotobyname_static(const char *);
 
+int
+getprotobyname_r(
+    const char *name,
+    struct protoent *proto_buf, char *buf, size_t size, struct protoent **res)
+{
+    register int ret;
+    register char **cp;
+
+    API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
+
+    setprotoent(_proto_stayopen);
+    while ((ret = getprotoent_r(proto_buf, buf, size, res)) == 0) {
+        if (strcmp(proto_buf->p_name, name) == 0)
+            break;
+        for (cp = proto_buf->p_aliases; *cp != 0; cp++)
+            if (strcmp(*cp, name) == 0)
+                goto found;
+    }
+found:
+    if (!_proto_stayopen)
+        endprotoent();
+
+    API_SemaphoreMPost(_G_ulNetLibcLock);
+
+    if (ret) {
+        *res = NULL;
+        if (size > 16) {
+            struct protoent *sta = getprotobyname_static(name);
+            if (sta) {
+                strlcpy(buf, sta->p_name, size);
+                proto_buf->p_name = buf;
+                proto_buf->p_aliases = NULL;
+                proto_buf->p_proto = sta->p_proto;
+                *res = proto_buf;
+                ret = 0;
+            }
+        }
+    }
+    return (ret);
+}
+
 struct protoent *
 getprotobyname(
 	const char *name)

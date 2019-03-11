@@ -92,6 +92,8 @@ VOID  __tshellAhciCtrlCmdShow (VOID)
             printf(" %-20s\n", "*");
         }
 
+        API_AhciCtrlInfoShow(hCtrl);
+
         i += 1;
     }
     __AHCI_CTRL_UNLOCK();

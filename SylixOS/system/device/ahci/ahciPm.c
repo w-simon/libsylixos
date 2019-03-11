@@ -31,6 +31,126 @@
 #include "ahciDev.h"
 #include "ahciPm.h"
 /*********************************************************************************************************
+** 函数名称: API_AhciPmPowerModeGet
+** 功能描述: 获取当前电源管理模式
+** 输　入  : hCtrl      控制器句柄
+**           uiDrive    驱动器号
+**           pucMode    电源管理模式
+** 输　出  : ERROR or AHCI_PM_ACTIVE_IDLE or AHCI_PM_STANDBY or AHCI_PM_SLEEP
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API
+INT  API_AhciPmPowerModeGet (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, UINT8 *pucMode)
+{
+    INT                     iRet;                                       /* 操作结果                     */
+    AHCI_DRIVE_HANDLE       hDrive;                                     /* 驱动器句柄                   */
+    UINT8                   ucPower;
+
+    AHCI_LOG(AHCI_LOG_PRT, "ctrl %d drive %d power mode get.\r\n", hCtrl->AHCICTRL_uiIndex, uiDrive);
+
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获得驱动器句柄               */
+    if ((!hCtrl->AHCICTRL_bInstalled) ||
+        (!hCtrl->AHCICTRL_bDrvInstalled) ||
+        (hDrive->AHCIDRIVE_ucState != AHCI_DEV_OK)) {
+        AHCI_LOG(AHCI_LOG_ERR, "ctrl %d drive %d power mode get state error.\r\n",
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
+        return  (PX_ERROR);
+    }
+
+    if (hDrive->AHCIDRIVE_iPmState == AHCI_PM_SLEEP) {
+        if (pucMode) {
+            *pucMode = AHCI_PM_SLEEP;
+        }
+        return  (ERROR_NONE);
+    }
+
+    iRet = API_AhciNoDataCommandSend(hCtrl, uiDrive, AHCI_CMD_CHECK_POWER_LEVEL, 0, 0, 0, 0, 0, 0);
+    if (iRet == ERROR_NONE) {
+        ucPower  = hDrive->AHCIDRIVE_hRecvFis->AHCIRECVFIS_ucD2hRegisterFis[12];
+        switch (ucPower) {
+
+        case 0x00:
+            if (pucMode) {
+                *pucMode = AHCI_PM_STANDBY;
+            }
+            return  (ERROR_NONE);
+
+        case 0x80:
+        case 0xff:
+            if (pucMode) {
+                *pucMode = AHCI_PM_ACTIVE_IDLE;
+            }
+            return  (ERROR_NONE);
+
+        default:
+            return  (PX_ERROR);
+        }
+    }
+
+    AHCI_LOG(AHCI_LOG_ERR, "ctrl %d drive %d power mode get no data cmd send error.\r\n",
+             hCtrl->AHCICTRL_uiIndex, uiDrive);
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: API_AhciApmModeGet
+** 功能描述: 获取当前电源管理模式级别
+** 输　入  : hCtrl      控制器句柄
+**           uiDrive    驱动器号
+**           pucMode    是否为使能状态 (0x01 - 0xfe)
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_API
+INT  API_AhciApmModeGet (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, UINT8 *pucMode)
+{
+    INT                     iRet;                                       /* 操作结果                     */
+    AHCI_DRIVE_HANDLE       hDrive;                                     /* 驱动器句柄                   */
+    AHCI_PARAM_HANDLE       hParam;                                     /* 参数句柄                     */
+    UINT16                  usCurrentAPM;
+
+    AHCI_LOG(AHCI_LOG_PRT, "ctrl %d drive %d apm mode get.\r\n", hCtrl->AHCICTRL_uiIndex, uiDrive);
+
+    hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获得驱动器句柄               */
+    hParam = &hDrive->AHCIDRIVE_tParam;
+    if ((!hCtrl->AHCICTRL_bInstalled) ||
+        (!hCtrl->AHCICTRL_bDrvInstalled) ||
+        (hDrive->AHCIDRIVE_ucState != AHCI_DEV_OK)) {
+        AHCI_LOG(AHCI_LOG_ERR, "ctrl %d drive %d apm mode get state error.\r\n",
+                 hCtrl->AHCICTRL_uiIndex, uiDrive);
+        return  (PX_ERROR);
+    }
+
+    if (hParam->AHCIPARAM_usFeaturesEnabled1 & AHCI_APM_SUPPORT_APM) {
+        iRet = API_AhciDiskAtaParamGet(hCtrl, uiDrive, (PVOID)hParam);  /* 获取驱动器参数               */
+        if (iRet != ERROR_NONE) {
+            AHCI_LOG(AHCI_LOG_ERR, "ctrl %d drive %d apm mode read ata parameters failed.\r\n",
+                     hCtrl->AHCICTRL_uiIndex, uiDrive);
+            return  (PX_ERROR);
+        }
+#if LW_CFG_CPU_ENDIAN > 0
+        if (hDrive->AHCIDRIVE_iParamEndianType == AHCI_ENDIAN_TYPE_LITTEL) {
+            API_AhciSwapBufLe16((UINT16 *)hParam, (size_t)(512 / 2));
+        }
+#else
+        if (hDrive->AHCIDRIVE_iParamEndianType == AHCI_ENDIAN_TYPE_BIG) {
+            API_AhciSwapBufLe16((UINT16 *)hParam, (size_t)(512 / 2));
+        }
+#endif
+
+        usCurrentAPM = hParam->AHCIPARAM_usCurrentAPM & 0xff;
+    } else {
+        usCurrentAPM = 0;
+    }
+
+    if (pucMode) {
+        *pucMode = (UINT8)(usCurrentAPM & 0xff);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: API_AhciApmDisable
 ** 功能描述: 禁能设备高级电源管理
 ** 输　入  : hCtrl      控制器句柄
@@ -43,9 +163,9 @@
 LW_API
 INT  API_AhciApmDisable (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 {
-    INT                 iRet;
-    AHCI_DRIVE_HANDLE   hDrive;
-    AHCI_PARAM_HANDLE   hParam;
+    INT                     iRet;                                       /* 操作结果                     */
+    AHCI_DRIVE_HANDLE       hDrive;                                     /* 驱动器句柄                   */
+    AHCI_PARAM_HANDLE       hParam;                                     /* 参数句柄                     */
 
     hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];
     hParam = &hDrive->AHCIDRIVE_tParam;
@@ -82,9 +202,9 @@ INT  API_AhciApmDisable (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
 LW_API
 INT  API_AhciApmEnable (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, INT  iApm)
 {
-    INT                 iRet;
-    AHCI_DRIVE_HANDLE   hDrive;
-    AHCI_PARAM_HANDLE   hParam;
+    INT                     iRet;                                       /* 操作结果                     */
+    AHCI_DRIVE_HANDLE       hDrive;                                     /* 驱动器句柄                   */
+    AHCI_PARAM_HANDLE       hParam;                                     /* 参数句柄                     */
 
     hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];
     hParam = &hDrive->AHCIDRIVE_tParam;

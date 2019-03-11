@@ -759,6 +759,10 @@ static INT __canIoctl (__CAN_DEV  *pcanDev, INT  iCmd, LONG  lArg)
             }
             break;
 
+        case FIONMSGS:                                                  /*  可读信息个数                */
+            *((INT *)lArg) = __canQCount(pcanDev->CAN_pcanqRecvQueue);
+            break;
+
         case FIOSYNC:                                                   /*  等待发送完成                */
         case FIODATASYNC:
             iStatus = __canDrain(pcanDev);

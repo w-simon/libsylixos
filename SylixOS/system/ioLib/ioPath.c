@@ -99,7 +99,6 @@ VOID  _PathCondense (PCHAR  pcPathName)
      *  开始搜索, 同时将所有的 '\' 转换成 '/'! (有些文件系统分析必须使用 / 作为分割)
      */
     while (*pcTemp != PX_EOS) {                                         /*  遍历路径                    */
-    
         if (__LW_PATH_IS_DIVIDER(*pcTemp)) {                            /*  分隔符                      */
             *pcTemp = PX_DIVIDER;                                       /*  转换分隔符                  */
 
@@ -155,8 +154,7 @@ VOID  _PathCondense (PCHAR  pcPathName)
         }
 
         pcTemp++;                                                       /*  下一个字符                  */
-
-    } while (*pcTemp != 0);
+    }
 
     /*
      *  如果以 .. 结束, 需要做处理, (将结束字符当作分隔符的处理过程)

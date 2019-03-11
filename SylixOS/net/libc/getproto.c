@@ -42,6 +42,41 @@ extern LW_OBJECT_HANDLE _G_ulNetLibcLock;
 
 extern struct protoent * getprotobynumber_static(int);
 
+int
+getprotobynumber_r(
+    int proto,
+    struct protoent *proto_buf, char *buf, size_t size, struct protoent **res)
+{
+    register int ret;
+
+    API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
+
+    setprotoent(_proto_stayopen);
+    while ((ret = getprotoent_r(proto_buf, buf, size, res)) == 0)
+        if (proto_buf->p_proto == proto)
+            break;
+    if (!_proto_stayopen)
+        endprotoent();
+
+    API_SemaphoreMPost(_G_ulNetLibcLock);
+
+    if (ret) {
+        *res = NULL;
+        if (size > 16) {
+            struct protoent *sta = getprotobynumber_static(proto);
+            if (sta) {
+                strlcpy(buf, sta->p_name, size);
+                proto_buf->p_name = buf;
+                proto_buf->p_aliases = NULL;
+                proto_buf->p_proto = sta->p_proto;
+                *res = proto_buf;
+                ret = 0;
+            }
+        }
+    }
+    return (ret);
+}
+
 struct protoent *
 getprotobynumber(
 	int proto )

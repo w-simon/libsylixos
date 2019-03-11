@@ -404,6 +404,7 @@ static INT  __tshellPing (INT  iArgC, PCHAR  *ppcArgV)
             iOptionNoAbort = (iOption & ~OPT_ABORT);
             ioctl(STD_IN, FIOSETOPTIONS, iOptionNoAbort);               /*  不允许 control-C 操作       */
             
+            lib_bzero(&hints, sizeof(struct addrinfo));
             hints.ai_family = AF_INET;                                  /*  解析 IPv4 地址              */
             hints.ai_flags  = AI_CANONNAME;
             getaddrinfo(ppcArgV[1], LW_NULL, &hints, &phints);          /*  域名解析                    */

@@ -50,15 +50,26 @@ int getservbyport_r(
   struct servent **result
 )
 {
-/*
-  #warning "implement a proper getservbyport_r"
-*/
- 
-  *result = getservbyport(port, proto);
-  if ( *result )
-    return 0;
+    register int ret;
 
-  return -1;
+    API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
+
+    setservent(_serv_stayopen);
+    while ((ret = getservent_r(result_buf, buf, buflen, result)) == 0) {
+        if (result_buf->s_port != port)
+            continue;
+        if (proto == 0 || strcmp(result_buf->s_proto, proto) == 0)
+            break;
+    }
+    if (!_serv_stayopen)
+        endservent();
+
+    API_SemaphoreMPost(_G_ulNetLibcLock);
+
+    if (ret) {
+        *result = NULL;
+    }
+    return (ret);
 }
 
 struct servent *
@@ -67,14 +78,6 @@ getservbyport(
 	const char *proto)
 {
 	register struct servent *p;
-
-#ifdef YP
-	extern int ___getservbyport_yp;
-	extern char *___getservbyproto_yp;
-
-	___getservbyport_yp = port;
-	___getservbyproto_yp = (char *)proto;
-#endif
 
     API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
 
@@ -89,11 +92,6 @@ getservbyport(
 		endservent();
 		
     API_SemaphoreMPost(_G_ulNetLibcLock);
-
-#ifdef YP
-	___getservbyport_yp = 0;
-	___getservbyproto_yp = NULL;
-#endif
 
 	return (p);
 }

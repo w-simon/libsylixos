@@ -50,16 +50,33 @@ int getservbyname_r(
   struct servent **result
 )
 {
-/*
-  #warning "implement a proper getservbyport_r"
-*/
-  *result = getservbyname(name, proto);
-  if ( *result )
-    return 0;
+    register int ret;
+    register char **cp;
 
-  return -1;
+    API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
+
+    setservent(_serv_stayopen);
+    while ((ret = getservent_r(result_buf, buf, buflen, result)) == 0) {
+        if (strcmp(name, result_buf->s_name) == 0)
+            goto gotname;
+        for (cp = result_buf->s_aliases; *cp; cp++)
+            if (strcmp(name, *cp) == 0)
+                goto gotname;
+        continue;
+gotname:
+        if (proto == 0 || strcmp(result_buf->s_proto, proto) == 0)
+            break;
+    }
+    if (!_serv_stayopen)
+        endservent();
+
+    API_SemaphoreMPost(_G_ulNetLibcLock);
+
+    if (ret) {
+        *result = NULL;
+    }
+    return (ret);
 }
-
 
 struct servent *
 getservbyname(
@@ -68,14 +85,6 @@ getservbyname(
 {
 	register struct servent *p;
 	register char **cp;
-
-#ifdef YP
-	extern char *___getservbyname_yp;
-	extern char *___getservbyproto_yp;
-
-	___getservbyname_yp = (char *)name;
-	___getservbyproto_yp = (char *)proto;
-#endif
 
     API_SemaphoreMPend(_G_ulNetLibcLock, LW_OPTION_WAIT_INFINITE);
 
@@ -95,11 +104,6 @@ gotname:
 		endservent();
 
     API_SemaphoreMPost(_G_ulNetLibcLock);
-
-#ifdef YP
-	___getservbyname_yp = NULL;
-	___getservbyproto_yp = NULL;
-#endif
 
 	return (p);
 }

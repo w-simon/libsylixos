@@ -74,21 +74,80 @@ endprotoent(void)
 struct protoent *
 getprotoent(void)
 {
+    char *p;
+    register char *cp, **q;
+
+    if (protof == NULL && (protof = fopen(_PATH_PROTOCOLS, "r" )) == NULL)
+        return (NULL);
+again:
+    if ((p = fgets(line, BUFSIZ, protof)) == NULL)
+        return (NULL);
+    if (*p == '#')
+        goto again;
+    cp = strpbrk(p, "#\n");
+    if (cp == NULL)
+        goto again;
+    *cp = '\0';
+    proto.p_name = p;
+    cp = strpbrk(p, " \t");
+    if (cp == NULL)
+        goto again;
+    *cp++ = '\0';
+    while (*cp == ' ' || *cp == '\t')
+        cp++;
+    p = strpbrk(cp, " \t");
+    if (p != NULL)
+        *p++ = '\0';
+    proto.p_proto = atoi(cp);
+    q = proto.p_aliases = proto_aliases;
+    if (p != NULL) {
+        cp = p;
+        while (cp && *cp) {
+            if (*cp == ' ' || *cp == '\t') {
+                cp++;
+                continue;
+            }
+            if (q < &proto_aliases[MAXALIASES - 1])
+                *q++ = cp;
+            cp = strpbrk(cp, " \t");
+            if (cp != NULL)
+                *cp++ = '\0';
+        }
+    }
+    *q = NULL;
+    return (&proto);
+}
+
+int
+getprotoent_r(struct protoent *proto_buf, char *buf, size_t size, struct protoent **res)
+{
 	char *p;
 	register char *cp, **q;
+	char **alias_buf;
 
-	if (protof == NULL && (protof = fopen(_PATH_PROTOCOLS, "r" )) == NULL)
-		return (NULL);
+	if (size < ((MAXALIASES * sizeof(char *)) + BUFSIZ + 1)) {
+	    *res = NULL;
+        return (ERANGE);
+    }
+
+    alias_buf = (char **)(buf + BUFSIZ + 1);
+
+	if (protof == NULL && (protof = fopen(_PATH_PROTOCOLS, "r" )) == NULL) {
+	    *res = NULL;
+		return (errno);
+	}
 again:
-	if ((p = fgets(line, BUFSIZ, protof)) == NULL)
-		return (NULL);
+	if ((p = fgets(buf, BUFSIZ, protof)) == NULL) {
+	    *res = NULL;
+		return (errno);
+	}
 	if (*p == '#')
 		goto again;
 	cp = strpbrk(p, "#\n");
 	if (cp == NULL)
 		goto again;
 	*cp = '\0';
-	proto.p_name = p;
+	proto_buf->p_name = p;
 	cp = strpbrk(p, " \t");
 	if (cp == NULL)
 		goto again;
@@ -98,8 +157,8 @@ again:
 	p = strpbrk(cp, " \t");
 	if (p != NULL)
 		*p++ = '\0';
-	proto.p_proto = atoi(cp);
-	q = proto.p_aliases = proto_aliases;
+	proto_buf->p_proto = atoi(cp);
+	q = proto_buf->p_aliases = alias_buf;
 	if (p != NULL) {
 		cp = p;
 		while (cp && *cp) {
@@ -107,7 +166,7 @@ again:
 				cp++;
 				continue;
 			}
-			if (q < &proto_aliases[MAXALIASES - 1])
+			if (q < &alias_buf[MAXALIASES - 1])
 				*q++ = cp;
 			cp = strpbrk(cp, " \t");
 			if (cp != NULL)
@@ -115,7 +174,8 @@ again:
 		}
 	}
 	*q = NULL;
-	return (&proto);
+	*res = proto_buf;
+	return (0);
 }
 
 #endif /*  LW_CFG_NET_EN > 0  */

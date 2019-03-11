@@ -30,45 +30,6 @@
 #include "ahciDrv.h"
 #include "ahciDev.h"
 /*********************************************************************************************************
-  全局变量
-*********************************************************************************************************/
-#if AHCI_LOG_EN > 0                                                     /* 使能调试                     */
-#if AHCI_ATAPI_EN > 0                                                   /* 是否使能 ATAPI               */
-
-static CPCHAR   _GcpcAhciAtapiErrStrs[] = {
-    "Unknown Error",                                                    /*  0                           */
-    "Wait for Command Packet request time expire",                      /*  1                           */
-    "Error in Command Packet Request",                                  /*  2                           */
-    "Error in Command Packet Request",                                  /*  3                           */
-    "Wait for Data Request time expire",                                /*  4                           */
-    "Data Request for NON Data command",                                /*  5                           */
-    "Error in Data Request",                                            /*  6                           */
-    "Error in End of data transfer condition",                          /*  7                           */
-    "Extra transfer request",                                           /*  8                           */
-    "Transfer size requested exceeds desired size",                     /*  9                           */
-    "Transfer direction miscompare",                                    /* 10                           */
-    "No Sense",                                                         /* 11                           */
-    "Recovered Error",                                                  /* 12                           */
-    "Not Ready",                                                        /* 13                           */
-    "Medium Error",                                                     /* 14                           */
-    "Hardware Error",                                                   /* 15                           */
-    "Illegal Request",                                                  /* 16                           */
-    "Unit Attention",                                                   /* 17                           */
-    "Data Protected",                                                   /* 18                           */
-    "Aborted Command",                                                  /* 19                           */
-    "Miscompare",                                                       /* 20                           */
-    "\0",                                                               /* 21                           */
-    "\0",                                                               /* 22                           */
-    "\0",                                                               /* 23                           */
-    "\0",                                                               /* 24                           */
-    "\0",                                                               /* 25                           */
-    "Overlapped commands are not implemented",                          /* 26                           */
-    "DMA transfer Error",                                               /* 27                           */
-};
-
-#endif                                                                  /* AHCI_ATAPI_EN                */
-#endif                                                                  /* AHCI_LOG_EN                  */
-/*********************************************************************************************************
   寄存器信息
 *********************************************************************************************************/
 typedef struct {
@@ -372,6 +333,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     CHAR                cSerial[21] = { 0 };                            /* 序列号缓冲区                 */
     CHAR                cFirmware[9] = { 0 };                           /* 固件版本缓冲区               */
     CHAR                cProduct[41] = { 0 };                           /* 产品信息缓冲区               */
+    UINT64              ullValue;
 
     if ((!hCtrl) || (!hParam)) {
         return  (PX_ERROR);
@@ -422,7 +384,7 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     printf("Multiple Sectors      : %d\n", hDrive->AHCIDRIVE_usMultiSector);
     printf("IORDY                 : %s\n", hDrive->AHCIDRIVE_bIordy == LW_TRUE ? "Enable" : "Disable");
     printf("LBA                   : %s\n", hDrive->AHCIDRIVE_bLba == LW_TRUE ? "Enable" : "Disable");
-    printf("LBA Sectors           : ll%d\n", hCtrl->AHCICTRL_uiLbaTotalSecs[uiDrive]);
+    printf("LBA Sectors           : %qu\n", (UINT64)hCtrl->AHCICTRL_uiLbaTotalSecs[uiDrive]);
     printf("SATA Capabilities     : 0x%04x\n", hParam->AHCIPARAM_usSataCapabilities);
     printf("SATA Add Capabilities : 0x%04x\n", hParam->AHCIPARAM_usSataAddCapabilities);
     printf("SATA Features Support : 0x%04x\n", hParam->AHCIPARAM_usSataFeaturesSupported);
@@ -461,11 +423,29 @@ INT  API_AhciDriveInfoShow (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_PARAM_H
     printf("NCQ Depth             : %d\n", hDrive->AHCIDRIVE_uiQueueDepth);
     printf("LBA 48-bit            : %s\n", hDrive->AHCIDRIVE_bLba48 == LW_TRUE ? "Enable" : "Disable");
     printf("Queue Depth           : %d\n", hParam->AHCIPARAM_usQueueDepth + 1);
-    printf("Sector Start          : %lld\n", (UINT64)hDrive->AHCIDRIVE_ulStartSector);
-    printf("Sector Size (Byte)    : %lu\n", hDrive->AHCIDRIVE_ulByteSector);
-    printf("Sector Count          : %lld\n", API_AhciDriveSectorCountGet(hCtrl, uiDrive));
-    printf("Disk Size (MB)        : %lld MB\n",
-           (API_AhciDriveSectorCountGet(hCtrl, uiDrive) * hDrive->AHCIDRIVE_ulByteSector) / LW_CFG_MB_SIZE);
+    printf("Sector Start          : %qu\n", (UINT64)hDrive->AHCIDRIVE_ulStartSector);
+    printf("Sector Size           : %qu Bytes\n", (UINT64)hDrive->AHCIDRIVE_ulByteSector);
+
+    if (hDrive->AHCIDRIVE_ucType == AHCI_TYPE_ATAPI) {
+        ullValue = (UINT64)hDrive->AHCIDRIVE_uiSector;
+    } else {
+        ullValue = (UINT64)API_AhciDriveSectorCountGet(hCtrl, uiDrive);
+    }
+    printf("Sector Count          : %qu\n", ullValue);
+
+    ullValue  = (UINT64)(ullValue * hDrive->AHCIDRIVE_ulByteSector);
+    if (ullValue > LW_CFG_GB_SIZE) {
+        ullValue = (ullValue >> 20);
+        printf("Disk Size             : %qu.%qu GB\n", (ullValue >> 10), (ullValue & 0x3ff) / 102);
+    } else if (ullValue > LW_CFG_MB_SIZE) {
+        ullValue = (ullValue >> 10);
+        printf("Disk Size             : %qu.%qu MB\n", (ullValue >> 10), (ullValue & 0x3ff) / 102);
+    } else if (ullValue > LW_CFG_KB_SIZE) {
+        printf("Disk Size             : %qu.%qu KB\n", (ullValue >> 10), (ullValue & 0x3ff) / 102);
+    } else {
+        printf("Disk Size             : %qu.0 B\n", ullValue);
+    }
+
     printf("Media Serial Number   : %s\n", (PCHAR)&hParam->AHCIPARAM_usCurrentMediaSN[0]);
     printf("\n");
     printf("Hotplug Attach Number : %d\n", hDrive->AHCIDRIVE_uiAttachNum);
@@ -562,6 +542,11 @@ __timeout_handle:
              ulTime, ulTimeout);
 
     if (ulTime > ulTimeout) {                                           /* 超时                         */
+        AHCI_LOG(AHCI_LOG_ERR,
+                 "port reg %s offset 0x%08x mask 0x%08x flag %d "
+                 "value 0x%08x reg 0x%08x time %d timeout %d.\r\n",
+                 API_AhciDriveRegNameGet(hDrive, uiRegAddr), uiRegAddr, uiMask, iFlag, uiValue, uiReg,
+                 ulTime, ulTimeout);
         return  (PX_ERROR);                                             /* 返回错误                     */
     }
 
@@ -791,6 +776,11 @@ __timeout_handle:
              ulTime, ulTimeout);
 
     if (ulTime > ulTimeout) {
+        AHCI_LOG(AHCI_LOG_ERR,
+                 "ctrl reg %s offset 0x%08x mask 0x%08x flag %d "
+                 "value 0x%08x reg 0x%08x time %d timeout %d.\r\n",
+                 API_AhciCtrlRegNameGet(hCtrl, uiRegAddr), uiRegAddr, uiMask, iFlag, uiValue, uiReg,
+                 ulTime, ulTimeout);
         return  (PX_ERROR);
     }
 
@@ -877,8 +867,8 @@ INT  API_AhciCtrlReset (AHCI_CTRL_HANDLE  hCtrl)
 LW_API
 INT  API_AhciCtrlAhciModeEnable (AHCI_CTRL_HANDLE  hCtrl)
 {
-    REGISTER INT    i;
-    UINT32          uiReg;
+    REGISTER INT        i;
+    UINT32              uiReg;
 
     AHCI_CTRL_REG_MSG(hCtrl, AHCI_GHC);
     uiReg = AHCI_CTRL_READ(hCtrl, AHCI_GHC);
@@ -887,7 +877,7 @@ INT  API_AhciCtrlAhciModeEnable (AHCI_CTRL_HANDLE  hCtrl)
         return  (ERROR_NONE);
     }
 
-    for (i = 0; i < 5; i++) {                                           /* 部分设备需要多次操作         */
+    for (i = 0; i < AHCI_MODE_EN_RETRY_NUM; i++) {                      /* 部分设备需要多次操作         */
         uiReg |= AHCI_GHC_AE;
         AHCI_CTRL_WRITE(hCtrl, AHCI_GHC, uiReg);
         uiReg = AHCI_CTRL_READ(hCtrl, AHCI_GHC);
@@ -897,6 +887,10 @@ INT  API_AhciCtrlAhciModeEnable (AHCI_CTRL_HANDLE  hCtrl)
         API_TimeMSleep(10);
     }
     AHCI_CTRL_REG_MSG(hCtrl, AHCI_GHC);
+
+    if (i >= AHCI_MODE_EN_RETRY_NUM) {
+        return  (PX_ERROR);
+    }
 
     return  (ERROR_NONE);
 }
@@ -1039,20 +1033,20 @@ INT  API_AhciCtrlInfoShow (AHCI_CTRL_HANDLE  hCtrl)
     printf("Control Name         : %s\n", hCtrl->AHCICTRL_cCtrlName);
     printf("Control Unit Index   : %d\n", hCtrl->AHCICTRL_uiUnitIndex);
     if ((hCtrl) && (hCtrl->AHCICTRL_uiCoreVer)) {
-        printf("Control Core Version  : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
+        printf("Control Core Version : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_uiCoreVer));
     } else {
-        printf("Control Core Version  : " "*");
+        printf("Control Core Version : " "*");
     }
     printf("\n");
     printf("Driver Name          : %s\n", hCtrl->AHCICTRL_hDrv->AHCIDRV_cDrvName);
     if ((hCtrl) && (hCtrl->AHCICTRL_hDrv) && (hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer)) {
-        printf("Driver Version        : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
+        printf("Driver Version       : " AHCI_DRV_VER_FORMAT(hCtrl->AHCICTRL_hDrv->AHCIDRV_uiDrvVer));
     } else {
-        printf("Driver Version        : " "*");
+        printf("Driver Version       : " "*");
     }
     printf("\n");
     printf("Control Base Addr    : %p\n", hCtrl->AHCICTRL_pvRegAddr);
-    printf("Control Irq Number   : %lld\n", (UINT64)hCtrl->AHCICTRL_ulIrqVector);
+    printf("Control Irq Number   : %qu\n", (UINT64)hCtrl->AHCICTRL_ulIrqVector);
     printf("Type                 : %s\n", cpcType);
     printf("Version              : %02x%02x.%02x%02x\n",
            (uiVer >> 24) & 0xff, (uiVer >> 16) & 0xff, (uiVer >> 8) & 0xff, uiVer & 0xff);

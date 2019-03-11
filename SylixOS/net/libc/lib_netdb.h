@@ -74,13 +74,25 @@ void                endservent(void);
 void                sethostent(int stayopen);
 void                endhostent(void);
 
+struct protoent    *getprotoent(void);
 struct protoent    *getprotobyname(const char *);
 struct protoent    *getprotobynumber(int);
-struct protoent    *getprotoent(void);
 
+int                 getprotoent_r(struct protoent *proto_buf, char *buf, size_t size, struct protoent **res);
+int                 getprotobyname_r(const char *name, struct protoent *proto_buf,
+                                     char *buf, size_t size, struct protoent **res);
+int                 getprotobynumber_r(int proto, struct protoent *proto_buf,
+                                       char *buf, size_t size, struct protoent **res);
+
+struct servent     *getservent(void);
 struct servent     *getservbyname(const char *, const char *);
 struct servent     *getservbyport(int, const char *);
-struct servent     *getservent(void);
+
+int                 getservent_r(struct servent *serv_buf, char *buf, size_t size, struct servent **res);
+int                 getservbyname_r(const char *name, const char *proto, struct servent *result_buf,
+                                    char *buf, size_t buflen, struct servent **result);
+int                 getservbyport_r(int port, const char *proto, struct servent *result_buf,
+                                    char *buf, size_t buflen, struct servent **result);
 
 struct hostent     *gethostent(void);
 struct hostent     *gethostent_r(char* buf, int len);

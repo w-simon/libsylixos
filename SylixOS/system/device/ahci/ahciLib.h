@@ -41,6 +41,9 @@
 #define AHCI_LOG                            _DebugFormat
 #define AHCI_INT_LOG                        _DebugFormat
 #define AHCI_CMD_LOG                        _DebugFormat
+#define AHCI_ATAPI_LOG                      _DebugFormat
+#define AHCI_ATAPI_INT_LOG                  _DebugFormat
+#define AHCI_ATAPI_CMD_LOG                  _DebugFormat
 /*********************************************************************************************************
   标记信息
 *********************************************************************************************************/

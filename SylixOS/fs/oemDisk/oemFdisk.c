@@ -582,18 +582,6 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
     }
     close(iBlkFd);
 
-    iRet = API_OemFdiskGet(pcBlkDev, fdpInfo, LW_CFG_MAX_DISKPARTS);
-    if (iRet < ERROR_NONE) {
-        fprintf(stderr, "can not analysis partition table: %s\n", lib_strerror(errno));
-        __SHEAP_FREE(fdpInfo);
-        return  (iRet);
-
-    } else if (iRet == 0) {
-        __SHEAP_FREE(fdpInfo);
-        fprintf(stderr, "block device: %s do not have MBR partition table.\n", pcBlkDev);
-        return  (iRet);
-    }
-    
     printf("block device  : %s\n", pcBlkDev);
     printf("block type    : ");
     switch (blkinfo.BLKI_uiType) {
@@ -616,6 +604,18 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
     printf("block firmware: %s\n", blkinfo.BLKI_cFirmware);
     printf("block product : %s\n", blkinfo.BLKI_cProduct);
     printf("block media   : %s\n", blkinfo.BLKI_cMedia);
+
+    iRet = API_OemFdiskGet(pcBlkDev, fdpInfo, LW_CFG_MAX_DISKPARTS);
+    if (iRet < ERROR_NONE) {
+        fprintf(stderr, "\ncan not analysis partition table: %s\n", lib_strerror(errno));
+        __SHEAP_FREE(fdpInfo);
+        return  (iRet);
+
+    } else if (iRet == 0) {
+        __SHEAP_FREE(fdpInfo);
+        fprintf(stderr, "\nblock device: %s do not have MBR partition table.\n", pcBlkDev);
+        return  (iRet);
+    }
 
     printf("\npartition >>\n%s", pcPartInfo);
     for (i = 0; i < iRet; i++) {

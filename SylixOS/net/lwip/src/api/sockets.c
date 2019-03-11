@@ -599,7 +599,7 @@ int __lwip_have_event (int s, int type, int *pso_error)
     return (event);
   }
   
-  err = err_to_errno(netconn_err(sock->conn)); /* Get last error */
+  err = err_to_errno(sock->conn->pending_err); /* Get last error */
   if (err == EINPROGRESS) { /* have event must not in this mode */
     err = ERROR_NONE;
   }
@@ -2662,7 +2662,7 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
     /**
      * SylixOS socket MUST know the NEWEST errno.
      */
-    err = err_to_errno(netconn_err(sock->conn)); /* Get last error */
+    err = err_to_errno(sock->conn->pending_err); /* Get last error */
     
     /**
      * make sylixos thread wakeup
@@ -2689,7 +2689,7 @@ event_callback(struct netconn *conn, enum netconn_evt evt, u16_t len)
     /**
      * SylixOS socket MUST know the NEWEST errno.
      */
-    err = err_to_errno(netconn_err(sock->conn)); /* Get last error */
+    err = err_to_errno(sock->conn->pending_err); /* Get last error */
     
     __socketEnotify2(sock->file, 0, err);
   }

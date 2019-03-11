@@ -540,19 +540,23 @@
 #define AHCI_CMD_FLUSH_CACHE_EXT            0xEA                        /* Flush Cache EXT              */
 #define AHCI_CMD_SFQ_DSM                    0x64                        /* SFQ DATA SET MANAGEMENT      */
 /*********************************************************************************************************
-  SMART ÃüÁî
+  SMART ÃüÁî (Note that some are obsolete as of ATA-7)
 *********************************************************************************************************/
-#define AHCI_SMART_CMD_READ_DATA            0xD0
-#define AHCI_SMART_CMD_READ_THRESHOLDS      0xD1
-#define AHCI_SMART_CMD_EN_DIS_AUTOSAVE      0xD2
-#define AHCI_SMART_CMD_SAVE_ATTRIBUTES      0xD3
-#define AHCI_SMART_CMD_OFFLINE_DIAGS        0xD4
-#define AHCI_SMART_CMD_ENABLE_SMART         0xD8
-#define AHCI_SMART_CMD_DISABLE_SMART        0xD9
-#define AHCI_SMART_CMD_RETURN_STATUS        0xDA
+#define AHCI_SMART_CMD_DATA_READ            0xd0                        /* SMART READ DATA              */
+#define AHCI_SMART_CMD_THRESHOLDS_READ      0xd1                        /* SMART READ THRESHOLDS        */
+#define AHCI_SMART_CMD_AUTOSAVE_EN_DIS      0xd2                        /* SMART EN/DIS ATTR AUTOSAVE   */
+#define AHCI_SMART_CMD_ATTR_SAVE            0xd3                        /* SMART ATTRIBUTE SAVE         */
+#define AHCI_SMART_CMD_OFFLINE_DIAGS        0xd4                        /* SMART EXEC OFF-LINE IMMEDIATE*/
+#define AHCI_SMART_CMD_LOG_SECTOR_READ      0xd5                        /* SMART READ LOG               */
+#define AHCI_SMART_CMD_LOG_SECTOR_WRITE     0xd6                        /* SMART WRITE LOG              */
+#define AHCI_SMART_CMD_THRESHOLDS_WRITE     0xd7                        /* SMART WRITE THRESHOLDS       */
+#define AHCI_SMART_CMD_SMART_ENABLE         0xd8                        /* SMART ENABLE OPERATIONS      */
+#define AHCI_SMART_CMD_SMART_DISABLE        0xd9                        /* SMART DISABLE OPERATIONS     */
+#define AHCI_SMART_CMD_RETURN_STATUS        0xda                        /* SMART RETURN STATUS          */
+#define AHCI_SMART_CMD_AUTO_OFFLINE         0xdb                        /* SMART AUTO OFF-LINE          */
 
-#define AHCI_SMART_OK                       0
-#define AHCI_SMART_EXCEEDED                 1
+#define AHCI_SMART_OK                       0                           /* SMART OK                     */
+#define AHCI_SMART_EXCEEDED                 1                           /* SMART EXCEEDED               */
 /*********************************************************************************************************
   ATAPI ÃüÁî
 *********************************************************************************************************/
@@ -565,16 +569,32 @@
 *********************************************************************************************************/
 #define AHCI_ATAPI_CMD_LEN_MAX              16                          /* ATAPI ÃüÁî×î´ó×Ö½Ú³¤¶È       */
 /*********************************************************************************************************
-  CDROM ÃüÁî
+  CDROM ÃüÁî (Multimedia Device Command Set and SCSI Device Primary Command Set)
+      ALLOW_UA      it is allowed to run under a unit attention condition. (See MMC-5, section 4.1.6.1)
+      CHECK_READY   it can only execute if a medium is present, otherwise report the Not Ready Condition.
 *********************************************************************************************************/
-#define AHCI_CDROM_CMD_TEST_UNIT_READY      0x00                        /* CDROM Test Unit Ready        */
-#define AHCI_CDROM_CMD_REQUEST_SENSE        0x03                        /* CDROM Request Sense          */
-#define AHCI_CDROM_CMD_INQUIRY              0x12                        /* CDROM Inquiry                */
-#define AHCI_CDROM_CMD_READ_CDROM_CAP       0x25                        /* CDROM Read CD-ROM Capacity   */
-#define AHCI_CDROM_CMD_READ_12              0xA8                        /* CDROM Read (12)              */
+#define AHCI_CDROM_CMD_TEST_UNIT_READY_CR   0x00                        /* test unit ready              */
+#define AHCI_CDROM_CMD_REQUEST_SENSE_AU     0x03                        /* request sense                */
+#define AHCI_CDROM_CMD_INQUIRY_AU           0x12                        /* inquiry                      */
+#define AHCI_CDROM_CMD_START_STOP_UNIT      0x1b                        /* start stop unit              */
+#define AHCI_CDROM_CMD_PREVENT_REMOVAL      0x1e                        /* prevent allow medium removal */
+#define AHCI_CDROM_CMD_READ_CAPACITY_CR     0x25                        /* read capacity                */
+#define AHCI_CDROM_CMD_READ_10_CR           0x28                        /* read (10)                    */
+#define AHCI_CDROM_CMD_SEEK_CR              0x2b                        /* seek                         */
+#define AHCI_CDROM_CMD_READ_TOC_PMA_ATIP_CR 0x43                        /* read toc pma atip            */
+#define AHCI_CDROM_CMD_GET_CONFIG_AU        0x46                        /* get configuration            */
+#define AHCI_CDROM_CMD_GET_EVENT_STATUS_AU  0x4a                        /* get event status notification*/
+#define AHCI_CDROM_CMD_READ_INFO_CR         0x51                        /* read disc information        */
+#define AHCI_CDROM_CMD_MODE_SENSE           0x5a                        /* mode sense                   */
+#define AHCI_CDROM_CMD_READ_12_CR           0xa8                        /* read (12)                    */
+#define AHCI_CDROM_CMD_READ_STRUCTURE_CR    0xad                        /* read dvd structure           */
+#define AHCI_CDROM_CMD_SET_SPEED            0xbb                        /* set speed                    */
+#define AHCI_CDROM_CMD_MECHANISM_STATUS     0xbd                        /* mechanism status             */
+#define AHCI_CDROM_CMD_READ_CD_CR           0xbe                        /* read cd                      */
 /*********************************************************************************************************
   AHCI_CMD_SET_FEATURE ÃüÁî
 *********************************************************************************************************/
+#define AHCI_SUB_INFO_APM                   0x00                        /* reserved for get information */
 #define AHCI_SUB_ENABLE_8BIT                0x01                        /* enable 8bit data transfer    */
 #define AHCI_SUB_ENABLE_WCACHE              0x02                        /* enable write cache           */
 #define AHCI_SUB_SET_RWMODE                 0x03                        /* set transfer mode            */
@@ -787,25 +807,6 @@
 /*********************************************************************************************************
   ioctl ÃüÁî
 *********************************************************************************************************/
-#define AHCI_IOCTL_APM_ENABLE               0x100
-#define AHCI_IOCTL_APM_DISABLE              0x101
-#define AHCI_IOCTL_APM_GET                  0x102
-#define AHCI_IOCTL_CHECK_POWER_LEVEL        0x103
-#define AHCI_IOCTL_PM_IDLE                  0x104
-#define AHCI_IOCTL_PM_STANDBY               0x105
-#define AHCI_IOCTL_PM_SLEEP                 0x106
-#define AHCI_IOCTL_PM_WAKE                  0x107
-#define AHCI_IOCTL_SMART_ENABLE             0x108
-#define AHCI_IOCTL_SMART_DISABLE            0x109
-#define AHCI_IOCTL_SMART_SAVE_ATTR          0x10A
-#define AHCI_IOCTL_SMART_IS_ENABLED         0x10B
-#define AHCI_IOCTL_SMART_AUTO_SAVE_ENABLE   0x10C
-#define AHCI_IOCTL_SMART_AUTO_SAVEDISABLE   0x10D
-#define AHCI_IOCTL_SMART_OFFLINE_DIAG       0x10E
-#define AHCI_IOCTL_SMART_RETURN_STATUS      0x10F
-#define AHCI_IOCTL_SMART_READ_DATA          0x110
-#define AHCI_IOCTL_SMART_READ_THRESHOLDS    0x111
-#define AHCI_IOCTL_PARMS_GET                0x112
 #define AHCI_IOCTL_MAX_SECTORXFER_SET       0x113
 #define AHCI_IOCTL_MAX_SECTORXFER_GET       0x114
 #define AHCI_IOCTL_DRIVE_HALT               0x115
@@ -1080,7 +1081,7 @@ typedef struct ahci_drive_cb {
     UINT8                  *AHCIDRIVE_pucAlignDmaBuf;
     UINT32                  AHCIDRIVE_uiAlignSize;
     INT                     AHCIDRIVE_iInitActive;
-    INT                     AHCIDRIVE_iPwmState;
+    INT                     AHCIDRIVE_iPmState;
 
     BOOL                    AHCIDRIVE_bTrim;
     UINT16                  AHCIDRIVE_usTrimBlockNumMax;
@@ -1247,11 +1248,17 @@ typedef AHCI_DRV_CB    *AHCI_DRV_HANDLE;
 /*********************************************************************************************************
   º¯ÊýÉùÃ÷
 *********************************************************************************************************/
+LW_API
+VOID                        API_AhciSwapBufLe16(UINT16 *pusBuf, size_t stWords);
+
 LW_API INT                  API_AhciDiskTrimSet(AHCI_CTRL_HANDLE hCtrl,
                                                 UINT             uiDrive,
                                                 ULONG            ulStartSector,
                                                 ULONG            ulEndSector);
 
+LW_API INT                  API_AhciDiskCommandSend(AHCI_CTRL_HANDLE hCtrl,
+                                                    UINT             uiDrive,
+                                                    AHCI_CMD_HANDLE  hCmd);
 LW_API INT                  API_AhciNoDataCommandSend(AHCI_CTRL_HANDLE hCtrl,
                                                       UINT             uiDrive,
                                                       UINT8            ucCmd,
@@ -1261,6 +1268,9 @@ LW_API INT                  API_AhciNoDataCommandSend(AHCI_CTRL_HANDLE hCtrl,
                                                       UINT8            ucLbaMid,
                                                       UINT8            ucLbaHigh,
                                                       INT              iFlags);
+
+LW_API INT                  API_AhciDiskAtaParamGet(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive, PVOID pvBuf);
+LW_API INT                  API_AhciDiskAtapiParamGet(AHCI_CTRL_HANDLE hCtrl, UINT uiDrive, PVOID pvBuf);
 
 LW_API INT                  API_AhciDevIoctl(AHCI_DEV_HANDLE hDev, INT iCmd, LONG lArg);
 LW_API AHCI_DEV_HANDLE      API_AhciDevHandleGet(UINT uiCtrl, UINT uiDrive);

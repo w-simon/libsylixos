@@ -25,6 +25,7 @@
 2016.12.27  增加磁盘初始化复位等命令超时时间可配置.
 2017.03.29  修正部分设备如 Sunrise Point-H 内存索引非 0 的问题. (v1.0.3-rc0)
 2018.03.15  增加对 Loongson SATA 控制器 (如 7A1000) 资源索引的特殊处理. (v1.0.4-rc0)
+2019.03.01  增加对 ATAPI 的支持. (v1.1.0-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_AHCI_DRV
@@ -614,6 +615,8 @@ static INT  pciStorageSataDevProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_
 *********************************************************************************************************/
 static INT  pciStorageSataCtrlOpt (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, INT  iCmd, LONG  lArg)
 {
+    AHCI_DRIVE_HANDLE       hDrive;                                     /* 驱动器句柄                   */
+
     if (!hCtrl) {
         return  (PX_ERROR);
     }
@@ -628,7 +631,12 @@ static INT  pciStorageSataCtrlOpt (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, INT  
 
     case AHCI_OPT_CMD_SECTOR_SIZE_GET:
         if (lArg) {
-            *(ULONG *)lArg = AHCI_SECTOR_SIZE;
+            hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];
+            if (hDrive->AHCIDRIVE_ucType == AHCI_TYPE_ATAPI) {
+                *(ULONG *)lArg = AHCI_PI_SECTOR_SIZE;
+            } else {
+                *(ULONG *)lArg = AHCI_SECTOR_SIZE;
+            }
         }
         break;
 

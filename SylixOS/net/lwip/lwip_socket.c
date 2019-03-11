@@ -1611,6 +1611,7 @@ int  setsockopt (int s, int level, int optname, const void *optval, socklen_t op
 LW_API  
 int  getsockopt (int s, int level, int optname, void *optval, socklen_t *optlen)
 {
+    SYS_ARCH_DECL_PROTECT(lev);
     SOCKET_T   *psock;
     INT         iType;
     INT         iRet = PX_ERROR;
@@ -1625,8 +1626,12 @@ int  getsockopt (int s, int level, int optname, void *optval, socklen_t *optlen)
                 _ErrorHandle(EINVAL);
                 return  (iRet);
             }
+
+            SYS_ARCH_PROTECT(lev);
             *(INT *)optval = psock->SOCK_iSoErr;
             psock->SOCK_iSoErr = ERROR_NONE;
+            SYS_ARCH_UNPROTECT(lev);
+
             return  (ERROR_NONE);
         }
     }
