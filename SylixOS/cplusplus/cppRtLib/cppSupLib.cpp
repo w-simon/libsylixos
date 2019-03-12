@@ -54,7 +54,7 @@ extern VOID  _List_Line_Del(PLW_LIST_LINE  plineDel, LW_LIST_LINE_HEADER  *pplin
 *********************************************************************************************************/
 extern VOID  __cppRtDoCtors(VOID);
 extern VOID  __cppRtDoDtors(VOID);
-extern VOID  __cppRtDummy(VOID);
+extern VOID  __cppRtDummy(PVOID  *ppvCtor, PVOID  *ppvDtor);
 /*********************************************************************************************************
   C++ func list
 *********************************************************************************************************/
@@ -337,7 +337,7 @@ INT  _cppRtInit (VOID)
     }
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
     
-    __cppRtDummy();
+    __cppRtDummy(LW_NULL, LW_NULL);
     __cppRtDoCtors();                                                   /*  运行全局对象构造函数        */
     
     return  (ERROR_NONE);

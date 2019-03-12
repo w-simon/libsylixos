@@ -49,6 +49,16 @@
 #if LW_CFG_NET_DEV_ZCBUF_EN > 0
 
 /*
+ * zcpbuf header size cache alignment.
+ */
+#define ZCPBUF_HEADER_SIZE  ROUND_UP(sizeof(struct zc_pbuf), zc_buf_cache_line_size)
+
+/*
+ * cache size alignment.
+ */
+static u32_t zc_buf_cache_line_size;
+
+/*
  * Statistical variable
  */
 static u32_t zc_buf_used, zc_buf_max, zc_buf_error;
@@ -99,9 +109,22 @@ void *netdev_zc_pbuf_pool_create (addr_t addr, UINT32 blkcnt, size_t blksize)
   struct zc_pool *zcpool;
   struct zc_pbuf *zcpbuf1, *zcpbuf2;
   
+  if (!zc_buf_cache_line_size) {
+#if LW_CFG_CACHE_EN > 0
+    zc_buf_cache_line_size = cacheLine(DATA_CACHE);
+#else /* LW_CFG_CACHE_EN */
+#ifdef LW_CFG_CPU_ARCH_CACHE_LINE
+    zc_buf_cache_line_size = LW_CFG_CPU_ARCH_CACHE_LINE;
+#else
+    zc_buf_cache_line_size = 32;
+#endif /* LW_CFG_CPU_ARCH_CACHE_LINE */
+#endif /* !LW_CFG_CACHE_EN */
+    _BugFormat(!zc_buf_cache_line_size, LW_TRUE,
+               "cache line size: %s error!\r\n", zc_buf_cache_line_size);
+  }
+
   if ((blkcnt < 2) || (blksize < (ETH_PAD_SIZE + 
-      SIZEOF_VLAN_HDR + ETH_FRAME_LEN + 
-      ROUND_UP(sizeof(struct zc_pbuf), MEM_ALIGNMENT)))) {
+      SIZEOF_VLAN_HDR + ETH_FRAME_LEN + ZCPBUF_HEADER_SIZE))) {
     return (NULL);
   }
   
@@ -134,7 +157,7 @@ void *netdev_zc_pbuf_pool_create (addr_t addr, UINT32 blkcnt, size_t blksize)
   zcpool->magic_no  = ZCPOOL_MAGIC;
   zcpool->total_cnt = blkcnt;
   zcpool->free_cnt  = blkcnt;
-  zcpool->pbuf_len  = blksize - ROUND_UP(sizeof(struct zc_pbuf), MEM_ALIGNMENT);
+  zcpool->pbuf_len  = blksize - ZCPBUF_HEADER_SIZE;
   
   return ((void *)zcpool);
 }
@@ -227,7 +250,7 @@ struct pbuf *netdev_zc_pbuf_alloc_res (void *hzcpool, int ticks, UINT16 hdr_res)
   zcpbuf->b.cpbuf.custom_free_function = netdev_zc_pbuf_free_cb;
   
   ret = pbuf_alloced_custom(PBUF_RAW, (u16_t)zcpool->pbuf_len, PBUF_POOL, &zcpbuf->b.cpbuf, 
-                            (char *)zcpbuf + ROUND_UP(sizeof(struct zc_pbuf), MEM_ALIGNMENT), 
+                            (char *)zcpbuf + ZCPBUF_HEADER_SIZE,
                             (u16_t)zcpool->pbuf_len);
                             
   LWIP_ASSERT("netdev_zc_pbuf_alloc: bad pbuf", ret);

@@ -456,6 +456,7 @@ static LONG  __iso9660FsOpen (PISO_VOLUME     pisovol,
         } else {
             pisofile->ISOFIL_iFileType = __ISO_FILE_TYPE_NODE;
             if (iFlags & O_DIRECTORY) {
+                iso9660_stat_free(pisofile->ISOFIL_pstat);
                 __ISO_FILE_UNLOCK(pisofile);
                 __SHEAP_FREE(pisofile);
                 _ErrorHandle(ENOTDIR);
@@ -475,7 +476,7 @@ static LONG  __iso9660FsOpen (PISO_VOLUME     pisovol,
                                (PVOID)pisofile,
                                &bIsNew);                                /*  添加文件节点                */
     if (pfdnode == LW_NULL) {                                           /*  无法创建 fd_node 节点       */
-        cdio_free(pisofile->ISOFIL_pstat);
+        iso9660_stat_free(pisofile->ISOFIL_pstat);
         __ISO_FILE_UNLOCK(pisofile);
         __SHEAP_FREE(pisofile);
         return  (PX_ERROR);
@@ -484,7 +485,7 @@ static LONG  __iso9660FsOpen (PISO_VOLUME     pisovol,
     LW_DEV_INC_USE_COUNT(&pisovol->ISOVOL_devhdrHdr);                   /*  更新计数器                  */
 
     if (bIsNew == LW_FALSE) {                                           /*  有重复打开                  */
-        cdio_free(pisofile->ISOFIL_pstat);
+        iso9660_stat_free(pisofile->ISOFIL_pstat);
         __ISO_FILE_UNLOCK(pisofile);
         __SHEAP_FREE(pisofile);
     
@@ -606,7 +607,7 @@ static INT  __iso9660FsClose (PLW_FD_ENTRY    pfdentry)
         
         if (API_IosFdNodeDec(&pisovol->ISOVOL_plineFdNodeHeader,
                              pfdnode, &bRemove) == 0) {                 /*  fd_node 是否完全释放        */
-            cdio_free(pisofile->ISOFIL_pstat);
+            iso9660_stat_free(pisofile->ISOFIL_pstat);
             bFree = LW_TRUE;
         }
         
@@ -1018,7 +1019,7 @@ static INT  __iso9660FsStatGet (PLW_FD_ENTRY  pfdentry, struct stat *pstat)
         pstat->st_uid     = 0;
         pstat->st_gid     = 0;
         pstat->st_rdev    = 1;
-        pstat->st_size    = (off_t)piso->pvd.volume_space_size;
+        pstat->st_size    = 0;
         iso9660_get_ltime(&piso->pvd.creation_date, &tmIso);
         pstat->st_ctime   = lib_mktime(&tmIso);
         iso9660_get_ltime(&piso->pvd.modification_date, &tmIso);
@@ -1077,7 +1078,7 @@ static INT  __iso9660FsStatfsGet (PLW_FD_ENTRY  pfdentry, struct statfs *pstatfs
     }
 
     pstatfs->f_bsize  = (long)piso->i_framesize;
-    pstatfs->f_blocks = (long)piso->pvd.volume_space_size;
+    pstatfs->f_blocks = (long)iso9660_get_pvd_space_size(&piso->pvd);
     pstatfs->f_bfree  = 0;
     pstatfs->f_bavail = 0;
     pstatfs->f_flag   = ST_RDONLY;
@@ -1125,6 +1126,7 @@ static INT  __iso9660FsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
     }
     
     if (dir->dir_pos >= _cdio_list_length(pfilelist)) {
+        iso9660_filelist_free(pfilelist);
         _ErrorHandle(ENOENT);
         __ISO_FILE_UNLOCK(pisofile);
         return  (PX_ERROR);
@@ -1154,6 +1156,8 @@ static INT  __iso9660FsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         }
         break;
     }
+
+    iso9660_filelist_free(pfilelist);
 
     __ISO_FILE_UNLOCK(pisofile);
     

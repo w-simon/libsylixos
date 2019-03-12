@@ -81,15 +81,20 @@ static VOIDFUNCPTR __LW_DTOR_END__[1] __attribute__((section(".dtors"))) = { (VO
 /*********************************************************************************************************
 ** 函数名称: __cppRtDummy
 ** 功能描述: 为了使编译器不优化掉上面的两个符号, 这里必须要有一个函数使用此符号
-** 输　入  : NONE
+** 输　入  : pCtor     构建函数表
+**           pCtor     构建函数表
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-VOID  __cppRtDummy (VOID)
+VOID  __cppRtDummy (PVOID  *ppvCtor, PVOID  *ppvDtor)
 {
-    lib_bzero(&__LW_CTOR_END__[0], sizeof(VOIDFUNCPTR));
-    lib_bzero(&__LW_DTOR_END__[0], sizeof(VOIDFUNCPTR));
+    if (ppvCtor) {
+        *ppvCtor = __LW_CTOR_END__;
+    }
+    if (ppvDtor) {
+        *ppvDtor = __LW_DTOR_END__;
+    }
 }
 }
 /*********************************************************************************************************

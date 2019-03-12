@@ -79,6 +79,7 @@ typedef struct af_packet_t {
     AF_PACKET_Q             PACKET_pktq;                                /*  接收缓冲                    */
     size_t                  PACKET_stMaxBufSize;                        /*  最大接收缓冲大小            */
     
+    struct sockaddr_ll      PACKET_saddrll;                             /*  connect 信息                */
     enum tpacket_versions   PACKET_tpver;                               /*  RING 头部版本               */
     struct tpacket_stats    PACKET_stats;                               /*  统计信息                    */
     

@@ -214,8 +214,13 @@ ULONG   API_CacheLibPrimaryInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, 
     
     bIsInit = LW_TRUE;
     
+    _BugFormat((_G_cacheopLib.CACHEOP_iICacheLine & (_G_cacheopLib.CACHEOP_iICacheLine - 1)),
+               LW_TRUE, "I-CACHE line size: %s error!\r\n", _G_cacheopLib.CACHEOP_iICacheLine);
+    _BugFormat((_G_cacheopLib.CACHEOP_iDCacheLine & (_G_cacheopLib.CACHEOP_iDCacheLine - 1)),
+               LW_TRUE, "D-CACHE line size: %s error!\r\n", _G_cacheopLib.CACHEOP_iDCacheLine);
+
     _DebugHandle(__LOGMESSAGE_LEVEL, "CACHE initilaized.\r\n");
-    
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

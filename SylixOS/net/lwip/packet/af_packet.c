@@ -21,6 +21,7 @@
 ** BUG:
 2018.01.11  支持组播设置.
 2018.08.21  修正 __packetMapInput() 在 64 位模式报文缓存状态判断错误.
+2019.03.12  支持 connect() 与 send() 调用.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -1212,8 +1213,43 @@ AF_PACKET_T  *packet_accept (AF_PACKET_T *pafpacket, struct sockaddr *addr, sock
 *********************************************************************************************************/
 INT  packet_connect (AF_PACKET_T *pafpacket, const struct sockaddr *name, socklen_t namelen)
 {
-    _ErrorHandle(EOPNOTSUPP);
-    return  (PX_ERROR);
+    struct netif       *pnetif;
+    struct sockaddr_ll *paddrll = (struct sockaddr_ll *)name;
+
+    if (!name || (namelen < sizeof(struct sockaddr_ll))) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (paddrll->sll_hatype != ARPHRD_ETHER) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (paddrll->sll_ifindex) {
+        LWIP_IF_LIST_LOCK(LW_FALSE);
+        pnetif = netif_get_by_index(paddrll->sll_ifindex);
+        if (!pnetif) {
+            LWIP_IF_LIST_UNLOCK();
+            _ErrorHandle(ENODEV);
+            return  (PX_ERROR);
+        }
+        if (!(pnetif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET))) {
+            LWIP_IF_LIST_UNLOCK();
+            _ErrorHandle(ENXIO);
+            return  (PX_ERROR);
+        }
+        LWIP_IF_LIST_UNLOCK();
+    }
+
+    __AF_PACKET_LOCK();
+    lib_memcpy(&pafpacket->PACKET_saddrll, paddrll, sizeof(struct sockaddr_ll));
+    if (pafpacket->PACKET_saddrll.sll_ifindex == 0) {
+        pafpacket->PACKET_saddrll.sll_ifindex = pafpacket->PACKET_iIfIndex;
+    }
+    __AF_PACKET_UNLOCK();
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: packet_recvfrom
@@ -1412,10 +1448,9 @@ ssize_t  packet_sendto (AF_PACKET_T *pafpacket, const void *data, size_t size, i
     } else {
         if ((pafpacket->PACKET_iType != SOCK_RAW) ||
             (pafpacket->PACKET_iIfIndex <= 0)) {
-            _ErrorHandle(EINVAL);
+            _ErrorHandle(ENOTCONN);
             return  (PX_ERROR);
         }
-        
         psockaddrll = LW_NULL;
     }
     
@@ -1527,8 +1562,15 @@ ssize_t  packet_sendmsg (AF_PACKET_T *pafpacket, const struct msghdr *msg, int f
 *********************************************************************************************************/
 ssize_t  packet_send (AF_PACKET_T *pafpacket, const void *data, size_t size, int flags)
 {
-    _ErrorHandle(EOPNOTSUPP);
-    return  (PX_ERROR);
+    struct sockaddr_ll *psockaddrll = &pafpacket->PACKET_saddrll;
+    socklen_t           tolen       = sizeof(struct sockaddr_ll);
+
+    if (psockaddrll->sll_hatype != ARPHRD_ETHER) {
+        psockaddrll = LW_NULL;                                          /*  没有设置目标                */
+        tolen = 0;
+    }
+
+    return  (packet_sendto(pafpacket, data, size, flags, (struct sockaddr *)psockaddrll, tolen));
 }
 /*********************************************************************************************************
 ** 函数名称: packet_close
