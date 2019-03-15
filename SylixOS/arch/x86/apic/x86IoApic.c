@@ -545,12 +545,18 @@ INT  x86IoApicInitAll (UINT  *puiIoIntNr)
 
     LW_SPIN_INIT(&_G_slcaX86IoApic.SLCA_sl);
     
-    x86MpApicIoApicNrGet(&uiIoApicNr);
+    if (x86MpApicIoApicNrGet(&uiIoApicNr) != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
     _G_uiX86IoApicNr = uiIoApicNr;
 
-    x86MpApicAddrTableGet(&puiAddrTable);
+    if (x86MpApicAddrTableGet(&puiAddrTable) != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
 
-    x86MpApicLogicalTableGet(&pucLogicalTable);
+    if (x86MpApicLogicalTableGet(&pucLogicalTable) != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
 
     for (i = 0; i < uiIoApicNr; i++) {
         pIoApicIntr = &_G_x86IoApicIntrs[i];

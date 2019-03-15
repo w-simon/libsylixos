@@ -36,6 +36,7 @@
     EXPORT_LABEL(armCacheV7CCSIDR)
     EXPORT_LABEL(armCacheV7CLIDR)
     EXPORT_LABEL(armCacheV7CSSELR)
+    EXPORT_LABEL(armCacheV7SetCSSELR)
 
     EXPORT_LABEL(armDCacheV7Disable)
     EXPORT_LABEL(armDCacheV7FlushPoU)
@@ -111,6 +112,11 @@ FUNC_DEF(armCacheV7CLIDR)
 
 FUNC_DEF(armCacheV7CSSELR)
     MRC     p15, 2, R0, c0, c0, 0
+    BX      LR
+    FUNC_END()
+
+FUNC_DEF(armCacheV7SetCSSELR)
+    MCR     p15, 2, R0, c0, c0, 0
     BX      LR
     FUNC_END()
 

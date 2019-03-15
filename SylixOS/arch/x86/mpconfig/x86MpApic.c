@@ -37,7 +37,7 @@ static X86_MP_APIC_DATA     *_G_pX86MpApicData      = LW_NULL;          /*  X86_
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
-UINT32              _G_uiX86CpuCount            = 0;                    /*  逻辑处理器数目              */
+UINT32              _G_uiX86CpuCount            = 1;                    /*  逻辑处理器数目              */
 
 UINT32              _G_uiX86MpApicIoIntNr       = 0;                    /*  IO 中断数目                 */
 UINT32              _G_uiX86MpApicLoIntNr       = 0;                    /*  Local 中断数目              */
@@ -45,7 +45,7 @@ UINT8               _G_ucX86MpApicIoBaseId      = 0;                    /*  Base
 
 X86_MP_INTERRUPT   *_G_pX86MpApicInterruptTable = LW_NULL;              /*  中断表                      */
 
-UINT8               _G_aucX86CpuIndexTable[X86_CPUID_MAX_NUM_CPUS];     /*  Local APIC ID->逻辑处理器 ID*/
+UINT8               _G_aucX86CpuIndexTable[X86_CPUID_MAX_NUM_CPUS]={0}; /*  Local APIC ID->逻辑处理器 ID*/
 UINT                _G_uiX86BaseCpuPhysIndex    = 0;                    /*  Base CPU Phy index          */
 
 UINT                _G_uiX86MpApicBootOpt       = ACPI_MP_STRUCT;       /*  启动选项                    */
@@ -662,8 +662,8 @@ static INT8  *x86MpApicScan (INT8  *pcMatch, INT8  *pcStart, INT8  *pcEnd)
     for (pcPtr = pcStart; (pcPtr + 16) < pcEnd; pcPtr += 16) {
         if (lib_strncmp((CHAR *)pcPtr, (CHAR *)pcMatch, lib_strlen((CHAR *)pcMatch)) == 0) {
             /*
-             * Verify MP floating pointer struture checksum
-             * the bytewise sum of the 16 byte struture should be 0
+             * Verify MP floating pointer structure checksum
+             * the sum of the 16 byte structure should be 0
              */
             uiCS = 0;
             for (i = 0; i < 16; i++) {
@@ -688,7 +688,12 @@ static INT8  *x86MpApicScan (INT8  *pcMatch, INT8  *pcStart, INT8  *pcEnd)
 *********************************************************************************************************/
 INT  x86MpApicLoBaseGet (CHAR  **ppcLocalApicBase)
 {
-    if ((ppcLocalApicBase == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (ppcLocalApicBase == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *ppcLocalApicBase = LW_NULL;
         return  (PX_ERROR);
     }
 
@@ -706,7 +711,12 @@ INT  x86MpApicLoBaseGet (CHAR  **ppcLocalApicBase)
 *********************************************************************************************************/
 INT  x86MpApicIoApicNrGet (UINT32  *puiIoApicNr)
 {
-    if ((puiIoApicNr == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (puiIoApicNr == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *puiIoApicNr = 0;
         return  (PX_ERROR);
     }
 
@@ -724,7 +734,12 @@ INT  x86MpApicIoApicNrGet (UINT32  *puiIoApicNr)
 *********************************************************************************************************/
 INT  x86MpApicIoIntNrGet (UINT32  *puiIoIntNr)
 {
-    if ((puiIoIntNr == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (puiIoIntNr == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *puiIoIntNr = 0;
         return  (PX_ERROR);
     }
 
@@ -740,9 +755,14 @@ INT  x86MpApicIoIntNrGet (UINT32  *puiIoIntNr)
  ** 全局变量:
  ** 调用模块:
 *********************************************************************************************************/
-INT   x86MpApicLoIntNrGet(UINT32  *puiLoIntNr)
+INT   x86MpApicLoIntNrGet (UINT32  *puiLoIntNr)
 {
-    if ((puiLoIntNr == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (puiLoIntNr == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *puiLoIntNr = 0;
         return  (PX_ERROR);
     }
 
@@ -760,7 +780,12 @@ INT   x86MpApicLoIntNrGet(UINT32  *puiLoIntNr)
 *********************************************************************************************************/
 INT  x86MpApicBusNrGet (UINT32  *puiBusNr)
 {
-    if ((puiBusNr == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (puiBusNr == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *puiBusNr = 0;
         return  (PX_ERROR);
     }
 
@@ -778,7 +803,12 @@ INT  x86MpApicBusNrGet (UINT32  *puiBusNr)
 *********************************************************************************************************/
 INT  x86MpApicCpuNrGet (UINT32  *puiCpuNr)
 {
-    if ((puiCpuNr == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (puiCpuNr == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *puiCpuNr = 1;
         return  (PX_ERROR);
     }
 
@@ -794,9 +824,14 @@ INT  x86MpApicCpuNrGet (UINT32  *puiCpuNr)
  ** 全局变量:
  ** 调用模块:
 *********************************************************************************************************/
-INT   x86MpApicInterruptTableGet (X86_MP_INTERRUPT  **ppInterruptTable)
+INT  x86MpApicInterruptTableGet (X86_MP_INTERRUPT  **ppInterruptTable)
 {
-    if ((ppInterruptTable == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (ppInterruptTable == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *ppInterruptTable = LW_NULL;
         return  (PX_ERROR);
     }
 
@@ -814,7 +849,12 @@ INT   x86MpApicInterruptTableGet (X86_MP_INTERRUPT  **ppInterruptTable)
 *********************************************************************************************************/
 INT  x86MpApicBusTableGet (X86_MP_BUS  **ppBusTable)
 {
-    if ((ppBusTable == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (ppBusTable == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *ppBusTable = LW_NULL;
         return  (PX_ERROR);
     }
 
@@ -832,7 +872,12 @@ INT  x86MpApicBusTableGet (X86_MP_BUS  **ppBusTable)
 *********************************************************************************************************/
 INT  x86MpApicFpsGet (X86_MP_FPS  **ppFps)
 {
-    if ((ppFps == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (ppFps == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *ppFps = LW_NULL;
         return  (PX_ERROR);
     }
 
@@ -850,7 +895,12 @@ INT  x86MpApicFpsGet (X86_MP_FPS  **ppFps)
 *********************************************************************************************************/
 INT  x86MpApicAddrTableGet (UINT32  **ppuiAddrTable)
 {
-    if ((ppuiAddrTable == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (ppuiAddrTable == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *ppuiAddrTable = LW_NULL;
         return  (PX_ERROR);
     }
 
@@ -868,7 +918,12 @@ INT  x86MpApicAddrTableGet (UINT32  **ppuiAddrTable)
 *********************************************************************************************************/
 INT  x86MpApicLogicalTableGet (UINT8   **ppucLogicalTable)
 {
-    if ((ppucLogicalTable == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (ppucLogicalTable == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *ppucLogicalTable = LW_NULL;
         return  (PX_ERROR);
     }
 
@@ -886,7 +941,12 @@ INT  x86MpApicLogicalTableGet (UINT8   **ppucLogicalTable)
 *********************************************************************************************************/
 INT  x86MpApicLoIndexTableGet (UINT8   **ppucLoApicIndexTable)
 {
-    if ((ppucLoApicIndexTable == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (ppucLoApicIndexTable == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *ppucLoApicIndexTable = LW_NULL;
         return  (PX_ERROR);
     }
 
@@ -904,7 +964,12 @@ INT  x86MpApicLoIndexTableGet (UINT8   **ppucLoApicIndexTable)
 *********************************************************************************************************/
 INT  x86MpApicCpuIndexTableGet (UINT8  **ppucCpuIndexTable)
 {
-    if ((ppucCpuIndexTable == LW_NULL) || (!_G_bX86MpApicDrvInited)) {
+    if (ppucCpuIndexTable == LW_NULL) {
+        return  (PX_ERROR);
+    }
+
+    if (!_G_bX86MpApicDrvInited) {
+        *ppucCpuIndexTable = LW_NULL;
         return  (PX_ERROR);
     }
 

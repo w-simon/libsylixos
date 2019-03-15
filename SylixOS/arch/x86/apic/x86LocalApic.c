@@ -237,7 +237,9 @@ static VOID  __x86LocalApicEnable (PX86_LOAPIC_INTR  pLoApicIntr, BOOL  bEnable)
     X86_MP_FPS     *pFps;
 
 
-    x86MpApicFpsGet(&pFps);
+    if (x86MpApicFpsGet(&pFps) != ERROR_NONE) {
+        return;
+    }
 
     /*
      * Check if the IMCR exists or not

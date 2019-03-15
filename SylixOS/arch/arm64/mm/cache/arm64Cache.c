@@ -28,21 +28,25 @@
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-extern VOID  arm64ICacheEnable(VOID);
-extern VOID  arm64DCacheEnable(VOID);
-extern VOID  arm64ICacheDisable(VOID);
-extern VOID  arm64DCacheDisable(VOID);
-extern VOID  arm64DCacheFlushAll(VOID);
-extern VOID  arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
-extern VOID  arm64DCacheFlushPoU(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
-extern VOID  arm64ICacheInvalidateAll(VOID);
-extern VOID  arm64ICacheInvalidate(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
-extern VOID  arm64DCacheInvalidate(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
-extern VOID  arm64DCacheClear(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
-extern VOID  arm64DCacheClearAll(VOID);
-extern UINT  arm64CacheCCSIDR(VOID);
-extern INT   arm64ICacheLineSize(VOID);
-extern INT   arm64DCacheLineSize(VOID);
+extern VOID    arm64ICacheEnable(VOID);
+extern VOID    arm64DCacheEnable(VOID);
+extern VOID    arm64ICacheDisable(VOID);
+extern VOID    arm64DCacheDisable(VOID);
+extern VOID    arm64DCacheFlushAll(VOID);
+extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
+extern VOID    arm64DCacheFlushPoU(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
+extern VOID    arm64ICacheInvalidateAll(VOID);
+extern VOID    arm64ICacheInvalidate(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
+extern VOID    arm64DCacheInvalidate(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
+extern VOID    arm64DCacheClear(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
+extern VOID    arm64DCacheClearAll(VOID);
+extern UINT32  arm64CacheCCSIDR(VOID);
+/*********************************************************************************************************
+  选择 CACHE 类型
+*********************************************************************************************************/
+#define ARM64_CSSELR_IND_DATA_UNIFIED   0
+#define ARM64_CSSELR_IND_INSTRUCTION    1
+extern VOID    arm64CacheSetCSSELR(UINT32  uiValue);
 /*********************************************************************************************************
   CACHE 获得 pvAdrs 与 pvEnd 位置
 *********************************************************************************************************/
@@ -441,7 +445,8 @@ VOID  arm64CacheInit (LW_CACHE_OP *pcacheop,
                       CACHE_MODE   uiData, 
                       CPCHAR       pcMachineName)
 {
-    UINT32  uiCCSIDR;
+    UINT32  uiICCSIDR;
+    UINT32  uiDCCSIDR;
 
 #define ARMv8_CCSIDR_LINESIZE_MASK      0x7
 #define ARMv8_CCSIDR_LINESIZE(x)        ((x) & ARMv8_CCSIDR_LINESIZE_MASK)
@@ -467,17 +472,22 @@ VOID  arm64CacheInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_ulOption = 0ul;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-    uiCCSIDR                      = arm64CacheCCSIDR();
-    pcacheop->CACHEOP_iICacheLine = arm64ICacheLineSize();
-    pcacheop->CACHEOP_iDCacheLine = arm64DCacheLineSize();
+    arm64CacheSetCSSELR(ARM64_CSSELR_IND_INSTRUCTION);
+    uiICCSIDR = arm64CacheCCSIDR();
+
+    arm64CacheSetCSSELR(ARM64_CSSELR_IND_DATA_UNIFIED);
+    uiDCCSIDR = arm64CacheCCSIDR();
+
+    pcacheop->CACHEOP_iICacheLine = ARMv8_CACHE_LINESIZE(uiICCSIDR);
+    pcacheop->CACHEOP_iDCacheLine = ARMv8_CACHE_LINESIZE(uiDCCSIDR);
     
     uiArmV8ICacheLineSize = pcacheop->CACHEOP_iICacheLine;
     uiArmV8DCacheLineSize = pcacheop->CACHEOP_iDCacheLine;
     
     pcacheop->CACHEOP_iICacheWaySize = uiArmV8ICacheLineSize
-                                     * ARMv8_CACHE_NUMSET(uiCCSIDR);    /*  DCACHE WaySize              */
+                                     * ARMv8_CACHE_NUMSET(uiICCSIDR);   /*  ICACHE WaySize              */
     pcacheop->CACHEOP_iDCacheWaySize = uiArmV8DCacheLineSize
-                                     * ARMv8_CACHE_NUMSET(uiCCSIDR);    /*  DCACHE WaySize              */
+                                     * ARMv8_CACHE_NUMSET(uiDCCSIDR);   /*  DCACHE WaySize              */
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv8 I-Cache line size = %u bytes, Way size = %u bytes.\r\n",
                  pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);

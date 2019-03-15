@@ -1031,10 +1031,7 @@ static INT  __rootFsSymlink (PLW_DEV_HDR     pdevhdr,
                              PCHAR           pcName,
                              CPCHAR          pcLinkDst)
 {
-    REGISTER INT        iError;
-
 #if LW_CFG_PATH_VXWORKS == 0                                            /*  需要提供分级目录管理        */
-
     if ((pcName == LW_NULL) || (pcLinkDst == LW_NULL)) {
         _ErrorHandle(ERROR_IO_NO_DEVICE_NAME_IN_PATH);
         return  (PX_ERROR);
@@ -1056,9 +1053,8 @@ static INT  __rootFsSymlink (PLW_DEV_HDR     pdevhdr,
                                 (PVOID)(pcLinkDst)));
 #else
     _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);
+    return  (PX_ERROR);
 #endif                                                                  /*  LW_CFG_PATH_VXWORKS == 0    */
-
-    return  (iError);
 }
 /*********************************************************************************************************
 ** 函数名称: __rootFsReadlink
@@ -1076,10 +1072,7 @@ static ssize_t  __rootFsReadlink (PLW_DEV_HDR    pdevhdr,
                                   PCHAR          pcLinkDst,
                                   size_t         stMaxSize)
 {
-    REGISTER INT        iError;
-
 #if LW_CFG_PATH_VXWORKS == 0                                            /*  需要提供分级目录管理        */
-    
     if (pcName == LW_NULL) {
         _ErrorHandle(ERROR_IO_NO_DEVICE_NAME_IN_PATH);
         return  (PX_ERROR);
@@ -1091,9 +1084,8 @@ static ssize_t  __rootFsReadlink (PLW_DEV_HDR    pdevhdr,
     
 #else
     _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);
+    return  (PX_ERROR);
 #endif                                                                  /*  LW_CFG_PATH_VXWORKS == 0    */
-
-    return  (iError);
 }
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */

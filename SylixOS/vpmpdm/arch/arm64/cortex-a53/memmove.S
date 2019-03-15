@@ -100,7 +100,10 @@ ENTRY(memmove)
 	ldp     x29, x30, [sp], #16
 #endif
 	b.hs	memcpy
-
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	cbz	tmp1, 3f
 	add	dstend, dstin, count
 	add	srcend, src, count

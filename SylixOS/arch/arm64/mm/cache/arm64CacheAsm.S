@@ -32,6 +32,7 @@
     FILE_BEGIN() 
 
     EXPORT_LABEL(arm64CacheCCSIDR)  
+    EXPORT_LABEL(arm64CacheSetCSSELR)
     EXPORT_LABEL(arm64ICacheEnable)
     EXPORT_LABEL(arm64DCacheEnable)
     EXPORT_LABEL(arm64ICacheDisable)
@@ -46,8 +47,6 @@
     EXPORT_LABEL(arm64ICacheInvalidate)
     EXPORT_LABEL(arm64ICacheInvalidateAll)
     EXPORT_LABEL(arm64ICacheInvalidateAllInner)
-    EXPORT_LABEL(arm64DCacheLineSize)
-    EXPORT_LABEL(arm64ICacheLineSize)
 
 ;/*********************************************************************************************************
 ;  ARM64 获得 CACHE 相关寄存器
@@ -55,6 +54,15 @@
 
 FUNC_DEF(arm64CacheCCSIDR)
     MRS     X0,  CCSIDR_EL1
+    RET
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  ARM64 设置 CACHE 相关寄存器
+;*********************************************************************************************************/
+
+FUNC_DEF(arm64CacheSetCSSELR)
+    MSR     CSSELR_EL1, X0
     RET
     FUNC_END()
 
@@ -110,18 +118,6 @@ FUNC_DEF(arm64DCacheDisable)
 LINE_LABEL(dcache_not_en)            
     BL      arm64DCacheInvalidateAll  
     MOV     LR , X13
-    RET
-    FUNC_END()
-
-;/*********************************************************************************************************
-;  ARMv8 获取 DCACHE LINE 大小
-;*********************************************************************************************************/
-
-FUNC_DEF(arm64DCacheLineSize)
-    MRS     X1 , CTR_EL0                                                ;/*  读取 Cache Type Register    */
-    UBFM    X1 , X1 , #16 , #19                                         ;/*  CTR_EL0 16-19 位为 DminLine */
-    MOV     X0 , #4                                                     ;/*  每个字的字节数              */
-    LSL     X0 , X0 , X1                                                ;/*  实际的 DCache Line 大小     */
     RET
     FUNC_END()
 
@@ -288,18 +284,6 @@ FUNC_DEF(arm64DCacheInvalidateAll)
     MOV     X0  , #1
     BL      arm64DCacheAll
     MOV     LR  , X14
-    RET
-    FUNC_END()
-
-;/*********************************************************************************************************
-;  ARMv8 获取 ICACHE Line 大小
-;*********************************************************************************************************/
-
-FUNC_DEF(arm64ICacheLineSize)
-    MRS     X1 , CTR_EL0                                                ;/*  读取 Cache Type Register    */
-    AND     X1 , X1 , #0xf                                              ;/*  CTR_EL0 0-3 位为 IminLine   */
-    MOV     X0 , #4                                                     ;/*  每个字的字节数              */
-    LSL     X0 , X0 , X1                                                ;/*  实际的 ICache Line 大小     */
     RET
     FUNC_END()
 

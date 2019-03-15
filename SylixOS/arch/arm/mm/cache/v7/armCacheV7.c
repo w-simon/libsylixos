@@ -60,15 +60,18 @@ static INT      iCacheStatus = 0;
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-#define ARMV7_CSSELR_IND_DATA_UNIFIED   0
-#define ARMV7_CSSELR_IND_INSTRUCTION    1
-
 extern VOID     armDCacheV7Disable(VOID);
 extern VOID     armDCacheV7FlushPoU(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 extern VOID     armDCacheV7FlushAll(VOID);
 extern VOID     armDCacheV7FlushAllPoU(VOID);
 extern VOID     armDCacheV7ClearAll(VOID);
 extern UINT32   armCacheV7CCSIDR(VOID);
+/*********************************************************************************************************
+  选择 CACHE 类型
+*********************************************************************************************************/
+#define ARMV7_CSSELR_IND_DATA_UNIFIED   0
+#define ARMV7_CSSELR_IND_INSTRUCTION    1
+extern VOID     armCacheV7SetCSSELR(UINT32  uiValue);
 /*********************************************************************************************************
   CACHE 参数
 *********************************************************************************************************/
@@ -511,7 +514,8 @@ VOID  armCacheV7Init (LW_CACHE_OP *pcacheop,
                       CACHE_MODE   uiData, 
                       CPCHAR       pcMachineName)
 {
-    UINT32  uiCCSIDR;
+    UINT32  uiICCSIDR;
+    UINT32  uiDCCSIDR;
 
 #define ARMv7_CCSIDR_LINESIZE_MASK      0x7
 #define ARMv7_CCSIDR_LINESIZE(x)        ((x) & ARMv7_CCSIDR_LINESIZE_MASK)
@@ -535,17 +539,22 @@ VOID  armCacheV7Init (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_ulOption = 0ul;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-    uiCCSIDR                      = armCacheV7CCSIDR();
-    pcacheop->CACHEOP_iICacheLine = ARMv7_CACHE_LINESIZE(uiCCSIDR);
-    pcacheop->CACHEOP_iDCacheLine = ARMv7_CACHE_LINESIZE(uiCCSIDR);
+    armCacheV7SetCSSELR(ARMV7_CSSELR_IND_INSTRUCTION);
+    uiICCSIDR = armCacheV7CCSIDR();
+
+    armCacheV7SetCSSELR(ARMV7_CSSELR_IND_DATA_UNIFIED);
+    uiDCCSIDR = armCacheV7CCSIDR();
+
+    pcacheop->CACHEOP_iICacheLine = ARMv7_CACHE_LINESIZE(uiICCSIDR);
+    pcacheop->CACHEOP_iDCacheLine = ARMv7_CACHE_LINESIZE(uiDCCSIDR);
     
     uiArmV7ICacheLineSize = (UINT32)pcacheop->CACHEOP_iICacheLine;
     uiArmV7DCacheLineSize = (UINT32)pcacheop->CACHEOP_iDCacheLine;
     
     pcacheop->CACHEOP_iICacheWaySize = uiArmV7ICacheLineSize
-                                     * ARMv7_CACHE_NUMSET(uiCCSIDR);    /*  DCACHE WaySize              */
+                                     * ARMv7_CACHE_NUMSET(uiICCSIDR);   /*  ICACHE WaySize              */
     pcacheop->CACHEOP_iDCacheWaySize = uiArmV7DCacheLineSize
-                                     * ARMv7_CACHE_NUMSET(uiCCSIDR);    /*  DCACHE WaySize              */
+                                     * ARMv7_CACHE_NUMSET(uiDCCSIDR);   /*  DCACHE WaySize              */
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv7 I-Cache line size = %u bytes, Way size = %u bytes.\r\n",
                  pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);

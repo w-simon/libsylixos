@@ -376,7 +376,7 @@ static VOID  acpiLibIrqProcess (UINT8  *pucBuf, UINT8  ucSourceBusId, BOOL  bFil
              *
              * Previously, SylixOS only supported the GSI case, because it
              * is typically more common. However the PCI LNKx case, though
-             * infrequently occuring, should not be ignored completely.
+             * infrequently occurring, should not be ignored completely.
              * By always assuming the GSI case, we will always end up with
              * an IRQ of 0 for the PCI LNKx case, which renders the device
              * non-functional.
@@ -1317,13 +1317,13 @@ static INT  __acpiParseMadt (ACPI_TABLE_HEADER  *pAcpiHeader)
             }
 
             /*
-             * Build CPU/Local Apic Id translation tbls
+             * Build CPU/Local Apic Id translation tables
              */
             _G_pAcpiMpApicData->MPAPIC_aucCpuIndexTable[pLocalApic->Id] = (UINT8)uiCpuIndex;
 
             /*
              * Table order relevant, table is indexed logically,
-             * must contain logical indicies...
+             * must contain logical index...
              */
             ucTmp1 = pLocalApic->Id;
             for (iIndex1 = 0; iIndex1 < uiCpuIndex; iIndex1++) {
@@ -1367,7 +1367,7 @@ static INT  __acpiParseMadt (ACPI_TABLE_HEADER  *pAcpiHeader)
 
     /*
      * Now reorder the IOAPIC entries in GlobalIrq sequence.
-     * We keep these in order so that we can quicky determine
+     * We keep these in order so that we can quickly determine
      * which IOAPIC an IRQ belongs to. (bubble sort)
      */
     __ACPI_DEBUG_LOG("  Now reorder the IOAPIC entries in GlobalIrq sequence...\n\n");

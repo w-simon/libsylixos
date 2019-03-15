@@ -102,10 +102,12 @@ LW_OBJECT_HANDLE  API_ThreadInit (CPCHAR                   pcName,
         return  (LW_OBJECT_HANDLE_INVALID);
     }
     
-    if (_PriorityCheck(pthreadattr->THREADATTR_ucPriority)) {           /*  优先级错误                  */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "thread priority invalidate.\r\n");
-        _ErrorHandle(ERROR_THREAD_PRIORITY_WRONG);
-        return  (LW_OBJECT_HANDLE_INVALID);
+    if (pfuncThread != _IdleThread) {                                   /*  idle 任务为合法最低优先级   */
+        if (_PriorityCheck(pthreadattr->THREADATTR_ucPriority)) {       /*  优先级错误                  */
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "thread priority invalidate.\r\n");
+            _ErrorHandle(ERROR_THREAD_PRIORITY_WRONG);
+            return  (LW_OBJECT_HANDLE_INVALID);
+        }
     }
 #endif
 

@@ -30,14 +30,11 @@
 *********************************************************************************************************/
 static LW_INLINE INT _PriorityCheck (UINT8  ucPriority)
 {
-#if LW_PRIO_LOWEST < 255
-    return  (ucPriority > LW_CFG_LOWEST_PRIO);
+    if (ucPriority >= LW_PRIO_LOWEST) {                                 /*  不允许为最低优先级          */
+        return  (LW_TRUE);
+    }
 
-#else
-    (VOID)ucPriority;
-    
     return  (LW_FALSE);
-#endif                                                                  /*  LW_CFG_LOWEST_PRIO < 255    */
 }
 
 #endif                                                                  /*  __INLPRIORITYCHECK_H        */

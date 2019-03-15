@@ -94,7 +94,7 @@ __LW_RETU_FUNC_DEFINE(char *, setlocale, (int category, const char *locale), (ca
 
 void __assert (const char *cond, const char *func, const char *file, int line)
 {
-    archAssert(cond, __func__, __FILE__, __LINE__);
+    archAssert(cond, func, file, line);
 }
 
 /*********************************************************************************************************

@@ -41,6 +41,12 @@ extern VOID     armDCacheV7FlushAllPoU(VOID);
 extern VOID     armDCacheV7ClearAll(VOID);
 extern UINT32   armCacheV7CCSIDR(VOID);
 /*********************************************************************************************************
+  选择 CACHE 类型
+*********************************************************************************************************/
+#define ARMV7_CSSELR_IND_DATA_UNIFIED   0
+#define ARMV7_CSSELR_IND_INSTRUCTION    1
+extern VOID     armCacheV7SetCSSELR(UINT32  uiValue);
+/*********************************************************************************************************
   CACHE 参数
 *********************************************************************************************************/
 static UINT32                           uiArmV8ICacheLineSize;
@@ -426,7 +432,8 @@ VOID  armCacheV8Init (LW_CACHE_OP *pcacheop,
                       CACHE_MODE   uiData, 
                       CPCHAR       pcMachineName)
 {
-    UINT32  uiCCSIDR;
+    UINT32  uiICCSIDR;
+    UINT32  uiDCCSIDR;
 
 #define ARMv8_CCSIDR_LINESIZE_MASK      0x7
 #define ARMv8_CCSIDR_LINESIZE(x)        ((x) & ARMv8_CCSIDR_LINESIZE_MASK)
@@ -446,17 +453,22 @@ VOID  armCacheV8Init (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_ulOption = 0ul;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-    uiCCSIDR                      = armCacheV7CCSIDR();
-    pcacheop->CACHEOP_iICacheLine = ARMv8_CACHE_LINESIZE(uiCCSIDR);
-    pcacheop->CACHEOP_iDCacheLine = ARMv8_CACHE_LINESIZE(uiCCSIDR);
+    armCacheV7SetCSSELR(ARMV7_CSSELR_IND_INSTRUCTION);
+    uiICCSIDR = armCacheV7CCSIDR();
+
+    armCacheV7SetCSSELR(ARMV7_CSSELR_IND_DATA_UNIFIED);
+    uiDCCSIDR = armCacheV7CCSIDR();
+
+    pcacheop->CACHEOP_iICacheLine = ARMv8_CACHE_LINESIZE(uiICCSIDR);
+    pcacheop->CACHEOP_iDCacheLine = ARMv8_CACHE_LINESIZE(uiDCCSIDR);
     
     uiArmV8ICacheLineSize = (UINT32)pcacheop->CACHEOP_iICacheLine;
     uiArmV8DCacheLineSize = (UINT32)pcacheop->CACHEOP_iDCacheLine;
     
     pcacheop->CACHEOP_iICacheWaySize = uiArmV8ICacheLineSize
-                                     * ARMv8_CACHE_NUMSET(uiCCSIDR);    /*  DCACHE WaySize              */
+                                     * ARMv8_CACHE_NUMSET(uiICCSIDR);   /*  ICACHE WaySize              */
     pcacheop->CACHEOP_iDCacheWaySize = uiArmV8DCacheLineSize
-                                     * ARMv8_CACHE_NUMSET(uiCCSIDR);    /*  DCACHE WaySize              */
+                                     * ARMv8_CACHE_NUMSET(uiDCCSIDR);   /*  DCACHE WaySize              */
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv8 I-Cache line size = %u bytes, Way size = %u bytes.\r\n",
                  pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);

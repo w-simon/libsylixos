@@ -73,7 +73,10 @@ ENTRY(memmove)
 	ldp     x29, x30, [sp], #16
 #endif
 	b.hs	memcpy		/* No overlap.  */
-
+#ifdef SYLIXOS
+	stp     x29, x30, [sp, #-16]!
+	mov     x29, sp
+#endif
 	/* Upwards move with potential overlap.
 	 * Need to move from the tail backwards.  SRC and DST point one
 	 * byte beyond the remaining data to move.  */
@@ -216,7 +219,10 @@ ENTRY(memmove)
 	ldp     x29, x30, [sp], #16
 #endif
 	b.ls	memcpy		/* May overlap, but not critically.  */
-
+#ifdef SYLIXOS
+        stp     x29, x30, [sp, #-16]!
+        mov     x29, sp
+#endif
 	mov	dst, dstin	/* Preserve DSTIN for return value.  */
 	cmp	count, #64
 	b.ge	.Lmov_not_short_down

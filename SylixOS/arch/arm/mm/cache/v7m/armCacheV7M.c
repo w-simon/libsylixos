@@ -892,9 +892,23 @@ LW_WEAK VOID  armCacheV7MInit (LW_CACHE_OP *pcacheop,
                                CACHE_MODE   uiData,
                                CPCHAR       pcMachineName)
 {
-    REGISTER UINT32  ccsidr;
-    REGISTER UINT32  sets;
-    REGISTER UINT32  linesize;
+    UINT32  uiICCSIDR;
+    UINT32  uiDCCSIDR;
+
+#define ARMV7_CSSELR_IND_DATA_UNIFIED   0
+#define ARMV7_CSSELR_IND_INSTRUCTION    1
+
+#define ARMv7_CCSIDR_LINESIZE_MASK      0x7
+#define ARMv7_CCSIDR_LINESIZE(x)        ((x) & ARMv7_CCSIDR_LINESIZE_MASK)
+#define ARMv7_CACHE_LINESIZE(x)         (16 << ARMv7_CCSIDR_LINESIZE(x))
+
+#define ARMv7_CCSIDR_NUMSET_MASK        0xfffe000
+#define ARMv7_CCSIDR_NUMSET(x)          ((x) & ARMv7_CCSIDR_NUMSET_MASK)
+#define ARMv7_CACHE_NUMSET(x)           ((ARMv7_CCSIDR_NUMSET(x) >> 13) + 1)
+
+#define ARMv7_CCSIDR_WAYNUM_MSK         0x1ff8
+#define ARMv7_CCSIDR_WAYNUM(x)          ((x) & ARMv7_CCSIDR_WAYNUM_MSK)
+#define ARMv7_CACHE_WAYNUM(x)           ((ARMv7_CCSIDR_NUMSET(x) >> 3) + 1)
 
     if (lib_strcmp(pcMachineName, ARM_MACHINE_M7) != 0) {
         return;
@@ -905,18 +919,22 @@ LW_WEAK VOID  armCacheV7MInit (LW_CACHE_OP *pcacheop,
     pcacheop->CACHEOP_iILoc = CACHE_LOCATION_PIPT;
     pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
 
-    ccsidr   = SCB->CCSIDR;
-    sets     = (UINT32)(CCSIDR_SETS(ccsidr));
-    linesize = (UINT32)(CCSIDR_LINESIZE(ccsidr));
+    SCB->CSSELR = ARMV7_CSSELR_IND_INSTRUCTION;
+    uiICCSIDR   = SCB->CCSIDR;
 
-    uiArmV7MICacheLineSize = 1 << (linesize + 4);                       /*  Log2(X) = (linesize + 4)    */
-    uiArmV7MDCacheLineSize = 1 << (linesize + 4);                       /*  Log2(X) = (linesize + 4)    */
+    SCB->CSSELR = ARMV7_CSSELR_IND_DATA_UNIFIED;
+    uiDCCSIDR   = SCB->CCSIDR;
 
-    pcacheop->CACHEOP_iICacheLine = uiArmV7MICacheLineSize;
-    pcacheop->CACHEOP_iDCacheLine = uiArmV7MDCacheLineSize;
+    pcacheop->CACHEOP_iICacheLine = ARMv7_CACHE_LINESIZE(uiICCSIDR);
+    pcacheop->CACHEOP_iDCacheLine = ARMv7_CACHE_LINESIZE(uiDCCSIDR);
 
-    pcacheop->CACHEOP_iICacheWaySize = sets * uiArmV7MICacheLineSize;
-    pcacheop->CACHEOP_iDCacheWaySize = sets * uiArmV7MDCacheLineSize;
+    uiArmV7MICacheLineSize = (UINT32)pcacheop->CACHEOP_iICacheLine;
+    uiArmV7MDCacheLineSize = (UINT32)pcacheop->CACHEOP_iDCacheLine;
+
+    pcacheop->CACHEOP_iICacheWaySize = uiArmV7MICacheLineSize
+                                     * ARMv7_CACHE_NUMSET(uiICCSIDR);   /*  ICACHE WaySize              */
+    pcacheop->CACHEOP_iDCacheWaySize = uiArmV7MDCacheLineSize
+                                     * ARMv7_CACHE_NUMSET(uiDCCSIDR);   /*  DCACHE WaySize              */
 
     _DebugFormat(__LOGMESSAGE_LEVEL, "ARMv7-M I-Cache line size = %u bytes, Way size = %u bytes.\r\n",
                  pcacheop->CACHEOP_iICacheLine, pcacheop->CACHEOP_iICacheWaySize);

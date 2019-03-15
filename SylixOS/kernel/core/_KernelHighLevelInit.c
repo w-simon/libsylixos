@@ -57,16 +57,18 @@ static VOID  _CreateIdleThread (VOID)
 
     LW_CLASS_THREADATTR     threadattr;
     
-    API_ThreadAttrBuild(&threadattr, 
-                        LW_CFG_THREAD_IDLE_STK_SIZE, 
-                        LW_PRIO_IDLE, 
-                        (LW_OPTION_THREAD_STK_CHK | 
-                         LW_OPTION_THREAD_SAFE | 
-                         LW_OPTION_OBJECT_GLOBAL | 
-                         LW_OPTION_THREAD_DETACHED |
-                         LW_OPTION_THREAD_AFFINITY_ALWAYS), 
-                        (PVOID)0);
-                        
+    threadattr.THREADATTR_pstkLowAddr     = LW_NULL;                  /*  系统自行分配堆栈            */
+    threadattr.THREADATTR_stGuardSize     = LW_CFG_THREAD_DEFAULT_GUARD_SIZE;
+    threadattr.THREADATTR_stStackByteSize = LW_CFG_THREAD_IDLE_STK_SIZE;
+    threadattr.THREADATTR_ucPriority      = LW_PRIO_IDLE;
+    threadattr.THREADATTR_pvArg           = LW_NULL;
+    threadattr.THREADATTR_pvExt           = LW_NULL;
+    threadattr.THREADATTR_ulOption        = LW_OPTION_THREAD_STK_CHK
+                                          | LW_OPTION_THREAD_SAFE
+                                          | LW_OPTION_OBJECT_GLOBAL
+                                          | LW_OPTION_THREAD_DETACHED
+                                          | LW_OPTION_THREAD_AFFINITY_ALWAYS;
+
 #if LW_CFG_SMP_EN > 0
     LW_CPU_ZERO(&cpuset);
 
