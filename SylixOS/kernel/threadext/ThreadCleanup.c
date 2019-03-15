@@ -110,13 +110,13 @@ ULONG  API_ThreadCleanupPushEx (LW_OBJECT_HANDLE  ulId, VOIDFUNCPTR  pfuncRoutin
         __KHEAP_FREE(pcurNode);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
-        return  (LW_FALSE);
+        return  (ERROR_KERNEL_HANDLE_NULL);
     }
     if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
         __KHEAP_FREE(pcurNode);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
         _ErrorHandle(ERROR_THREAD_NULL);
-        return  (LW_FALSE);
+        return  (ERROR_THREAD_NULL);
     }
 #endif
     
@@ -126,7 +126,7 @@ ULONG  API_ThreadCleanupPushEx (LW_OBJECT_HANDLE  ulId, VOIDFUNCPTR  pfuncRoutin
         __KHEAP_FREE(pcurNode);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "thread handle invalidate.\r\n");
         _ErrorHandle(ERROR_THREAD_NULL);
-        return  (LW_FALSE);
+        return  (ERROR_THREAD_NULL);
     }
     
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */

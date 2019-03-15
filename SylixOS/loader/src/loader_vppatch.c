@@ -814,9 +814,17 @@ INT  vprocNotifyParent (LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat)
         ulFatherMainThread = pvproc->VP_pvprocFather->VP_ulMainThread;  /*  获得父系进程主线程          */
         if (sigGetAction(ulFatherMainThread,
                          SIGCHLD, &sigactionChld) == ERROR_NONE) {
-            if ((sigactionChld.sa_flags & SA_NOCLDWAIT) ||
-                (sigactionChld.sa_handler == SIG_IGN)) {                /*  不向父进程发送信号          */
-                ulFatherMainThread = LW_OBJECT_HANDLE_INVALID;
+            if ((iSigCode == CLD_STOPPED) || (iSigCode == CLD_CONTINUED)) {
+                if ((sigactionChld.sa_flags & SA_NOCLDSTOP) ||
+                    (sigactionChld.sa_handler == SIG_IGN)) {
+                    ulFatherMainThread = LW_OBJECT_HANDLE_INVALID;      /*  不向父进程发送信号          */
+                }
+
+            } else {
+                if ((sigactionChld.sa_flags & SA_NOCLDWAIT) ||
+                    (sigactionChld.sa_handler == SIG_IGN)) {
+                    ulFatherMainThread = LW_OBJECT_HANDLE_INVALID;      /*  不向父进程发送信号          */
+                }
             }
         }
     }

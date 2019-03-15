@@ -1118,12 +1118,6 @@ LW_SEND_VAL  _doSignal (PLW_CLASS_TCB  ptcb, PLW_CLASS_SIGPEND   psigpend)
         return  (SEND_IGN);
     }
     
-    if ((psigaction->sa_flags & SA_NOCLDSTOP) &&
-        (psigpend->SIGPEND_siginfo.si_signo == SIGCHLD) &&
-        (__SI_CODE_STOP(psigpend->SIGPEND_siginfo.si_code))) {          /*  父进程不接收子进程暂停信号  */
-        return  (SEND_IGN);
-    }
-    
     if (sigsetSigMaskBit & psigctx->SIGCTX_sigsetMask) {                /*  被屏蔽了                    */
         if (psiginfo->si_code == SI_KILL) {                             /*  kill 产生了信号, 不能排队   */
             psigctx->SIGCTX_sigsetKill    |= sigsetSigMaskBit;          /*  有 kill 的信号被屏蔽了      */
