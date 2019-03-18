@@ -67,8 +67,17 @@ typedef struct {
     PCHAR               SPA_pcWd;
     PLW_RESOURCE_RAW    SPA_presraw;                                    /*  资源管理节点                */
     posix_spawnopt_t    SPA_opt;
-    ULONG               SPA_ulPad[6];
+    ULONG               SPA_ulExts;                                     /*  其他非标选项                */
+    ULONG               SPA_ulPad[5];
 } posix_spawnattr_t;
+
+/*********************************************************************************************************
+  posix_spawnattr_t extend flags.
+*********************************************************************************************************/
+
+#define POSIX_SPAWN_EXT_NO_FILE_INHERIT         0x00000001              /*  No file inherit             */
+#define POSIX_SPAWN_EXT_NO_FILE_INHERIT_EXC_STD 0x00000002              /*  No file inherit except 012  */
+#define POSIX_SPAWN_EXT_NO_FILE_INHERIT_CLOEXEC 0x00000004              /*  No file with cloexec inherit*/
 
 /*********************************************************************************************************
   Data structure to contain information about the actions to be
@@ -161,7 +170,12 @@ LW_API int   posix_spawnattr_getflags(const posix_spawnattr_t *attrp,
                                       short *flags);
 LW_API int   posix_spawnattr_setflags(posix_spawnattr_t *attrp,
                                       short flags);
-                                      
+
+LW_API int   posix_spawnattr_getextflags(const posix_spawnattr_t *attrp,
+                                         unsigned long *flags);
+LW_API int   posix_spawnattr_setextflags(posix_spawnattr_t *attrp,
+                                         unsigned long flags);
+
 LW_API int   posix_spawnattr_getpgroup(const posix_spawnattr_t *attrp, 
                                        pid_t *pgroup);
 LW_API int   posix_spawnattr_setpgroup(posix_spawnattr_t *attrp, 

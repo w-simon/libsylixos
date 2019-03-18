@@ -389,11 +389,12 @@ INT  vprocDetach (pid_t  pid)
 ** 函数名称: vprocCreate
 ** 功能描述: 创建进程控制块 (创建完成后已经确定的进程树关系)
 ** 输　入  : pcFile      进程文件名
+**           ulExts      POSIX spawn 扩展配置.
 ** 输　出  : 创建好的进程控制块指针，如果失败，输出NULL。
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
+LW_LD_VPROC *vprocCreate (CPCHAR  pcFile, ULONG ulExts)
 {
     static UINT  uiIndex = 0;
            CHAR  cVarValue[2];
@@ -520,7 +521,7 @@ LW_LD_VPROC *vprocCreate (CPCHAR  pcFile)
                         &_G_plineVProcHeader);                          /*  加入进程表                  */
     LW_LD_UNLOCK();
 
-    vprocIoFileInit(pvproc);                                            /*  初始化文件描述符系统        */
+    vprocIoFileInit(pvproc, ulExts);                                    /*  初始化文件描述符系统        */
 
 #if LW_CFG_PROCFS_EN > 0
     vprocProcAdd(pvproc);
@@ -1845,7 +1846,7 @@ INT  API_ModuleRunEx (CPCHAR             pcFile,
         return  (PX_ERROR);
     }
 
-    pvproc = vprocCreate(pcFile);                                       /*  创建进程控制块              */
+    pvproc = vprocCreate(pcFile, 0ul);                                  /*  创建进程控制块              */
     if (LW_NULL == pvproc) {
         return  (PX_ERROR);
     }

@@ -325,12 +325,58 @@ static int netbd_rxmode (struct netdev *netdev, int flags)
    'netif' is sub erhernet device */
 static err_t  netbd_input (struct pbuf *p, struct netif *netif)
 {
+  netdev_t *netdev = (netdev_t *)(netif->state); /* sub ethernet device */
   netbd_eth_t *netbd_eth = (netbd_eth_t *)netif->ext_eth;
   netdev_t *netdev_bd = netbd_eth->netdev_bd; /* bonding device */
   netbd_t *netbd = (netbd_t *)netdev_bd->priv;
   struct netif *netif_bd = (struct netif *)netdev_bd->sys;
   struct eth_hdr *eh = (struct eth_hdr *)p->payload;
   
+  if (netdev->init_flags & NETDEV_INIT_TIGHT) {
+    u16_t type;
+    if (LW_UNLIKELY(p->len < SIZEOF_ETH_HDR)) {
+      goto to_sub;
+    }
+    type = eh->type;
+    if (type == PP_HTONS(ETHTYPE_VLAN)) {
+      struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((char *)eh) + SIZEOF_ETH_HDR);
+      if (LW_UNLIKELY(p->len < SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR)) {
+        goto to_sub;
+      }
+      type = vlan->tpid;
+    }
+    switch (type) {
+    case PP_HTONS(ETHTYPE_ARP):
+    case PP_HTONS(ETHTYPE_RARP):
+    case PP_HTONS(ETHTYPE_PPPOE):
+    case PP_HTONS(ETHTYPE_PPPOEDISC):
+    case PP_HTONS(ETHTYPE_IP):
+    case PP_HTONS(ETHTYPE_IPV6):
+      goto to_bd;
+
+    default:
+      goto to_sub;
+    }
+
+to_sub:
+    if (netbd_eth->input(p, netif)) {
+      netdev_linkinfo_drop_inc(netdev);
+      netdev_statinfo_discards_inc(netdev, LINK_INPUT);
+      return (ERR_IF);
+
+    } else {
+      netdev_linkinfo_recv_inc(netdev);
+      netdev_statinfo_total_add(netdev, LINK_INPUT, (p->tot_len - ETH_PAD_SIZE));
+      if (eh->dest.addr[0] & 1) {
+        netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
+      } else {
+        netdev_statinfo_ucasts_inc(netdev, LINK_INPUT);
+      }
+      return (ERR_OK);
+    }
+  }
+
+to_bd:
   if (!(netif_bd->flags & NETIF_FLAG_UP)) {
     return (ERR_IF); /* bonding was down */
   }
@@ -476,9 +522,11 @@ int  netbd_add_dev (const char *bddev, const char *sub, int sub_is_ifname)
   netbd_eth->netdev = netdev; /* save net deivce */
   netbd_eth->netdev_bd = netdev_bd;
   
-  if (netdev_delete(netdev) < 0) { /* remove net device from protocol stack */
-    mem_free(netbd_eth);
-    return (-1);
+  if (!(netdev->init_flags & NETDEV_INIT_TIGHT)) {
+    if (netdev_delete(netdev) < 0) { /* remove net device from protocol stack */
+      mem_free(netbd_eth);
+      return (-1);
+    }
   }
   
   if (netif->flags & NETIF_FLAG_UP) {
@@ -661,13 +709,23 @@ int  netbd_delete_dev (const char *bddev, const char *sub, int sub_is_ifname)
   
   mem_free(netbd_eth);
   
-  netdev->init_flags |= NETDEV_INIT_DO_NOT;
-  if (netdev_add(netdev, NULL, NULL, NULL,
-                 IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) < 0) { /* add to system */
+  if (!(netdev->init_flags & NETDEV_INIT_TIGHT)) {
+    netdev->init_flags |= NETDEV_INIT_DO_NOT;
+    if (netdev_add(netdev, NULL, NULL, NULL,
+                   IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) < 0) { /* add to system */
+      netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
+      return (-1);
+    }
     netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
-    return (-1);
+
+  } else {
+    if (!(netif->flags & NETIF_FLAG_UP)) {
+      netif->flags |= NETIF_FLAG_UP;
+      if (netif->up) {
+        netif->up(netif); /* make up */
+      }
+    }
   }
-  netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
   
   return (0);
 }
@@ -1047,12 +1105,22 @@ int  netbd_delete (const char *bddev)
   
     mem_free(netbd_eth);
   
-    netdev->init_flags |= NETDEV_INIT_DO_NOT;
-    if (netdev_add(netdev, NULL, NULL, NULL,
-                   IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) < 0) {
-      _PrintHandle("sub ethernet device can not mount to system!\r\n");
+    if (!(netdev->init_flags & NETDEV_INIT_TIGHT)) {
+      netdev->init_flags |= NETDEV_INIT_DO_NOT;
+      if (netdev_add(netdev, NULL, NULL, NULL,
+                     IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST) < 0) {
+        _PrintHandle("sub ethernet device can not mount to system!\r\n");
+      }
+      netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
+
+    } else {
+      if (!(netif->flags & NETIF_FLAG_UP)) {
+        netif->flags |= NETIF_FLAG_UP;
+        if (netif->up) {
+          netif->up(netif); /* make up */
+        }
+      }
     }
-    netdev->init_flags &= ~NETDEV_INIT_DO_NOT;
                
     NETBD_LOCK(netbd);
   }

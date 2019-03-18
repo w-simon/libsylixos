@@ -41,6 +41,9 @@ LW_API INT          API_TShellVarDelete(CPCHAR  pcVarName);
 LW_API INT          API_TShellVarGetNum(VOID);
 LW_API INT          API_TShellVarDup(PVOID (*pfuncMalloc)(size_t stSize), PCHAR  ppcEvn[], ULONG  ulMax);
 
+LW_API INT          API_TShellVarSave(CPCHAR  pcFile);
+LW_API INT          API_TShellVarLoad(CPCHAR  pcFile);
+
 #define tshellVarHookSet        API_TShellVarHookSet
 #define tshellVarGetRt          API_TShellVarGetRt
 #define tshellVarGet            API_TShellVarGet
@@ -48,6 +51,8 @@ LW_API INT          API_TShellVarDup(PVOID (*pfuncMalloc)(size_t stSize), PCHAR 
 #define tshellVarDelete         API_TShellVarDelete
 #define tshellVarGetNum         API_TShellVarGetNum
 #define tshellVarDup            API_TShellVarDup
+#define tshellVarSave           API_TShellVarSave
+#define tshellVarLoad           API_TShellVarLoad
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 #endif                                                                  /*  __TTINYVAR_H                */

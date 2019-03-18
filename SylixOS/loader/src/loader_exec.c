@@ -440,7 +440,8 @@ INT  __processStart (INT  mode, __PSPAWN_ARG  psarg)
         return  (PX_ERROR);                                             /*  理论上运行不到这里          */
         
     } else {                                                            /*  创建一个新的进程            */
-        psarg->SA_pvproc = vprocCreate(psarg->SA_pcPath);
+        psarg->SA_pvproc = vprocCreate(psarg->SA_pcPath,
+                                       psarg->SA_spawnattr.SPA_ulExts);
         if (psarg->SA_pvproc == LW_NULL) {
             __spawnArgFree(psarg);
             return  (PX_ERROR);

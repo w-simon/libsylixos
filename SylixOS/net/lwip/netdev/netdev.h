@@ -250,6 +250,7 @@ typedef struct netdev {
 #define NETDEV_INIT_USE_AODV       0x80     /* use AODV(Ad-hoc) Only for LOWPAN (ipv4 only) */
 #define NETDEV_INIT_DO_NOT         0x20     /* do not call init() function (Only used for net bridge) */
 #define NETDEV_INIT_NO_TXQ         0x100    /* do not support txqueue */
+#define NETDEV_INIT_TIGHT          0x200    /* add to bridge or bonding do not delete from system */
   UINT32 init_flags;
   
 #define NETDEV_CHKSUM_GEN_IP       0x0001   /* tcp/ip stack will generate checksum IP, UDP, TCP, ICMP, ICMP6 */

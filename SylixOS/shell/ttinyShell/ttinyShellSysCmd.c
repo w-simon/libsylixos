@@ -1380,7 +1380,7 @@ static INT  __tshellSysCmdVarload (INT  iArgC, PCHAR  ppcArgV[])
         pcFile = ppcArgV[1];
     }
     
-    iError = __tshellVarLoad(pcFile);
+    iError = API_TShellVarLoad(pcFile);
     
     if (iError == ERROR_NONE) {
         API_TShellColorRefresh();                                       /*  更新颜色方案                */
@@ -1412,7 +1412,7 @@ static INT  __tshellSysCmdVarsave (INT  iArgC, PCHAR  ppcArgV[])
         pcFile = ppcArgV[1];
     }
     
-    iError = __tshellVarSave(pcFile);
+    iError = API_TShellVarSave(pcFile);
     
     if (iError == ERROR_NONE) {
         printf("environment variables save to %s success.\n", pcFile);

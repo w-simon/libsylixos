@@ -155,7 +155,7 @@ INT                 vprocSetGroup(pid_t  pid, pid_t  pgid);
 pid_t               vprocGetGroup(pid_t  pid);
 pid_t               vprocGetFather(pid_t  pid);
 INT                 vprocDetach(pid_t  pid);
-LW_LD_VPROC        *vprocCreate(CPCHAR  pcFile);
+LW_LD_VPROC        *vprocCreate(CPCHAR  pcFile, ULONG  ulExts);
 INT                 vprocDestroy(LW_LD_VPROC *pvproc);
 LW_LD_VPROC        *vprocGet(pid_t  pid);
 LW_LD_VPROC        *vprocGetCur(VOID);
@@ -234,7 +234,7 @@ INT                 vprocGetAffinity(pid_t  pid, size_t  stSize, PLW_CLASS_CPUSE
   vprocess 文件描述符操作
 *********************************************************************************************************/
 
-VOID                vprocIoFileInit(LW_LD_VPROC *pvproc);               /*  vprocCreate  内被调用       */
+VOID                vprocIoFileInit(LW_LD_VPROC *pvproc, ULONG ulExts); /*  vprocCreate  内被调用       */
 VOID                vprocIoFileDeinit(LW_LD_VPROC *pvproc);             /*  vprocDestroy 内被调用       */
 PLW_FD_ENTRY        vprocIoFileGet(INT  iFd, BOOL  bIsIgnAbn);
 PLW_FD_ENTRY        vprocIoFileGetEx(LW_LD_VPROC *pvproc, INT  iFd, BOOL  bIsIgnAbn);

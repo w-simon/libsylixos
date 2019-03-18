@@ -33,6 +33,7 @@
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
 #include "../include/loader_lib.h"
+#include "spawn.h"
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
@@ -118,30 +119,37 @@ VOID  vprocIoFileDeinit (LW_LD_VPROC *pvproc)
 **           如果存在父进程, 则继承父进程所有文件.
 **           如果是由内核启动, 则进程继承内核所有文件描述符.
 ** 输　入  : pvproc    进程控制块
+**           ulExts    POSIX spawn 扩展参数.
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  vprocIoFileInit (LW_LD_VPROC *pvproc)
+VOID  vprocIoFileInit (LW_LD_VPROC *pvproc, ULONG ulExts)
 {
     LW_LD_VPROC     *pvprocFather;
     PLW_FD_ENTRY     pfdentry;
     BOOL             bIsCloExec;
-    INT              i;
+    INT              i, iMax;
     
     LW_LD_LOCK();
     pvprocFather = pvproc->VP_pvprocFather;
     if (pvprocFather) {                                                 /*  如果有父亲则继承父亲所有文件*/
-        _IosLock();
-        for (i = 0; i < LW_VP_MAX_FILES; i++) {                         /*  继承所有文件描述符          */
-            pfdentry = vprocIoFileGetInherit(pvprocFather, i, &bIsCloExec);
-            if (pfdentry) {
-                if (vprocIoFileDup2Ex(pvproc, pfdentry, i, bIsCloExec) >= 0) {
-                    __LW_FD_CREATE_HOOK(i, pvproc->VP_pid);
+        if (!(ulExts & POSIX_SPAWN_EXT_NO_FILE_INHERIT)) {
+            iMax = (ulExts & POSIX_SPAWN_EXT_NO_FILE_INHERIT_EXC_STD)
+                 ? 3 : LW_VP_MAX_FILES;
+            _IosLock();
+            for (i = 0; i < iMax; i++) {                                /*  继承文件描述符              */
+                pfdentry = vprocIoFileGetInherit(pvprocFather, i, &bIsCloExec);
+                if (pfdentry) {
+                    if (bIsCloExec && !(ulExts & POSIX_SPAWN_EXT_NO_FILE_INHERIT_CLOEXEC)) {
+                        if (vprocIoFileDup2Ex(pvproc, pfdentry, i, bIsCloExec) >= 0) {
+                            __LW_FD_CREATE_HOOK(i, pvproc->VP_pid);
+                        }
+                    }
                 }
             }
+            _IosUnlock();
         }
-        _IosUnlock();
     
     } else {                                                            /*  不存在父亲, 则继承系统的    */
         _IosLock();

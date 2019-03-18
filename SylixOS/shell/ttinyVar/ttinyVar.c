@@ -211,6 +211,44 @@ INT   API_TShellVarDup (PVOID (*pfuncMalloc)(size_t stSize), PCHAR  ppcEvn[], UL
     
     return  (__tshellVarDup(pfuncMalloc, ppcEvn, ulMax));
 }
+/*********************************************************************************************************
+** 函数名称: API_TShellVarSave
+** 功能描述: 保存 shell 变量
+** 输　入  : pcFile    保存文件名
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_TShellVarSave (CPCHAR  pcFile)
+{
+    if (!pcFile) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    return  (__tshellVarSave(pcFile));
+}
+/*********************************************************************************************************
+** 函数名称: API_TShellVarSave
+** 功能描述: 读取 shell 变量
+** 输　入  : pcFile    保存文件名
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_TShellVarLoad (CPCHAR  pcFile)
+{
+    if (!pcFile) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    return  (__tshellVarLoad(pcFile));
+}
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************

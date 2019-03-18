@@ -591,6 +591,52 @@ int   posix_spawnattr_setflags (posix_spawnattr_t *attrp, short flags)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: posix_spawnattr_getextflags
+** 功能描述: Get flag word from the attribute structure.
+** 输　入  : attrp         spawn attr
+**           flags         spawn ext flag
+** 输　出  : ok or not
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int   posix_spawnattr_getextflags (const posix_spawnattr_t *attrp, unsigned long *flags)
+{
+    if (!attrp) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
+    if (flags) {
+        *flags = attrp->SPA_ulExts;
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: posix_spawnattr_setextflags
+** 功能描述: Set flag word from the attribute structure.
+** 输　入  : attrp         spawn attr
+**           flags         spawn ext flag
+** 输　出  : ok or not
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int   posix_spawnattr_setextflags (posix_spawnattr_t *attrp, unsigned long flags)
+{
+    if (!attrp) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
+    attrp->SPA_ulExts = flags;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: posix_spawnattr_getpgroup
 ** 功能描述: Get process group ID from the attribute structure. 
 ** 输　入  : attrp         spawn attr
