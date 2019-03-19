@@ -126,6 +126,7 @@ static VOID  __vmmInvalidateAreaHook (PLW_VMM_PAGE  pvmpagePhysical,
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 此函数用于 mmap 空间分裂, 必须保证物理页面都是缺页产生的单页控制块.
 *********************************************************************************************************/
 static VOID  __vmmSplitAreaHook (PLW_VMM_PAGE  pvmpagePhysical,
                                  PLW_VMM_PAGE  pvmpageVirtual,
@@ -622,6 +623,8 @@ ULONG  API_VmmExpandArea (PVOID  pvVirtualMem, size_t  stExpSize)
 ** 输　出  : 新的连续虚拟地址
 ** 全局变量: 
 ** 调用模块: 
+** 注  意  : 此函数用于 mmap 空间分裂, 必须保证物理页面都是缺页产生的单页控制块.
+**
                                            API 函数
 *********************************************************************************************************/
 LW_API  

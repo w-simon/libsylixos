@@ -695,8 +695,6 @@ static PVOID  __aioThread (PVOID  pvArg)
             
             API_ThreadSetPriority(API_ThreadIdSelf(), 
                                   paioreq->aioreq_prio);                /*  设置任务优先级与请求任务相同*/
-            _List_Line_Del(paiorc->aiorc_plineaiocb,
-                           &paiorc->aiorc_plineaiocb);                  /*  将处理节点从 paiorc 中删除  */
             
             paioreq->aioreq_flags |= AIO_REQ_BUSY;                      /*  准备开始操作文件            */
             
@@ -708,7 +706,7 @@ static PVOID  __aioThread (PVOID  pvArg)
             errno = 0;                                                  /*  注意: 一定要将 errno 清零   */
             if (paiocb->aio_lio_opcode == LIO_SYNC) {
                 paioreq->aioreq_return =  fsync(paiocb->aio_fildes);
-            
+
             } else {
                 switch (paiocb->aio_lio_opcode) {
                 
@@ -733,6 +731,13 @@ static PVOID  __aioThread (PVOID  pvArg)
             }
             paioreq->aioreq_error = errno;
             
+            API_SemaphoreMPend(paiorc->aiorc_mutex, LW_OPTION_WAIT_INFINITE);
+
+            _List_Line_Del(paiorc->aiorc_plineaiocb,
+                           &paiorc->aiorc_plineaiocb);                  /*  将处理节点从 paiorc 中删除  */
+
+            API_SemaphoreMPost(paiorc->aiorc_mutex);
+
             if (__issig(paiocb->aio_sigevent.sigev_signo) &&
                 (paiocb->aio_sigevent.sigev_notify != SIGEV_NONE)) {
 #if LW_CFG_SIGNAL_EN > 0
@@ -802,7 +807,7 @@ static PVOID  __aioThread (PVOID  pvArg)
                                    __PX_AIO_TIMEOUT) == ERROR_NONE) {   /*  再等待一段时间              */
                 API_SemaphoreMPost(paiorc->aiorc_mutex);
                 continue;                                               /*  继续操作这个文件描述符      */
-            
+
             } else {
                 API_SemaphoreMPost(paiorc->aiorc_mutex);
             }

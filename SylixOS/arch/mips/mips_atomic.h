@@ -244,6 +244,7 @@ static LW_INLINE INT64  archAtomic64Cas (atomic64_t  *v, INT64  i64Old, INT64  i
     __asm__ __volatile__(
         "   .set    push                \n"
         "   .set    noreorder           \n"
+        "   .set    noat                \n"
         "1:                             \n"
         KN_WEAK_LLSC_MB
         "   lld     %0, %2              \n"

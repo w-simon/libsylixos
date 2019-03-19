@@ -62,6 +62,7 @@ FUNC_DEF(ppcE500MmuTLB1Invalidate)
 
 FUNC_DEF(ppcE500MmuTLB1InvalidateEA)
     ORI         R3 , R3 , INV_TLB1
+    XOR         R0 , R0 , R0
     ISYNC
     TLBIVAX     R0 , R3
     ISYNC
