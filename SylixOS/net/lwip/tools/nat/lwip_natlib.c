@@ -753,35 +753,41 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
             ip4_addr_p_t  ipaddr;                                       /*  内网映射服务器 IP           */
             u16_t         usSrcHash = iphdr->src.addr % pnatmap->NATM_usLocalCnt;
                                                                         /*  外网 hash                   */
-            for (plineTemp  = plineHeader;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {
-                 
-                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if ((usSrcHash  == pnatcb->NAT_usSrcHash) &&
-                    (usDestPort == pnatcb->NAT_usAssPort) &&
-                    (ucProto    == pnatcb->NAT_ucProto)) {
-                    break;                                              /*  找到了 NAT 控制块           */
-                }
-            }
-            if (plineTemp == LW_NULL) {
-                u32_t   uiHost;
-                
-                uiHost  = (u32_t)PP_NTOHL(pnatmap->NATM_ipaddrLocalIp.addr);
-                uiHost += usSrcHash;                                    /*  根据源地址散列做均衡        */
-                ipaddr.addr = (u32_t)PP_HTONL(uiHost);
-                
-                pnatcb = __natNew(&ipaddr, 
-                                  pnatmap->NATM_usLocalPort, ucProto);  /*  新建控制块                  */
+            if (ip4_addr_cmp(&pnatmap->NATM_ipaddrLocalIp,
+                             netif_ip4_addr(netifIn))) {                /*  本机映射                    */
+                ipaddr.addr = pnatmap->NATM_ipaddrLocalIp.addr;
 
-                pnatcb->NAT_usSrcHash     = usSrcHash;
-                pnatcb->NAT_usAssPortSave = pnatcb->NAT_usAssPort;      /*  保存端口资源                */
-                pnatcb->NAT_usAssPort     = pnatmap->NATM_usAssPort;
-            
-            } else {
-                ipaddr.addr = pnatcb->NAT_ipaddrLocalIp.addr;
+            } else {                                                    /*  内网其他主机映射            */
+                for (plineTemp  = plineHeader;
+                     plineTemp != LW_NULL;
+                     plineTemp  = _list_line_get_next(plineTemp)) {
+
+                    pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                    if ((usSrcHash  == pnatcb->NAT_usSrcHash) &&
+                        (usDestPort == pnatcb->NAT_usAssPort) &&
+                        (ucProto    == pnatcb->NAT_ucProto)) {
+                        break;                                          /*  找到了 NAT 控制块           */
+                    }
+                }
+                if (plineTemp == LW_NULL) {
+                    u32_t   uiHost;
+
+                    uiHost  = (u32_t)PP_NTOHL(pnatmap->NATM_ipaddrLocalIp.addr);
+                    uiHost += usSrcHash;                                /*  根据源地址散列做均衡        */
+                    ipaddr.addr = (u32_t)PP_HTONL(uiHost);
+
+                    pnatcb = __natNew(&ipaddr,                          /*  新建控制块                  */
+                                      pnatmap->NATM_usLocalPort, ucProto);
+
+                    pnatcb->NAT_usSrcHash     = usSrcHash;
+                    pnatcb->NAT_usAssPortSave = pnatcb->NAT_usAssPort;  /*  保存端口资源                */
+                    pnatcb->NAT_usAssPort     = pnatmap->NATM_usAssPort;
                 
-                pnatcb->NAT_ulIdleTimer = 0;                            /*  刷新空闲时间                */
+                } else {
+                    ipaddr.addr = pnatcb->NAT_ipaddrLocalIp.addr;
+
+                    pnatcb->NAT_ulIdleTimer = 0;                        /*  刷新空闲时间                */
+                }
             }
         
             /*
@@ -812,8 +818,8 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 inet_chksum_adjust((u8_t *)&icmphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
         
-        } else if (!ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(netifIn))) {
-            return  (__NAT_STRONG_RULE);                                /*  目标不是本机                */
+        } else {
+            return  (__NAT_STRONG_RULE);                                /*  无法找到 MAP 端口           */
         }
     
     } else {                                                            /*  目标端口在代理端口之间      */
@@ -890,7 +896,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                     }
                 }
             }
-        
+                                                                        /*  允许接收 PING 数据包        */
         } else if ((ucProto != IP_PROTO_ICMP) ||
                    !ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(netifIn))) {
             return  (__NAT_STRONG_RULE);                                /*  目标不是本机                */
@@ -1073,6 +1079,9 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
                 } else {
                     pnatcb->NAT_iStatus = __NAT_STATUS_CLOSING;
                 }
+
+            } else {
+                pnatcb->NAT_iStatus = __NAT_STATUS_OPEN;
             }
         }
         

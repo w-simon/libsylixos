@@ -265,6 +265,7 @@ SylixOS/vpmpdm/arch/x86/generic/strcmp.S \
 SylixOS/vpmpdm/arch/x86/generic/strncmp.S \
 SylixOS/vpmpdm/arch/x86/generic/strcat.S
 
+ifneq ($(CPU_TYPE), )
 ifeq ($(CPU_TYPE), $(filter $(CPU_TYPE),atom pentium))
 LOCAL_X86_SRCS += \
 SylixOS/vpmpdm/arch/x86/atom/sse2-memchr-atom.S \
@@ -284,6 +285,7 @@ SylixOS/vpmpdm/arch/x86/silvermont/sse2-stpncpy-slm.S \
 SylixOS/vpmpdm/arch/x86/silvermont/sse2-strcpy-slm.S \
 SylixOS/vpmpdm/arch/x86/silvermont/sse2-strlen-slm.S \
 SylixOS/vpmpdm/arch/x86/silvermont/sse2-strncpy-slm.S
+endif
 endif
 
 ifeq ($(CPU_TYPE), atom) 

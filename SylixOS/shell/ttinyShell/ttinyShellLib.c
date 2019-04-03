@@ -1023,6 +1023,12 @@ INT    __tshellBgCreateEx (INT               iFd[3],
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     ulOption = __TTINY_SHELL_GET_OPT(ptcbCur);
+
+    __KERNEL_SPACE_ENTER();
+    if (!isatty(iFd[1])) {                                              /*  内核文件描述符是否为 tty    */
+        ulOption &= ~LW_OPTION_TSHELL_VT100;
+    }
+    __KERNEL_SPACE_EXIT();
     
     tsbg = (__PTSHELL_BACKGROUND)__SHEAP_ALLOC(sizeof(__TSHELL_BACKGROUND) + stCommandLen);
     if (!tsbg) {

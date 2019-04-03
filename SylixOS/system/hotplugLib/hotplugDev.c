@@ -29,7 +29,6 @@
 *********************************************************************************************************/
 typedef struct {
     LW_DEV_HDR           HOTPDEV_devhdrHdr;                             /*  设备头                      */
-    LW_SEL_WAKEUPLIST    HOTPDEV_selwulList;                            /*  等待链                      */
     LW_LIST_LINE_HEADER  HOTPDEV_plineFile;                             /*  打开的文件链表              */
     LW_OBJECT_HANDLE     HOTPDEV_ulMutex;                               /*  互斥操作                    */
 } LW_HOTPLUG_DEV;
@@ -41,6 +40,7 @@ typedef struct {
     INT                  HOTPFIL_iMsg;                                  /*  关心的热插拔信息            */
     PLW_BMSG             HOTPFIL_pbmsg;                                 /*  消息缓冲区                  */
     LW_OBJECT_HANDLE     HOTPFIL_ulReadSync;                            /*  读取同步信号量              */
+    LW_SEL_WAKEUPLIST    HOTPFIL_selwulist;
 } LW_HOTPLUG_FILE;
 typedef LW_HOTPLUG_FILE *PLW_HOTPLUG_FILE;
 /*********************************************************************************************************
@@ -48,6 +48,7 @@ typedef LW_HOTPLUG_FILE *PLW_HOTPLUG_FILE;
 *********************************************************************************************************/
 static INT               _G_iHotplugDrvNum = PX_ERROR;
 static LW_HOTPLUG_DEV    _G_hotplugdev;
+static LW_OBJECT_HANDLE  _G_hHotplugSelMutex;
 /*********************************************************************************************************
   设备互斥访问
 *********************************************************************************************************/
@@ -93,6 +94,13 @@ INT  _hotplugDrvInstall (VOID)
         DRIVER_DESCRIPTION(_G_iHotplugDrvNum, "hotplug message driver.");
     }
     
+    if (_G_hHotplugSelMutex == LW_OBJECT_HANDLE_INVALID) {
+        _G_hHotplugSelMutex =  API_SemaphoreMCreate("hpsel_lock", LW_PRIO_DEF_CEILING,
+                                                    LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
+                                                    LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
+                                                    LW_NULL);
+    }
+
     return  ((_G_iHotplugDrvNum == (PX_ERROR)) ? (PX_ERROR) : (ERROR_NONE));
 }
 /*********************************************************************************************************
@@ -123,12 +131,9 @@ INT  _hotplugDevCreate (VOID)
         return  (PX_ERROR);
     }
     
-    SEL_WAKE_UP_LIST_INIT(&_G_hotplugdev.HOTPDEV_selwulList);
-    
     if (iosDevAddEx(&_G_hotplugdev.HOTPDEV_devhdrHdr, LW_HOTPLUG_DEV_PATH, 
                     _G_iHotplugDrvNum, DT_CHR) != ERROR_NONE) {
         API_SemaphoreMDelete(&_G_hotplugdev.HOTPDEV_ulMutex);
-        SEL_WAKE_UP_LIST_TERM(&_G_hotplugdev.HOTPDEV_selwulList);
         return  (PX_ERROR);
     }
     
@@ -149,7 +154,6 @@ VOID  _hotplugDevPutMsg (INT  iMsg, CPVOID pvMsg, size_t stSize)
 {
     PLW_LIST_LINE       plineTemp;
     PLW_HOTPLUG_FILE    photplugfil;
-    BOOL                bWakeup = LW_FALSE;
     
     if ((_G_hotplugdev.HOTPDEV_ulMutex   == LW_OBJECT_HANDLE_INVALID) ||
         (_G_hotplugdev.HOTPDEV_plineFile == LW_NULL)) {
@@ -166,14 +170,10 @@ VOID  _hotplugDevPutMsg (INT  iMsg, CPVOID pvMsg, size_t stSize)
             (photplugfil->HOTPFIL_iMsg == LW_HOTPLUG_MSG_ALL)) {
             _bmsgPut(photplugfil->HOTPFIL_pbmsg, pvMsg, stSize);
             API_SemaphoreBPost(photplugfil->HOTPFIL_ulReadSync);
-            bWakeup = LW_TRUE;
+            SEL_WAKE_UP_ALL(&photplugfil->HOTPFIL_selwulist, SELREAD);
         }
     }
     HOTPLUG_DEV_UNLOCK();
-    
-    if (bWakeup) {
-        SEL_WAKE_UP_ALL(&_G_hotplugdev.HOTPDEV_selwulList, SELREAD);
-    }
 }
 /*********************************************************************************************************
 ** 函数名称: _hotplugOpen
@@ -229,6 +229,9 @@ __nomem:
             return  (PX_ERROR);
         }
         
+        lib_bzero(&photplugfil->HOTPFIL_selwulist, sizeof(LW_SEL_WAKEUPLIST));
+        photplugfil->HOTPFIL_selwulist.SELWUL_hListLock = _G_hHotplugSelMutex;
+
         HOTPLUG_DEV_LOCK();
         _List_Line_Add_Tail(&photplugfil->HOTPFIL_lineManage,
                             &_G_hotplugdev.HOTPDEV_plineFile);
@@ -260,6 +263,9 @@ static INT  _hotplugClose (PLW_HOTPLUG_FILE  photplugfil)
         LW_DEV_DEC_USE_COUNT(&_G_hotplugdev.HOTPDEV_devhdrHdr);
         
         API_SemaphoreBDelete(&photplugfil->HOTPFIL_ulReadSync);
+
+        SEL_WAKE_UP_TERM(&photplugfil->HOTPFIL_selwulist);
+
         __SHEAP_FREE(photplugfil);
         
         return  (ERROR_NONE);
@@ -448,7 +454,7 @@ static INT  _hotplugIoctl (PLW_HOTPLUG_FILE  photplugfil,
         
     case FIOSELECT:
         pselwunNode = (PLW_SEL_WAKEUPNODE)lArg;
-        SEL_WAKE_NODE_ADD(&_G_hotplugdev.HOTPDEV_selwulList, pselwunNode);
+        SEL_WAKE_NODE_ADD(&photplugfil->HOTPFIL_selwulist, pselwunNode);
         
         switch (pselwunNode->SELWUN_seltypType) {
         
@@ -466,7 +472,7 @@ static INT  _hotplugIoctl (PLW_HOTPLUG_FILE  photplugfil,
         break;
         
     case FIOUNSELECT:
-        SEL_WAKE_NODE_DELETE(&_G_hotplugdev.HOTPDEV_selwulList, (PLW_SEL_WAKEUPNODE)lArg);
+        SEL_WAKE_NODE_DELETE(&photplugfil->HOTPFIL_selwulist, (PLW_SEL_WAKEUPNODE)lArg);
         break;
         
     default:

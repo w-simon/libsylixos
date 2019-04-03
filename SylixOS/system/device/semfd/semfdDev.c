@@ -207,6 +207,8 @@ static VOID  _semfdDeleteInode (PLW_SEMFD_INODE  psemfdinode)
         API_SemaphoreDelete(&psemfdinode->SEMFDI_ulSem);
     }
 
+    SEL_WAKE_UP_TERM(&psemfdinode->SEMFDI_selwulist);
+
     __SHEAP_FREE(psemfdinode);
 }
 /*********************************************************************************************************

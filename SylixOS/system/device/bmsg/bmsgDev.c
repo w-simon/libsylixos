@@ -231,6 +231,9 @@ static VOID  _bmsgDeleteInode (PLW_BMSG_INODE  pbmsginode)
 
     API_SemaphoreBDelete(&pbmsginode->BMSGI_ulReadLock);
     API_SemaphoreBDelete(&pbmsginode->BMSGI_ulWriteLock);
+
+    SEL_WAKE_UP_TERM(&pbmsginode->BMSGI_selwulist);
+
     __SHEAP_FREE(pbmsginode);
 }
 /*********************************************************************************************************
