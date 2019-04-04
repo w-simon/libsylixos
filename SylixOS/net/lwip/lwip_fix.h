@@ -139,6 +139,20 @@ void  sys_arch_unprotect(INTREG  ireg);
 #define SYS_ARCH_UNPROTECT(x)       sys_arch_unprotect(x)
 
 /*********************************************************************************************************
+  ATOMIC
+*********************************************************************************************************/
+
+#if defined(SYLIXOS) && \
+    (LW_CFG_CPU_ATOMIC_EN > 0) && \
+    (LW_CFG_LWIP_PBUF_ATOMIC > 0) && \
+    (LWIP_PBUF_REF_T == int)
+#define SYS_ARCH_INC(var, val)      __LW_ATOMIC_ADD((val), (atomic_t *)&(var))
+#define SYS_ARCH_DEC(var, val)      __LW_ATOMIC_SUB((val), (atomic_t *)&(var))
+#define SYS_ARCH_GET(var, ret)      (ret) = __LW_ATOMIC_GET((atomic_t *)&(var))
+#define SYS_ARCH_SET(var, val)      __LW_ATOMIC_SET((val), (atomic_t *)&(var))
+#endif
+
+/*********************************************************************************************************
   Measurement calls made throughout lwip, these can be defined to nothing.
 *********************************************************************************************************/
 

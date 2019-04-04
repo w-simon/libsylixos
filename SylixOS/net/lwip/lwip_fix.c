@@ -716,6 +716,9 @@ u32_t   sys_arch_mbox_fetch (sys_mbox_t *pmbox, void  **msg, u32_t  timeout)
     ULONG       ulNowTime;
     
     if (pmbox == LW_NULL) {
+        if (msg) {
+            *msg = LW_NULL;                                             /*  No Message                  */
+        }
         return  (SYS_ARCH_TIMEOUT);
     }
     
@@ -730,6 +733,9 @@ u32_t   sys_arch_mbox_fetch (sys_mbox_t *pmbox, void  **msg, u32_t  timeout)
     
     ulError = API_MsgQueueReceive(*pmbox, &pvMsg, sizeof(PVOID), &stMsgLen, ulTimeout);
     if (ulError) {
+        if (msg) {
+            *msg = LW_NULL;                                             /*  No Message                  */
+        }
         return  (SYS_ARCH_TIMEOUT);
     
     } else {
