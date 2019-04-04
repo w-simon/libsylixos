@@ -67,6 +67,7 @@
   NAT 安全配置
 *********************************************************************************************************/
 #define __NAT_STRONG_RULE   1                                           /*  不符合规定的数据包是否隔离  */
+#define __NAT_UNSAFE_PORT   1024                                        /*  非安全端口范围              */
 /*********************************************************************************************************
   NAT 操作锁
 *********************************************************************************************************/
@@ -818,7 +819,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 inet_chksum_adjust((u8_t *)&icmphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
         
-        } else {
+        } else if (PP_NTOHS(usDestPort) <= __NAT_UNSAFE_PORT) {
             return  (__NAT_STRONG_RULE);                                /*  无法找到 MAP 端口           */
         }
     

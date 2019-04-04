@@ -36,6 +36,7 @@
  *
  */
 
+#define __SYLIXOS_KERNEL /* SylixOS Add this to export atomic */
 #include "lwip/opt.h"
 
 #if LWIP_NETCONN /* don't build if not configured for use in lwipopts.h */
