@@ -261,6 +261,7 @@ int vnetdev_put (struct vnetdev *vnetdev, struct pbuf *p)
 {
   struct netdev *netdev = &vnetdev->netdev;
   struct netif *netif = (struct netif *)netdev->sys;
+  int mcast = ((UINT8 *)p->payload)[0] & 1;
   
   if (!netif_is_link_up(netif)) {
     return (-1);
@@ -282,7 +283,7 @@ int vnetdev_put (struct vnetdev *vnetdev, struct pbuf *p)
   
   netdev_linkinfo_recv_inc(netdev);
   netdev_statinfo_total_add(netdev, LINK_INPUT, p->tot_len);
-  if (((UINT8 *)p->payload)[0] & 1) {
+  if (mcast) {
     netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
   } else {
     netdev_statinfo_ucasts_inc(netdev, LINK_INPUT);

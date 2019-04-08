@@ -163,6 +163,7 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
   netbr_mcache_t *mac;
   LW_LIST_LINE *pline;
   struct eth_hdr *eh = (struct eth_hdr *)p->payload;
+  int mcast = eh->dest.addr[0] & 1;
   
   SYS_ARCH_DECL_PROTECT(lev);
   
@@ -201,7 +202,7 @@ to_sub:
     } else {
       netdev_linkinfo_recv_inc(netdev);
       netdev_statinfo_total_add(netdev, LINK_INPUT, (p->tot_len - ETH_PAD_SIZE));
-      if (eh->dest.addr[0] & 1) {
+      if (mcast) {
         netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
       } else {
         netdev_statinfo_ucasts_inc(netdev, LINK_INPUT);
@@ -303,7 +304,7 @@ input_p: /* TODO: this function may be parallelization, and statistical variable
   } else {
     netdev_linkinfo_recv_inc(netdev_br);
     netdev_statinfo_total_add(netdev_br, LINK_INPUT, (p->tot_len - ETH_PAD_SIZE));
-    if (eh->dest.addr[0] & 1) {
+    if (mcast) {
       netdev_statinfo_mcasts_inc(netdev_br, LINK_INPUT);
     } else {
       netdev_statinfo_ucasts_inc(netdev_br, LINK_INPUT);

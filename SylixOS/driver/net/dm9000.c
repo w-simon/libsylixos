@@ -808,6 +808,7 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
     UINT8  rx_byte;
     UINT16 rx_len;
     UINT16 rx_status;
+    int    mcast;
     int    good_pkt;
     int    err;
 
@@ -863,7 +864,8 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
                     (priv->inblk)(dm9000, q->payload, q->len);
                 }
 
-                err = input(netdev, p);
+                mcast = ((UINT8 *)p->payload)[0] & 1;
+                err   = input(netdev, p);
                 if (err) {
                     netdev_pbuf_free(p);
                     p = NULL;
@@ -874,7 +876,7 @@ static void  dm9000_receive (struct netdev *netdev, int (*input)(struct netdev *
                 } else {
                     netdev_linkinfo_recv_inc(netdev);
                     netdev_statinfo_total_add(netdev, LINK_INPUT, rx_len);
-                    if (((UINT8 *)p->payload)[0] & 1) {
+                    if (mcast) {
                         netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
                     } else {
                         netdev_statinfo_ucasts_inc(netdev, LINK_INPUT);

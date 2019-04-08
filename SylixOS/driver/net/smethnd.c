@@ -257,6 +257,7 @@ static void  smethnd_receive (struct netdev *netdev, int (*input)(struct netdev 
     addr_t                 packet_base;
     size_t                 offset;
     struct pbuf           *p, *q;
+    int                    mcast;
 
     if (!config->block_msg) {
         return;
@@ -280,6 +281,7 @@ static void  smethnd_receive (struct netdev *netdev, int (*input)(struct netdev 
                     offset += q->len;
                 }
 
+                mcast = ((UINT8 *)p->payload)[0] & 1;
                 if (input(netdev, p)) {
                     netdev_pbuf_free(p);
                     p = NULL;
@@ -290,7 +292,7 @@ static void  smethnd_receive (struct netdev *netdev, int (*input)(struct netdev 
                 } else {
                     netdev_linkinfo_recv_inc(netdev);
                     netdev_statinfo_total_add(netdev, LINK_INPUT, packet->len);
-                    if (((UINT8 *)p->payload)[0] & 1) {
+                    if (mcast) {
                         netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
                     } else {
                         netdev_statinfo_ucasts_inc(netdev, LINK_INPUT);

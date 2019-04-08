@@ -331,6 +331,7 @@ static err_t  netbd_input (struct pbuf *p, struct netif *netif)
   netbd_t *netbd = (netbd_t *)netdev_bd->priv;
   struct netif *netif_bd = (struct netif *)netdev_bd->sys;
   struct eth_hdr *eh = (struct eth_hdr *)p->payload;
+  int mcast = eh->dest.addr[0] & 1;
   
   if (netdev->init_flags & NETDEV_INIT_TIGHT) {
     u16_t type;
@@ -367,7 +368,7 @@ to_sub:
     } else {
       netdev_linkinfo_recv_inc(netdev);
       netdev_statinfo_total_add(netdev, LINK_INPUT, (p->tot_len - ETH_PAD_SIZE));
-      if (eh->dest.addr[0] & 1) {
+      if (mcast) {
         netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
       } else {
         netdev_statinfo_ucasts_inc(netdev, LINK_INPUT);
@@ -423,7 +424,7 @@ input: /* TODO: this function may be parallelization, and statistical variables 
   } else {
     netdev_linkinfo_recv_inc(netdev_bd);
     netdev_statinfo_total_add(netdev_bd, LINK_INPUT, (p->tot_len - ETH_PAD_SIZE));
-    if (eh->dest.addr[0] & 1) {
+    if (mcast) {
       netdev_statinfo_mcasts_inc(netdev_bd, LINK_INPUT);
     } else {
       netdev_statinfo_ucasts_inc(netdev_bd, LINK_INPUT);
