@@ -390,6 +390,7 @@ netif_add(struct netif *netif,
   netif->tcp_wnd = TCP_WND;
   netif->mipif = NULL;
   netif->masterif = NULL;
+  netif->nat_mode = NETIF_NAT_NONE;
   lib_bzero(netif->reserve, sizeof(void *[6]));
 #endif /* SYLIXOS */
 

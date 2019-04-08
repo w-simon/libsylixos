@@ -67,7 +67,6 @@
   NAT 安全配置
 *********************************************************************************************************/
 #define __NAT_STRONG_RULE   1                                           /*  不符合规定的数据包是否隔离  */
-#define __NAT_UNSAFE_PORT   1024                                        /*  非安全端口范围              */
 /*********************************************************************************************************
   NAT 操作锁
 *********************************************************************************************************/
@@ -138,6 +137,7 @@ VOID  nat_netif_add_hook (struct netif *pnetif)
         if (_G_natifAp[i].NATIF_pnetif == LW_NULL) {
             if (!lib_strcmp(cIfName, _G_natifAp[i].NATIF_cIfName)) {
                 _G_natifAp[i].NATIF_pnetif = pnetif;
+                pnetif->nat_mode = NETIF_NAT_AP;
                 goto    out;
             }
         }
@@ -146,6 +146,7 @@ VOID  nat_netif_add_hook (struct netif *pnetif)
         if (_G_natifLocal[i].NATIF_pnetif == LW_NULL) {
             if (!lib_strcmp(cIfName, _G_natifLocal[i].NATIF_cIfName)) {
                 _G_natifLocal[i].NATIF_pnetif = pnetif;
+                pnetif->nat_mode = NETIF_NAT_LOCAL;
                 goto    out;
             }
         }
@@ -819,7 +820,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 inet_chksum_adjust((u8_t *)&icmphdr->chksum, (u8_t *)&usDestPort, 2, (u8_t *)&icmphdr->id, 2);
             }
         
-        } else if (PP_NTOHS(usDestPort) <= __NAT_UNSAFE_PORT) {
+        } else {
             return  (__NAT_STRONG_RULE);                                /*  无法找到 MAP 端口           */
         }
     
@@ -1104,55 +1105,52 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
 *********************************************************************************************************/
 static struct pbuf *__natIpInput (struct pbuf  *p, struct netif  *pnetifIn, struct netif  *pnetifOut)
 {
-    INT             i;
     struct ip_hdr  *iphdr;
     
     iphdr = (struct ip_hdr *)p->payload;
     
-    for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
-        if (_G_natifAp[i].NATIF_pnetif == pnetifIn) {
-            if (ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {
-                if (IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) { /*  分片数据包                  */
-                    switch (IPH_PROTO(iphdr)) {
-    
-                    case IP_PROTO_TCP:
-                        if (!_G_bNatTcpFrag) {
-                            return  (p);
-                        }
-                        break;
-                    
-                    case IP_PROTO_UDP:
-                        if (!_G_bNatUdpFrag) {
-                            return  (p);
-                        }
-                        break;
-                    
-                    case IP_PROTO_ICMP:
-                        if (!_G_bNatIcmpFrag) {
-                            return  (p);
-                        }
-                        break;
-                    
-                    default:
-                        return  (p);
-                    }
+    if (!ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {
+        return  (p);
+    }
 
-#if IP_REASSEMBLY
-                    p = ip4_reass(p);                                   /*  提前进行分片重组            */
-                    if (p == LW_NULL) {
-                        return  (p);                                    /*  分片不全                    */
-                    }
-#else                                                                   /*  IP_REASSEMBLY               */
-                    return  (p);
-#endif                                                                  /*  !IP_REASSEMBLY              */
-                }
-                if (__natApInput(p, pnetifIn)) {                        /*  NAT 输入                    */
-                    pbuf_free(p);
-                    p = LW_NULL;
-                }
+    if (IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) {             /*  分片数据包                  */
+        switch (IPH_PROTO(iphdr)) {
+
+        case IP_PROTO_TCP:
+            if (!_G_bNatTcpFrag) {
+                return  (p);
             }
             break;
+
+        case IP_PROTO_UDP:
+            if (!_G_bNatUdpFrag) {
+                return  (p);
+            }
+            break;
+
+        case IP_PROTO_ICMP:
+            if (!_G_bNatIcmpFrag) {
+                return  (p);
+            }
+            break;
+
+        default:
+            return  (p);
         }
+
+#if IP_REASSEMBLY
+        p = ip4_reass(p);                                               /*  提前进行分片重组            */
+        if (p == LW_NULL) {
+            return  (p);                                                /*  分片不全                    */
+        }
+#else                                                                   /*  IP_REASSEMBLY               */
+        return  (p);
+#endif                                                                  /*  !IP_REASSEMBLY              */
+    }
+
+    if (__natApInput(p, pnetifIn)) {                                    /*  NAT 输入                    */
+        pbuf_free(p);
+        p = LW_NULL;
     }
     
     return  (p);
@@ -1169,80 +1167,60 @@ static struct pbuf *__natIpInput (struct pbuf  *p, struct netif  *pnetifIn, stru
 *********************************************************************************************************/
 static struct pbuf *__natIpOutput (struct pbuf  *p, struct netif  *pnetifIn, struct netif  *pnetifOut)
 {
-    INT             i, j;
     struct ip_hdr  *iphdr;
     
+    iphdr = (struct ip_hdr *)p->payload;
+
     if (!pnetifIn) {                                                    /*  本机发送                    */
+        if (!(IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF))) {
+            __natApOutput(p, pnetifIn, pnetifOut);                      /*  NAT 输出                    */
+        }
         return  (p);
     }
-    
-    iphdr = (struct ip_hdr *)p->payload;
-    
-    for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
-        if (_G_natifAp[i].NATIF_pnetif == pnetifOut) {                  /*  AP 输出                     */
-            for (j = 0; j < LW_CFG_NET_NAT_MAX_LOCAL_IF; j++) {
-                if (_G_natifLocal[j].NATIF_pnetif == pnetifIn) {
-                    break;                                              /*  LOCAL 输入                  */
-                }
-            }
-            if (j >= LW_CFG_NET_NAT_MAX_LOCAL_IF) {
-                return  (p);                                            /*  不需要进行 NAT 地址转换     */
-            }
-            
-            if (IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) {     /*  分片数据包                  */
-                switch (IPH_PROTO(iphdr)) {
-                
-                case IP_PROTO_TCP:
-                    if (!_G_bNatTcpFrag) {
-                        pbuf_free(p);
-                        return  (LW_NULL);
-                    }
-                    break;
-                
-                case IP_PROTO_UDP:
-                    if (!_G_bNatUdpFrag) {
-                        pbuf_free(p);
-                        return  (LW_NULL);
-                    }
-                    break;
-                
-                case IP_PROTO_ICMP:
-                    if (!_G_bNatIcmpFrag) {
-                        pbuf_free(p);
-                        return  (LW_NULL);
-                    }
-                    break;
-                
-                default:
-                    pbuf_free(p);
-                    return  (LW_NULL);
-                }
 
-#if IP_REASSEMBLY
-                p = ip4_reass(p);                                       /*  提前进行分片重组            */
-                if (p == LW_NULL) {
-                    return  (p);                                        /*  分片不全                    */
-                }
-#else
+    if (IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) {             /*  分片数据包                  */
+        switch (IPH_PROTO(iphdr)) {
+
+        case IP_PROTO_TCP:
+            if (!_G_bNatTcpFrag) {
                 pbuf_free(p);
                 return  (LW_NULL);
-#endif
-                if (__natApOutput(p, pnetifIn, pnetifOut)) {            /*  NAT 输出                    */
-                    pbuf_free(p);
-                    return  (LW_NULL);
-                
-                } else {
-                    return  (p);
-                }
-                
-            } else {
-                if (__natApOutput(p, pnetifIn, pnetifOut)) {            /*  NAT 输出                    */
-                    pbuf_free(p);
-                    return  (LW_NULL);
-                }
             }
             break;
+
+        case IP_PROTO_UDP:
+            if (!_G_bNatUdpFrag) {
+                pbuf_free(p);
+                return  (LW_NULL);
+            }
+            break;
+
+        case IP_PROTO_ICMP:
+            if (!_G_bNatIcmpFrag) {
+                pbuf_free(p);
+                return  (LW_NULL);
+            }
+            break;
+
+        default:
+            pbuf_free(p);
+            return  (LW_NULL);
         }
+
+#if IP_REASSEMBLY
+        p = ip4_reass(p);                                               /*  提前进行分片重组            */
+        if (p == LW_NULL) {
+            return  (p);                                                /*  分片不全                    */
+        }
+#else
+        pbuf_free(p);
+        return  (LW_NULL);
+#endif
+    }
+
+    if (__natApOutput(p, pnetifIn, pnetifOut)) {                        /*  NAT 输出                    */
+        pbuf_free(p);
+        p = LW_NULL;
     }
     
     return  (p);
@@ -1314,7 +1292,14 @@ INT  __natStart (CPCHAR  pcLocal, CPCHAR  pcAp)
     lib_strlcpy(_G_natifLocal[0].NATIF_cIfName, pcLocal, IF_NAMESIZE);
     
     _G_natifLocal[0].NATIF_pnetif = netif_find(pcLocal);
-    _G_natifAp[0].NATIF_pnetif    = netif_find(pcAp);
+    if (_G_natifLocal[0].NATIF_pnetif) {
+        _G_natifLocal[0].NATIF_pnetif->nat_mode = NETIF_NAT_LOCAL;
+    }
+
+    _G_natifAp[0].NATIF_pnetif = netif_find(pcAp);
+    if (_G_natifAp[0].NATIF_pnetif) {
+        _G_natifAp[0].NATIF_pnetif->nat_mode = NETIF_NAT_AP;
+    }
     
     if (net_ip_hook_nat_add(__natIphook)) {
         return  (PX_ERROR);
@@ -1351,12 +1336,18 @@ INT  __natStop (VOID)
     __NAT_LOCK();
     for (i = 1; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
         _G_natifAp[i].NATIF_cIfName[0] = PX_EOS;
-        _G_natifAp[i].NATIF_pnetif     = LW_NULL;
+        if (_G_natifAp[i].NATIF_pnetif) {
+            _G_natifAp[i].NATIF_pnetif->nat_mode = NETIF_NAT_NONE;
+            _G_natifAp[i].NATIF_pnetif = LW_NULL;
+        }
     }
     
     for (i = 1; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
         _G_natifLocal[i].NATIF_cIfName[0] = PX_EOS;
-        _G_natifLocal[i].NATIF_pnetif     = LW_NULL;
+        if (_G_natifLocal[i].NATIF_pnetif) {
+            _G_natifLocal[i].NATIF_pnetif->nat_mode = NETIF_NAT_NONE;
+            _G_natifLocal[i].NATIF_pnetif = LW_NULL;
+        }
     }
     _G_bNatStart = LW_FALSE;
     __NAT_UNLOCK();
@@ -1458,6 +1449,9 @@ INT  __natAddLocal (CPCHAR  pcLocal)
     __NAT_UNLOCK();
     
     _G_natifLocal[i].NATIF_pnetif = netif_find(pcLocal);
+    if (_G_natifLocal[i].NATIF_pnetif) {
+        _G_natifLocal[i].NATIF_pnetif->nat_mode = NETIF_NAT_LOCAL;
+    }
     
     return  (ERROR_NONE);
 }
@@ -1493,6 +1487,9 @@ INT  __natAddAp (CPCHAR  pcAp)
     __NAT_UNLOCK();
     
     _G_natifAp[i].NATIF_pnetif = netif_find(pcAp);
+    if (_G_natifAp[i].NATIF_pnetif) {
+        _G_natifAp[i].NATIF_pnetif->nat_mode = NETIF_NAT_AP;
+    }
     
     return  (ERROR_NONE);
 }

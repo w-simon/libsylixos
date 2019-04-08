@@ -420,6 +420,11 @@ struct netif {
   /* SylixOS mip externed */
   struct netif *mipif;
   struct netif *masterif;
+  /* NAT mode */
+#define NETIF_NAT_NONE  0
+#define NETIF_NAT_AP    1
+#define NETIF_NAT_LOCAL 2
+  u8_t nat_mode;
   void *reserve[6];
 #endif /* SYLIXOS */
 };

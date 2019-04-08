@@ -393,13 +393,15 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
     IP_STATS_INC(ip.err);
     return p; /* SylixOS Add return value */
   }
-  p = lwip_ip_nat_hook(IP_HOOK_V4, IP_HT_NAT_POST_ROUTING, p, inp, netif);
-  if (p == NULL) {
-    return p; /* SylixOS Add return value (Outer do not free pbuf) */
-  }
+  if (inp->nat_mode == NETIF_NAT_LOCAL && netif->nat_mode == NETIF_NAT_AP) { /* need call nat hook? */
+    p = lwip_ip_nat_hook(IP_HOOK_V4, IP_HT_NAT_POST_ROUTING, p, inp, netif);
+    if (p == NULL) {
+      return p; /* SylixOS Add return value (Outer do not free pbuf) */
+    }
 #if IP_REASSEMBLY
-  iphdr = (struct ip_hdr *)p->payload; /* Maybe lwip_ip_nat_hook() changed the pbuf */
+    iphdr = (struct ip_hdr *)p->payload; /* Maybe lwip_ip_nat_hook() changed the pbuf */
 #endif /* IP_REASSEMBLY */
+  }
 #endif /* SYLIXOS */
 
   LWIP_DEBUGF(IP_DEBUG, ("ip4_forward: forwarding packet to %"U16_F".%"U16_F".%"U16_F".%"U16_F"\n",
@@ -584,13 +586,15 @@ ip4_input(struct pbuf *p, struct netif *inp)
     IP_STATS_INC(ip.drop);
     return ERR_OK;
   }
-  p = lwip_ip_nat_hook(IP_HOOK_V4, IP_HT_NAT_PRE_ROUTING, p, inp, NULL);
-  if (p == NULL) {
-    return ERR_OK;
-  }
+  if (inp->nat_mode == NETIF_NAT_AP) { /* need call nat hook? */
+    p = lwip_ip_nat_hook(IP_HOOK_V4, IP_HT_NAT_PRE_ROUTING, p, inp, NULL);
+    if (p == NULL) {
+      return ERR_OK;
+    }
 #if IP_REASSEMBLY
-  iphdr = (struct ip_hdr *)p->payload; /* Maybe lwip_ip_nat_hook() changed the pbuf */
+    iphdr = (struct ip_hdr *)p->payload; /* Maybe lwip_ip_nat_hook() changed the pbuf */
 #endif /* IP_REASSEMBLY */
+  }
 #endif /* SYLIXOS */
 
   /* copy IP addresses to aligned ip_addr_t */
@@ -1115,6 +1119,10 @@ ip4_output_if_opt_src(struct pbuf *p, const ip4_addr_t *src, const ip4_addr_t *d
   if (lwip_ip_hook(IP_HOOK_V4, IP_HT_POST_ROUTING, p, NULL, netif)) {
     IP_STATS_INC(ip.err);
     return ERR_RTE;
+  }
+  if (netif->nat_mode == NETIF_NAT_AP) { /* need call nat hook? */
+    p = lwip_ip_nat_hook(IP_HOOK_V4, IP_HT_NAT_POST_ROUTING, p, NULL, netif);
+    LWIP_ASSERT("NAT can not free local output packet", (p != NULL));
   }
 #endif /* SYLIXOS */
 

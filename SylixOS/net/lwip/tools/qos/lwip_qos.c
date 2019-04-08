@@ -819,11 +819,11 @@ INT  API_INetQosInit (VOID)
     API_TShellHelpAdd("qoss",    "show QoS rule(s).\n");
 
     API_TShellKeywordAdd("qosruleadd", __tshellNetQosRuleAdd);
-    API_TShellFormatAdd("qosruleadd",  " [netifname] [rule] [args...] [prio] [dont_drop]");
+    API_TShellFormatAdd("qosruleadd",  " [netifname] [rule] [args...] [s|d|b] [prio] [dont_drop]");
     API_TShellHelpAdd("qosruleadd",    "add a rule into QoS.\n"
-                                       "    qosruleadd en1 ip 192.168.0.5 192.168.0.10 5 no\n"
-                                       "    qosruleadd lo0 udp 0.0.0.0 255.255.255.255 433 500 6 yes\n"
-                                       "    qosruleadd wl2 tcp 192.168.0.1 192.168.0.200 169 169 2 no\n");
+                                       "    qosruleadd en1 ip 192.168.0.5 192.168.0.10 s 5 no\n"
+                                       "    qosruleadd lo0 udp 0.0.0.0 255.255.255.255 433 500 b 6 yes\n"
+                                       "    qosruleadd wl2 tcp 192.168.0.1 192.168.0.200 169 169 d 2 no\n");
 
     API_TShellKeywordAdd("qosruledel", __tshellNetQosRuleDel);
     API_TShellFormatAdd("qosruledel",  " [netifname] [rule sequence num]");
