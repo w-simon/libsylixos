@@ -38,6 +38,7 @@
 2018.01.16  使用 iphook 实现更加灵活的 NAT 管理.
 2018.04.06  NAT 支持提前分片重组.
 2019.02.15  本地 TCP SYN, CLOSING 仅保持 1 分钟.
+2019.04.09  NAT AP 端口支持主机安全隔离.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -755,41 +756,35 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
             ip4_addr_p_t  ipaddr;                                       /*  内网映射服务器 IP           */
             u16_t         usSrcHash = iphdr->src.addr % pnatmap->NATM_usLocalCnt;
                                                                         /*  外网 hash                   */
-            if (ip4_addr_cmp(&pnatmap->NATM_ipaddrLocalIp,
-                             netif_ip4_addr(netifIn))) {                /*  本机映射                    */
-                ipaddr.addr = pnatmap->NATM_ipaddrLocalIp.addr;
+            for (plineTemp  = plineHeader;                              /*  内网主机映射                */
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
 
-            } else {                                                    /*  内网其他主机映射            */
-                for (plineTemp  = plineHeader;
-                     plineTemp != LW_NULL;
-                     plineTemp  = _list_line_get_next(plineTemp)) {
-
-                    pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                    if ((usSrcHash  == pnatcb->NAT_usSrcHash) &&
-                        (usDestPort == pnatcb->NAT_usAssPort) &&
-                        (ucProto    == pnatcb->NAT_ucProto)) {
-                        break;                                          /*  找到了 NAT 控制块           */
-                    }
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                if ((usSrcHash  == pnatcb->NAT_usSrcHash) &&
+                    (usDestPort == pnatcb->NAT_usAssPort) &&
+                    (ucProto    == pnatcb->NAT_ucProto)) {
+                    break;                                              /*  找到了 NAT 控制块           */
                 }
-                if (plineTemp == LW_NULL) {
-                    u32_t   uiHost;
+            }
+            if (plineTemp == LW_NULL) {
+                u32_t   uiHost;
 
-                    uiHost  = (u32_t)PP_NTOHL(pnatmap->NATM_ipaddrLocalIp.addr);
-                    uiHost += usSrcHash;                                /*  根据源地址散列做均衡        */
-                    ipaddr.addr = (u32_t)PP_HTONL(uiHost);
+                uiHost  = (u32_t)PP_NTOHL(pnatmap->NATM_ipaddrLocalIp.addr);
+                uiHost += usSrcHash;                                    /*  根据源地址散列做均衡        */
+                ipaddr.addr = (u32_t)PP_HTONL(uiHost);
 
-                    pnatcb = __natNew(&ipaddr,                          /*  新建控制块                  */
-                                      pnatmap->NATM_usLocalPort, ucProto);
+                pnatcb = __natNew(&ipaddr,                              /*  新建控制块                  */
+                                  pnatmap->NATM_usLocalPort, ucProto);
 
-                    pnatcb->NAT_usSrcHash     = usSrcHash;
-                    pnatcb->NAT_usAssPortSave = pnatcb->NAT_usAssPort;  /*  保存端口资源                */
-                    pnatcb->NAT_usAssPort     = pnatmap->NATM_usAssPort;
-                
-                } else {
-                    ipaddr.addr = pnatcb->NAT_ipaddrLocalIp.addr;
+                pnatcb->NAT_usSrcHash     = usSrcHash;
+                pnatcb->NAT_usAssPortSave = pnatcb->NAT_usAssPort;      /*  保存端口资源                */
+                pnatcb->NAT_usAssPort     = pnatmap->NATM_usAssPort;
 
-                    pnatcb->NAT_ulIdleTimer = 0;                        /*  刷新空闲时间                */
-                }
+            } else {
+                ipaddr.addr = pnatcb->NAT_ipaddrLocalIp.addr;
+
+                pnatcb->NAT_ulIdleTimer = 0;                            /*  刷新空闲时间                */
             }
         
             /*
@@ -997,10 +992,6 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         }
     }
     if (plineTemp == LW_NULL) {
-        pnatcb = LW_NULL;                                               /*  没有找到                    */
-    }
-    
-    if (pnatcb == LW_NULL) {
         pnatcb = __natNew(&iphdr->src, usSrcPort, ucProto);             /*  新建控制块                  */
     }
     

@@ -542,6 +542,39 @@ struct pbuf *netdev_desc_rx_input (struct netdev_desc_helper *helper, int idx, i
   return (p);
 }
 
+/* netdev_desc_rx_input_offset (you must ensure 'idx' is valid) */
+struct pbuf *netdev_desc_rx_input_offset (struct netdev_desc_helper *helper, int idx, int len, int offset)
+{
+  struct pbuf *p;
+  struct netdev_desc_buf *rx_buf;
+
+  rx_buf = NETDEV_RX_DESC_BUF(helper, idx);
+  if (rx_buf->p) {
+    p = rx_buf->p;
+    p->tot_len = p->len = (u16_t)len;
+    rx_buf->p = NULL;
+#if LW_CFG_CACHE_EN > 0
+    if (helper->cache_zc_invalid) {
+      cacheInvalidate(DATA_CACHE, p->payload, p->tot_len);
+    }
+#endif /* LW_CFG_CACHE_EN */
+
+  } else {
+    p = netdev_pbuf_alloc((u16_t)len);
+    if (!p) {
+      return (NULL);
+    }
+#if LW_CFG_CACHE_EN > 0
+    if (helper->cache_rs_invalid) {
+      cacheInvalidate(DATA_CACHE, (char *)rx_buf->buffer + offset, len);
+    }
+#endif /* LW_CFG_CACHE_EN */
+    pbuf_take(p, (char *)rx_buf->buffer + offset, (u16_t)len);
+  }
+
+  return (p);
+}
+
 /* netdev_desc_rx_refill (you must ensure 'idx' is valid) */
 netdev_desc_btype netdev_desc_rx_refill (struct netdev_desc_helper *helper, int idx)
 {
