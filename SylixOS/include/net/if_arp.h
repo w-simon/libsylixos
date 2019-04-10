@@ -47,9 +47,16 @@ extern "C" {
 
 struct arphdr {
     u_short     ar_hrd;                                     /* format of hardware address               */
-#define ARPHRD_ETHER        1                               /* ethernet hardware format                 */
-#define ARPHRD_IEEE802      6                               /* token-ring hardware format               */
-#define ARPHRD_FRELAY       15                              /* frame relay hardware format              */
+#define ARPHRD_ETHER                1                       /* ethernet hardware format                 */
+#define ARPHRD_IEEE802              6                       /* token-ring hardware format               */
+#define ARPHRD_FRELAY               15                      /* frame relay hardware format              */
+#define ARPHRD_IEEE802_TR           800                     /* Magic type ident for TR                  */
+#define ARPHRD_IEEE80211            801                     /* IEEE 802.11                              */
+#define ARPHRD_IEEE80211_PRISM      802                     /* IEEE 802.11 + Prism2 header              */
+#define ARPHRD_IEEE80211_RADIOTAP   803                     /* IEEE 802.11 + radiotap header            */
+#define ARPHRD_IEEE802154           804                     /* IEEE 802.15.4                            */
+#define ARPHRD_VOID                 0xffff                  /* Void type, nothing is known              */
+#define ARPHRD_NONE                 0xfffe                  /* zero header length                       */
     u_short     ar_pro;                                     /* format of protocol address               */
     u_char      ar_hln;                                     /* length of hardware address               */
     u_char      ar_pln;                                     /* length of protocol address               */

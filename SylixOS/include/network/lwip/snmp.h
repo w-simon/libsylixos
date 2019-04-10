@@ -91,6 +91,11 @@ enum snmp_ifType {
   snmp_ifType_ds3,                    /* T-3 */
   snmp_ifType_sip,                    /* SMDS */
   snmp_ifType_frame_relay
+#ifdef SYLIXOS /* SYLIXOS Add some ifType */
+  ,
+  snmp_ifType_ieee80211 = 71,
+  snmp_ifType_ieee802154 = 259
+#endif /* SYLIXOS */
 };
 
 /** This macro has a precision of ~49 days because sys_now returns u32_t. \#define your own if you want ~490 days. */

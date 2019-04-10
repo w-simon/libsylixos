@@ -242,7 +242,11 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
             for (i = 0; i < IFHWADDRLEN; i++) {
                 pifreq->ifr_hwaddr.sa_data[i] = pnetif->hwaddr[i];
             }
-            pifreq->ifr_hwaddr.sa_family = ARPHRD_ETHER;
+            if (pnetif->ar_hrd != ARPHRD_VOID) {
+                pifreq->ifr_hwaddr.sa_family = pnetif->ar_hrd;
+            } else {
+                pifreq->ifr_hwaddr.sa_family = ARPHRD_ETHER;
+            }
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EINVAL);

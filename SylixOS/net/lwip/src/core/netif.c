@@ -391,6 +391,7 @@ netif_add(struct netif *netif,
   netif->mipif = NULL;
   netif->masterif = NULL;
   netif->nat_mode = NETIF_NAT_NONE;
+  netif->ar_hrd = 0xffff;
   lib_bzero(netif->reserve, sizeof(void *[6]));
 #endif /* SYLIXOS */
 

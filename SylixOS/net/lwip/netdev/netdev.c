@@ -52,6 +52,7 @@
 #include "netif/ethernet.h"
 #include "netif/lowpan6.h"
 #include "netif/lowpan6_ble.h"
+#include "net/if_arp.h"
 #include "net/if_lock.h"
 #include "net/if_flags.h"
 #include "net/if_param.h"
@@ -607,10 +608,11 @@ static err_t  netdev_netif_init (struct netif *netif)
 #if LWIP_IPV6
     netif->output_ip6 = ethip6_output;
 #endif /* LWIP_IPV6 */
+    netif->ar_hrd = ARPHRD_ETHER;
     break;
     
   case NETDEV_TYPE_LOWPAN:
-    MIB2_INIT_NETIF(netif, snmp_ifType_other, 0);
+    MIB2_INIT_NETIF(netif, snmp_ifType_ieee802154, 0);
     netif->flags = NETIF_FLAG_BROADCAST;
     netif->output = netdev_netif_nulloutput4;
 #if LWIP_IPV6
@@ -620,10 +622,11 @@ static err_t  netdev_netif_init (struct netif *netif)
       lowpan6_timer = 1;
     }
 #endif /* LWIP_IPV6 */
+    netif->ar_hrd = ARPHRD_IEEE802154;
     break;
     
   case NETDEV_TYPE_LOWPAN_BLE:
-    MIB2_INIT_NETIF(netif, snmp_ifType_other, 0);
+    MIB2_INIT_NETIF(netif, snmp_ifType_ieee802154, 0);
     netif->flags = 0;
     netif->output = netdev_netif_nulloutput4;
 #if LWIP_IPV6
@@ -634,6 +637,7 @@ static err_t  netdev_netif_init (struct netif *netif)
       rfc7668_set_local_addr_mac48(netif, netdev->hwaddr, netif->hwaddr_len, 0); /* not public ? */
     }
 #endif /* LWIP_IPV6 */
+    netif->ar_hrd = ARPHRD_IEEE802154;
     break;
   
   default:
@@ -643,6 +647,7 @@ static err_t  netdev_netif_init (struct netif *netif)
 #if LWIP_IPV6
     netif->output_ip6 = netdev_netif_rawoutput6;
 #endif /* LWIP_IPV6 */
+    netif->ar_hrd = ARPHRD_VOID;
     break;
   }
   
@@ -1284,6 +1289,38 @@ int  netdev_ifname (netdev_t *netdev, char *ifname)
     netif_get_name(netif, ifname);
   }
   
+  return (0);
+}
+
+/* netdev set/get format of hardware address
+ * NOTICE: you can call these function after netdev_add() */
+int  netdev_set_ar_hdr (netdev_t *netdev, UINT16 ar_hdr)
+{
+  struct netif *netif;
+
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+
+  netif = (struct netif *)netdev->sys;
+
+  netif->ar_hrd = ar_hdr;
+
+  return (0);
+}
+
+int  netdev_get_ar_hdr (netdev_t *netdev, UINT16 *ar_hdr)
+{
+  struct netif *netif;
+
+  if (!netdev || !ar_hdr || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (-1);
+  }
+
+  netif = (struct netif *)netdev->sys;
+
+  *ar_hdr = netif->ar_hrd;
+
   return (0);
 }
 

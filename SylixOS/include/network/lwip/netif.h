@@ -361,7 +361,11 @@ struct netif {
 #endif /* LWIP_IPV6_SEND_ROUTER_SOLICIT */
 #if MIB2_STATS
   /** link type (from "snmp_ifType" enum from snmp_mib2.h) */
+#ifdef SYLIXOS /* SylixOS Need u16_t link type */
+  u16_t link_type;
+#else /* SYLIXOS */
   u8_t link_type;
+#endif /* !SYLIXOS */
   /** (estimate) link speed */
   u32_t link_speed;
   /** timestamp at last change made (up/down) */
@@ -425,6 +429,8 @@ struct netif {
 #define NETIF_NAT_AP    1
 #define NETIF_NAT_LOCAL 2
   u8_t nat_mode;
+  /* ARPHRD_xxx */
+  u16_t ar_hrd;
   void *reserve[6];
 #endif /* SYLIXOS */
 };

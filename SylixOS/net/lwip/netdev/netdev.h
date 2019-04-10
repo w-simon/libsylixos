@@ -352,6 +352,11 @@ netdev_t *netdev_find_by_index(unsigned int index);
 netdev_t *netdev_find_by_ifname(const char *if_name);
 netdev_t *netdev_find_by_devname(const char *dev_name);
 
+/* netdev set/get format of hardware address
+ * NOTICE: you can call these function after netdev_add() */
+int  netdev_set_ar_hdr(netdev_t *netdev, UINT16 ar_hdr);
+int  netdev_get_ar_hdr(netdev_t *netdev, UINT16 *ar_hdr);
+
 /* netdev set/get tcp ack frequecy 
  * NOTICE: you can call these function after netdev_add() */
 int  netdev_set_tcpaf(netdev_t *netdev, UINT8 tcpaf);
