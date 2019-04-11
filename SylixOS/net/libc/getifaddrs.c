@@ -34,6 +34,7 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_hwaddr.h>
 #include <net/if_types.h>
 #include <netinet6/in6.h>
 #include <netpacket/packet.h>
@@ -93,23 +94,23 @@ __init_in6 (struct sockaddr_in6 *in6)
 #endif
 
 static void
-__init_ll (struct sockaddr_ll *ll)
+__init_ll (struct sockaddr_ll *ll, u_short hatype, u_char alen)
 {
     bzero(ll, sizeof(struct sockaddr_ll));
     ll->sll_len      = sizeof(struct sockaddr_ll);
     ll->sll_family   = AF_PACKET;
-    ll->sll_hatype   = ARPHRD_ETHER;
-    ll->sll_halen    = IFHWADDRLEN;
+    ll->sll_hatype   = hatype;
+    ll->sll_halen    = alen;
 }
 
 static void
-__init_dl (struct sockaddr_dl *dl)
+__init_dl (struct sockaddr_dl *dl, u_char alen)
 {
     bzero(dl, sizeof(struct sockaddr_dl));
     dl->sdl_len      = sizeof(struct sockaddr_dl);
     dl->sdl_family   = AF_LINK;
     dl->sdl_nlen     = 4;
-    dl->sdl_alen     = IFHWADDRLEN;
+    dl->sdl_alen     = alen;
 }
 
 #if LWIP_IPV6
@@ -268,10 +269,15 @@ getifaddrs(struct ifaddrs **pif)
 #endif /* LWIP_IPV6 */
 
         if (ioctl(s, SIOCGIFHWADDR, &req[i]) == 0) {    /* get hwaddr */
+            u_short              hatype;
+            u_char               alen;
             struct ifaddrs      *ifaddr_ll;
             struct ifaddrs      *ifaddr_dl;
             struct sockaddr_ll  *ll;
             struct sockaddr_dl  *dl;
+
+            hatype = HALTYPE_FROM_SA(&req[i].ifr_hwaddr);
+            alen   = HALALEN_FROM_SA(&req[i].ifr_hwaddr);
 
             /* setup AF_PACKET */
             ifaddr_ll = (struct ifaddrs *)malloc(IFADDR_SIZE);
@@ -285,7 +291,7 @@ getifaddrs(struct ifaddrs **pif)
             ifaddr_ll->ifa_flags = ifaddr->ifa_flags;
 
             ll = (struct sockaddr_ll *)ifaddr_ll->ifa_addr;
-            __init_ll(ll);
+            __init_ll(ll, hatype, alen);
 
             ll->sll_ifindex = netif_index;
             memcpy(ll->sll_addr, req[i].ifr_hwaddr.sa_data, IFHWADDRLEN);
@@ -306,7 +312,7 @@ getifaddrs(struct ifaddrs **pif)
             ifaddr_dl->ifa_flags = ifaddr->ifa_flags;
 
             dl = (struct sockaddr_dl *)ifaddr_dl->ifa_addr;
-            __init_dl(dl);
+            __init_dl(dl, alen);
 
             dl->sdl_index = netif_index;
             memcpy(LLADDR(dl), req[i].ifr_hwaddr.sa_data, IFHWADDRLEN);

@@ -371,6 +371,7 @@ netif_add(struct netif *netif,
 #endif /* ENABLE_LOOPBACK && LWIP_LOOPBACK_MAX_PBUFS */
 
 #ifdef SYLIXOS /* SylixOS Add */
+  netif->hwaddr_len = 0;
   netif->ioctl = NULL;
   netif->up = NULL;
   netif->down = NULL;

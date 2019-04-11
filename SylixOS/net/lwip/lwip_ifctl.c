@@ -26,6 +26,7 @@
 #if LW_CFG_NET_EN > 0
 #include "net/if.h"
 #include "net/if_arp.h"
+#include "net/if_hwaddr.h"
 #include "net/if_types.h"
 #include "net/if_lock.h"
 #include "net/if_flags.h"
@@ -149,8 +150,8 @@ static INT __ifReq6Size (struct in6_ifreq  *pifreq6)
 *********************************************************************************************************/
 static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
 {
+    INT              i, iIsUp, iFlags;
     INT              iRet   = PX_ERROR;
-    INT              iFlags;
     struct ifreq    *pifreq = LW_NULL;
     struct netif    *pnetif;
     
@@ -237,16 +238,18 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         break;
         
     case SIOCGIFHWADDR:                                                 /*  获得物理地址                */
-        if (pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) {
-            INT i;
-            for (i = 0; i < IFHWADDRLEN; i++) {
-                pifreq->ifr_hwaddr.sa_data[i] = pnetif->hwaddr[i];
-            }
+        if (pnetif->hwaddr_len && (pnetif->hwaddr_len <= IFHWADDR_MAXLEN)) {
             if (pnetif->ar_hrd != ARPHRD_VOID) {
-                pifreq->ifr_hwaddr.sa_family = pnetif->ar_hrd;
+                pifreq->ifr_hwaddr.sa_len    = pnetif->ar_hrd >> 8;
+                pifreq->ifr_hwaddr.sa_family = pnetif->ar_hrd & 0xff;   /*  设置网卡地址类型            */
             } else {
+                pifreq->ifr_hwaddr.sa_len    = 0;
                 pifreq->ifr_hwaddr.sa_family = ARPHRD_ETHER;
             }
+            for (i = 0; i < pnetif->hwaddr_len; i++) {
+                pifreq->ifr_hwaddr.sa_data[i] = pnetif->hwaddr[i];
+            }
+            HALALEN_FROM_SA(&pifreq->ifr_hwaddr) = pnetif->hwaddr_len;
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EINVAL);
@@ -254,14 +257,13 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         break;
         
     case SIOCSIFHWADDR:                                                 /*  设置 mac 地址               */
-        if (pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) {
-            INT i;
-            INT iIsUp = netif_is_up(pnetif);
+        if (pnetif->hwaddr_len && (pnetif->hwaddr_len <= IFHWADDR_MAXLEN)) {
+            iIsUp = netif_is_up(pnetif);
             if (pnetif->ioctl) {
                 netifapi_netif_set_down(pnetif);                        /*  关闭网口                    */
                 iRet = pnetif->ioctl(pnetif, SIOCSIFHWADDR, pvArg);
                 if (iRet == ERROR_NONE) {
-                    for (i = 0; i < IFHWADDRLEN; i++) {
+                    for (i = 0; i < pnetif->hwaddr_len; i++) {
                         pnetif->hwaddr[i] = pifreq->ifr_hwaddr.sa_data[i];
                     }
                 }
