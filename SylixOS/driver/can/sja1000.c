@@ -666,6 +666,15 @@ static INT sja1000Ioctl (SJA1000_CHAN *pcanchan, INT  cmd, LONG arg)
         sja1000TxStartup(pcanchan);
         break;
 
+    case SJA1000_SET_FLITER:                                            /* sja1000 filter               */
+        if (arg) {
+            SJA1000_FILTER *pfilter = (SJA1000_FILTER *)arg;
+            pcanchan->filter.acr_code = pfilter->acr_code;
+            pcanchan->filter.amr_code = pfilter->amr_code;
+            pcanchan->filter.mode     = pfilter->mode;
+        }
+        break;
+
     default:
         errno = ENOSYS;
         return  (PX_ERROR);
