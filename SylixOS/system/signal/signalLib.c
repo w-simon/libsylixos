@@ -115,20 +115,16 @@ static BOOL                     _sigPendRunSelf(VOID);
 /*********************************************************************************************************
 ** 函数名称: __signalCnclHandle
 ** 功能描述: SIGCNCL 信号的服务函数
-** 输　入  : iSigNo        信号数值
+** 输　入  : ptcbCur       当前任务
+**           iSigNo        信号数值
 **           psiginfo      信号信息
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __signalCnclHandle (INT  iSigNo, struct siginfo *psiginfo)
+static VOID  __signalCnclHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct siginfo *psiginfo)
 {
-    LW_OBJECT_HANDLE    ulId;
-    PLW_CLASS_TCB       ptcbCur;
-    
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
-    
-    ulId = ptcbCur->TCB_ulId;
+    LW_OBJECT_HANDLE  ulId = ptcbCur->TCB_ulId;
     
     if (ptcbCur->TCB_iCancelState == LW_THREAD_CANCEL_ENABLE   &&
         ptcbCur->TCB_iCancelType  == LW_THREAD_CANCEL_DEFERRED &&
@@ -142,30 +138,19 @@ static VOID  __signalCnclHandle (INT  iSigNo, struct siginfo *psiginfo)
 }
 /*********************************************************************************************************
 ** 函数名称: __signalExitHandle
-** 功能描述: SIGCANCEL 信号的服务函数
-** 输　入  : iSigNo        信号数值
+** 功能描述: 需要进程退出的信号的服务函数
+** 输　入  : ptcbCur       当前任务
+**           iSigNo        信号数值
 **           psiginfo      信号信息
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __signalExitHandle (INT  iSigNo, struct siginfo *psiginfo)
+static VOID  __signalExitHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct siginfo *psiginfo)
 {
-    LW_OBJECT_HANDLE    ulId;
-    PLW_CLASS_TCB       ptcbCur;
+    LW_OBJECT_HANDLE    ulId = ptcbCur->TCB_ulId;
 #if LW_CFG_MODULELOADER_EN > 0
-    pid_t               pid = getpid();
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
-
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
-    
-    ulId = ptcbCur->TCB_ulId;
-
-#if LW_CFG_MODULELOADER_EN > 0
-    if ((pid > 0) && (iSigNo != SIGTERM)) {
-        vprocExitModeSet(pid, LW_VPROC_EXIT_FORCE);                     /*  强制进程退出                */
-        vprocSetImmediatelyTerm(pid);                                   /*  立即退出模式                */
-    }
+    pid_t               pid  = vprocGetPidByTcb(ptcbCur);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     
     if ((iSigNo == SIGBUS)  ||
@@ -173,28 +158,64 @@ static VOID  __signalExitHandle (INT  iSigNo, struct siginfo *psiginfo)
         (iSigNo == SIGSEGV) ||
         (iSigNo == SIGILL)  ||
         (iSigNo == SIGFPE)  ||
-        (iSigNo == SIGSYS)) {
+        (iSigNo == SIGSYS)) {                                           /*  整个进程需要退出            */
 #if LW_CFG_MODULELOADER_EN > 0
+        if (pid > 0) {
+            vprocExitModeSet(pid, LW_VPROC_EXIT_FORCE);                 /*  强制进程退出                */
+            vprocSetImmediatelyTerm(pid);                               /*  立即退出模式                */
+        }
         __LW_FATAL_ERROR_HOOK(pid, ulId, psiginfo);                     /*  关键性异常                  */
 #else
         __LW_FATAL_ERROR_HOOK(0, ulId, psiginfo);                       /*  关键性异常                  */
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
         _exit(psiginfo->si_int);
     
-    } else {                                                            /*  非关键性异常                */
-        API_ThreadDelete(&ulId, (PVOID)psiginfo->si_int);               /*  删除自己                    */
-    }                                                                   /*  如果在安全模式, 则退出安全  */
+    } else if (iSigNo != SIGTERM) {                                     /*  仅删除当前线程              */
+        if (pid > 0 && vprocIsMainThread()) {
+            vprocExitModeSet(pid, LW_VPROC_EXIT_FORCE);                 /*  强制进程退出                */
+            vprocSetImmediatelyTerm(pid);                               /*  立即退出模式                */
+        }
+    }
+                                                                        /*  删除自己                    */
+    API_ThreadDelete(&ulId, (PVOID)psiginfo->si_int);                   /*  如果在安全模式, 则退出安全  */
 }                                                                       /*  模式后, 自动被删除          */
+/*********************************************************************************************************
+** 函数名称: __signalKillHandle
+** 功能描述: SIGKILL 信号的服务函数
+** 输　入  : ptcbCur       当前任务
+**           iSigNo        信号数值
+**           psiginfo      信号信息
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+
+static VOID  __signalKillHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct siginfo *psiginfo)
+{
+    LW_OBJECT_HANDLE    ulId = ptcbCur->TCB_ulId;
+    pid_t               pid  = vprocGetPidByTcb(ptcbCur);
+
+    if (pid > 0 && vprocIsMainThread()) {
+        vprocExitModeSet(pid, LW_VPROC_EXIT_FORCE);                     /*  强制进程退出                */
+        vprocSetImmediatelyTerm(pid);                                   /*  立即退出模式                */
+    }
+
+    API_ThreadDelete(&ulId, (PVOID)psiginfo->si_int);                   /*  删除自己                    */
+}
+
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
 ** 函数名称: __signalWaitHandle
 ** 功能描述: 回收子进程资源
-** 输　入  : iSigNo        信号数值
+** 输　入  : ptcbCur       当前任务
+**           iSigNo        信号数值
 **           psiginfo      信号信息
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __signalWaitHandle (INT  iSigNo, struct siginfo *psiginfo)
+static VOID  __signalWaitHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct siginfo *psiginfo)
 {
 #if LW_CFG_MODULELOADER_EN > 0
     reclaimchild(psiginfo->si_pid);
@@ -203,18 +224,19 @@ static VOID  __signalWaitHandle (INT  iSigNo, struct siginfo *psiginfo)
 /*********************************************************************************************************
 ** 函数名称: __signalStopHandle
 ** 功能描述: SIGSTOP / SIGTSTP 信号的服务函数
-** 输　入  : iSigNo        信号数值
+** 输　入  : ptcbCur       当前任务
+**           iSigNo        信号数值
 **           psiginfo      信号信息
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __signalStopHandle (INT  iSigNo, struct siginfo *psiginfo)
+static VOID  __signalStopHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct siginfo *psiginfo)
 {
     sigset_t            sigsetMask;
     
 #if LW_CFG_MODULELOADER_EN > 0
-    LW_LD_VPROC        *pvproc = __LW_VP_GET_CUR_PROC();
+    LW_LD_VPROC        *pvproc = __LW_VP_GET_TCB_PROC(ptcbCur);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
     
     sigsetMask = ~__SIGNO_UNMASK;
@@ -238,12 +260,13 @@ static VOID  __signalStopHandle (INT  iSigNo, struct siginfo *psiginfo)
 /*********************************************************************************************************
 ** 函数名称: __signalStkShowHandle
 ** 功能描述: 打印上下文服务函数
-** 输　入  : psigctlmsg              信号控制信息
+** 输　入  : ptcbCur       当前任务
+**           psigctlmsg    信号控制信息
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __signalStkShowHandle (PLW_CLASS_SIGCTLMSG   psigctlmsg)
+static VOID  __signalStkShowHandle (PLW_CLASS_TCB  ptcbCur, PLW_CLASS_SIGCTLMSG   psigctlmsg)
 {
 #if LW_CFG_ABORT_CALLSTACK_INFO_EN > 0
     API_BacktraceShow(STD_OUT, 100);
@@ -617,11 +640,13 @@ static VOID  __sigRunHandle (PLW_CLASS_SIGCONTEXT  psigctx,
                              PLW_CLASS_SIGCTLMSG   psigctlmsg)
 {
     REGISTER struct sigaction     *psigaction;
-    
+             PLW_CLASS_TCB         ptcbCur;
     REGISTER VOIDFUNCPTR           pfuncHandle;
              PVOID                 pvCtx;
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */
+    LW_TCB_GET_CUR(ptcbCur);                                            /*  获得当前 TCB                */
+
     psigaction  = &psigctx->SIGCTX_sigaction[__sigindex(iSigNo)];
     pfuncHandle = (VOIDFUNCPTR)psigaction->sa_handler;                  /*  获得信号执行函数句柄        */
     
@@ -630,70 +655,78 @@ static VOID  __sigRunHandle (PLW_CLASS_SIGCONTEXT  psigctx,
     }
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
-    if ((pfuncHandle != SIG_IGN)   && 
-        (pfuncHandle != SIG_ERR)   &&
-        (pfuncHandle != SIG_DFL)   &&
-        (pfuncHandle != SIG_CATCH) &&
-        (pfuncHandle != SIG_HOLD)) {
-        pvCtx = (psigctlmsg) 
-              ? &psigctlmsg->SIGCTLMSG_archRegCtx
-              : LW_NULL;
-              
-        if (psigaction->sa_flags & SA_SIGINFO) {                        /*  需要 siginfo_t 信息         */
-            LW_SOFUNC_PREPARE(pfuncHandle);
-            pfuncHandle(iSigNo, psiginfo, pvCtx);                       /*  执行信号句柄                */
-        
-        } else {
-            LW_SOFUNC_PREPARE(pfuncHandle);
-            pfuncHandle(iSigNo, pvCtx);                                 /*  XXX 是否传入 pvCtx 参数 ?   */
-        }
-    
-        if (__SIGNO_MUST_EXIT & __sigmask(iSigNo)) {                    /*  必须退出                    */
-            __signalExitHandle(iSigNo, psiginfo);
-        
-        } else if (iSigNo == SIGCNCL) {                                 /*  线程取消信号                */
-            __signalCnclHandle(iSigNo, psiginfo);
-        }
-    
-    } else {
-        switch (iSigNo) {                                               /*  默认处理句柄                */
-        
-        case SIGINT:
-        case SIGQUIT:
-        case SIGFPE:
-        case SIGKILL:
-        case SIGBUS:
-        case SIGTERM:
-        case SIGABRT:
-        case SIGILL:
-        case SIGSEGV:
-        case SIGSYS:
-            __signalExitHandle(iSigNo, psiginfo);
-            break;
-            
-        case SIGSTOP:
-        case SIGTSTP:
-            __signalStopHandle(iSigNo, psiginfo);
-            break;
-            
-        case SIGCHLD:
-            if ((psiginfo->si_code == CLD_EXITED) ||
-                (psiginfo->si_code == CLD_KILLED) ||
-                (psiginfo->si_code == CLD_DUMPED)) {                    /*  回收子进程资源              */
-                __signalWaitHandle(iSigNo, psiginfo);
+#if LW_CFG_MODULELOADER_EN > 0                                          /*  进程 KILL 不执行安装句柄    */
+    if (iSigNo == SIGKILL && __LW_VP_GET_TCB_PROC(ptcbCur)) {
+        __signalKillHandle(ptcbCur, iSigNo, psiginfo);                  /*  立即退出                    */
+
+    } else
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+    {
+        if ((pfuncHandle != SIG_IGN)   &&
+            (pfuncHandle != SIG_ERR)   &&
+            (pfuncHandle != SIG_DFL)   &&
+            (pfuncHandle != SIG_CATCH) &&
+            (pfuncHandle != SIG_HOLD)) {                                /*  需要执行用户句柄            */
+            pvCtx = (psigctlmsg)
+                  ? &psigctlmsg->SIGCTLMSG_archRegCtx
+                  : LW_NULL;
+
+            if (psigaction->sa_flags & SA_SIGINFO) {                    /*  需要 siginfo_t 信息         */
+                LW_SOFUNC_PREPARE(pfuncHandle);
+                pfuncHandle(iSigNo, psiginfo, pvCtx);                   /*  执行信号句柄                */
+
+            } else {
+                LW_SOFUNC_PREPARE(pfuncHandle);
+                pfuncHandle(iSigNo, pvCtx);                             /*  XXX 是否传入 pvCtx 参数 ?   */
             }
-            break;
+        
+            if (__SIGNO_MUST_EXIT & __sigmask(iSigNo)) {                /*  必须退出                    */
+                __signalExitHandle(ptcbCur, iSigNo, psiginfo);
+
+            } else if (iSigNo == SIGCNCL) {                             /*  线程取消信号                */
+                __signalCnclHandle(ptcbCur, iSigNo, psiginfo);
+            }
+        
+        } else {                                                        /*  其他处理                    */
+            switch (iSigNo) {                                           /*  默认处理句柄                */
             
-        case SIGCNCL:
-            __signalCnclHandle(iSigNo, psiginfo);
-            break;
-            
-        case SIGSTKSHOW:
-            __signalStkShowHandle(psigctlmsg);
-            break;
-            
-        default:
-            break;
+            case SIGINT:
+            case SIGQUIT:
+            case SIGFPE:
+            case SIGKILL:
+            case SIGBUS:
+            case SIGTERM:
+            case SIGABRT:
+            case SIGILL:
+            case SIGSEGV:
+            case SIGSYS:
+                __signalExitHandle(ptcbCur, iSigNo, psiginfo);
+                break;
+
+            case SIGSTOP:
+            case SIGTSTP:
+                __signalStopHandle(ptcbCur, iSigNo, psiginfo);
+                break;
+
+            case SIGCHLD:
+                if ((psiginfo->si_code == CLD_EXITED) ||
+                    (psiginfo->si_code == CLD_KILLED) ||
+                    (psiginfo->si_code == CLD_DUMPED)) {                /*  回收子进程资源              */
+                    __signalWaitHandle(ptcbCur, iSigNo, psiginfo);
+                }
+                break;
+
+            case SIGCNCL:
+                __signalCnclHandle(ptcbCur, iSigNo, psiginfo);
+                break;
+
+            case SIGSTKSHOW:
+                __signalStkShowHandle(ptcbCur, psigctlmsg);
+                break;
+
+            default:
+                break;
+            }
         }
     }
 }

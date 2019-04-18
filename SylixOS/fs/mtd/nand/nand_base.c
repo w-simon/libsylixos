@@ -85,6 +85,7 @@ static struct nand_ecclayout nand_oob_8 = {
 		 .length = 2} }
 };
 
+#ifdef NO_YAFFS_512_COMPAT
 static struct nand_ecclayout nand_oob_16 = {
 	.eccbytes = 6,
 	.eccpos = {0, 1, 2, 3, 6, 7},
@@ -92,6 +93,15 @@ static struct nand_ecclayout nand_oob_16 = {
 		{.offset = 8,
 		 . length = 8} }
 };
+#else /* Zhang.ZG */
+static struct nand_ecclayout nand_oob_16 = {
+    .eccbytes = 6,
+	.eccpos = {8, 9, 10, 13, 14, 15},
+	.oobfree = {
+		{.offset = 0,
+		 .length = 16} }
+};
+#endif
 
 static struct nand_ecclayout nand_oob_64 = {
 	.eccbytes = 24,

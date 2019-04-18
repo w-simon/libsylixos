@@ -95,18 +95,13 @@ static PLW_CLASS_TCB  _CandTableNext (PLW_CLASS_PCBBMAP  ppcbbmap, UINT8  ucPrio
     
     ppcb = &ppcbbmap->PCBM_pcb[ucPriority];
     ptcb = _LIST_ENTRY(ppcb->PCB_pringReadyHeader, 
-                       LW_CLASS_TCB, 
-                       TCB_ringReady);                                  /*  从就绪环中取出一个线程      */
+                       LW_CLASS_TCB, TCB_ringReady);                    /*  从就绪环中取出一个线程      */
     
-    if (ptcb->TCB_ucSchedPolicy == LW_OPTION_SCHED_FIFO) {              /*  如果是 FIFO 直接运行        */
-        return  (ptcb);
-    
-    } else if (ptcb->TCB_usSchedCounter == 0) {                         /*  缺少时间片                  */
+    if (ptcb->TCB_usSchedCounter == 0) {                                /*  缺少时间片                  */
         ptcb->TCB_usSchedCounter = ptcb->TCB_usSchedSlice;              /*  补充时间片                  */
         _list_ring_next(&ppcb->PCB_pringReadyHeader);                   /*  下一个                      */
         ptcb = _LIST_ENTRY(ppcb->PCB_pringReadyHeader, 
-                           LW_CLASS_TCB, 
-                           TCB_ringReady);
+                           LW_CLASS_TCB, TCB_ringReady);
     }
     
     return  (ptcb);

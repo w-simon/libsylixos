@@ -103,6 +103,12 @@ INT  vprocProcAdd(LW_LD_VPROC *pvproc);
 INT  vprocProcDelete(LW_LD_VPROC *pvproc);
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************
+  POSIX
+*********************************************************************************************************/
+#if LW_CFG_POSIX_EN > 0
+VOID _PthreadKeyCleanup(PLW_CLASS_TCB  ptcbDel);
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+/*********************************************************************************************************
 ** 函数名称: __moduleVpPatchVersion
 ** 功能描述: vp 补丁版本
 ** 输　入  : pmodule       进程主模块句柄
@@ -768,6 +774,85 @@ pid_t  vprocGetPidByThread (LW_OBJECT_HANDLE  ulId)
     return  (pid);
 }
 /*********************************************************************************************************
+** 函数名称: vprocKillPrepare
+** 功能描述: 停止进程内的除主线程外的所有线程.
+** 输　入  : pid            进程号
+**           ulId           主线程
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  vprocKillPrepare (pid_t  pid, LW_OBJECT_HANDLE  ulId)
+{
+    LW_LD_VPROC    *pvproc;
+    PLW_LIST_LINE   plineTemp;
+    PLW_CLASS_TCB   ptcb;
+
+    if (pid > 0 && pid <= LW_CFG_MAX_THREADS) {
+        LW_LD_LOCK();
+        pvproc = _G_pvprocTable[pid - 1];
+        if (pvproc && !pvproc->VP_bKillPrepare) {
+            LW_VP_LOCK(pvproc);                                         /*  锁定目标进程                */
+            pvproc->VP_bKillPrepare = LW_TRUE;                          /*  删除前需要解锁              */
+
+            LW_LD_UNLOCK();
+            for (plineTemp  = pvproc->VP_plineThread;
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+
+                ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+                if (ptcb->TCB_ulId == ulId) {
+                    continue;                                           /*  不停止主任务                */
+                }
+
+                __KERNEL_ENTER();                                       /*  进入内核                    */
+                _ThreadStop(ptcb);
+                __KERNEL_EXIT();                                        /*  退出内核                    */
+            }
+            LW_VP_UNLOCK(pvproc);                                       /*  解锁目标进程                */
+
+        } else {
+            LW_LD_UNLOCK();
+        }
+    }
+}
+/*********************************************************************************************************
+** 函数名称: vprocKillRelease
+** 功能描述: 继续运行除主线程以外的其他线程.
+** 输　入  : pid            进程号
+**           ulId           主线程
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  vprocKillRelease (PLW_CLASS_TCB  ptcbCur)
+{
+    LW_LD_VPROC    *pvproc;
+    PLW_LIST_LINE   plineTemp;
+    PLW_CLASS_TCB   ptcb;
+
+    pvproc = (LW_LD_VPROC *)ptcbCur->TCB_pvVProcessContext;
+    if (pvproc && pvproc->VP_bKillPrepare) {
+        LW_VP_LOCK(pvproc);                                             /*  锁定目标进程                */
+        pvproc->VP_bKillPrepare = LW_FALSE;
+
+        for (plineTemp  = pvproc->VP_plineThread;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+
+            ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+            if (ptcb == ptcbCur) {
+                continue;
+            }
+
+            __KERNEL_ENTER();                                           /*  进入内核                    */
+            _ThreadContinue(ptcb, LW_FALSE);
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+        }
+        LW_VP_UNLOCK(pvproc);                                           /*  解锁目标进程                */
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: vprocMainThread
 ** 功能描述: 通过进程号, 查找对应的主线程.
 ** 输　入  : pid       进程号
@@ -788,6 +873,28 @@ LW_OBJECT_HANDLE vprocMainThread (pid_t pid)
     }
     
     return  (lId);
+}
+/*********************************************************************************************************
+** 函数名称: vprocCurIsMainThread
+** 功能描述: 当前线程是否为主线程.
+** 输　入  : NONE
+** 输　出  : 是否为主线程
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL vprocIsMainThread (VOID)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    LW_LD_VPROC    *pvproc;
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    pvproc = (LW_LD_VPROC *)ptcbCur->TCB_pvVProcessContext;
+    if (pvproc && (pvproc->VP_ulMainThread == ptcbCur->TCB_ulId)) {
+        return  (LW_TRUE);
+    }
+
+    return  (LW_FALSE);
 }
 /*********************************************************************************************************
 ** 函数名称: vprocNotifyParent
@@ -988,16 +1095,20 @@ VOID  vprocExit (LW_LD_VPROC *pvproc, LW_OBJECT_HANDLE  ulId, INT  iCode)
         return;
     }
     
-#if LW_CFG_THREAD_EXT_EN > 0
     LW_TCB_GET_CUR_SAFE(ptcbCur);
+
 __recheck:
+#if LW_CFG_THREAD_EXT_EN > 0
     _TCBCleanupPopExt(ptcbCur);                                         /*  提前执行 cleanup pop 操作   */
-#else
-__recheck:
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
     
+#if LW_CFG_POSIX_EN > 0
+    _PthreadKeyCleanup(ptcbCur);                                        /*  提前执行 key cleanup 操作   */
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+
     if (pvproc->VP_iExitMode == LW_VPROC_EXIT_FORCE) {                  /*  强制退出删除除主线程外的线程*/
-        vprocThreadKill(pvproc);
+        vprocThreadKill(pvproc, ptcbCur);
+        vprocKillRelease(ptcbCur);
     }
     
     do {                                                                /*  等待所有的线程安全退出      */

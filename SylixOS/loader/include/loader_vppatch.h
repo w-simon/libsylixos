@@ -101,6 +101,7 @@ typedef struct lw_ld_vproc {
     
     LW_FD_DESC              VP_fddescTbl[LW_VP_MAX_FILES];              /*  进程 fd 表                  */
     
+    BOOL                    VP_bKillPrepare;                            /*  清除进程前是否需要 release  */
     INT                     VP_iExitMode;                               /*  退出模式                    */
     LW_LD_VPROC_T           VP_vptimer[3];                              /*  REAL / VIRTUAL / PROF 定时器*/
     INT64                   VP_i64Tick;                                 /*  itimer tick 辅助变量        */
@@ -164,7 +165,9 @@ pid_t               vprocGetPidByTcb(PLW_CLASS_TCB ptcb);
 pid_t               vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
 pid_t               vprocGetPidByTcbdesc(PLW_CLASS_TCB_DESC  ptcbdesc);
 pid_t               vprocGetPidByThread(LW_OBJECT_HANDLE  ulId);
+VOID                vprocKillPrepare(pid_t pid, LW_OBJECT_HANDLE  ulId);
 LW_OBJECT_HANDLE    vprocMainThread(pid_t pid);
+BOOL                vprocIsMainThread(VOID);
 INT                 vprocNotifyParent(LW_LD_VPROC *pvproc, INT  iSigCode, BOOL  bUpDateStat);
 VOID                vprocReclaim(LW_LD_VPROC *pvproc, BOOL  bFreeVproc);
 INT                 vprocSetImmediatelyTerm(pid_t  pid);
@@ -198,7 +201,7 @@ ssize_t             vprocGetModsSvr4Info(pid_t  pid, PCHAR  pcBuff, size_t stMax
 VOID                vprocThreadAdd(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
 VOID                vprocThreadDelete(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
 INT                 vprocThreadNum(pid_t  pid, ULONG  *pulNum);
-VOID                vprocThreadKill(PVOID  pvVProc);
+VOID                vprocThreadKill(PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp);
 
 #if LW_CFG_SIGNAL_EN > 0
 INT                 vprocThreadSigaction(PVOID  pvVProc, VOIDFUNCPTR  pfunc, INT  iSigIndex, 

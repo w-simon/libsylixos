@@ -108,21 +108,17 @@ INT  vprocThreadNum (pid_t  pid, ULONG  *pulNum)
 ** 函数名称: vprocThreadKill
 ** 功能描述: 杀死进程内的除主线程外的所有线程
 ** 输　入  : pvVProc        进程控制块指针
-**           ulThread       线程表
-**           uiTableNum     表容量
-** 输　出  : 总线程数
+**           ptcbExcp       除此之外
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : 由于此函数中间将释放系统控制权, 所以必须使用 VP_LOCK 保证安全.
 *********************************************************************************************************/
-VOID  vprocThreadKill (PVOID  pvVProc)
+VOID  vprocThreadKill (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
 {
     LW_LD_VPROC      *pvproc = (LW_LD_VPROC *)pvVProc;
     PLW_LIST_LINE     plineTemp;
     PLW_CLASS_TCB     ptcb;
-    PLW_CLASS_TCB     ptcbCur;
-    
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     LW_VP_LOCK(pvproc);                                                 /*  锁定当前进程                */
     for (plineTemp  = pvproc->VP_plineThread;
@@ -130,7 +126,7 @@ VOID  vprocThreadKill (PVOID  pvVProc)
          plineTemp  = _list_line_get_next(plineTemp)) {
         
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
-        if (ptcb != ptcbCur) {                                          /*  ptcbCur 为主线程            */
+        if (ptcb != ptcbExcp) {                                         /*  ptcbCur 为主线程            */
             _excJobAdd((VOIDFUNCPTR)kill, (PVOID)ptcb->TCB_ulId, (PVOID)SIGKILL, 0, 0, 0, 0);
         }
     }

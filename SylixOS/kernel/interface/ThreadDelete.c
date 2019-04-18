@@ -434,7 +434,7 @@ void  exit (int  iCode)
     
     if (pvprocCur) {
         if (pvprocCur->VP_ulMainThread == ulId) {
-            vprocExit(__LW_VP_GET_CUR_PROC(), ulId, iCode);             /*  进程结束                    */
+            vprocExit(pvprocCur, ulId, iCode);                          /*  进程结束                    */
         }
 #if LW_CFG_SIGNAL_EN > 0
           else {
@@ -475,7 +475,7 @@ void  _exit (int  iCode)
     if (pvprocCur) {
         pvprocCur->VP_bRunAtExit = LW_FALSE;                            /*  不执行 atexit 安装函数      */
         if (pvprocCur->VP_ulMainThread == ulId) {
-            vprocExit(__LW_VP_GET_CUR_PROC(), ulId, iCode);             /*  进程结束                    */
+            vprocExit(pvprocCur, ulId, iCode);                          /*  进程结束                    */
         }
 #if LW_CFG_SIGNAL_EN > 0
           else {

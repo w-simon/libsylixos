@@ -562,10 +562,11 @@ static void  netdev_netif_set_linkup (netdev_t *netdev, int linkup, UINT32 speed
     netif->ts = sys_jiffies();
     netdev->speed = speed;
     
-    if (!netif->ext_eth) { /* not in net bridge or bonding */
+    if (!netif->ext_ctl) { /* not in net bridge or bonding */
       netifapi_netif_set_link_up(netif);
     } else {
       netif_set_flags(netif, NETIF_FLAG_LINK_UP);
+      netdev_netif_linkup(netif);
     }
 
     if (speed > 0xffffffff) {
@@ -575,10 +576,11 @@ static void  netdev_netif_set_linkup (netdev_t *netdev, int linkup, UINT32 speed
     }
   
   } else {
-    if (!netif->ext_eth) { /* not in net bridge or bonding */
+    if (!netif->ext_ctl) { /* not in net bridge or bonding */
       netifapi_netif_set_link_down(netif);
     } else {
       netif_clear_flags(netif, NETIF_FLAG_LINK_UP);
+      netdev_netif_linkup(netif);
     }
   }
   
@@ -1054,6 +1056,8 @@ int  netdev_delete (netdev_t *netdev)
   
   netif = (struct netif *)netdev->sys;
   
+  LWIP_IF_LIST_LOCK(LW_TRUE);
+
 #if LW_CFG_NET_DEV_BRIDGE_EN > 0
   netbr_sub_delete_hook(netdev);
 #endif /* LW_CFG_NET_DEV_BONDING_EN > 0 */
@@ -1062,7 +1066,6 @@ int  netdev_delete (netdev_t *netdev)
   netbd_sub_delete_hook(netdev);
 #endif /* LW_CFG_NET_DEV_BONDING_EN > 0 */
   
-  LWIP_IF_LIST_LOCK(LW_TRUE);
   NETIF_FOREACH(tmp_netif) {
     if (tmp_netif == netif) {
       break;

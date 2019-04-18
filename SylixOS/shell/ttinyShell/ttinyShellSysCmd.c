@@ -898,7 +898,7 @@ static INT  __tshellSysCmdMems (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellSysCmdKill (INT  iArgC, PCHAR  ppcArgV[])
 {
     LW_OBJECT_HANDLE  ulId    = LW_OBJECT_HANDLE_INVALID;
-    INT               iSigNum = SIGTERM;
+    INT               iSigNum = SIGKILL;
 
     if (iArgC == 2) {
         if (ppcArgV[1][0] < '0' ||
@@ -943,7 +943,7 @@ static INT  __tshellSysCmdKill (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellSysCmdSigqueue (INT  iArgC, PCHAR  ppcArgV[])
 {
     LW_OBJECT_HANDLE  ulId    = LW_OBJECT_HANDLE_INVALID;
-    INT               iSigNum = SIGTERM;
+    INT               iSigNum = SIGKILL;
     union sigval      sigvalue;
     
     sigvalue.sival_int = 0;

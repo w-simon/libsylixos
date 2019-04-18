@@ -386,7 +386,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
       found = 1;
     }
   }
-  if (!found || netif->ext_eth || (netdev->net_type != NETDEV_TYPE_ETHERNET)) {
+  if (!found || netif->ext_ctl || (netdev->net_type != NETDEV_TYPE_ETHERNET)) {
     LWIP_IF_LIST_UNLOCK();
     errno = ENXIO;
     return (-1);
@@ -434,7 +434,8 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
   netbr_eth->input = netif->input; /* save the old input function */
   netif->input  = netbr_input; /* set new input function */
   netif->ext_eth = (void *)netbr_eth;
-  
+  netif->ext_ctl = (void *)netbr;
+
   if (need_up) {
     netifapi_netif_set_up(netif_br); /* make bridge up */
   }
@@ -551,7 +552,7 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
   NETBR_UNLOCK(netbr);
   
   netif->input = netbr_eth->input; /* restore old input function */
-  netif->ext_eth = NULL;
+  netif->ext_ctl = netif->ext_eth = NULL;
   
   mem_free(netbr_eth);
   
@@ -712,7 +713,7 @@ int  netbr_delete (const char *brdev)
     }
     
     netif->input = netbr_eth->input; /* restore input function */
-    netif->ext_eth = NULL;
+    netif->ext_ctl = netif->ext_eth = NULL;
   
     mem_free(netbr_eth);
   
@@ -787,7 +788,8 @@ int  netbr_flush_cache (const char *brdev)
   return (0);
 }
 
-/* net bridge sub device delete hook */
+/* net bridge sub device delete hook
+   NOTICE: this is in LWIP_IF_LIST_LOCK status */
 void  netbr_sub_delete_hook (netdev_t *netdev)
 {
   int flags;
@@ -797,11 +799,9 @@ void  netbr_sub_delete_hook (netdev_t *netdev)
   struct ifreq ifreq;
   LW_LIST_LINE *pline;
 
-  LWIP_IF_LIST_LOCK(FALSE);
   netif = (struct netif *)netdev->sys;
-  netbr = (netbr_t *)netif->ext_eth;
+  netbr = (netbr_t *)netif->ext_ctl;
   if (!netbr || netbr->magic_no != NETBRIDGE_MAGIC) {
-    LWIP_IF_LIST_UNLOCK();
     return;
   }
   for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
@@ -811,10 +811,8 @@ void  netbr_sub_delete_hook (netdev_t *netdev)
     }
   }
   if (!pline) {
-    LWIP_IF_LIST_UNLOCK();
     return;
   }
-  LWIP_IF_LIST_UNLOCK();
   
   if (netif->flags & NETIF_FLAG_UP) {
     netif->flags &= ~NETIF_FLAG_UP;
@@ -841,7 +839,7 @@ void  netbr_sub_delete_hook (netdev_t *netdev)
   NETBR_UNLOCK(netbr);
   
   netif->input = netbr_eth->input; /* restore old input function */
-  netif->ext_eth = NULL;
+  netif->ext_ctl = netif->ext_eth = NULL;
   
   mem_free(netbr_eth);
 }

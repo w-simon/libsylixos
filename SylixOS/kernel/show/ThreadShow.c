@@ -116,7 +116,7 @@ VOID    API_ThreadShowEx (pid_t  pid)
         }
         
 #if LW_CFG_CPU_WORD_LENGHT == 64
-        if (tcbdesc.TCBD_ulWakeupLeft > 9999999999l) {
+        if (tcbdesc.TCBD_ulWakeupLeft > 999999999l) {
             lib_strcpy(cWakeupLeft, "--");
         } else 
 #endif

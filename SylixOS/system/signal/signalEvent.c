@@ -150,6 +150,9 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
 #if LW_CFG_SIGNALFD_EN > 0
              LW_SEND_VAL         sendval;
 #endif
+#if LW_CFG_MODULELOADER_EN > 0
+             pid_t               pid;
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
              
     struct sigevent  *psigevent = &psigea->SE_event.SE_sigevent;
     struct siginfo   *psiginfo  = &psigea->SE_event.SE_siginfo;
@@ -170,7 +173,10 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
     
 #if LW_CFG_MODULELOADER_EN > 0
     if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
+        pid   = (pid_t)ulId;
         ulId  = vprocMainThread((pid_t)ulId);
+    } else {
+        pid = 0;
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
@@ -213,6 +219,12 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
     
+#if LW_CFG_MODULELOADER_EN > 0
+    if ((psigevent->sigev_signo == SIGKILL) && (pid > 0)) {
+        vprocKillPrepare(pid, ulId);                                    /*  进程 KILL 预处理            */
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */

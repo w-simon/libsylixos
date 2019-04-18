@@ -2456,8 +2456,8 @@ static VOID gdbExit (INT iSigNo)
     }
 
     if (!pparam->GDB_bAttached && !pparam->GDB_bExited) {               /* 如果不是attch则停止进程      */
-        kill(pparam->GDB_iPid, SIGABRT);                                /* 强制进程停止                 */
-        LW_GDB_MSG("[GDB]Warning: Process is killed (SIGABRT) by GDB server.\n"
+        kill(pparam->GDB_iPid, SIGKILL);                                /* 强制进程停止                 */
+        LW_GDB_MSG("[GDB]Warning: Process is killed (SIGKILL) by GDB server.\n"
                    "     Restart SylixOS is recommended!\n");
     }
 #if LW_CFG_SMP_EN > 0

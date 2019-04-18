@@ -414,7 +414,8 @@ struct netif {
 #define NETIF_FLAG2_PROMISC     2
 #define NETIF_FLAG2_ALLMULTI    4
   int priv_flags;
-  void *ext_eth; /* net bridge or bonding ctl */
+  void *ext_eth; /* net bridge or bonding or ... eth node */
+  void *ext_ctl; /* net bridge or bonding or ... ctl block */
   void *flowctl; /* net flow ctl */
   u16_t vlanid; /* include tag & pri */
   int metric; /* netif metric (NOT support now) */

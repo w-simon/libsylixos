@@ -91,6 +91,12 @@
 #include "../SylixOS/shell/hashLib/hashHorner.h"
 #include "../SylixOS/shell/ttinyVar/ttinyVarLib.h"
 /*********************************************************************************************************
+  内部进程相关函数声明
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+#include "../SylixOS/loader/include/loader_vppatch.h"
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
   背景控制 (t_shell 线程中通过接收的命令字符串末尾判断)
 *********************************************************************************************************/
 #define __TTINY_SHELL_BG_ASYNC            '&'                           /*  背景异步执行                */
@@ -841,7 +847,15 @@ INT  __tshellRestartEx (LW_OBJECT_HANDLE  ulThread, BOOL  bNeedAuthen)
     
     if (ulJoin) {
 #if LW_CFG_SIGNAL_EN > 0
-        kill(ulJoin, SIGKILL);                                          /*  杀死等待的线程/进程         */
+#if LW_CFG_MODULELOADER_EN > 0
+        pid_t pid = vprocGetPidByThread(ulJoin);
+        if (pid > 0) {
+            kill(pid, SIGKILL);                                         /*  杀死等待的进程              */
+        } else
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+        {
+            kill(ulJoin, SIGKILL);                                      /*  杀死等待的线程              */
+        }
 #else
         API_ThreadDelete(&ulJoin, LW_NULL);
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */

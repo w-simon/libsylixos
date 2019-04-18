@@ -384,6 +384,7 @@ netif_add(struct netif *netif,
   netif->flags2 = 0;
   netif->priv_flags = 0;
   netif->ext_eth = NULL;
+  netif->ext_ctl = NULL;
   netif->flowctl = NULL;
   netif->vlanid = (u16_t)-1;
   netif->metric = 1;

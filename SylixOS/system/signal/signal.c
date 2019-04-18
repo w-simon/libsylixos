@@ -834,8 +834,13 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
 #endif
     
 #if LW_CFG_MODULELOADER_EN > 0
+    pid_t    pid;
+
     if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
+        pid   = (pid_t)ulId;
         ulId  = vprocMainThread((pid_t)ulId);
+    } else {
+        pid = 0;
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
@@ -869,6 +874,12 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
         }
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
+
+#if LW_CFG_MODULELOADER_EN > 0
+    if ((iSigNo == SIGKILL) && (pid > 0)) {
+        vprocKillPrepare(pid, ulId);                                    /*  进程 KILL 预处理            */
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
@@ -947,8 +958,13 @@ static INT  __sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, PVOID  psigvalue)
     sigvalue.sival_ptr = psigvalue;
 
 #if LW_CFG_MODULELOADER_EN > 0
+    pid_t    pid;
+
     if (ulId <= LW_CFG_MAX_THREADS) {                                   /*  进程号                      */
+        pid   = (pid_t)ulId;
         ulId  = vprocMainThread((pid_t)ulId);
+    } else {
+        pid = 0;
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     
@@ -969,6 +985,12 @@ static INT  __sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, PVOID  psigvalue)
         }
     }
 #endif                                                                  /*  LW_CFG_SMP_EN               */
+
+#if LW_CFG_MODULELOADER_EN > 0
+    if ((iSigNo == SIGKILL) && (pid > 0)) {
+        vprocKillPrepare(pid, ulId);                                    /*  进程 KILL 预处理            */
+    }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
