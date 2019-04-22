@@ -176,7 +176,7 @@ int  pthread_attr_setguardsize (pthread_attr_t  *pattr, size_t  stGuard)
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-int  pthread_attr_getguardsize (pthread_attr_t  *pattr, size_t  *pstGuard)
+int  pthread_attr_getguardsize (const pthread_attr_t  *pattr, size_t  *pstGuard)
 {
     if ((pattr == LW_NULL) || (pstGuard == LW_NULL)) {
         errno = EINVAL;
@@ -592,6 +592,63 @@ int  pthread_attr_getname (const pthread_attr_t  *pattr, char  **ppcName)
     
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: pthread_attr_setinitonly_np
+** 功能描述: 设置一个线程属性块是否仅初始化线程.
+** 输　入  : pattr         需要设置的 attr 指针.
+**           init          是否仅初始化线程
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_POSIXEX_EN > 0
+
+LW_API
+int  pthread_attr_setinitonly_np (pthread_attr_t  *pattr, int  init)
+{
+    if (pattr == LW_NULL) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
+    if (init) {
+        pattr->PTHREADATTR_ulOption |= LW_OPTION_THREAD_INIT;
+    } else {
+        pattr->PTHREADATTR_ulOption &= ~LW_OPTION_THREAD_INIT;
+    }
+
+    return  (ERROR_NONE);
+}
+
+/*********************************************************************************************************
+** 函数名称: pthread_attr_getinitonly_np
+** 功能描述: 获取一个线程属性块是否仅初始化线程.
+** 输　入  : pattr         需要设置的 attr 指针.
+**           pinit         是否仅初始化线程
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  pthread_attr_getinitonly_np (const pthread_attr_t  *pattr, int  *pinit)
+{
+    if ((pattr == LW_NULL) || !pinit) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
+    if (pattr->PTHREADATTR_ulOption & LW_OPTION_THREAD_INIT) {
+        *pinit = 1;
+    } else {
+        *pinit = 0;
+    }
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_POSIXEX_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: pthread_attr_get_np
 ** 功能描述: 获取线程属性控制块 (FreeBSD 扩展接口)

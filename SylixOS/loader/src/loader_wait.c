@@ -696,6 +696,69 @@ void reclaimchild (pid_t pid)
     } while (1);
 }
 /*********************************************************************************************************
+** 函数名称: ischild
+** 功能描述: 是否为当前进程子进程
+** 输　入  : pid           进程 ID
+** 输　出  : LW_TRUE: 是当前进程子进程, LW_FALSE 否
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+BOOL ischild (pid_t pid)
+{
+    LW_LD_VPROC    *pvproc = __LW_VP_GET_CUR_PROC();
+
+    if (pvproc == LW_NULL) {
+        return  (LW_FALSE);
+    }
+
+    return  (__haveThisChild(pvproc, pid));
+}
+/*********************************************************************************************************
+** 函数名称: isbrother
+** 功能描述: 是否为当前进程兄弟进程
+** 输　入  : pid           进程 ID
+** 输　出  : LW_TRUE: 是当前进程兄弟进程, LW_FALSE 否
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+BOOL isbrother (pid_t pid)
+{
+    BOOL            bRet = LW_FALSE;
+    LW_LD_VPROC    *pvproc = __LW_VP_GET_CUR_PROC();
+    LW_LD_VPROC    *pvprocChild;
+    LW_LD_VPROC    *pvprocFather;
+    PLW_LIST_LINE   plineList;
+
+    if (pvproc == LW_NULL) {
+        return  (LW_FALSE);
+    }
+
+    LW_LD_LOCK();
+    pvprocFather = pvproc->VP_pvprocFather;
+    if (!pvprocFather) {
+        LW_LD_UNLOCK();
+        return  (LW_FALSE);
+    }
+
+    for (plineList  = pvprocFather->VP_plineChild;
+         plineList != LW_NULL;
+         plineList  = _list_line_get_next(plineList)) {
+
+        pvprocChild = _LIST_ENTRY(plineList, LW_LD_VPROC, VP_lineBrother);
+        if (pvprocChild->VP_pid == pid) {
+            bRet = LW_TRUE;
+            break;
+        }
+    }
+    LW_LD_UNLOCK();
+
+    return  (bRet);
+}
+/*********************************************************************************************************
 ** 函数名称: detach
 ** 功能描述: 脱离与父进程关系
 ** 输　入  : pid           指定的子线程
@@ -756,7 +819,6 @@ int daemon (int nochdir, int noclose)
     
     return  (ERROR_NONE);
 }
-#else                                                                   /*  NO MODULELOADER             */
 /*********************************************************************************************************
 ** 函数名称: getpid
 ** 功能描述: 获得当前进程号
@@ -766,6 +828,8 @@ int daemon (int nochdir, int noclose)
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
+#else                                                                   /*  NO MODULELOADER             */
+
 LW_API
 pid_t getpid (void)
 {

@@ -82,6 +82,8 @@ pid_t wait4(pid_t pid, int *stat_loc, int options, struct rusage *prusage);
   SylixOS extern API.
 *********************************************************************************************************/
 
+BOOL  ischild(pid_t pid);
+BOOL  isbrother(pid_t pid);
 void  reclaimchild(pid_t pid);
 int   detach(pid_t pid);
 

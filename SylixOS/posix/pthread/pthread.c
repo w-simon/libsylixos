@@ -181,10 +181,44 @@ int  pthread_create (pthread_t              *pthread,
         *pthread = ulId;                                                /*  保存线程句柄                */
     }
     
-    API_ThreadStart(ulId);
+    if (!(lwattr.THREADATTR_ulOption & LW_OPTION_THREAD_INIT)) {
+        API_ThreadStart(ulId);
+    }
     
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: pthread_start_np
+** 功能描述: 启动一个已经被初始化的 posix 线程.
+** 输　入  : thread       线程 id.
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_POSIXEX_EN > 0
+
+LW_API
+int  pthread_start_np (pthread_t  thread)
+{
+    ULONG   ulError;
+
+    PX_ID_VERIFY(thread, pthread_t);
+
+    ulError = API_ThreadStart(thread);
+    switch (ulError) {
+
+    case ERROR_KERNEL_HANDLE_NULL:
+    case ERROR_THREAD_NULL:
+        errno = ESRCH;
+        return  (ESRCH);
+
+    default:
+        return  ((int)ulError);
+    }
+}
+
+#endif                                                                  /*  LW_CFG_POSIXEX_EN > 0       */
 /*********************************************************************************************************
 ** 函数名称: pthread_cancel
 ** 功能描述: cancel 一个 posix 线程.

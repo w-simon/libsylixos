@@ -405,6 +405,10 @@ static VOID  __sigMakeReady (PLW_CLASS_TCB  ptcb,
         return;
     }
     
+    if (ptcb->TCB_usStatus & LW_THREAD_STATUS_INIT) {                   /*  线程仅被初始化, 则线程就绪  */
+        ptcb->TCB_usStatus &= ~LW_THREAD_STATUS_INIT;                   /*  去掉 init 标志              */
+    }
+
     ppcb = _GetPcb(ptcb);                                               /*  获得优先级控制块            */
     if (ptcb->TCB_usStatus & LW_THREAD_STATUS_DELAY) {                  /*  存在于唤醒队列中            */
         __DEL_FROM_WAKEUP_LINE(ptcb);                                   /*  从等待链中删除              */

@@ -169,7 +169,7 @@ LW_API int          pthread_attr_destroy(pthread_attr_t  *pattr);
 LW_API int          pthread_attr_setstack(pthread_attr_t *pattr, void *pvStackAddr, size_t stSize);
 LW_API int          pthread_attr_getstack(const pthread_attr_t *pattr, void **ppvStackAddr, size_t *pstSize);
 LW_API int          pthread_attr_setguardsize(pthread_attr_t  *pattr, size_t  stGuard);
-LW_API int          pthread_attr_getguardsize(pthread_attr_t  *pattr, size_t  *pstGuard);
+LW_API int          pthread_attr_getguardsize(const pthread_attr_t  *pattr, size_t  *pstGuard);
 LW_API int          pthread_attr_setstacksize(pthread_attr_t  *pattr, size_t  stSize);
 LW_API int          pthread_attr_getstacksize(const pthread_attr_t  *pattr, size_t  *pstSize);
 LW_API int          pthread_attr_setstackaddr(pthread_attr_t  *pattr, void  *pvStackAddr);
@@ -190,6 +190,8 @@ LW_API int          pthread_attr_setname(pthread_attr_t  *pattr, const char  *pc
 LW_API int          pthread_attr_getname(const pthread_attr_t  *pattr, char  **ppcName);
 
 #if LW_CFG_POSIXEX_EN > 0
+LW_API int          pthread_attr_setinitonly_np(pthread_attr_t  *pattr, int  init);
+LW_API int          pthread_attr_getinitonly_np(const pthread_attr_t  *pattr, int  *pinit);
 LW_API int          pthread_attr_get_np(pthread_t  thread, pthread_attr_t *pattr);
 LW_API int          pthread_getattr_np(pthread_t thread, pthread_attr_t *pattr);
 LW_API int          pthread_setname_np(pthread_t  thread, const char  *name);
