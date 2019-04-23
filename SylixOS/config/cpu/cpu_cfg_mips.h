@@ -136,7 +136,7 @@
   LL/SC nesting detect fail bug
 *********************************************************************************************************/
 
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0)
 #define LW_CFG_MIPS_NEST_LLSC_BUG       1
 #else
 #define LW_CFG_MIPS_NEST_LLSC_BUG       0
