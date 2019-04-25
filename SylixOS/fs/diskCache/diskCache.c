@@ -464,6 +464,8 @@ ULONG  API_DiskCacheCreate (PLW_BLK_DEV   pblkdDisk,
                     diskCacheDelete(pblkdCfCache);
                     cfDiskCreate(pblkdCf);
                     
+** 注  意  : 必须先 ListDel 在 DISKCACHE_LOCK 防止死锁.
+
                                            API 函数
 *********************************************************************************************************/
 LW_API 
@@ -472,11 +474,11 @@ INT  API_DiskCacheDelete (PLW_BLK_DEV   pblkdDiskCache)
     REGISTER PLW_DISKCACHE_CB   pdiskcDiskCache = (PLW_DISKCACHE_CB)pblkdDiskCache;
 
     if (pblkdDiskCache) {
+        __diskCacheListDel(pdiskcDiskCache);                            /*  退出背景线程                */
+
         __LW_DISKCACHE_LOCK(pdiskcDiskCache);                           /*  等待使用权                  */
-        
         __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite);
         __diskCacheWpDelete(&pdiskcDiskCache->DISKC_wpWrite);
-        __diskCacheListDel(pdiskcDiskCache);                            /*  退出背景线程                */
         
         API_SemaphoreMDelete(&pdiskcDiskCache->DISKC_hDiskCacheLock);
         __SHEAP_FREE(pdiskcDiskCache->DISKC_pcCacheNodeMem);

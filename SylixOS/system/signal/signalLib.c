@@ -170,11 +170,13 @@ static VOID  __signalExitHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct sig
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
         _exit(psiginfo->si_int);
     
+#if LW_CFG_MODULELOADER_EN > 0
     } else if (iSigNo != SIGTERM) {                                     /*  仅删除当前线程              */
         if (pid > 0 && vprocIsMainThread()) {
             vprocExitModeSet(pid, LW_VPROC_EXIT_FORCE);                 /*  强制进程退出                */
             vprocSetImmediatelyTerm(pid);                               /*  立即退出模式                */
         }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     }
                                                                         /*  删除自己                    */
     API_ThreadDelete(&ulId, (PVOID)psiginfo->si_int);                   /*  如果在安全模式, 则退出安全  */
