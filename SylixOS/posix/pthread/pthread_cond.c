@@ -54,6 +54,7 @@ VOID  _posixPCondInit (VOID)
     _G_ulPCondInitLock = API_SemaphoreMCreate("pcondinit", LW_PRIO_DEF_CEILING, 
                                               LW_OPTION_INHERIT_PRIORITY | 
                                               LW_OPTION_WAIT_PRIORITY | 
+                                              LW_OPTION_OBJECT_GLOBAL |
                                               LW_OPTION_DELETE_SAFE, LW_NULL);
 }
 /*********************************************************************************************************

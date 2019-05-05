@@ -40,7 +40,7 @@ extern "C" {
   ÍøÇÅ¿ØÖÆ²ÎÊý.
 *********************************************************************************************************/
 struct net_bridge_ctl {
-    int     br_index;                                       /*  Only for NETBR_CTL_ADD return           */
+    int     br_index;                                       /*  NETBR_CTL_ADD return                    */
     char    br_dev[IFNAMSIZ];                               /*  Bridge device name                      */
     char    eth_dev[IFNAMSIZ];                              /*  Sub ethernet device name                */
 };

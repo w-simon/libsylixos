@@ -342,7 +342,7 @@ static void  netbr_wd (netdev_t *netdev_br)
    'subdev' sub ethernet device name 
             sub_is_ifname == 0: dev name
             sub_is_ifname == 1: if name */
-int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
+int  netbr_add_dev (const char *brdev, int brindex, const char *sub, int sub_is_ifname)
 {
   int found, flags, need_up = 0;
   struct netif *netif;
@@ -353,14 +353,18 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
   netdev_t *netdev;
   struct ifreq ifreq;
   
-  if (!brdev || !sub) {
+  if (!sub) {
     errno = EINVAL;
     return (-1);
   }
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_br = netdev_find_by_devname(brdev);
+  if (brdev && brdev[0]) {
+    netdev_br = netdev_find_by_devname(brdev);
+  } else {
+    netdev_br = netdev_find_by_index(brindex);
+  }
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
     netbr = (netbr_t *)netdev_br->priv;
     if (netbr && netbr->magic_no == NETBRIDGE_MAGIC) {
@@ -468,7 +472,7 @@ int  netbr_add_dev (const char *brdev, const char *sub, int sub_is_ifname)
    'subdev' sub ethernet device name 
             sub_is_ifname == 0: dev name
             sub_is_ifname == 1: if name */
-int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
+int  netbr_delete_dev (const char *brdev, int brindex, const char *sub, int sub_is_ifname)
 {
   int found, flags;
   char subif[IFNAMSIZ];
@@ -480,14 +484,18 @@ int  netbr_delete_dev (const char *brdev, const char *sub, int sub_is_ifname)
   LW_LIST_LINE *pline;
   struct ifreq ifreq;
   
-  if (!brdev || !sub) {
+  if (!sub) {
     errno = EINVAL;
     return (-1);
   }
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_br = netdev_find_by_devname(brdev);
+  if (brdev && brdev[0]) {
+    netdev_br = netdev_find_by_devname(brdev);
+  } else {
+    netdev_br = netdev_find_by_index(brindex);
+  }
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
     netbr = (netbr_t *)netdev_br->priv;
     if (netbr && netbr->magic_no == NETBRIDGE_MAGIC) {
@@ -649,7 +657,7 @@ int  netbr_add (const char *brdev, const char *ip,
 
 /* delete net bridge 
    'brdev' bridge device name (not ifname) */
-int  netbr_delete (const char *brdev)
+int  netbr_delete (const char *brdev, int brindex)
 {
   int found, flags;
   struct netif *netif;
@@ -659,14 +667,13 @@ int  netbr_delete (const char *brdev)
   netdev_t *netdev;
   struct ifreq ifreq;
   
-  if (!brdev) {
-    errno = EINVAL;
-    return (-1);
-  }
-  
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_br = netdev_find_by_devname(brdev);
+  if (brdev && brdev[0]) {
+    netdev_br = netdev_find_by_devname(brdev);
+  } else {
+    netdev_br = netdev_find_by_index(brindex);
+  }
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
     netbr = (netbr_t *)netdev_br->priv;
     if (netbr && netbr->magic_no == NETBRIDGE_MAGIC) {
@@ -746,7 +753,7 @@ int  netbr_delete (const char *brdev)
 
 /* net bridge mac cache flush 
    'brdev' bridge device name (not ifname) */
-int  netbr_flush_cache (const char *brdev)
+int  netbr_flush_cache (const char *brdev, int brindex)
 {
   int found;
   netbr_t *netbr;
@@ -755,14 +762,13 @@ int  netbr_flush_cache (const char *brdev)
   LW_LIST_LINE *pline;
   int i;
   
-  if (!brdev) {
-    errno = EINVAL;
-    return (-1);
-  }
-  
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_br = netdev_find_by_devname(brdev);
+  if (brdev && brdev[0]) {
+    netdev_br = netdev_find_by_devname(brdev);
+  } else {
+    netdev_br = netdev_find_by_index(brindex);
+  }
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
     netbr = (netbr_t *)netdev_br->priv;
     if (netbr && netbr->magic_no == NETBRIDGE_MAGIC) {
@@ -845,7 +851,7 @@ void  netbr_sub_delete_hook (netdev_t *netdev)
 }
 
 /* net bridge show all device in bridge */
-int  netbr_show_dev (const char *brdev, int fd)
+int  netbr_show_dev (const char *brdev, int brindex, int fd)
 {
   int found;
   int i = 0, j;
@@ -858,14 +864,18 @@ int  netbr_show_dev (const char *brdev, int fd)
   char ifname[NETIF_NAMESIZE];
   LW_LIST_LINE *pline;
   
-  if (!brdev || (fd < 0)) {
+  if (fd < 0) {
     errno = EINVAL;
     return (-1);
   }
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_br = netdev_find_by_devname(brdev);
+  if (brdev && brdev[0]) {
+    netdev_br = netdev_find_by_devname(brdev);
+  } else {
+    netdev_br = netdev_find_by_index(brindex);
+  }
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
     netbr = (netbr_t *)netdev_br->priv;
     if (netbr && netbr->magic_no == NETBRIDGE_MAGIC) {

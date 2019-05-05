@@ -106,6 +106,7 @@ static VOID  __route_show_ipv4 (VOID)
     iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
     if (iRet < 0) {
         fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        __SHEAP_FREE(rtentrylist.rtl_buf);
         close(iSock);
         return;
     }
@@ -201,6 +202,7 @@ static VOID  __route_show_ipv6 (VOID)
     iRet = ioctl(iSock, SIOCLSTRT, &rtentrylist);
     if (iRet < 0) {
         fprintf(stderr, "command 'SIOCLSTRT' error: %s!\n", lib_strerror(errno));
+        __SHEAP_FREE(rtentrylist.rtl_buf);
         close(iSock);
         return;
     }

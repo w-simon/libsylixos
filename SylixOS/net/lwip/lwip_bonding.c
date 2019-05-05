@@ -110,63 +110,63 @@ static INT  _netbdIoctl (PLW_DEV_HDR   pdevhdr,
     case NETBD_CTL_DELETE:
         pnetbdcrl = (struct net_bonding_ctl *)lArg;
         if (pnetbdcrl) {
-            iRet = netbd_delete(pnetbdcrl->bd_dev);
+            iRet = netbd_delete(pnetbdcrl->bd_dev, pnetbdcrl->bd_index);
         }
         return  (iRet);
     
     case NETBD_CTL_ADD_DEV:
         pnetbdcrl = (struct net_bonding_ctl *)lArg;
         if (pnetbdcrl) {
-            iRet = netbd_add_dev(pnetbdcrl->bd_dev, pnetbdcrl->eth_dev, 0);
+            iRet = netbd_add_dev(pnetbdcrl->bd_dev, pnetbdcrl->bd_index, pnetbdcrl->eth_dev, 0);
         }
         return  (iRet);
     
     case NETBD_CTL_DELETE_DEV:
         pnetbdcrl = (struct net_bonding_ctl *)lArg;
         if (pnetbdcrl) {
-            iRet = netbd_delete_dev(pnetbdcrl->bd_dev, pnetbdcrl->eth_dev, 0);
+            iRet = netbd_delete_dev(pnetbdcrl->bd_dev, pnetbdcrl->bd_index, pnetbdcrl->eth_dev, 0);
         }
         return  (iRet);
         
     case NETBD_CTL_ADD_IF:
         pnetbdcrl = (struct net_bonding_ctl *)lArg;
         if (pnetbdcrl) {
-            iRet = netbd_add_dev(pnetbdcrl->bd_dev, pnetbdcrl->eth_dev, 1);
+            iRet = netbd_add_dev(pnetbdcrl->bd_dev, pnetbdcrl->bd_index, pnetbdcrl->eth_dev, 1);
         }
         return  (iRet);
     
     case NETBD_CTL_DELETE_IF:
         pnetbdcrl = (struct net_bonding_ctl *)lArg;
         if (pnetbdcrl) {
-            iRet = netbd_delete_dev(pnetbdcrl->bd_dev, pnetbdcrl->eth_dev, 1);
+            iRet = netbd_delete_dev(pnetbdcrl->bd_dev, pnetbdcrl->bd_index, pnetbdcrl->eth_dev, 1);
         }
         return  (iRet);
         
     case NETBD_CTL_MASTER_DEV:
         pnetbddev = (struct net_bonding_device *)lArg;
         if (pnetbddev) {
-            iRet = netbd_master_dev(pnetbddev->bd_dev, pnetbddev->eth_dev, 0);
+            iRet = netbd_master_dev(pnetbddev->bd_dev, pnetbddev->bd_index, pnetbddev->eth_dev, 0);
         }
         return  (iRet);
         
     case NETBD_CTL_MASTER_IF:
         pnetbddev = (struct net_bonding_device *)lArg;
         if (pnetbddev) {
-            iRet = netbd_master_dev(pnetbddev->bd_dev, pnetbddev->eth_dev, 1);
+            iRet = netbd_master_dev(pnetbddev->bd_dev, pnetbddev->bd_index, pnetbddev->eth_dev, 1);
         }
         return  (iRet);
         
     case NETBD_CTL_ARP_ADD:
         pnetbdarp = (struct net_bonding_arp *)lArg;
         if (pnetbdarp) {
-            iRet = netbd_add_arp(pnetbdarp->bd_dev, pnetbdarp->arp_ip_target);
+            iRet = netbd_add_arp(pnetbdarp->bd_dev, pnetbdarp->bd_index, pnetbdarp->arp_ip_target);
         }
         return  (iRet);
     
     case NETBD_CTL_ARP_DELETE:
         pnetbdarp = (struct net_bonding_arp *)lArg;
         if (pnetbdarp) {
-            iRet = netbd_delete_arp(pnetbdarp->bd_dev, pnetbdarp->arp_ip_target);
+            iRet = netbd_delete_arp(pnetbdarp->bd_dev, pnetbdarp->bd_index, pnetbdarp->arp_ip_target);
         }
         return  (iRet);
     
@@ -306,7 +306,7 @@ static INT  __tshellNetbd (INT  iArgC, PCHAR  *ppcArgV)
     } else {
         if (iArgC == 3) {
             if (lib_strcmp(ppcArgV[1], "delbd") == 0) {
-                iRet = netbd_delete(ppcArgV[2]);
+                iRet = netbd_delete(ppcArgV[2], 0);
                 if (iRet) {
                     fprintf(stderr, "can not delete net bonding device: %s!\n", lib_strerror(errno));
                 } else {
@@ -314,7 +314,7 @@ static INT  __tshellNetbd (INT  iArgC, PCHAR  *ppcArgV)
                 }
                 
             } else if (lib_strcmp(ppcArgV[1], "show") == 0) {
-                iRet = netbd_show_dev(ppcArgV[2], STD_OUT);
+                iRet = netbd_show_dev(ppcArgV[2], 0, STD_OUT);
                 if (iRet) {
                     fprintf(stderr, "can not show net bonding device: %s!\n", lib_strerror(errno));
                 }
@@ -325,49 +325,49 @@ static INT  __tshellNetbd (INT  iArgC, PCHAR  *ppcArgV)
         
         } else if (iArgC == 4) {
             if (lib_strcmp(ppcArgV[1], "adddev") == 0) {
-                iRet = netbd_add_dev(ppcArgV[2], ppcArgV[3], 0);
+                iRet = netbd_add_dev(ppcArgV[2], 0, ppcArgV[3], 0);
                 if (iRet) {
                     fprintf(stderr, "can not add device '%s' to bonding '%s'!\n", ppcArgV[3], ppcArgV[2]);
                 }
             
             } else if (lib_strcmp(ppcArgV[1], "deldev") == 0) {
-                iRet = netbd_delete_dev(ppcArgV[2], ppcArgV[3], 0);
+                iRet = netbd_delete_dev(ppcArgV[2], 0, ppcArgV[3], 0);
                 if (iRet) {
                     fprintf(stderr, "can not delete device '%s' from bonding '%s'!\n", ppcArgV[3], ppcArgV[2]);
                 }
             
             } else if (lib_strcmp(ppcArgV[1], "addif") == 0) {
-                iRet = netbd_add_dev(ppcArgV[2], ppcArgV[3], 1);
+                iRet = netbd_add_dev(ppcArgV[2], 0, ppcArgV[3], 1);
                 if (iRet) {
                     fprintf(stderr, "can not add if '%s' to bonding '%s'!\n", ppcArgV[3], ppcArgV[2]);
                 }
             
             } else if (lib_strcmp(ppcArgV[1], "delif") == 0) {
-                iRet = netbd_delete_dev(ppcArgV[2], ppcArgV[3], 1);
+                iRet = netbd_delete_dev(ppcArgV[2], 0, ppcArgV[3], 1);
                 if (iRet) {
                     fprintf(stderr, "can not delete if '%s' from bonding '%s'!\n", ppcArgV[3], ppcArgV[2]);
                 }
             
             } else if (lib_strcmp(ppcArgV[1], "masterdev") == 0) {
-                iRet = netbd_master_dev(ppcArgV[2], ppcArgV[3], 0);
+                iRet = netbd_master_dev(ppcArgV[2], 0, ppcArgV[3], 0);
                 if (iRet) {
                     fprintf(stderr, "can not set device '%s' to bonding '%s' MASTER device!\n", ppcArgV[3], ppcArgV[2]);
                 }
             
             } else if (lib_strcmp(ppcArgV[1], "masterif") == 0) {
-                iRet = netbd_master_dev(ppcArgV[2], ppcArgV[3], 1);
+                iRet = netbd_master_dev(ppcArgV[2], 0, ppcArgV[3], 1);
                 if (iRet) {
                     fprintf(stderr, "can not set if '%s' to bonding '%s' MASTER device!\n", ppcArgV[3], ppcArgV[2]);
                 }
                 
             } else if (lib_strcmp(ppcArgV[1], "addarp") == 0) {
-                iRet = netbd_add_arp(ppcArgV[2], ppcArgV[3]);
+                iRet = netbd_add_arp(ppcArgV[2], 0, ppcArgV[3]);
                 if (iRet) {
                     fprintf(stderr, "can not add ip '%s' to bonding '%s' ARP detect target!\n", ppcArgV[3], ppcArgV[2]);
                 }
             
             } else if (lib_strcmp(ppcArgV[1], "delarp") == 0) {
-                iRet = netbd_delete_arp(ppcArgV[2], ppcArgV[3]);
+                iRet = netbd_delete_arp(ppcArgV[2], 0, ppcArgV[3]);
                 if (iRet) {
                     fprintf(stderr, "can not delete ip '%s' from bonding '%s' ARP detect target!\n", ppcArgV[3], ppcArgV[2]);
                 }

@@ -56,6 +56,7 @@ VOID  _posixPRWLockInit (VOID)
     _G_ulPRWLockInitLock = API_SemaphoreMCreate("prwinit", LW_PRIO_DEF_CEILING, 
                                                 LW_OPTION_INHERIT_PRIORITY | 
                                                 LW_OPTION_WAIT_PRIORITY | 
+                                                LW_OPTION_OBJECT_GLOBAL |
                                                 LW_OPTION_DELETE_SAFE, LW_NULL);
 }
 /*********************************************************************************************************

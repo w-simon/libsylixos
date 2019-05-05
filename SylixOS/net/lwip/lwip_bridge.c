@@ -105,42 +105,42 @@ static INT  _netbrIoctl (PLW_DEV_HDR   pdevhdr,
     case NETBR_CTL_DELETE:
         pnetbrcrl = (struct net_bridge_ctl *)lArg;
         if (pnetbrcrl) {
-            iRet = netbr_delete(pnetbrcrl->br_dev);
+            iRet = netbr_delete(pnetbrcrl->br_dev, pnetbrcrl->br_index);
         }
         return  (iRet);
     
     case NETBR_CTL_ADD_DEV:
         pnetbrcrl = (struct net_bridge_ctl *)lArg;
         if (pnetbrcrl) {
-            iRet = netbr_add_dev(pnetbrcrl->br_dev, pnetbrcrl->eth_dev, 0);
+            iRet = netbr_add_dev(pnetbrcrl->br_dev, pnetbrcrl->br_index, pnetbrcrl->eth_dev, 0);
         }
         return  (iRet);
     
     case NETBR_CTL_DELETE_DEV:
         pnetbrcrl = (struct net_bridge_ctl *)lArg;
         if (pnetbrcrl) {
-            iRet = netbr_delete_dev(pnetbrcrl->br_dev, pnetbrcrl->eth_dev, 0);
+            iRet = netbr_delete_dev(pnetbrcrl->br_dev, pnetbrcrl->br_index, pnetbrcrl->eth_dev, 0);
         }
         return  (iRet);
         
     case NETBR_CTL_ADD_IF:
         pnetbrcrl = (struct net_bridge_ctl *)lArg;
         if (pnetbrcrl) {
-            iRet = netbr_add_dev(pnetbrcrl->br_dev, pnetbrcrl->eth_dev, 1);
+            iRet = netbr_add_dev(pnetbrcrl->br_dev, pnetbrcrl->br_index, pnetbrcrl->eth_dev, 1);
         }
         return  (iRet);
     
     case NETBR_CTL_DELETE_IF:
         pnetbrcrl = (struct net_bridge_ctl *)lArg;
         if (pnetbrcrl) {
-            iRet = netbr_delete_dev(pnetbrcrl->br_dev, pnetbrcrl->eth_dev, 1);
+            iRet = netbr_delete_dev(pnetbrcrl->br_dev, pnetbrcrl->br_index, pnetbrcrl->eth_dev, 1);
         }
         return  (iRet);
     
     case NETBR_CTL_CACHE_FLUSH:
         pnetbrcrl = (struct net_bridge_ctl *)lArg;
         if (pnetbrcrl) {
-            iRet = netbr_flush_cache(pnetbrcrl->br_dev);
+            iRet = netbr_flush_cache(pnetbrcrl->br_dev, pnetbrcrl->br_index);
         }
         return  (iRet);
     
@@ -244,7 +244,7 @@ static INT  __tshellNetbr (INT  iArgC, PCHAR  *ppcArgV)
             }
         
         } else if (lib_strcmp(ppcArgV[1], "delbr") == 0) {
-            iRet = netbr_delete(ppcArgV[2]);
+            iRet = netbr_delete(ppcArgV[2], 0);
             if (iRet) {
                 fprintf(stderr, "can not delete net bridge device: %s!\n", lib_strerror(errno));
             } else {
@@ -252,13 +252,13 @@ static INT  __tshellNetbr (INT  iArgC, PCHAR  *ppcArgV)
             }
         
         } else if (lib_strcmp(ppcArgV[1], "flush") == 0) {
-            iRet = netbr_flush_cache(ppcArgV[2]);
+            iRet = netbr_flush_cache(ppcArgV[2], 0);
             if (iRet) {
                 fprintf(stderr, "can not flush net bridge device: %s!\n", lib_strerror(errno));
             }
         
         } else if (lib_strcmp(ppcArgV[1], "show") == 0) {
-            iRet = netbr_show_dev(ppcArgV[2], STD_OUT);
+            iRet = netbr_show_dev(ppcArgV[2], 0, STD_OUT);
             if (iRet) {
                 fprintf(stderr, "can not show net bridge device: %s!\n", lib_strerror(errno));
             }
@@ -269,25 +269,25 @@ static INT  __tshellNetbr (INT  iArgC, PCHAR  *ppcArgV)
     
     } else if (iArgC == 4) {
         if (lib_strcmp(ppcArgV[1], "adddev") == 0) {
-            iRet = netbr_add_dev(ppcArgV[2], ppcArgV[3], 0);
+            iRet = netbr_add_dev(ppcArgV[2], 0, ppcArgV[3], 0);
             if (iRet) {
                 fprintf(stderr, "can not add device '%s' to bridge '%s'!\n", ppcArgV[3], ppcArgV[2]);
             }
         
         } else if (lib_strcmp(ppcArgV[1], "deldev") == 0) {
-            iRet = netbr_delete_dev(ppcArgV[2], ppcArgV[3], 0);
+            iRet = netbr_delete_dev(ppcArgV[2], 0, ppcArgV[3], 0);
             if (iRet) {
                 fprintf(stderr, "can not delete device '%s' from bridge '%s'!\n", ppcArgV[3], ppcArgV[2]);
             }
         
         } else if (lib_strcmp(ppcArgV[1], "addif") == 0) {
-            iRet = netbr_add_dev(ppcArgV[2], ppcArgV[3], 1);
+            iRet = netbr_add_dev(ppcArgV[2], 0, ppcArgV[3], 1);
             if (iRet) {
                 fprintf(stderr, "can not add if '%s' to bridge '%s'!\n", ppcArgV[3], ppcArgV[2]);
             }
         
         } else if (lib_strcmp(ppcArgV[1], "delif") == 0) {
-            iRet = netbr_delete_dev(ppcArgV[2], ppcArgV[3], 1);
+            iRet = netbr_delete_dev(ppcArgV[2], 0, ppcArgV[3], 1);
             if (iRet) {
                 fprintf(stderr, "can not delete if '%s' from bridge '%s'!\n", ppcArgV[3], ppcArgV[2]);
             }

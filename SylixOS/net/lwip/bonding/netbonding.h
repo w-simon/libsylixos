@@ -50,21 +50,21 @@ int  netbd_add(const char *bddev, const char *ip,
                const char *netmask, const char *gw, 
                int mode, int mon_mode, int interval,
                int alive, int *index);
-int  netbd_delete(const char *bddev);
+int  netbd_delete(const char *bddev, int bdindex);
 
 /* add or delete a net device to net bonding virtual device */
-int  netbd_add_dev(const char *bddev, const char *sub, int sub_is_ifname);
-int  netbd_delete_dev(const char *bddev, const char *sub, int sub_is_ifname);
+int  netbd_add_dev(const char *bddev, int bdindex, const char *sub, int sub_is_ifname);
+int  netbd_delete_dev(const char *bddev, int bdindex, const char *sub, int sub_is_ifname);
 
 /* net bonding set master device */
-int  netbd_master_dev(const char *bddev, const char *sub, int sub_is_ifname);
+int  netbd_master_dev(const char *bddev, int bdindex, const char *sub, int sub_is_ifname);
 
 /* add or delete a arp detect target to net bonding virtual device */
-int  netbd_add_arp(const char *bddev, const char *ip);
-int  netbd_delete_arp(const char *bddev, const char *ip);
+int  netbd_add_arp(const char *bddev, int bdindex, const char *ip);
+int  netbd_delete_arp(const char *bddev, int bdindex, const char *ip);
 
 /* net bonding show all device in bonding virtual device */
-int  netbd_show_dev(const char *bddev, int fd);
+int  netbd_show_dev(const char *bddev, int bdindex, int fd);
 
 #endif /* LW_CFG_NET_DEV_BONDING_EN */
 #endif /* __NETBONDING_H */

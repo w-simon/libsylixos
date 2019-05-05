@@ -48,17 +48,17 @@
 /* add and delete net bridge */
 int  netbr_add(const char *brdev, const char *ip, 
                const char *netmask, const char *gw, int *index);
-int  netbr_delete(const char *brdev);
+int  netbr_delete(const char *brdev, int brindex);
 
 /* add or delete a net device to net bridge */
-int  netbr_add_dev(const char *brdev, const char *sub, int sub_is_ifname);
-int  netbr_delete_dev(const char *brdev, const char *sub, int sub_is_ifname);
+int  netbr_add_dev(const char *brdev, int brindex, const char *sub, int sub_is_ifname);
+int  netbr_delete_dev(const char *brdev, int brindex, const char *sub, int sub_is_ifname);
 
 /* net bridge mac cache flush */
-int  netbr_flush_cache(const char *brdev);
+int  netbr_flush_cache(const char *brdev, int brindex);
 
 /* net bridge show all device in bridge */
-int  netbr_show_dev(const char *brdev, int fd);
+int  netbr_show_dev(const char *brdev, int brindex, int fd);
 
 #endif /* LW_CFG_NET_DEV_BRIDGE_EN */
 #endif /* __NETBRIDGE_H */

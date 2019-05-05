@@ -462,7 +462,7 @@ static void  netbd_proc (void *arg)
    'subdev' sub ethernet device name 
             sub_is_ifname == 0: dev name
             sub_is_ifname == 1: if name */
-int  netbd_add_dev (const char *bddev, const char *sub, int sub_is_ifname)
+int  netbd_add_dev (const char *bddev, int bdindex, const char *sub, int sub_is_ifname)
 {
   int found, flags, need_up = 0;
   struct netif *netif;
@@ -473,14 +473,18 @@ int  netbd_add_dev (const char *bddev, const char *sub, int sub_is_ifname)
   netdev_t *netdev;
   struct ifreq ifreq;
 
-  if (!bddev || !sub) {
+  if (!sub) {
     errno = EINVAL;
     return (-1);
   }
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_bd = netdev_find_by_devname(bddev);
+  if (bddev && bddev[0]) {
+    netdev_bd = netdev_find_by_devname(bddev);
+  } else {
+    netdev_bd = netdev_find_by_index(bdindex);
+  }
   if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
     netbd = (netbd_t *)netdev_bd->priv;
     if (netbd && netbd->magic_no == NETBONDING_MAGIC) {
@@ -608,7 +612,7 @@ int  netbd_add_dev (const char *bddev, const char *sub, int sub_is_ifname)
    'subdev' sub ethernet device name 
             sub_is_ifname == 0: dev name
             sub_is_ifname == 1: if name */
-int  netbd_delete_dev (const char *bddev, const char *sub, int sub_is_ifname)
+int  netbd_delete_dev (const char *bddev, int bdindex, const char *sub, int sub_is_ifname)
 {
   int i, found, flags;
   char subif[IFNAMSIZ];
@@ -619,14 +623,18 @@ int  netbd_delete_dev (const char *bddev, const char *sub, int sub_is_ifname)
   netdev_t *netdev;
   struct ifreq ifreq;
   
-  if (!bddev || !sub) {
+  if (!sub) {
     errno = EINVAL;
     return (-1);
   }
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_bd = netdev_find_by_devname(bddev);
+  if (bddev && bddev[0]) {
+    netdev_bd = netdev_find_by_devname(bddev);
+  } else {
+    netdev_bd = netdev_find_by_index(bdindex);
+  }
   if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
     netbd = (netbd_t *)netdev_bd->priv;
     if (netbd && netbd->magic_no == NETBONDING_MAGIC) {
@@ -733,7 +741,7 @@ int  netbd_delete_dev (const char *bddev, const char *sub, int sub_is_ifname)
 }
 
 /* net bonding set master device */
-int  netbd_master_dev (const char *bddev, const char *sub, int sub_is_ifname)
+int  netbd_master_dev (const char *bddev, int bdindex, const char *sub, int sub_is_ifname)
 {
   int i, found;
   char subif[IFNAMSIZ];
@@ -742,14 +750,18 @@ int  netbd_master_dev (const char *bddev, const char *sub, int sub_is_ifname)
   netdev_t *netdev_bd;
   netdev_t *netdev;
   
-  if (!bddev || !sub) {
+  if (!sub) {
     errno = EINVAL;
     return (-1);
   }
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_bd = netdev_find_by_devname(bddev);
+  if (bddev && bddev[0]) {
+    netdev_bd = netdev_find_by_devname(bddev);
+  } else {
+    netdev_bd = netdev_find_by_index(bdindex);
+  }
   if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
     netbd = (netbd_t *)netdev_bd->priv;
     if (netbd && netbd->magic_no == NETBONDING_MAGIC) {
@@ -796,7 +808,7 @@ int  netbd_master_dev (const char *bddev, const char *sub, int sub_is_ifname)
 }
 
 /* add a arp detect target to net bonding virtual device */
-int  netbd_add_arp (const char *bddev, const char *ip)
+int  netbd_add_arp (const char *bddev, int bdindex, const char *ip)
 {
   int found;
   netbd_t *netbd;
@@ -804,7 +816,7 @@ int  netbd_add_arp (const char *bddev, const char *ip)
   netbd_arp_t *netbd_arp;
   ip4_addr_t ipaddr;
   
-  if (!bddev || !ip) {
+  if (!ip) {
     errno = EINVAL;
     return (-1);
   }
@@ -816,7 +828,11 @@ int  netbd_add_arp (const char *bddev, const char *ip)
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_bd = netdev_find_by_devname(bddev);
+  if (bddev && bddev[0]) {
+    netdev_bd = netdev_find_by_devname(bddev);
+  } else {
+    netdev_bd = netdev_find_by_index(bdindex);
+  }
   if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
     netbd = (netbd_t *)netdev_bd->priv;
     if (netbd && netbd->magic_no == NETBONDING_MAGIC) {
@@ -847,7 +863,7 @@ int  netbd_add_arp (const char *bddev, const char *ip)
 }
 
 /* delete a arp detect target to net bonding virtual device */
-int  netbd_delete_arp (const char *bddev, const char *ip)
+int  netbd_delete_arp (const char *bddev, int bdindex, const char *ip)
 {
   int found;
   netbd_t *netbd;
@@ -856,7 +872,7 @@ int  netbd_delete_arp (const char *bddev, const char *ip)
   ip4_addr_t ipaddr;
   LW_LIST_LINE *pline;
   
-  if (!bddev || !ip) {
+  if (!ip) {
     errno = EINVAL;
     return (-1);
   }
@@ -868,7 +884,11 @@ int  netbd_delete_arp (const char *bddev, const char *ip)
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_bd = netdev_find_by_devname(bddev);
+  if (bddev && bddev[0]) {
+    netdev_bd = netdev_find_by_devname(bddev);
+  } else {
+    netdev_bd = netdev_find_by_index(bdindex);
+  }
   if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
     netbd = (netbd_t *)netdev_bd->priv;
     if (netbd && netbd->magic_no == NETBONDING_MAGIC) {
@@ -1024,7 +1044,7 @@ int  netbd_add (const char *bddev, const char *ip,
 
 /* delete net bonding 
    'bddev' bonding device name (not ifname) */
-int  netbd_delete (const char *bddev)
+int  netbd_delete (const char *bddev, int bdindex)
 {
   int found, flags;
   struct netif *netif;
@@ -1034,14 +1054,13 @@ int  netbd_delete (const char *bddev)
   netdev_t *netdev;
   struct ifreq ifreq;
   
-  if (!bddev) {
-    errno = EINVAL;
-    return (-1);
-  }
-  
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_bd = netdev_find_by_devname(bddev);
+  if (bddev && bddev[0]) {
+    netdev_bd = netdev_find_by_devname(bddev);
+  } else {
+    netdev_bd = netdev_find_by_index(bdindex);
+  }
   if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
     netbd = (netbd_t *)netdev_bd->priv;
     if (netbd && netbd->magic_no == NETBONDING_MAGIC) {
@@ -1206,7 +1225,7 @@ void  netbd_sub_delete_hook (netdev_t *netdev)
 }
 
 /* net bonding show all device in bonding virtual device */
-int  netbd_show_dev (const char *bddev, int fd)
+int  netbd_show_dev (const char *bddev, int bdindex, int fd)
 {
 #define NETBD_ARP_BUF_MAX 16
   int found;
@@ -1222,14 +1241,18 @@ int  netbd_show_dev (const char *bddev, int fd)
   char ifname[NETIF_NAMESIZE];
   LW_LIST_LINE *pline;
   
-  if (!bddev || (fd < 0)) {
+  if (fd < 0) {
     errno = EINVAL;
     return (-1);
   }
   
   LWIP_IF_LIST_LOCK(FALSE);
   found = 0;
-  netdev_bd = netdev_find_by_devname(bddev);
+  if (bddev && bddev[0]) {
+    netdev_bd = netdev_find_by_devname(bddev);
+  } else {
+    netdev_bd = netdev_find_by_index(bdindex);
+  }
   if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
     netbd = (netbd_t *)netdev_bd->priv;
     if (netbd && netbd->magic_no == NETBONDING_MAGIC) {

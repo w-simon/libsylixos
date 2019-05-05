@@ -846,6 +846,7 @@ ACPI_STATUS  AcpiOsExecute (ACPI_EXECUTE_TYPE       Type,
     if (LW_SYS_STATUS_IS_RUNNING()) {
         LW_CLASS_THREADATTR  threadattr = API_ThreadAttrGetDefault();
 
+        threadattr.THREADATTR_ulOption |= LW_OPTION_OBJECT_GLOBAL;
         threadattr.THREADATTR_pvArg = Context;
 
         API_ThreadCreate("t_acpi", (PTHREAD_START_ROUTINE)Function, &threadattr, LW_NULL);

@@ -45,7 +45,7 @@ extern "C" {
   bd_interval 只针对 NETBD_MON_MODE_ARP 监控模式有效.
 *********************************************************************************************************/
 struct net_bonding_ctl {
-    int     bd_index;                                       /*  Only for NETBD_CTL_ADD return           */
+    int     bd_index;                                       /*  NETBD_CTL_ADD return                    */
     int     bd_mode;                                        /*  Only for NETBD_CTL_ADD set              */
     int     bd_mon_mode;                                    /*  Only for NETBD_CTL_ADD set              */
     int     bd_interval;                                    /*  ARP detect period (milliseconds) mode 1 */
@@ -72,6 +72,7 @@ struct net_bonding_ctl {
   Bonding 网络设置 MASTER 网卡. (NETBD_MODE_ACTIVE_BACKUP mode only!)
 *********************************************************************************************************/
 struct net_bonding_device {
+    int     bd_index;
     char    bd_dev[IFNAMSIZ];                               /*  Bonding device name                     */
     char    eth_dev[IFNAMSIZ];                              /*  Sub ethernet device name                */
 };
@@ -83,6 +84,7 @@ struct net_bonding_device {
   Bonding 网络监控目标. (NETBD_MODE_ACTIVE_BACKUP mode only!)
 *********************************************************************************************************/
 struct net_bonding_arp {
+    int     bd_index;
     char    bd_dev[IFNAMSIZ];                               /*  Bonding device name                     */
     char    arp_ip_target[64];
 };
