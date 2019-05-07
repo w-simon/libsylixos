@@ -103,12 +103,6 @@ INT  vprocProcAdd(LW_LD_VPROC *pvproc);
 INT  vprocProcDelete(LW_LD_VPROC *pvproc);
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************
-  POSIX
-*********************************************************************************************************/
-#if LW_CFG_POSIX_EN > 0
-VOID _PthreadKeyCleanup(PLW_CLASS_TCB  ptcbDel);
-#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
-/*********************************************************************************************************
 ** 函数名称: __moduleVpPatchVersion
 ** 功能描述: vp 补丁版本
 ** 输　入  : pmodule       进程主模块句柄
@@ -1101,10 +1095,6 @@ __recheck:
 #if LW_CFG_THREAD_EXT_EN > 0
     _TCBCleanupPopExt(ptcbCur);                                         /*  提前执行 cleanup pop 操作   */
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
-    
-#if LW_CFG_POSIX_EN > 0
-    _PthreadKeyCleanup(ptcbCur);                                        /*  提前执行 key cleanup 操作   */
-#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 
     if (pvproc->VP_iExitMode == LW_VPROC_EXIT_FORCE) {                  /*  强制退出删除除主线程外的线程*/
         vprocThreadKill(pvproc, ptcbCur);
