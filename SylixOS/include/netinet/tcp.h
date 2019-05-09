@@ -64,6 +64,47 @@ struct tcphdr {
     u_short     th_urp;                                                 /* urgent pointer               */
 } __packed;
 
+/*********************************************************************************************************
+  TCP describe.
+*********************************************************************************************************/
+
+#define TCP_STATE_CLOSED        0
+#define TCP_STATE_LISTEN        1
+#define TCP_STATE_SYN_SENT      2
+#define TCP_STATE_SYN_RCVD      3
+#define TCP_STATE_ESTABLISHED   4
+#define TCP_STATE_FIN_WAIT_1    5
+#define TCP_STATE_FIN_WAIT_2    6
+#define TCP_STATE_CLOSE_WAIT    7
+#define TCP_STATE_CLOSING       8
+#define TCP_STATE_LAST_ACK      9
+#define TCP_STATE_TIME_WAIT     10
+
+struct tcp_desc {
+    u_char      tcp_state;
+    u_char      tcp_backlog;
+    u_char      tcp_accpend;
+    u_char      tcp_rcv_scale;
+    u_char      tcp_snd_scale;
+    u_char      tcp_pad1[3];
+    u_int       tcp_rcv_nxt;
+    u_int       tcp_rcv_wnd;
+    u_int       tcp_snd_nxt;
+    u_int       tcp_snd_wnd;
+    u_int       tcp_snd_buf;
+    u_int       tcp_cwnd;
+    u_int       tcp_ssthresh;
+    u_int       tcp_rtime;
+    u_int       tcp_mss;
+    u_int       tcp_flags;
+    u_int       tcp_rcv_ts;
+    u_int       tcp_snd_ts;
+    u_int       tcp_keep_idle;
+    u_int       tcp_keep_intvl;
+    u_int       tcp_keep_cnt;
+    u_int       tcp_pad2[16];
+};
+
 #endif                                                                  /*  __NETINET_TCP_H             */
 /*********************************************************************************************************
   END

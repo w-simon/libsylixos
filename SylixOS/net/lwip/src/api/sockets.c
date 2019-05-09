@@ -69,6 +69,10 @@
 #include LWIP_HOOK_FILENAME
 #endif
 
+#ifdef SYLIXOS /* SylixOS Need TCP_STATE */
+#include <netinet/tcp.h>
+#endif
+
 /* If the netconn API is not required publicly, then we include the necessary
    files here to get the implementation */
 #if !LWIP_NETCONN
@@ -3383,6 +3387,42 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
 #if LWIP_TCP
     /* Level: IPPROTO_TCP */
     case IPPROTO_TCP:
+#ifdef SYLIXOS /* SylixOS Add TCP_DESC */
+      if (optname == TCP_DESC) {
+        LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB_TYPE(sock, *optlen, sizeof(struct tcp_desc), NETCONN_TCP);
+        struct tcp_desc *desc = (struct tcp_desc *)optval;
+        if (sock->conn->pcb.tcp->state == LISTEN) {
+          struct tcp_pcb_listen *lpcb = (struct tcp_pcb_listen *)lpcb;
+          lib_bzero(desc, sizeof(struct tcp_desc));
+          desc->tcp_state = LISTEN;
+          desc->tcp_backlog = lpcb->backlog;
+          desc->tcp_accpend = lpcb->accepts_pending;
+        } else {
+          struct tcp_pcb *pcb = sock->conn->pcb.tcp;
+          desc->tcp_state = pcb->state;
+          desc->tcp_backlog = 0;
+          desc->tcp_accpend = 0;
+          desc->tcp_rcv_scale = pcb->rcv_scale;
+          desc->tcp_snd_scale = pcb->snd_scale;
+          desc->tcp_rcv_nxt = pcb->rcv_nxt;
+          desc->tcp_rcv_wnd = pcb->rcv_wnd;
+          desc->tcp_snd_nxt = pcb->snd_nxt;
+          desc->tcp_snd_wnd = pcb->snd_wnd;
+          desc->tcp_snd_buf = pcb->snd_buf;
+          desc->tcp_cwnd = pcb->cwnd;
+          desc->tcp_ssthresh = pcb->ssthresh;
+          desc->tcp_rtime = pcb->rtime;
+          desc->tcp_mss = pcb->mss;
+          desc->tcp_flags = pcb->flags;
+          desc->tcp_rcv_ts = pcb->ts_recent;
+          desc->tcp_snd_ts = pcb->ts_lastacksent;
+          desc->tcp_keep_idle = pcb->keep_idle;
+          desc->tcp_keep_intvl = pcb->keep_intvl;
+          desc->tcp_keep_cnt = pcb->keep_cnt;
+        }
+        break;
+      }
+#endif /* SYLIXOS */
       /* Special case: all IPPROTO_TCP option take an int */
       LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB_TYPE(sock, *optlen, int, NETCONN_TCP);
       if (sock->conn->pcb.tcp->state == LISTEN) {

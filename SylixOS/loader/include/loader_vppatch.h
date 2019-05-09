@@ -84,8 +84,8 @@ typedef struct lw_ld_vproc {
 
 #define __LW_VP_INIT        0
 #define __LW_VP_RUN         1
-#define __LW_VP_EXIT        2
-#define __LW_VP_STOP        3
+#define __LW_VP_STOP        2
+#define __LW_VP_EXIT        3
     INT                     VP_iStatus;                                 /*  当前进程状态                */
     INT                     VP_iExitCode;                               /*  结束代码                    */
     INT                     VP_iSigCode;                                /*  iSigCode                    */

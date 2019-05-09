@@ -1125,7 +1125,6 @@ __recheck:
         LW_LD_VPROC *pvprocChild = _LIST_ENTRY(plineList, LW_LD_VPROC, VP_lineBrother);
         
         pvprocChild->VP_pvprocFather = LW_NULL;                         /*  子进程设为孤儿进程          */
-        
         if (pvprocChild->VP_iStatus == __LW_VP_EXIT) {                  /*  子进程为僵尸进程            */
             __resReclaimReq((PVOID)pvprocChild);                        /*  请求释放进程资源            */
         }

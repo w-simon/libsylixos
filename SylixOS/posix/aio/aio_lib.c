@@ -733,6 +733,14 @@ static PVOID  __aioThread (PVOID  pvArg)
             
             API_SemaphoreMPend(paiorc->aiorc_mutex, LW_OPTION_WAIT_INFINITE);
 
+            if (paiorc->aiorc_iscancel) {
+                paioreq->aioreq_return = PX_ERROR;
+                paioreq->aioreq_error  = ECANCELED;
+                paioreq->aioreq_flags &= ~AIO_REQ_BUSY;                 /*  清除忙标志                  */
+                API_SemaphoreMPost(paiorc->aiorc_mutex);
+                continue;
+            }
+
             _List_Line_Del(paiorc->aiorc_plineaiocb,
                            &paiorc->aiorc_plineaiocb);                  /*  将处理节点从 paiorc 中删除  */
 

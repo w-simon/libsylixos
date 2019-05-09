@@ -320,6 +320,9 @@ struct linger {
 #define TCP_KEEPIDLE   0x03    /* set pcb->keep_idle  - Same as TCP_KEEPALIVE, but use seconds for get/setsockopt */
 #define TCP_KEEPINTVL  0x04    /* set pcb->keep_intvl - Use seconds for get/setsockopt */
 #define TCP_KEEPCNT    0x05    /* set pcb->keep_cnt   - Use number of probes sent for get/setsockopt */
+#ifdef SYLIXOS /* SylixOS Add TCP_DESC Support */
+#define TCP_DESC       0x80
+#endif /* SYLIXOS */
 
 /* SylixOS Add TCP MD5 SIG Support */
 #ifdef SYLIXOS

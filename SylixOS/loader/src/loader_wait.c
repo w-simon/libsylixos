@@ -249,6 +249,9 @@ static BOOL __haveThisChild (LW_LD_VPROC  *pvproc, pid_t  pidChild)
              pidChild == 0      子进程中组 ID 相同的
              pidChild == -1     任何子进程
              pidChild <  -1     子进程中组 ID 为 pid 绝对值的
+
+             此函数为信号响应函数, 可能之前已占用有关资源锁, 如果在这里回收子进程资源, 可能造成死锁,
+             所以这里在获取到进程返回信息后, 通知内核回收线程去回收资源.
 *********************************************************************************************************/
 static INT __reclaimAChild (LW_LD_VPROC   *pvproc, 
                             pid_t          pidChild, 
@@ -304,6 +307,9 @@ static INT __reclaimAChild (LW_LD_VPROC   *pvproc,
             if (stat_loc) {
                 *stat_loc = SET_EXITSTATUS(pvprocChild->VP_iExitCode);  /*  子进程正常退出              */
             }
+            pvprocChild->VP_pvprocFather = LW_NULL;
+            _List_Line_Del(&pvprocChild->VP_lineBrother,
+                           &pvproc->VP_plineChild);                     /*  将子进程从链表中退出        */
             bHasEvent    = LW_TRUE;
             bNeedReclaim = LW_TRUE;
             break;
@@ -339,7 +345,7 @@ static INT __reclaimAChild (LW_LD_VPROC   *pvproc,
             __tickToTimeval(pvprocChild->VP_clockSystem, &prusage->ru_stime);
         }
         if (bNeedReclaim) {
-            vprocReclaim(pvprocChild, LW_TRUE);                         /*  回收子进程资源              */
+            __resReclaimReq((PVOID)pvprocChild);                        /*  请求内核释放进程资源        */
         }
         return  (1);
     
