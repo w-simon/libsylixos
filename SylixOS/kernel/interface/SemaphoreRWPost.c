@@ -136,6 +136,10 @@ __release_pend:
             pevent->EVENT_pvTcbOwn = (PVOID)ptcb;
             pevent->EVENT_iStatus  = EVENT_RW_STATUS_W;
             
+            if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  将激活任务设置为安全        */
+                LW_THREAD_SAFE_INKERN(ptcb);
+            }
+
             MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SEMRW, MONITOR_EVENT_SEM_POST, 
                               ulId, ptcb->TCB_ulId, LW_NULL);
             
@@ -164,6 +168,10 @@ __release_pend:
                 KN_INT_ENABLE(iregInterLevel);                          /*  打开中断                    */
                 _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);       /*  处理 TCB                    */
                 
+                if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {   /*  将激活任务设置为安全        */
+                    LW_THREAD_SAFE_INKERN(ptcb);
+                }
+
                 MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SEMRW, MONITOR_EVENT_SEM_POST, 
                                   ulId, ptcb->TCB_ulId, LW_NULL);
                 

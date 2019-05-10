@@ -101,6 +101,21 @@ VOID  _ThreadSafeInternal (VOID)
                       ptcbCur->TCB_ulId, ptcbCur->TCB_ulThreadSafeCounter, LW_NULL);
 }
 /*********************************************************************************************************
+** 函数名称: _ThreadSafeInKern
+** 功能描述: 在内核模式指定线程进入安全模式 (内核锁定状态被调用)
+** 输　入  : ptcbDes       目标线程
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  _ThreadSafeInKern (PLW_CLASS_TCB  ptcbDes)
+{
+    ptcbDes->TCB_ulThreadSafeCounter++;
+
+    MONITOR_EVT_LONG2(MONITOR_EVENT_ID_THREAD, MONITOR_EVENT_THREAD_SAFE,
+                      ptcbDes->TCB_ulId, ptcbDes->TCB_ulThreadSafeCounter, LW_NULL);
+}
+/*********************************************************************************************************
 ** 函数名称: _ThreadUnsafeInternal
 ** 功能描述: 当前线程进入安全模式
 ** 输　入  : NONE

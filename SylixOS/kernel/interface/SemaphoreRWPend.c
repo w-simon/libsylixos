@@ -17,6 +17,9 @@
 ** 文件创建日期: 2016 年 07 月 20 日
 **
 ** 描        述: 等待读写信号量.
+**
+** BUG
+2019.05.10  安全模式设置必须与获取处于同一原子状态.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -98,10 +101,10 @@ __wait_again:
     if ((pevent->EVENT_iStatus == EVENT_RW_STATUS_R) &&
         (_EventWaitNum(EVENT_RW_Q_W, pevent) == 0)) {                   /*  当前为读状态并且没有写请求  */
         pevent->EVENT_ulCounter++;                                      /*  操作数++                    */
-        __KERNEL_EXIT();                                                /*  退出内核                    */
         if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {           /*  安全模式设定                */
-            LW_THREAD_SAFE();
+            LW_THREAD_SAFE_INKERN(ptcbCur);
         }
+        __KERNEL_EXIT();                                                /*  退出内核                    */
         return  (ERROR_NONE);
     }
     
@@ -163,10 +166,7 @@ __wait_again:
         
     } else {
         if (ptcbCur->TCB_ucIsEventDelete == LW_EVENT_EXIST) {           /*  事件是否存在                */
-            if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  安全模式设定                */
-                LW_THREAD_SAFE();
-            }
-            return  (ERROR_NONE);
+            return  (ERROR_NONE);                                       /*  释放操作已将此任务设为安全  */
         
         } else {
             _ErrorHandle(ERROR_EVENT_WAS_DELETED);                      /*  已经被删除                  */
@@ -243,10 +243,10 @@ __wait_again:
         pevent->EVENT_ulCounter++;
         pevent->EVENT_iStatus  = EVENT_RW_STATUS_W;
         pevent->EVENT_pvTcbOwn = (PVOID)ptcbCur;                        /*  保存线程信息                */
-        __KERNEL_EXIT();                                                /*  退出内核                    */
         if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {           /*  安全模式设定                */
-            LW_THREAD_SAFE();
+            LW_THREAD_SAFE_INKERN(ptcbCur);
         }
+        __KERNEL_EXIT();                                                /*  退出内核                    */
         return  (ERROR_NONE);
     }
     
@@ -314,10 +314,7 @@ __wait_again:
         
     } else {
         if (ptcbCur->TCB_ucIsEventDelete == LW_EVENT_EXIST) {           /*  事件是否存在                */
-            if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  安全模式设定                */
-                LW_THREAD_SAFE();
-            }
-            return  (ERROR_NONE);
+            return  (ERROR_NONE);                                       /*  释放操作已将此任务设为安全  */
         
         } else {
             _ErrorHandle(ERROR_EVENT_WAS_DELETED);                      /*  已经被删除                  */

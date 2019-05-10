@@ -130,12 +130,16 @@ ULONG  API_SemaphoreMPost (LW_OBJECT_HANDLE  ulId)
 
         _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
         
+        if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {
+            LW_THREAD_SAFE_INKERN(ptcb);                                /*  将激活任务设置为安全        */
+        }
+
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SEMM, MONITOR_EVENT_SEM_POST, 
                           ulId, ptcb->TCB_ulId, LW_NULL);
         
         __KERNEL_EXIT();                                                /*  退出内核                    */
         
-        if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {           /*  退出安全模式                */
+        if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {           /*  本任务退出安全模式          */
             LW_THREAD_UNSAFE();
         }
         return  (ERROR_NONE);
@@ -151,7 +155,7 @@ ULONG  API_SemaphoreMPost (LW_OBJECT_HANDLE  ulId)
             
             __KERNEL_EXIT();                                            /*  退出内核                    */
             
-            if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  退出安全模式                */
+            if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  本任务退出安全模式          */
                 LW_THREAD_UNSAFE();
             }
             return  (ERROR_NONE);

@@ -688,7 +688,6 @@ ssize_t  __iso9660FsRead (PLW_FD_ENTRY   pfdentry,
 
     __ISO_FILE_UNLOCK(pisofile);
     
-    _ErrorHandle(ERROR_NONE);
     return  ((ssize_t)uiReadNum);
 }
 /*********************************************************************************************************
@@ -755,7 +754,6 @@ ssize_t  __iso9660FsPRead (PLW_FD_ENTRY  pfdentry,
 
     __ISO_FILE_UNLOCK(pisofile);
     
-    _ErrorHandle(ERROR_NONE);
     return  ((ssize_t)uiReadNum);
 }
 /*********************************************************************************************************
@@ -1161,7 +1159,6 @@ static INT  __iso9660FsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
 
     __ISO_FILE_UNLOCK(pisofile);
     
-    _ErrorHandle(ERROR_NONE);
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

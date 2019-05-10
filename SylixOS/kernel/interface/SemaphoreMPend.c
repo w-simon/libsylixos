@@ -42,6 +42,7 @@
 2013.07.18  使用新的获取 TCB 的方法, 确保 SMP 系统安全.
 2013.12.11  系统没有启动时 pend 操作不工作.
 2014.05.29  修复超时后瞬间激活时没有设置任务安全属性错误.
+2019.05.10  安全模式设置必须与获取处于同一原子状态.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -132,10 +133,10 @@ __wait_again:
         pevent->EVENT_ulCounter    = LW_FALSE;
         pevent->EVENT_ulMaxCounter = (ULONG)ptcbCur->TCB_ucPriority;
         pevent->EVENT_pvTcbOwn     = (PVOID)ptcbCur;                    /*  保存线程信息                */
-        __KERNEL_EXIT();                                                /*  退出内核                    */
         if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {           /*  安全模式设定                */
-            LW_THREAD_SAFE();
+            LW_THREAD_SAFE_INKERN(ptcbCur);
         }
+        __KERNEL_EXIT();                                                /*  退出内核                    */
         return  (ERROR_NONE);
     }
     
@@ -213,10 +214,7 @@ __wait_again:
         
     } else {
         if (ptcbCur->TCB_ucIsEventDelete == LW_EVENT_EXIST) {           /*  事件是否存在                */
-            if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {       /*  安全模式设定                */
-                LW_THREAD_SAFE();
-            }
-            return  (ERROR_NONE);
+            return  (ERROR_NONE);                                       /*  释放操作已将此任务设为安全  */
         
         } else {
             _ErrorHandle(ERROR_EVENT_WAS_DELETED);                      /*  已经被删除                  */

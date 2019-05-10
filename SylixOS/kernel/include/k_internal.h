@@ -501,10 +501,12 @@ VOID            _ThreadUnlock(VOID);
 VOID           _ThreadSafeSuspend(PLW_CLASS_TCB  ptcbCur);
 VOID           _ThreadSafeResume(PLW_CLASS_TCB  ptcb);
 VOID           _ThreadSafeInternal(VOID);
+VOID           _ThreadSafeInKern(PLW_CLASS_TCB  ptcbDes);
 VOID           _ThreadUnsafeInternal(VOID);
 VOID           _ThreadUnsafeInternalEx(PLW_CLASS_TCB   ptcbDes);
 
 #define LW_THREAD_SAFE()            _ThreadSafeInternal()
+#define LW_THREAD_SAFE_INKERN(ptcb) _ThreadSafeInKern(ptcb)
 #define LW_THREAD_UNSAFE()          _ThreadUnsafeInternal()
 #define LW_THREAD_UNSAFE_EX(ptcb)   _ThreadUnsafeInternalEx(ptcb)
 
