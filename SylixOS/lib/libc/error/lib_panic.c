@@ -49,7 +49,7 @@ void  panic (const char  *pcFormat, ...)
                                                                         /*  (LW_CFG_FIO_LIB_EN > 0)     */
     if (getpid() > 0) {                                                 /*  ½ø³ÌÄÚ panic                */
 #if LW_CFG_SIGNAL_EN > 0
-        kill(getpid(), SIGABRT);
+        kill(getpid(), SIGKILL);
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         API_ThreadForceDelete(&ulMe, (PVOID)EXIT_FAILURE);
 

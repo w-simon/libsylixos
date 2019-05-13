@@ -34,16 +34,29 @@
 *********************************************************************************************************/
 VOID  lib_abort (VOID)
 {
-    LW_OBJECT_HANDLE  ulMe = API_ThreadIdSelf();
+    LW_OBJECT_HANDLE  ulMe;
 
 #if LW_CFG_SIGNAL_EN > 0
-    if (getpid() > 0) {
-        kill(getpid(), SIGABRT);
+    pid_t  pidMe;
+
+    pidMe = getpid();
+    if (pidMe > 0) {
+        kill(pidMe, SIGABRT);
+    } else {
+        raise(SIGABRT);
+    }
+
+    sleep(1);
+    signal(SIGABRT, SIG_DFL);
+
+    if (pidMe > 0) {
+        kill(pidMe, SIGABRT);
     } else {
         raise(SIGABRT);
     }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
     
+    ulMe = API_ThreadIdSelf();
     API_ThreadForceDelete(&ulMe, (PVOID)EXIT_FAILURE);
 }
 /*********************************************************************************************************
