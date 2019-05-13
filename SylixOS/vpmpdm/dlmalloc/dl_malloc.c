@@ -112,5 +112,15 @@ void  *dlmalloc_mremap (void *pvAddr, size_t stOldSize, size_t stNewSize, int mv
 }
 
 /*
+ * dlmalloc_abort
+ */
+void  dlmalloc_abort (void)
+{
+    fprintf(stderr, "dlmalloc abort!\n");
+    API_BacktraceShow(STD_ERR, 100);
+    lib_abort();
+}
+
+/*
  * end
  */

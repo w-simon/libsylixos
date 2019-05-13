@@ -36,6 +36,7 @@
 void *dlmalloc_sbrk(int  size);
 void *dlmalloc_mmap(size_t  stLen);
 void *dlmalloc_mremap(void *pvAddr, size_t stOldSize, size_t stNewSize, int mv);
+void  dlmalloc_abort(void);
 
 /* use dl prefix */
 #define USE_DL_PREFIX           1
@@ -60,6 +61,9 @@ void *dlmalloc_mremap(void *pvAddr, size_t stOldSize, size_t stNewSize, int mv);
 
 #define DEFAULT_MMAP_THRESHOLD  (256 * 1024)    /* 256K */
 #endif /* LW_CFG_VMM_EN > 0 */
+
+/* Abort */
+#define ABORT                   dlmalloc_abort()
 
 /* Use some mutex locks */
 #define USE_LOCKS               1
