@@ -1091,6 +1091,8 @@ VOID  vprocExit (LW_LD_VPROC *pvproc, LW_OBJECT_HANDLE  ulId, INT  iCode)
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
 
+    __KERNEL_SPACE_SET2(ptcbCur, 0);                                    /*  当前任务退出内核环境        */
+
 __recheck:
 #if LW_CFG_THREAD_EXT_EN > 0
     _TCBCleanupPopExt(ptcbCur);                                         /*  提前执行 cleanup pop 操作   */

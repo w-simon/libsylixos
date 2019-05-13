@@ -276,7 +276,7 @@ __error_handle:
 ** 函数名称: mknod
 ** 功能描述: create a new file named by the pathname to which the argument path points.
 ** 输　入  : pcFifoName    目录名
-**           mode          方式 (目前未使用)
+**           mode          类型
 **           dev           目前未使用
 ** 输　出  : ERROR_NONE    没有错误
 **           其他值表示错误

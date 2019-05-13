@@ -360,6 +360,8 @@ ULONG  API_ThreadDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
     
     ptcbCur->TCB_ulThreadSafeCounter++;                                 /*  LW_THREAD_SAFE();           */
     
+    __KERNEL_SPACE_SET2(ptcbDel, 0);                                    /*  目标任务退出内核环境        */
+
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
     if (ptcbDel == ptcbCur) {
