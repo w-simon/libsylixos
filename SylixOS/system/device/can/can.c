@@ -33,6 +33,7 @@
             pend(..., LW_OPTION_NOT_WAIT) 改为 clear() 操作.
 2012.10.31  修正一些不合理的命名.
 2017.03.13  支持 CAN FD 标准与发送完成同步.
+2019.05.20  总线异常唤醒读写阻塞线程.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -536,9 +537,12 @@ static VOID __canSetBusState (__CAN_DEV  *pcanDev, INT iState)
     LW_SPIN_UNLOCK_QUICK(&pcanport->CANPORT_can.CAN_slLock, iregInterLevel);
     
     if (pcanDev->CAN_uiBusState != CAN_DEV_BUS_ERROR_NONE) {            /*  总线异常                    */
-        API_SemaphoreBFlush(pcanDev->CAN_ulSendSemB, LW_NULL);          /*  激活写等待任务              */
-        API_SemaphoreBFlush(pcanDev->CAN_ulRcvSemB, LW_NULL);           /*  激活读等待任务              */
-        SEL_WAKE_UP_ALL(&pcanDev->CAN_selwulList, SELEXCEPT);           /*  select() 激活               */
+        API_SemaphoreBPost(pcanDev->CAN_ulSendSemB);                    /*  激活写等待任务              */
+        API_SemaphoreBPost(pcanDev->CAN_ulRcvSemB);                     /*  激活读等待任务              */
+        SEL_WAKE_UP_ALL_BY_FLAGS(&pcanDev->CAN_selwulList,
+                                 LW_SEL_TYPE_FLAG_READ |
+                                 LW_SEL_TYPE_FLAG_WRITE |
+                                 LW_SEL_TYPE_FLAG_EXCEPT);              /*  select() 激活               */
     }
 }
 /*********************************************************************************************************
@@ -967,6 +971,11 @@ static ssize_t __canWrite (__CAN_DEV  *pcanDev, PVOID  pvCanFrame, size_t  stNBy
 
     stNumber = stNBytes / stUnit;                                       /*  转换为数据包个数            */
 
+    if (pcanDev->CAN_uiBusState != CAN_DEV_BUS_ERROR_NONE) {            /*  总线错误                    */
+        _ErrorHandle(EIO);
+        return  (PX_ERROR);
+    }
+
     while (stNumber > 0) {
         ulError = API_SemaphoreBPend(pcanDev->CAN_ulSendSemB,
                                      pcanDev->CAN_ulSendTimeout);
@@ -978,12 +987,20 @@ static ssize_t __canWrite (__CAN_DEV  *pcanDev, PVOID  pvCanFrame, size_t  stNBy
         CANDEV_LOCK(pcanDev);                                           /*  等待设备使用权              */
         
         LW_SPIN_LOCK_QUICK(&pcanDev->CAN_slLock, &iregInterLevel);
+
         if (pcanDev->CAN_uiBusState != CAN_DEV_BUS_ERROR_NONE) {        /*  总线错误                    */
             LW_SPIN_UNLOCK_QUICK(&pcanDev->CAN_slLock, iregInterLevel);
             CANDEV_UNLOCK(pcanDev);
             _ErrorHandle(EIO);
             return  ((ssize_t)(i * stUnit));
         }
+
+        if (__canQFreeNum(pcanDev->CAN_pcanqSendQueue) <= 0) {          /*  发送队列是否有空闲空间      */
+            LW_SPIN_UNLOCK_QUICK(&pcanDev->CAN_slLock, iregInterLevel);
+            CANDEV_UNLOCK(pcanDev);
+            continue;
+        }
+
         LW_SPIN_UNLOCK_QUICK(&pcanDev->CAN_slLock, iregInterLevel);
 
         iFrameput = __canWriteQueue(pcanDev,
@@ -1053,6 +1070,11 @@ static ssize_t __canRead (__CAN_DEV  *pcanDev, PVOID  pvCanFrame, size_t  stNByt
 
     stNumber = stNBytes / stUnit;                                       /*  转换为数据包个数            */
 
+    if (pcanDev->CAN_uiBusState != CAN_DEV_BUS_ERROR_NONE) {            /*  总线错误                    */
+        _ErrorHandle(EIO);
+        return  (PX_ERROR);
+    }
+
     for (;;) {
         ulError = API_SemaphoreBPend(pcanDev->CAN_ulRcvSemB,
                                      pcanDev->CAN_ulRecvTimeout);
@@ -1076,6 +1098,7 @@ static ssize_t __canRead (__CAN_DEV  *pcanDev, PVOID  pvCanFrame, size_t  stNByt
                 return  (0);
             }
         }
+
         LW_SPIN_UNLOCK_QUICK(&pcanDev->CAN_slLock, iregInterLevel);
                                                                         /*  打开中断                    */
         CANDEV_UNLOCK(pcanDev);                                         /*  释放设备使用权              */

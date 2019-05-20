@@ -39,6 +39,7 @@
 2018.04.06  NAT 支持提前分片重组.
 2019.02.15  本地 TCP SYN, CLOSING 仅保持 1 分钟.
 2019.04.09  NAT AP 端口支持主机安全隔离.
+2019.05.20  MAP 0.0.0.0 作为本机映射.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -768,11 +769,16 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 }
             }
             if (plineTemp == LW_NULL) {
-                u32_t   uiHost;
+                if (pnatmap->NATM_ipaddrLocalIp.addr == IPADDR_ANY) {
+                    ipaddr.addr = netif_ip4_addr(netifIn)->addr;        /*  本机映射                    */
 
-                uiHost  = (u32_t)PP_NTOHL(pnatmap->NATM_ipaddrLocalIp.addr);
-                uiHost += usSrcHash;                                    /*  根据源地址散列做均衡        */
-                ipaddr.addr = (u32_t)PP_HTONL(uiHost);
+                } else {
+                    u32_t   uiHost;
+
+                    uiHost  = (u32_t)PP_NTOHL(pnatmap->NATM_ipaddrLocalIp.addr);
+                    uiHost += usSrcHash;                                /*  根据源地址散列做均衡        */
+                    ipaddr.addr = (u32_t)PP_HTONL(uiHost);
+                }
 
                 pnatcb = __natNew(&ipaddr,                              /*  新建控制块                  */
                                   pnatmap->NATM_usLocalPort, ucProto);
