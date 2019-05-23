@@ -354,7 +354,7 @@ PVOID  __ldMallocAreaAlign (size_t  stLen, size_t  stAlign)
                                     LW_VMM_FLAG_EXEC | LW_VMM_FLAG_RDWR));
 #else
 
-#ifdef defined(LW_CFG_CPU_ARCH_C6X) && (LW_CFG_C6X_CUSTOM_MEM > 0)
+#if defined(LW_CFG_CPU_ARCH_C6X) && (LW_CFG_C6X_CUSTOM_MEM > 0)
     if (__ldUseBspCustomMem()) {
         PVOID pvAddr = bspLibMemCustomAllocAlign(stLen, stAlign);
         if (pvAddr != LW_NULL) {
@@ -389,7 +389,7 @@ VOID   __ldFreeArea (PVOID  pvAddr)
     API_VmmFreeArea(pvAddr);
 #else
 
-#ifdef defined(LW_CFG_CPU_ARCH_C6X) && (LW_CFG_C6X_CUSTOM_MEM > 0)
+#if defined(LW_CFG_CPU_ARCH_C6X) && (LW_CFG_C6X_CUSTOM_MEM > 0)
     if (bspLibIsInMemCustom(pvAddr)) {
         bspLibMemCustomFree(pvAddr);
         return;
