@@ -266,6 +266,12 @@ INT  API_DtraceBreakTrap (addr_t  ulAddr, UINT  uiBpType)
     }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
+    if (uiBpType == LW_TRAP_ABORT) {                                    /*  恢复终止点指令              */
+        archDbgApRemove(ulAddr, ptcbCur->TCB_ulAbortPointInst);
+        ptcbCur->TCB_ulAbortPointInst = 0;
+        ptcbCur->TCB_ulAbortPointAddr = 0;
+    }
+
     dtm.DTM_ulAddr   = ulAddr;
     dtm.DTM_uiType   = uiBpType;                                        /*  获得 trap 类型              */
     dtm.DTM_ulThread = ptcbCur->TCB_ulId;
@@ -330,7 +336,6 @@ LW_API
 INT  API_DtraceAbortTrap (addr_t  ulAddr)
 {
 #if LW_CFG_MODULELOADER_EN > 0
-    ULONG               ulIns;
     PLW_LIST_LINE       plineTemp;
     LW_LD_VPROC        *pvproc;
     PLW_CLASS_TCB       ptcbCur;
@@ -344,7 +349,8 @@ INT  API_DtraceAbortTrap (addr_t  ulAddr)
     }
     
     if (pvproc->VP_iDbgFlags & LW_VPROC_DEBUG_TRAP) {                   /*  需要停止下来                */
-        archDbgAbInsert(ulAddr, &ulIns);                                /*  建立一个断点                */
+        ptcbCur->TCB_ulAbortPointAddr = ulAddr;
+        archDbgAbInsert(ulAddr, &ptcbCur->TCB_ulAbortPointInst);        /*  建立一个终止点              */
         vprocDebugStop(pvproc, ptcbCur);                                /*  需要停止进程内其他线程      */
         return  (ERROR_NONE);
     }
@@ -364,7 +370,8 @@ INT  API_DtraceAbortTrap (addr_t  ulAddr)
         return  (PX_ERROR);
     
     } else {
-        archDbgAbInsert(ulAddr, &ulIns);                                /*  建立一个断点                */
+        ptcbCur->TCB_ulAbortPointAddr = ulAddr;
+        archDbgAbInsert(ulAddr, &ptcbCur->TCB_ulAbortPointInst);        /*  建立一个终止点              */
         return  (ERROR_NONE);
     }
 #else

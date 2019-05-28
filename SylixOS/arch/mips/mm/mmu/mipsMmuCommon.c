@@ -184,7 +184,7 @@ VOID  mipsMmuDumpTLB (VOID)
         ulEntryHi  = mipsCp0EntryHiRead();
         ulPageMask = mipsCp0PageMaskRead();
 
-        _PrintFormat("TLB[%02d]: EntryLo0="LX_FMT", EntryLo1=0x%"LX_FMT", "
+        _PrintFormat("TLB[%02d]: EntryLo0="LX_FMT", EntryLo1="LX_FMT", "
                      "EntryHi="LX_FMT", PageMask="LX_FMT"\r\n",
                      i, ulEntryLo0, ulEntryLo1, ulEntryHi, ulPageMask);
     }

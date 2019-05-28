@@ -115,12 +115,9 @@ VOID    API_ThreadShowEx (pid_t  pid)
             continue;
         }
         
-#if LW_CFG_CPU_WORD_LENGHT == 64
-        if (tcbdesc.TCBD_ulWakeupLeft > 999999999l) {
+        if (tcbdesc.TCBD_ulWakeupLeft > INT_MAX) {
             lib_strcpy(cWakeupLeft, "--");
-        } else 
-#endif
-        {
+        } else {
             lib_itoa((int)tcbdesc.TCBD_ulWakeupLeft, cWakeupLeft, 10);
         }
         
@@ -334,12 +331,9 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
             continue;
         }
         
-#if LW_CFG_CPU_WORD_LENGHT == 64
-        if (tcbdesc.TCBD_ulWakeupLeft > 9999999999l) {
+        if (tcbdesc.TCBD_ulWakeupLeft > INT_MAX) {
             lib_strcpy(cWakeupLeft, "--");
-        } else 
-#endif
-        {
+        } else {
             lib_itoa((int)tcbdesc.TCBD_ulWakeupLeft, cWakeupLeft, 10);
         }
         

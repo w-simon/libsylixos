@@ -229,6 +229,12 @@ static INT  _semfdSetInode (PLW_SEMFD_INODE  psemfdinode, struct semfd_param *pa
         return  (PX_ERROR);
     }
 
+    if ((param->sem_value > INT32_MAX) ||
+        (param->sem_max > INT32_MAX)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     ulOpt |= param->sem_opts;
 
     switch (param->sem_type) {
@@ -697,7 +703,7 @@ static INT  _semfdNFreeFnode (PLW_SEMFD_FILE  psemfdfil, INT  *piNFree)
     case _OBJECT_SEM_C:
         API_SemaphoreCStatusEx(psemfdfil->SEMFDF_pinode->SEMFDI_ulSem, &ulValue, LW_NULL, LW_NULL, &ulMaxValue);
         if (ulValue < ulMaxValue) {
-            *piNFree = 1;
+            *piNFree = (INT)(ulMaxValue - ulValue);
         }
         break;
 
@@ -758,7 +764,7 @@ static INT  _semfdNReadFnode (PLW_SEMFD_FILE  psemfdfil, INT  *piNRead)
     case _OBJECT_SEM_C:
         API_SemaphoreCStatus(psemfdfil->SEMFDF_pinode->SEMFDI_ulSem, &ulValue, LW_NULL, LW_NULL);
         if (ulValue) {
-            *piNRead = 1;
+            *piNRead = (INT)ulValue;
         }
         break;
 

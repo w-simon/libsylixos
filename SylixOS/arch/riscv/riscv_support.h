@@ -104,6 +104,7 @@ PLW_STACK   archCtxStackEnd(const ARCH_REG_CTX  *pregctx);
 VOID    archDbgBpInsert(addr_t   ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLocal);
 VOID    archDbgAbInsert(addr_t   ulAddr, ULONG  *pulIns);
 VOID    archDbgBpRemove(addr_t   ulAddr, size_t stSize, ULONG   ulIns, BOOL  bLocal);
+VOID    archDbgApRemove(addr_t   ulAddr, ULONG   ulIns);
 VOID    archDbgBpPrefetch(addr_t ulAddr);
 UINT    archDbgTrapType(addr_t   ulAddr, PVOID   pvArch);
 VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);

@@ -115,6 +115,24 @@ VOID  archDbgBpRemove (addr_t  ulAddr, size_t stSize, ULONG  ulIns, BOOL  bLocal
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
 /*********************************************************************************************************
+** 函数名称: archDbgApRemove
+** 功能描述: 删除一个终止点.
+** 输　入  : ulAddr         终止点地址
+**           pulIns         返回的之前的指令
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archDbgApRemove (addr_t  ulAddr, ULONG  ulIns)
+{
+    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, sizeof(ULONG));
+    KN_SMP_MB();
+
+#if LW_CFG_CACHE_EN > 0
+    API_CacheTextUpdate((PVOID)ulAddr, sizeof(ULONG));
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+}
+/*********************************************************************************************************
 ** 函数名称: archDbgBpPrefetch
 ** 功能描述: 预取一个指令.
              当指令处于 MMU 共享物理段时, 指令空间为物理只读, 这里需要产生一次缺页中断, 克隆一个物理页面.

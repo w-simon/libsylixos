@@ -29,7 +29,6 @@
   RISC-V 断点指令 (必须支持压缩指令)
 *********************************************************************************************************/
 #define RISCV_BREAKPOINT_INS          0x9002
-#define RISCV_ABORTPOINT_INS          0x9003                            /*  TODO                        */
 /*********************************************************************************************************
   SMP
 *********************************************************************************************************/
@@ -76,7 +75,7 @@ VOID  archDbgBpInsert (addr_t  ulAddr, size_t stSize, ULONG  *pulIns, BOOL  bLoc
 VOID  archDbgAbInsert (addr_t  ulAddr, ULONG  *pulIns)
 {
     *pulIns = *(ULONG *)ulAddr;
-    *(UINT16 *)ulAddr = RISCV_ABORTPOINT_INS;
+    *(UINT16 *)ulAddr = RISCV_BREAKPOINT_INS;
     KN_SMP_MB();
     
 #if LW_CFG_CACHE_EN > 0
@@ -108,6 +107,24 @@ VOID  archDbgBpRemove (addr_t  ulAddr, size_t stSize, ULONG  ulIns, BOOL  bLocal
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 }
 /*********************************************************************************************************
+** 函数名称: archDbgApRemove
+** 功能描述: 删除一个终止点.
+** 输　入  : ulAddr         终止点地址
+**           pulIns         返回的之前的指令
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archDbgApRemove (addr_t  ulAddr, ULONG  ulIns)
+{
+    lib_memcpy((PCHAR)ulAddr, (PCHAR)&ulIns, sizeof(UINT16));
+    KN_SMP_MB();
+
+#if LW_CFG_CACHE_EN > 0
+    API_CacheTextUpdate((PVOID)ulAddr, sizeof(UINT16));
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+}
+/*********************************************************************************************************
 ** 函数名称: archDbgBpPrefetch
 ** 功能描述: 预取一个指令.
              当指令处于 MMU 共享物理段时, 指令空间为物理只读, 这里需要产生一次缺页中断, 克隆一个物理页面.
@@ -133,24 +150,23 @@ VOID  archDbgBpPrefetch (addr_t  ulAddr)
 *********************************************************************************************************/
 UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
 {
+    PLW_CLASS_TCB  ptcbCur;
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0) && (LW_CFG_GDB_SMP_TU_LAZY > 0)
-             ULONG   ulCPUId;
+    ULONG          ulCPUId;
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
     if (API_DtraceIsValid() == LW_FALSE) {                              /*  不存在调试节点              */
         return  (LW_TRAP_INVAL);
     }
 
-    switch (*(UINT16 *)ulAddr) {
+    if (*(UINT16 *)ulAddr == RISCV_BREAKPOINT_INS) {
+        LW_TCB_GET_CUR_SAFE(ptcbCur);
 
-    case RISCV_BREAKPOINT_INS:
-        return  (LW_TRAP_BRKPT);
-
-    case RISCV_ABORTPOINT_INS:
-        return  (LW_TRAP_ABORT);
-        
-    default:
-        break;
+        if (ptcbCur->TCB_ulAbortPointAddr == ulAddr) {
+            return  (LW_TRAP_ABORT);
+        } else {
+            return  (LW_TRAP_BRKPT);
+        }
     }
     
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_CACHE_EN > 0) && (LW_CFG_GDB_SMP_TU_LAZY > 0)

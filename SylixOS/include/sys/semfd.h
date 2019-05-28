@@ -43,13 +43,13 @@ typedef enum {
 #define SEMFD_OPT_DELETE_SAFE   LW_OPTION_DELETE_SAFE                   /*  Only for mutex              */
 
 /*********************************************************************************************************
- set/get parameter
+ set/get parameter (Initial value and Max value <= INT32_MAX)
 *********************************************************************************************************/
 
 struct semfd_param {
     semfd_type      sem_type;                                           /*  Type                        */
     UINT32          sem_opts;                                           /*  Options                     */
-    UINT32          sem_value;                                          /*  Initialize value            */
+    UINT32          sem_value;                                          /*  Initial value               */
     UINT32          sem_max;                                            /*  Max value                   */
     UINT32          auto_unlink;                                        /*  unlink on last close        */
     UINT32          reserved[3];
