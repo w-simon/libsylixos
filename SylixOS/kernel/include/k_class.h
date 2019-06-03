@@ -807,11 +807,9 @@ typedef struct __lw_tcb_desc {
     ULONG                 TCBD_ulThreadSafeCounter;                     /*  线程安全模式标志            */
     
     UINT8                 TCBD_ucStackAutoAllocFlag;                    /*  堆栈是否有系统在堆中开辟    */
-    
     CHAR                  TCBD_cThreadName[LW_CFG_OBJECT_NAME_SIZE];    /*  线程名                      */
     
-    PVOID                 TCBD_pvVProcessContext;                       /*  进程上下文                  */
-    
+    LONG                  TCBD_lPid;                                    /*  PID                         */
     INT64                 TCBD_i64PageFailCounter;                      /*  缺页中断次数                */
     
     uid_t                 TCBD_uid;                                     /*  用户                        */

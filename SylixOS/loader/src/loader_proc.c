@@ -31,7 +31,6 @@
 *********************************************************************************************************/
 #if (LW_CFG_MODULELOADER_EN > 0) && (LW_CFG_PROCFS_EN > 0)
 #include "../include/loader_lib.h"
-#include "../include/loader_symbol.h"
 /*********************************************************************************************************
   对应文件信息
 *********************************************************************************************************/
@@ -188,21 +187,9 @@ static ssize_t  __procFsProcMemRead (PLW_PROCFS_NODE  p_pfsn,
     
     stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
     if (stRealSize == 0) {                                              /*  需要生成文件                */
-        INT                 i, iNum;
-        ULONG               ulPages;
-        size_t              stTotalMem;
-        size_t              stMmapSize = 0;
         size_t              stStatic;
-        BOOL                bStart;
-    
-        LW_LIST_RING       *pringTemp;
-        LW_LD_EXEC_MODULE  *pmodTemp;
-        
-#if LW_CFG_VMM_EN == 0
-        PLW_CLASS_HEAP      pheapVpPatch;
-#endif                                                                  /*  LW_CFG_VMM_EN == 0          */
-
-        PVOID               pvVmem[LW_LD_VMEM_MAX];
+        size_t              stHeapMem;
+        size_t              stMmap;
         
         LW_LD_LOCK();
         pvproc = (LW_LD_VPROC *)p_pfsn->PFSN_pvValue;
@@ -211,53 +198,7 @@ static ssize_t  __procFsProcMemRead (PLW_PROCFS_NODE  p_pfsn,
             return  (PX_ERROR);
         }
         
-        LW_VP_LOCK(pvproc);
-        stTotalMem = 0;
-        for (pringTemp  = pvproc->VP_ringModules, bStart = LW_TRUE;
-             pringTemp && (pringTemp != pvproc->VP_ringModules || bStart);
-             pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
-
-            pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
-            
-#if LW_CFG_VMM_EN > 0
-            ulPages = 0;
-            if (API_VmmPCountInArea(pmodTemp->EMOD_pvBaseAddr, &ulPages) == ERROR_NONE) {
-                stTotalMem += (size_t)(ulPages << LW_CFG_VMM_PAGE_SHIFT);
-            }
-#else
-            stTotalMem += pmodTemp->EMOD_stLen;
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-            stTotalMem += __moduleSymbolBufferSize(pmodTemp);
-        }
-        stStatic = stTotalMem;
-        
-        if (stTotalMem) {                                               /*  至少存在一个模块            */
-            pmodTemp = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
-            ulPages  = 0;
-            
-#if LW_CFG_VMM_EN > 0
-            iNum = __moduleVpPatchVmem(pmodTemp, pvVmem, LW_LD_VMEM_MAX);
-            if (iNum > 0) {
-                for (i = 0; i < iNum; i++) {
-                    if (API_VmmPCountInArea(pvVmem[i], 
-                                            &ulPages) == ERROR_NONE) {
-                        stTotalMem += (size_t)(ulPages 
-                                   << LW_CFG_VMM_PAGE_SHIFT);
-                    }
-                }
-            }
-#else
-            pheapVpPatch = (PLW_CLASS_HEAP)__moduleVpPatchHeap(pmodTemp);
-            if (pheapVpPatch) {                                         /*  获得 vp 进程私有 heap       */
-                stTotalMem += (size_t)(pheapVpPatch->HEAP_stTotalByteSize);
-            }
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
-        }
-        LW_VP_UNLOCK(pvproc);
-        
-#if LW_CFG_VMM_EN > 0
-        API_VmmMmapPCount(pvproc->VP_pid, &stMmapSize);                 /*  计算 mmap 内存实际消耗量    */
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+        vprocMemInfoNoLock(pvproc, &stStatic, &stHeapMem, &stMmap);
         LW_LD_UNLOCK();
         
         stRealSize = bnprintf(pcFileBuffer, 
@@ -266,8 +207,8 @@ static ssize_t  __procFsProcMemRead (PLW_PROCFS_NODE  p_pfsn,
                               "heap memory   : %zu Bytes\n"
                               "mmap memory   : %zu Bytes\n"
                               "total memory  : %zu Bytes",
-                              stStatic, (stTotalMem - stStatic), 
-                              stMmapSize, (stTotalMem + stMmapSize));
+                              stStatic, stHeapMem, stMmap,
+                              stStatic + stHeapMem + stMmap);
                               
         API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
     }

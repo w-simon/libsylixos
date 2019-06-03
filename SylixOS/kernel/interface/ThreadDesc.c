@@ -21,6 +21,12 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
+  进程相关
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+#include "../SylixOS/loader/include/loader_vppatch.h"
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
 ** 函数名称: API_ThreadDesc
 ** 功能描述: 获得线程基本信息
 ** 输　入  : ulId           线程句柄
@@ -37,6 +43,10 @@ ULONG  API_ThreadDesc (LW_OBJECT_HANDLE  ulId, PLW_CLASS_TCB_DESC  ptcbdesc)
     REGISTER UINT16             usIndex;
     REGISTER PLW_CLASS_TCB      ptcb;
              INT                i;
+
+#if LW_CFG_MODULELOADER_EN > 0
+             LW_LD_VPROC       *pvproc;
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 	
     usIndex = _ObjectGetIndex(ulId);
     
@@ -144,7 +154,12 @@ ULONG  API_ThreadDesc (LW_OBJECT_HANDLE  ulId, PLW_CLASS_TCB_DESC  ptcbdesc)
     
     lib_strcpy(ptcbdesc->TCBD_cThreadName, ptcb->TCB_cThreadName);
     
-    ptcbdesc->TCBD_pvVProcessContext = ptcb->TCB_pvVProcessContext;
+#if LW_CFG_MODULELOADER_EN > 0
+    pvproc = __LW_VP_GET_TCB_PROC(ptcb);
+    ptcbdesc->TCBD_lPid = (LONG)((pvproc) ? pvproc->VP_pid : 0);
+#else
+    ptcbdesc->TCBD_lPid = 0;
+#endif
     
     ptcbdesc->TCBD_i64PageFailCounter = ptcb->TCB_i64PageFailCounter;
     

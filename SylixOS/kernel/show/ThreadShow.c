@@ -84,7 +84,6 @@ VOID    API_ThreadShowEx (pid_t  pid)
              
              PCHAR              pcPendType = LW_NULL;
              PCHAR              pcFpu = LW_NULL;
-             pid_t              pidGet;
     
     if (LW_CPU_GET_CUR_NESTING()) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
@@ -105,13 +104,7 @@ VOID    API_ThreadShowEx (pid_t  pid)
             continue;
         }
         
-#if LW_CFG_MODULELOADER_EN > 0
-        pidGet = vprocGetPidByTcbdesc(&tcbdesc);
-#else
-        pidGet = 0;
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
-        
-        if ((pidGet != pid) && (pid != -1)) {
+        if (((pid_t)tcbdesc.TCBD_lPid != pid) && (pid != -1)) {
             continue;
         }
         
@@ -164,10 +157,10 @@ VOID    API_ThreadShowEx (pid_t  pid)
             pcFpu = "";
         }
         
-        printf("%-16s %7lx %5d %3d %-4s %4ld %-4s %10s %9llu %-3s %3ld\n",
+        printf("%-16s %7lx %5ld %3d %-4s %4ld %-4s %10s %9llu %-3s %3ld\n",
                tcbdesc.TCBD_cThreadName,                                /*  线程名                      */
                tcbdesc.TCBD_ulId,                                       /*  ID 号                       */
-               pidGet,                                                  /*  所属进程 ID                 */
+               tcbdesc.TCBD_lPid,                                       /*  所属进程 ID                 */
                tcbdesc.TCBD_ucPriority,                                 /*  优先级                      */
                pcPendType,                                              /*  状态                        */
                tcbdesc.TCBD_ulThreadLockCounter,                        /*  线程锁                      */
@@ -210,7 +203,6 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
                                                                         /*  (LW_CFG_MAX_EVENTSETS > 0)  */
              CHAR               cWakeupLeft[11];
              PCHAR              pcPendType = LW_NULL;
-             pid_t              pidGet;
              CHAR               cEventName[LW_CFG_OBJECT_NAME_SIZE + 2];
              LW_OBJECT_HANDLE   ulEvent;
              LW_OBJECT_HANDLE   ulOwner;
@@ -321,13 +313,7 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
             continue;
         }
         
-#if LW_CFG_MODULELOADER_EN > 0
-        pidGet = vprocGetPidByTcbdesc(&tcbdesc);
-#else
-        pidGet = 0;
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
-        
-        if ((pidGet != pid) && (pid != -1)) {
+        if (((pid_t)tcbdesc.TCBD_lPid != pid) && (pid != -1)) {
             continue;
         }
         
@@ -375,20 +361,20 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
         }
         
         if (ulOwner) {
-            printf("%-16s %7lx %5d %-4s %10s %8lx:%-14s %7lx\n",
+            printf("%-16s %7lx %5ld %-4s %10s %8lx:%-14s %7lx\n",
                    tcbdesc.TCBD_cThreadName,                            /*  线程名                      */
                    tcbdesc.TCBD_ulId,                                   /*  ID 号                       */
-                   pidGet,                                              /*  所属进程 ID                 */
+                   tcbdesc.TCBD_lPid,                                   /*  所属进程 ID                 */
                    pcPendType,                                          /*  状态                        */
                    cWakeupLeft,                                         /*  等待计数器                  */
                    ulEvent,
                    cEventName,
                    ulOwner);
         } else {
-            printf("%-16s %7lx %5d %-4s %10s %8lx:%-14s\n",
+            printf("%-16s %7lx %5ld %-4s %10s %8lx:%-14s\n",
                    tcbdesc.TCBD_cThreadName,                            /*  线程名                      */
                    tcbdesc.TCBD_ulId,                                   /*  ID 号                       */
-                   pidGet,                                              /*  所属进程 ID                 */
+                   tcbdesc.TCBD_lPid,                                   /*  所属进程 ID                 */
                    pcPendType,                                          /*  状态                        */
                    cWakeupLeft,                                         /*  等待计数器                  */
                    ulEvent,

@@ -1390,6 +1390,7 @@ SylixOS/loader/src/loader_symbol.c \
 SylixOS/loader/src/loader_vpdebug.c \
 SylixOS/loader/src/loader_vppatch.c \
 SylixOS/loader/src/loader_vpstack.c \
+SylixOS/loader/src/loader_vpstat.c \
 SylixOS/loader/src/loader_vpthread.c \
 SylixOS/loader/src/loader_vptimer.c \
 SylixOS/loader/src/loader_wait.c

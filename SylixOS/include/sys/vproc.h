@@ -53,6 +53,9 @@ LW_API INT  vprocDebugFlagsGet(pid_t  pid, INT  *piFlags);
 LW_API INT  vprocDebugFlagsSet(pid_t  pid, INT  piFlags);
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
+LW_API INT  vprocListGet(pid_t  pidTable[], UINT  uiMaxCnt);
+LW_API INT  vprocMemInfo(pid_t  pid, size_t  *pstStatic, size_t  *pstHeap, size_t  *pstMmap);
+
 #ifdef __cplusplus
 }
 #endif                                                                  /*  __cplusplus                 */

@@ -51,7 +51,6 @@
 #if LW_CFG_POSIX_EN > 0
 #if (LW_CFG_GJB7714_EN > 0) && (LW_CFG_MODULELOADER_EN > 0)
 #include "unistd.h"
-#include "../SylixOS/loader/include/loader_vppatch.h"
 #endif
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: pthread_atfork
@@ -1052,7 +1051,7 @@ int  pthread_getid (const char *name, pthread_t *pthread)
         }
         
 #if LW_CFG_MODULELOADER_EN > 0
-        if (pid != vprocGetPidByTcbdesc(&tcbdesc)) {
+        if (pid != (pid_t)tcbdesc.TCBD_lPid) {
             continue;
         }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

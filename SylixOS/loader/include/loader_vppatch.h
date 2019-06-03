@@ -163,7 +163,6 @@ LW_LD_VPROC        *vprocGetCur(VOID);
 VOID                vprocSetCur(LW_LD_VPROC  *pvproc);
 pid_t               vprocGetPidByTcb(PLW_CLASS_TCB ptcb);
 pid_t               vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
-pid_t               vprocGetPidByTcbdesc(PLW_CLASS_TCB_DESC  ptcbdesc);
 pid_t               vprocGetPidByThread(LW_OBJECT_HANDLE  ulId);
 VOID                vprocKillPrepare(pid_t pid, LW_OBJECT_HANDLE  ulId);
 LW_OBJECT_HANDLE    vprocMainThread(pid_t pid);
@@ -193,6 +192,13 @@ ssize_t             vprocGetModsInfo(pid_t  pid, PCHAR  pcBuff, size_t stMaxLen)
 ssize_t             vprocGetModsSvr4Info(pid_t  pid, PCHAR  pcBuff, size_t stMaxLen);
 #endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
+
+/*********************************************************************************************************
+  进程内存信息
+*********************************************************************************************************/
+
+INT                 vprocMemInfoNoLock(LW_LD_VPROC  *pvproc,
+                                       size_t  *pstStatic, size_t  *pstHeap, size_t  *pstMmap);
 
 /*********************************************************************************************************
   进程内部线程操作

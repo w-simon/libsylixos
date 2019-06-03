@@ -36,12 +36,6 @@
 #if LW_CFG_FIO_LIB_EN > 0 && LW_CFG_THREAD_CPU_USAGE_CHK_EN > 0
 #include "../SylixOS/shell/include/ttiny_shell.h"
 /*********************************************************************************************************
-  进程相关
-*********************************************************************************************************/
-#if LW_CFG_MODULELOADER_EN > 0
-#include "../SylixOS/loader/include/loader_vppatch.h"
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
-/*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
 static const CHAR   _G_cCPUUsageInfoHdr[] = "\n\
@@ -80,7 +74,6 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
              INT              iOption;
              
              LW_CLASS_TCB_DESC  tcbdesc;
-             pid_t              pidGet;
     
     if (LW_CPU_GET_CUR_NESTING()) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
@@ -136,16 +129,10 @@ VOID    API_CPUUsageShow (INT  iWaitSec, INT  iTimes)
                 } else if (uiThreadUsage[i] > ulLitePercent) {
                     API_TShellColorStart2(LW_TSHELL_COLOR_GREEN, STD_OUT);
                 }
-                
-#if LW_CFG_MODULELOADER_EN > 0
-                pidGet = vprocGetPidByTcbdesc(&tcbdesc);
-#else
-                pidGet = 0;
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
-                printf("%-16s %7lx %5d %3d %3d.%d%% %3d.%d%%\n", 
+                printf("%-16s %7lx %5ld %3d %3d.%d%% %3d.%d%%\n",
                        tcbdesc.TCBD_cThreadName, ulId[i], 
-                       pidGet, tcbdesc.TCBD_ucPriority,
+                       tcbdesc.TCBD_lPid, tcbdesc.TCBD_ucPriority,
                        uiThreadUsage[i] / 10, uiThreadUsage[i] % 10,
                        uiThreadKernel[i] / 10, uiThreadKernel[i] % 10);
                        

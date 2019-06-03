@@ -215,9 +215,15 @@ INT  API_ThreadGetCPUUsageAll (LW_OBJECT_HANDLE  ulId[],
             uiUsageKernel = (uiUsageKernel / 10);                       /*  ËÄÉá                        */
         }
         
-        ulId[iIndex] = ptcb->TCB_ulId;
-        uiThreadUsage[iIndex] = uiUsage;
-        uiKernelUsage[iIndex] = uiUsageKernel;
+        if (ulId) {
+            ulId[iIndex] = ptcb->TCB_ulId;
+        }
+        if (uiThreadUsage) {
+            uiThreadUsage[iIndex] = uiUsage;
+        }
+        if (uiKernelUsage) {
+            uiKernelUsage[iIndex] = uiUsageKernel;
+        }
         
         iIndex++;
         if (iIndex >= iSize) {

@@ -82,7 +82,7 @@
 LW_LIST_LINE_HEADER      _G_plineVProcHeader = LW_NULL;
 LW_OBJECT_HANDLE         _G_ulVProcMutex     = LW_OBJECT_HANDLE_INVALID;
 /*********************************************************************************************************
-  内核进程控制卡
+  进程控制块
 *********************************************************************************************************/
 LW_LD_VPROC              _G_vprocKernel;
 LW_LD_VPROC             *_G_pvprocTable[LW_CFG_MAX_THREADS];
@@ -693,30 +693,6 @@ pid_t  vprocGetPidByTcbNoLock (PLW_CLASS_TCB  ptcb)
         if (pvproc) {
             pid = pvproc->VP_pid;
         }
-    }
-    
-    return  (pid);
-}
-/*********************************************************************************************************
-** 函数名称: vprocGetPidByTcbdesc
-** 功能描述: 通过 tcbdesc 获得进程 id
-** 输　入  : ptcbdesc   任务信息描述
-** 输　出  : 进程 pid
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-pid_t  vprocGetPidByTcbdesc (PLW_CLASS_TCB_DESC  ptcbdesc)
-{
-    pid_t        pid = 0;
-    LW_LD_VPROC *pvproc;
-
-    if (ptcbdesc) {
-        LW_LD_LOCK();
-        pvproc = (LW_LD_VPROC *)ptcbdesc->TCBD_pvVProcessContext;
-        if (pvproc) {
-            pid = pvproc->VP_pid;
-        }
-        LW_LD_UNLOCK();
     }
     
     return  (pid);
