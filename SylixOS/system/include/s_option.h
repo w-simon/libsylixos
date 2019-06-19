@@ -98,6 +98,7 @@
 #ifdef __SYLIXOS_KERNEL                                         /* ONLY pipe() can use this!            */
 #define FIOPIPEBLOCK        LW_OSIO( 'f', 15)                   /* block until events happen            */
 #define FIOPIPERDONLY       LW_OSIO( 'f', 18)                   /* make pipe rdwr fd to rdonly          */
+#define FIOPIPENOSIG        LW_OSIOD('f', 40, INT)              /* no write broken pipe raise signal    */
 #endif
 
 #define FIOGETOPTIONS       LW_OSIOR('f', 19, INT)              /* get options                          */

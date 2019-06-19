@@ -76,9 +76,9 @@ typedef LW_SPIPE_DEV     *PLW_SPIPE_DEV;
 
 typedef struct {
     PLW_SPIPE_DEV        SPIPEFIL_pspipedev;
-    
     INT                  SPIPEFIL_iFlags;                               /*  建立属性                    */
     INT                  SPIPEFIL_iMode;                                /*  操作方式                    */
+    INT                  SPIPEFIL_iExtMode;
 } LW_SPIPE_FILE;
 typedef LW_SPIPE_FILE   *PLW_SPIPE_FILE;
 

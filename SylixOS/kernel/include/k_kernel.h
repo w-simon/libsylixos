@@ -31,6 +31,7 @@
 2015.11.20  修改项目代号为: NeZha(哪吒).
 2016.10.08  修改项目代号为: LongYuan(龙渊).
 2018.01.18  修改项目代号为: Octopus(八爪鱼).
+2019.06.19  修改项目代号为: Tangram(七巧板).
 *********************************************************************************************************/
 
 #ifndef __K_KERNEL_H
@@ -49,8 +50,8 @@
 *********************************************************************************************************/
 
 #define __SYLIXOS_MAJOR_VER     1
-#define __SYLIXOS_MINOR_VER     9
-#define __SYLIXOS_PATCH_VER     10
+#define __SYLIXOS_MINOR_VER     10
+#define __SYLIXOS_PATCH_VER     0
 #define __SYLIXOS_PATCH_PAD     0
 
 /*********************************************************************************************************
@@ -80,7 +81,7 @@
                                                      __SYLIXOS_PATCH_VER, \
                                                      __SYLIXOS_PATCH_PAD)
 
-#define __SYLIXOS_RELSTR        "Octopus"
+#define __SYLIXOS_RELSTR        "Tangram"
 #define __SYLIXOS_VERINFO       "SylixOS kernel version: "  \
                                 __SYLIXOS_VERSTR            \
                                 " Code name: " __SYLIXOS_RELSTR

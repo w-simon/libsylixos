@@ -343,9 +343,10 @@ static INT  __tshellFsCmdRm (INT  iArgC, PCHAR  ppcArgV[])
 *********************************************************************************************************/
 static INT  __tshellFsCmdMv (INT  iArgC, PCHAR  ppcArgV[])
 {
-    REGISTER INT    iError = PX_ERROR;
-    REGISTER INT    iFd;
-             CHAR   cTemp[16];
+    REGISTER INT         iError = PX_ERROR;
+    REGISTER INT         iFd;
+             CHAR        cTemp[16];
+             struct stat statGet;
     
     if (iArgC != 3) {
         fprintf(stderr, "arguments error!\n");
@@ -368,6 +369,13 @@ __re_select:
             goto    __error_handle;
         } else if ((cTemp[0] == 'Y') ||
                    (cTemp[0] == 'y')) {                                 /*  ¸²¸Ç                        */
+            if (stat(ppcArgV[2], &statGet)) {
+                goto    __error_handle;
+            }
+            if (S_ISDIR(statGet.st_mode)) {                             /*  ²»ÔÊÐí¸²¸ÇÄ¿Â¼              */
+                fprintf(stderr, "Error: %s is an existing directory!\n", ppcArgV[2]);
+                goto    __error_handle;
+            }
             if (unlink(ppcArgV[2]) != ERROR_NONE) {
                 goto    __error_handle;
             }

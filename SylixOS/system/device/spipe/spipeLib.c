@@ -49,6 +49,10 @@
 #include "../SylixOS/system/include/s_system.h"
 #include "limits.h"
 /*********************************************************************************************************
+  EXT MODE
+*********************************************************************************************************/
+#define LW_SPIPE_EXT_MODE_NOSIG     0x1
+/*********************************************************************************************************
   共享锁操作
 *********************************************************************************************************/
 #define LW_SPIPE_LOCK(pspipedev, code) \
@@ -177,7 +181,7 @@ LONG  _SpipeOpen (PLW_SPIPE_DEV  pspipedev,
         return  (PX_ERROR);
     
     } else {
-        if (iFlags & O_CREAT) {
+        if ((iFlags & O_CREAT) && (iFlags & O_EXCL)) {
             _ErrorHandle(ERROR_IO_FILE_EXIST);                          /*  不能重复创建                */
             return  (PX_ERROR);
         }
@@ -208,6 +212,7 @@ LONG  _SpipeOpen (PLW_SPIPE_DEV  pspipedev,
         
         pspipefil->SPIPEFIL_iFlags    = iFlags;
         pspipefil->SPIPEFIL_iMode     = iMode;
+        pspipefil->SPIPEFIL_iExtMode  = 0;
         pspipefil->SPIPEFIL_pspipedev = pspipedev;
         
         if (!(iFlags & O_PEEKONLY)) {
@@ -364,14 +369,14 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
     
              PLW_SPIPE_DEV  pspipedev = pspipefil->SPIPEFIL_pspipedev;
     
-     if (!pcBuffer) {
-         _ErrorHandle(EINVAL);
-         return  (PX_ERROR);
-     }
+    if (!pcBuffer) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
 
-     if (!stMaxBytes) {
-         return  (0);
-     }
+    if (!stMaxBytes) {
+        return  (0);
+    }
     
     if (LW_CPU_GET_CUR_NESTING()) {                                     /*  是否在中断中调用            */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
@@ -383,7 +388,9 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
     
     if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {                          /*  没有写端且没有数据          */
         if (pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes == 0) {
-            return  (0);
+            if (!(pspipefil->SPIPEFIL_iExtMode & LW_SPIPE_EXT_MODE_NOSIG)) {
+                return  (0);
+            }
         }
     }
     
@@ -534,13 +541,14 @@ __continue_write:
     
     if (pspipedev->SPIPEDEV_uiReadCnt == 0) {                           /*  没有读端                    */
 #if LW_CFG_SIGNAL_EN > 0
-        sigevent_t  sigeventPipe;
-        
-        sigeventPipe.sigev_signo           = SIGPIPE;
-        sigeventPipe.sigev_value.sival_ptr = LW_NULL;
-        sigeventPipe.sigev_notify          = SIGEV_SIGNAL;
-        
-        _doSigEvent(API_ThreadIdSelf(), &sigeventPipe, SI_MESGQ);       /*  产生 SIGPIPE 信号           */
+        if (!(pspipefil->SPIPEFIL_iExtMode & LW_SPIPE_EXT_MODE_NOSIG)) {
+            sigevent_t  sigeventPipe;
+
+            sigeventPipe.sigev_signo           = SIGPIPE;
+            sigeventPipe.sigev_value.sival_ptr = LW_NULL;
+            sigeventPipe.sigev_notify          = SIGEV_SIGNAL;
+            _doSigEvent(API_ThreadIdSelf(), &sigeventPipe, SI_MESGQ);   /*  产生 SIGPIPE 信号           */
+        }
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         _ErrorHandle(EPIPE);
         return  (PX_ERROR);
@@ -549,6 +557,7 @@ __continue_write:
     if (pspipefil->SPIPEFIL_iFlags & O_NONBLOCK) {                      /*  非阻塞 IO                   */
         ulTimeout = LW_OPTION_NOT_WAIT;
         bNonblock = LW_TRUE;
+
     } else {
         ulTimeout = pspipedev->SPIPEDEV_ulWTimeout;
         bNonblock = LW_FALSE;
@@ -849,6 +858,16 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         LW_SPIPE_UNLOCK(pspipedev);
         break;
         
+    case FIOPIPENOSIG:                                                  /*  不需要信号                  */
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
+        if ((INT)piArgPtr) {
+            pspipefil->SPIPEFIL_iExtMode |= LW_SPIPE_EXT_MODE_NOSIG;
+        } else {
+            pspipefil->SPIPEFIL_iExtMode &= ~LW_SPIPE_EXT_MODE_NOSIG;
+        }
+        LW_SPIPE_UNLOCK(pspipedev);
+        break;
+
     default:
         iErrCode = PX_ERROR;
         _ErrorHandle(ERROR_IO_UNKNOWN_REQUEST);

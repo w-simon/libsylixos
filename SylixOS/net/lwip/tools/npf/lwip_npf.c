@@ -356,12 +356,18 @@ static BOOL  __npfIpRuleCheck (__PNPF_NETIF_CB  pnpfni, BOOL  bIn, struct ip_hdr
     
     while (plineTemp) {
         pnpfri = _LIST_ENTRY(plineTemp, __NPF_RULE_IP, NPFRI_lineManage);
-        if ((ipaddrHbo.addr >= pnpfri->NPFRI_ipaddrHboS.addr) &&
-            (ipaddrHbo.addr <= pnpfri->NPFRI_ipaddrHboE.addr)) {
-            if (pnpfri->NPFRI_bAllow) {
+        if (pnpfri->NPFRI_bAllow) {
+            if ((ipaddrHbo.addr >= pnpfri->NPFRI_ipaddrHboS.addr) &&
+                (ipaddrHbo.addr <= pnpfri->NPFRI_ipaddrHboE.addr)) {
                 return  (LW_TRUE);                                      /*  白名单, 立即放行            */
             }
             bAllow = LW_FALSE;                                          /*  禁止通过                    */
+
+        } else {
+            if ((ipaddrHbo.addr >= pnpfri->NPFRI_ipaddrHboS.addr) &&
+                (ipaddrHbo.addr <= pnpfri->NPFRI_ipaddrHboE.addr)) {
+                bAllow = LW_FALSE;                                      /*  禁止通过                    */
+            }
         }
         plineTemp = _list_line_get_next(plineTemp);
     }
@@ -401,14 +407,22 @@ static BOOL  __npfUdpRuleCheck (__PNPF_NETIF_CB  pnpfni, BOOL  bIn,
 
     while (plineTemp) {
         pnpfru = _LIST_ENTRY(plineTemp, __NPF_RULE_UDP, NPFRU_lineManage);
-        if ((ipaddrHbo.addr >= pnpfru->NPFRU_ipaddrHboS.addr) &&
-            (ipaddrHbo.addr <= pnpfru->NPFRU_ipaddrHboE.addr) &&
-            (usPortHbo      >= pnpfru->NPFRU_usPortHboS)      &&
-            (usPortHbo      <= pnpfru->NPFRU_usPortHboE)) {
-            if (pnpfru->NPFRU_bAllow) {
+        if (pnpfru->NPFRU_bAllow) {
+            if ((ipaddrHbo.addr >= pnpfru->NPFRU_ipaddrHboS.addr) &&
+                (ipaddrHbo.addr <= pnpfru->NPFRU_ipaddrHboE.addr) &&
+                (usPortHbo      >= pnpfru->NPFRU_usPortHboS)      &&
+                (usPortHbo      <= pnpfru->NPFRU_usPortHboE)) {
                 return  (LW_TRUE);                                      /*  白名单, 立即放行            */
             }
             bAllow = LW_FALSE;                                          /*  禁止通过                    */
+
+        } else {
+            if ((ipaddrHbo.addr >= pnpfru->NPFRU_ipaddrHboS.addr) &&
+                (ipaddrHbo.addr <= pnpfru->NPFRU_ipaddrHboE.addr) &&
+                (usPortHbo      >= pnpfru->NPFRU_usPortHboS)      &&
+                (usPortHbo      <= pnpfru->NPFRU_usPortHboE)) {
+                bAllow = LW_FALSE;                                      /*  禁止通过                    */
+            }
         }
         plineTemp = _list_line_get_next(plineTemp);
     }
@@ -447,14 +461,22 @@ static BOOL  __npfTcpRuleCheck (__PNPF_NETIF_CB  pnpfni, BOOL  bIn,
 
     while (plineTemp) {
         pnpfrt = _LIST_ENTRY(plineTemp, __NPF_RULE_TCP, NPFRT_lineManage);
-        if ((ipaddrHbo.addr >= pnpfrt->NPFRT_ipaddrHboS.addr) &&
-            (ipaddrHbo.addr <= pnpfrt->NPFRT_ipaddrHboE.addr) &&
-            (usPortHbo      >= pnpfrt->NPFRT_usPortHboS)      &&
-            (usPortHbo      <= pnpfrt->NPFRT_usPortHboE)) {
-            if (pnpfrt->NPFRT_bAllow) {
+        if (pnpfrt->NPFRT_bAllow) {
+            if ((ipaddrHbo.addr >= pnpfrt->NPFRT_ipaddrHboS.addr) &&
+                (ipaddrHbo.addr <= pnpfrt->NPFRT_ipaddrHboE.addr) &&
+                (usPortHbo      >= pnpfrt->NPFRT_usPortHboS)      &&
+                (usPortHbo      <= pnpfrt->NPFRT_usPortHboE)) {
                 return  (LW_TRUE);                                      /*  白名单, 立即放行            */
             }
             bAllow = LW_FALSE;                                          /*  禁止通过                    */
+
+        } else {
+            if ((ipaddrHbo.addr >= pnpfrt->NPFRT_ipaddrHboS.addr) &&
+                (ipaddrHbo.addr <= pnpfrt->NPFRT_ipaddrHboE.addr) &&
+                (usPortHbo      >= pnpfrt->NPFRT_usPortHboS)      &&
+                (usPortHbo      <= pnpfrt->NPFRT_usPortHboE)) {
+                bAllow = LW_FALSE;                                      /*  禁止通过                    */
+            }
         }
         plineTemp = _list_line_get_next(plineTemp);
     }

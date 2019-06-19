@@ -64,7 +64,7 @@ LONG  _PipeOpen (PLW_PIPE_DEV  p_pipedev,
         return  (PX_ERROR);
     
     } else {
-        if (iFlags & O_CREAT) {
+        if ((iFlags & O_CREAT) && (iFlags & O_EXCL)) {
             _ErrorHandle(ERROR_IO_FILE_EXIST);                          /*  不能重复创建                */
             return  (PX_ERROR);
         }
