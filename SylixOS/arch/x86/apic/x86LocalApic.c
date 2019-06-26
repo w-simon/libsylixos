@@ -317,42 +317,10 @@ static VOID  __x86LocalApicEnable (PX86_LOAPIC_INTR  pLoApicIntr, BOOL  bEnable)
 INT  x86LocalApicInit (UINT  *puiLocalApicIntNr)
 {
     PX86_LOAPIC_INTR   pLoApicIntr = &_G_x86LocalApicIntrs[LW_CPU_GET_CUR_ID()];
-    UINT64             ui64ApicBase;
     INT                iCoreNum;
 
     pLoApicIntr->LOAPIC_pcBase    = (CHAR *)LOCAL_APIC_BASE;
     pLoApicIntr->LOAPIC_uiIntMask = 0;
-
-    if (X86_FEATURE_HAS_APIC && (X86_FEATURE_PROCESSOR_FAMILY != X86_FAMILY_PENTIUM)) {
-        CHAR  *pcMpApicLoBase;
-        INT    i;
-
-        x86PentiumMsrGet(X86_MSR_APICBASE, (UINT64 *)&ui64ApicBase);
-        pcMpApicLoBase = (CHAR *)((ULONG)ui64ApicBase & LOAPIC_BASE_MASK);
-
-        if (pLoApicIntr->LOAPIC_pcBase != pcMpApicLoBase) {
-            ui64ApicBase &= ~LOAPIC_BASE_MASK;
-            ui64ApicBase |= LOCAL_APIC_BASE;
-        }
-
-        /*
-         * Enable the Local APIC explicitly by making sure
-         * it is disabled first. A toggle will make sure
-         * interrupts are cleared.
-         */
-        ui64ApicBase &= ~(LOAPIC_GLOBAL_ENABLE);                        /*  Clear Enable bit            */
-        x86PentiumMsrSet(X86_MSR_APICBASE, &ui64ApicBase);
-
-        /*
-         * Delays 50usec
-         */
-        for (i = 0; i < 70; i++) {                                      /*  70*720 ~= 50.4usec          */
-            bspDelay720Ns();                                            /*  720ns                       */
-        }
-
-        ui64ApicBase |= LOAPIC_GLOBAL_ENABLE;                           /*  Set Enable bit              */
-        x86PentiumMsrSet(X86_MSR_APICBASE, &ui64ApicBase);
-    }
 
     /*
      * Remember the original state: SVR, LINT0, LINT1 for now

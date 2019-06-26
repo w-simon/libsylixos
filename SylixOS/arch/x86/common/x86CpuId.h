@@ -188,92 +188,6 @@
 #define X86_CPUID_EXT_MODEL_SANDYBRIDGE 0x00020000
 
 /*********************************************************************************************************
-  CPU TYPE
-*********************************************************************************************************/
-
-#define X86_CPUID_ORIG              0x00000000              /*  Type: original OEM                      */
-#define X86_CPUID_OVERD             0x00001000              /*  Type: overdrive                         */
-#define X86_CPUID_DUAL              0x00002000              /*  Type: dual                              */
-
-/*********************************************************************************************************
-  CPUID definitions
-*********************************************************************************************************/
-
-#define X86_CPUID_UNSUPPORTED       0xffffffff              /*  Family: not supported                   */
-
-/*********************************************************************************************************
-  Pentium microarchitecture CPUIDs
-*********************************************************************************************************/
-
-#define X86_CPUID_PENTIUM           0x00000500              /*  Family: Pentium                         */
-#define X86_CPUID_MINUTEIA          0x00000590              /*  Family: MinuteIA/Quark                  */
-#define X86_CPUID_PENTIUM4          0x00000000              /*  Extended family: PENTIUM4               */
-
-/*********************************************************************************************************
-  Core microarchitecture CPUIDs
-*********************************************************************************************************/
-
-#define X86_CPUID_CORE              0x000006e0              /*  Core Solo/Duo                           */
-#define X86_CPUID_CORE2             0x000006f0              /*  Core2                                   */
-#define X86_CPUID_CORE2_DUO         0x00010670              /*  Core2 Duo                               */
-#define X86_CPUID_XEON_5400         0x00010670              /*  Xeon 52xx/54xx                          */
-#define X86_CPUID_XEON_7400         0x000106d0              /*  Xeon 74xx Core2                         */
-
-/*********************************************************************************************************
-  Nehalem microarchitecture CPUIDs
-*********************************************************************************************************/
-
-#define X86_CPUID_XEON_5500         0x000106a0              /*  Xeon 55xx                               */
-#define X86_CPUID_XEON_C5500        0x000106e0              /*  Xeon C35xx/C55xx                        */
-#define X86_CPUID_XEON_5600         0x000206c0              /*  Xeon 56xx                               */
-#define X86_CPUID_XEON_7500         0x000206e0              /*  Xeon 65xx/75xx                          */
-#define X86_CPUID_XEON_32NM         0x000206f0              /*  Xeon 65xx/75xx 32 NM                    */
-#define X86_CPUID_COREI5_I7M        0x00020650              /*  Arrandale i3 or i5/i7 Mobile 6xx/5xx    */
-
-/*********************************************************************************************************
-  Atom microarchitecture CPUIDs
-*********************************************************************************************************/
-
-#define X86_CPUID_ATOM              0x000106c0              /*  Atom                                    */
-#define X86_CPUID_CEDARVIEW         0x00030660              /*  Atom CedarView CPU N2800                */
-#define X86_CPUID_SILVERMONT        0x00030672              /*  Atom Silvermont CPU                     */
-
-/*********************************************************************************************************
-  Sandy Bridge microarchitecture CPUIDs
-*********************************************************************************************************/
-
-#define X86_CPUID_SANDYBRIDGE       0x000206a0              /*  SandyBridge                             */
-
-/*********************************************************************************************************
-  Haswell microarchitecture CPUIDs
-*********************************************************************************************************/
-
-#define X86_CPUID_HASWELL_CLIENT    0x000306c0              /*  Haswell Client                          */
-#define X86_CPUID_HASWELL_SERVER    0x000306f0              /*  Haswell Server                          */
-#define X86_CPUID_HASWELL_ULT       0x00040650              /*  Haswell ULT                             */
-#define X86_CPUID_CRYSTAL_WELL      0x00040660              /*  Crystal Well                            */
-
-/*********************************************************************************************************
-  Dummy entry
-*********************************************************************************************************/
-
-#define X86_CPUID_DUMMY             0                       /*  Dummy CPUID entry                       */
-
-/*********************************************************************************************************
-  CPU FAMILY
-*********************************************************************************************************/
-
-#define X86_FAMILY_UNSUPPORTED      0                       /*  CPU FAMILY: Not supported               */
-#define X86_FAMILY_PENTIUM          2                       /*  CPU FAMILY: Pentium/P5                  */
-#define X86_FAMILY_PENTIUM4         5                       /*  CPU FAMILY: Pentium4/P7                 */
-#define X86_FAMILY_CORE             6                       /*  CPU FAMILY: Core/Core2                  */
-#define X86_FAMILY_ATOM             7                       /*  CPU FAMILY: Atom                        */
-#define X86_FAMILY_NEHALEM          8                       /*  CPU FAMILY: Nehalem                     */
-#define X86_FAMILY_SANDYBRIDGE      9                       /*  CPU FAMILY: Sandy Bridge                */
-#define X86_FAMILY_HASWELL          10                      /*  CPU FAMILY: Haswell                     */
-#define X86_FAMILY_MINUTEIA         11                      /*  CPU FAMILY: MinuteIA/Quark              */
-
-/*********************************************************************************************************
   CPU feature override flags
 *********************************************************************************************************/
 
@@ -317,15 +231,6 @@ typedef struct {
     UINT32      feat;
     UINT32      state;
 } X86_CPUID_OVERRIDE;
-
-/*********************************************************************************************************
-  CPUID signature table entry structure
-*********************************************************************************************************/
-
-typedef struct {
-    UINT32      signature;
-    UINT32      family;
-} X86_CPUID_ENTRY;
 
 /*********************************************************************************************************
   CPUID standard features
@@ -872,7 +777,6 @@ typedef struct {
     INT         CPUF_iDCacheWaySize;                                    /*  I-Cache way size            */
     BOOL        CPUF_bHasCLFlush;                                       /*  Has CLFLUSH inst?           */
     BOOL        CPUF_bHasAPIC;                                          /*  Has APIC on chip?           */
-    UINT        CPUF_uiProcessorFamily;                                 /*  Processor Family            */
     BOOL        CPUF_bHasX87FPU;                                        /*  Has X87 FPU?                */
     BOOL        CPUF_bHasSSE;                                           /*  Has SSE?                    */
     BOOL        CPUF_bHasSSE2;                                          /*  Has SSE?                    */
@@ -895,7 +799,6 @@ extern X86_CPU_FEATURE      _G_x86CpuFeature;
 #define X86_FEATURE_DCACHE_WAY_SIZE    _G_x86CpuFeature.CPUF_iDCacheWaySize
 #define X86_FEATURE_HAS_CLFLUSH        _G_x86CpuFeature.CPUF_bHasCLFlush
 #define X86_FEATURE_HAS_APIC           _G_x86CpuFeature.CPUF_bHasAPIC
-#define X86_FEATURE_PROCESSOR_FAMILY   _G_x86CpuFeature.CPUF_uiProcessorFamily
 #define X86_FEATURE_HAS_X87FPU         _G_x86CpuFeature.CPUF_bHasX87FPU
 #define X86_FEATURE_HAS_SSE            _G_x86CpuFeature.CPUF_bHasSSE
 #define X86_FEATURE_HAS_SSE2           _G_x86CpuFeature.CPUF_bHasSSE2
@@ -917,7 +820,6 @@ extern X86_CPUID  *x86CpuIdGet(VOID);
 extern VOID        x86CpuIdProbe(VOID);
 extern VOID        x86CpuIdShow(VOID);
 
-extern INT         x86CpuIdAdd(X86_CPUID_ENTRY  *pentry);
 extern INT         x86CpuIdOverride(X86_CPUID_OVERRIDE  *pentries, INT  iCount);
 extern UINT8       x86CpuIdBitField(UINT8  ucFullId, UINT8  ucMaxSubIdValue, UINT8  ucShiftCount);
 

@@ -496,18 +496,17 @@ static INT  __x86IoApicInit (PX86_IOAPIC_INTR  pIoApicIntr)
      * hardwired to FSB delivery.
      */
     if (((pIoApicIntr->IOAPIC_uiVersion & IOAPIC_VERSION_MASK) >= 0x20)) {
-        if (X86_FEATURE_PROCESSOR_FAMILY >= X86_FAMILY_PENTIUM4) {
-            /*
-             * Pentium4 and later use FSB for interrupt delivery
-             */
-            __x86IoApicRegSet(pIoApicIntr, IOAPIC_BOOT, IOAPIC_DT_FS);
-
-        } else {
-            /*
-             * Pentium up to and including P6 use APIC bus
-             */
-            __x86IoApicRegSet(pIoApicIntr, IOAPIC_BOOT, IOAPIC_DT_APIC);
-        }
+#if LW_CFG_CPU_X86_APIC_BUS_INT > 0
+        /*
+         * Pentium up to and including P6 use APIC bus
+         */
+        __x86IoApicRegSet(pIoApicIntr, IOAPIC_BOOT, IOAPIC_DT_APIC);
+#else
+        /*
+         * Pentium4 and later use FSB for interrupt delivery
+         */
+        __x86IoApicRegSet(pIoApicIntr, IOAPIC_BOOT, IOAPIC_DT_FS);
+#endif                                                                  /*  X86_APIC_BUS_INT > 0        */
     }
 
     uiRteValue = IOAPIC_EDGE     |                                      /*  ±ßÑØÐÅºÅ´¥·¢                */

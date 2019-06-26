@@ -52,63 +52,6 @@
 *********************************************************************************************************/
 static UINT64           _G_ui64X86CpuIdFreq = 1000000000ULL;            /*  CPU 主频, 缺省为 1GHz       */
 
-static X86_CPUID_ENTRY  _G_x86CpuIdTable[] = {                          /*  CPUID 条目表                */
-    {X86_CPUID_PENTIUM,        X86_FAMILY_PENTIUM},
-    {X86_CPUID_PENTIUM4,       X86_FAMILY_PENTIUM4},
-    {X86_CPUID_CORE,           X86_FAMILY_CORE},
-    {X86_CPUID_CORE2,          X86_FAMILY_CORE},
-    {X86_CPUID_CORE2_DUO,      X86_FAMILY_CORE},
-    {X86_CPUID_XEON_5400,      X86_FAMILY_NEHALEM},
-    {X86_CPUID_XEON_7400,      X86_FAMILY_NEHALEM},
-    {X86_CPUID_XEON_5500,      X86_FAMILY_NEHALEM},
-    {X86_CPUID_XEON_C5500,     X86_FAMILY_NEHALEM},
-    {X86_CPUID_XEON_5600,      X86_FAMILY_NEHALEM},
-    {X86_CPUID_XEON_7500,      X86_FAMILY_NEHALEM},
-    {X86_CPUID_COREI5_I7M,     X86_FAMILY_NEHALEM},
-    {X86_CPUID_XEON_32NM,      X86_FAMILY_NEHALEM},
-    {X86_CPUID_ATOM,           X86_FAMILY_ATOM},
-    {X86_CPUID_SANDYBRIDGE,    X86_FAMILY_SANDYBRIDGE},
-    {X86_CPUID_CEDARVIEW,      X86_FAMILY_ATOM},
-    {X86_CPUID_SILVERMONT,     X86_FAMILY_ATOM},
-
-    {X86_CPUID_HASWELL_CLIENT, X86_FAMILY_HASWELL},
-    {X86_CPUID_HASWELL_SERVER, X86_FAMILY_HASWELL},
-    {X86_CPUID_HASWELL_ULT,    X86_FAMILY_HASWELL},
-    {X86_CPUID_CRYSTAL_WELL,   X86_FAMILY_HASWELL},
-
-    {X86_CPUID_MINUTEIA,       X86_FAMILY_MINUTEIA},
-
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY},
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY},
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY},
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY},
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY},
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY},
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY},
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY},
-    {X86_CPUID_DUMMY,          X86_CPUID_DUMMY}};
-
-static INT              _G_iX86CpuEntriesNr = \
-        sizeof(_G_x86CpuIdTable) / sizeof(X86_CPUID_ENTRY);             /*  CPUID 条目数                */
-
-const static CHAR      *_G_pcX86CpuFamilyNames[] = {                    /*  CPU 家族名字表              */
-    "Not Supported",                                                    /*  0                           */
-    "Not Supported",                                                    /*  1                           */
-    "Pentium",                                                          /*  2                           */
-    "Not Supported",                                                    /*  3                           */
-    "Not Supported",                                                    /*  4                           */
-    "Pentium 4",                                                        /*  5                           */
-    "Core",                                                             /*  6                           */
-    "Atom",                                                             /*  7                           */
-    "Nehalem",                                                          /*  8                           */
-    "Sandy Bridge",                                                     /*  9                           */
-    "Haswell",                                                          /*  10                          */
-    "Quark"                                                             /*  11                          */
-};
-
-const static INT        _G_iCpuFamilyNr = \
-        sizeof(_G_pcX86CpuFamilyNames) / sizeof(CHAR *);                /*  CPU 家族名字数              */
-
 const static CHAR      *_G_pcX86CacheTypes[] = {                        /*  CACHE 类型表                */
     "Null",                                                             /*  0                           */
     "Data",                                                             /*  1                           */
@@ -153,7 +96,6 @@ X86_CPU_FEATURE         _G_x86CpuFeature = {                            /*  全局
     .CPUF_stCacheFlushBytes = X86_CLFLUSH_DEF_BYTES,                    /*  CLFLUSH 字节数              */
     .CPUF_bHasCLFlush       = LW_FALSE,                                 /*  Has CLFLUSH inst?           */
     .CPUF_bHasAPIC          = LW_FALSE,                                 /*  Has APIC on chip?           */
-    .CPUF_uiProcessorFamily = X86_FAMILY_UNSUPPORTED,                   /*  Processor Family            */
     .CPUF_bHasX87FPU        = LW_FALSE,                                 /*  Has X87 FPU?                */
     .CPUF_bHasSSE           = LW_FALSE,                                 /*  Has SSE?                    */
     .CPUF_bHasSSE2          = LW_FALSE,                                 /*  Has SSE?                    */
@@ -257,32 +199,6 @@ X86_CPUID  *x86CpuIdGet (VOID)
     return   (&_G_x86CpuId);
 }
 /*********************************************************************************************************
-** 函数名称: x86CpuIdAdd
-** 功能描述: 增加一个新的 X86_CPUID_ENTRY 到支持的 CPUID 条目表
-** 输　入  : pentry        CPUID 条目
-** 输　出  : ERROR CODE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-INT  x86CpuIdAdd (X86_CPUID_ENTRY  *pentry)
-{
-    X86_CPUID_ENTRY  *pcur = LW_NULL;
-    INT               i;
-    INT               iError = PX_ERROR;
-
-    for (i = 0; i < _G_iX86CpuEntriesNr; i++) {
-        pcur = &_G_x86CpuIdTable[i];
-        if (pcur->signature == X86_CPUID_DUMMY) {
-            pcur->signature = pentry->signature;
-            pcur->family    = pentry->family;
-            iError          = ERROR_NONE;
-            break;
-        }
-    }
-
-    return  (iError);
-}
-/*********************************************************************************************************
 ** 函数名称: x86CpuIdOverride
 ** 功能描述: 覆盖 CPU 特性
 ** 输　入  : pentries      覆盖的 CPUID 条目
@@ -343,7 +259,6 @@ VOID  x86CpuIdProbe (VOID)
     X86_CPUID_ECX_CACHE_PARAMS      cacheEcx[4];
     X86_CPUID_EDX_FEATURES          features;
     X86_CPUID_ECX_FEATURES          extendedFeatures;
-    UINT                            uiCpuId;
     CHAR                           *pcLine;
     INT                             i;
     CHAR                            cTemp[256];
@@ -352,22 +267,6 @@ VOID  x86CpuIdProbe (VOID)
 
     features.value         = pcpuid->std.featuresEdx;
     extendedFeatures.value = pcpuid->std.featuresEcx;
-
-    /*
-     * 识别 Intel 处理器家族类型码
-     */
-    uiCpuId = pcpuid->std.signature & (X86_CPUID_FAMILY | X86_CPUID_MODEL | X86_CPUID_EXT_MODEL);
-
-    for (i = 0; i < _G_iX86CpuEntriesNr; i++) {
-        if (_G_x86CpuIdTable[i].signature == uiCpuId) {
-            pcpufeature->CPUF_uiProcessorFamily = _G_x86CpuIdTable[i].family;
-            break;
-        }
-    }
-
-    if (pcpufeature->CPUF_uiProcessorFamily == X86_FAMILY_UNSUPPORTED) {
-        pcpufeature->CPUF_uiProcessorFamily  = X86_FAMILY_PENTIUM;
-    }
 
     /*
      * 识别 CPU 名字
@@ -471,7 +370,6 @@ VOID  x86CpuIdProbe (VOID)
 VOID  x86CpuIdShow (VOID)
 {
     X86_CPUID                      *pcpuid = &_G_x86CpuId;
-    X86_CPUID_ENTRY                *pentry;
     X86_CPUID_INFO                  info;
     X86_CPUID_VERSION               version;
     X86_CPUID_EDX_FEATURES          features;
@@ -512,11 +410,8 @@ VOID  x86CpuIdShow (VOID)
     X86_CPUID_EAX_VPADRSIZES_PARAMS vpadrEax;
 
     UINT64                          ulCpuSerial;
-    CHAR                           *pcCpuTypeName = LW_NULL;
     CHAR                           *pcLine;
-    UINT                            uiX86Processor = X86_FAMILY_UNSUPPORTED;
-    INT                             i, iCpuIdMask;
-
+    INT                             i;
 
     lib_bzero((VOID *)cacheEax, 4 * sizeof(X86_CPUID_EAX_CACHE_PARAMS));
     lib_bzero((VOID *)cacheEbx, 4 * sizeof(X86_CPUID_EAX_CACHE_PARAMS));
@@ -565,39 +460,6 @@ VOID  x86CpuIdShow (VOID)
            version.field.model, version.field.modelExt,
            version.field.stepid,
            version.field.family, version.field.familyExt);
-
-    switch ((INT)version.field.type) {
-
-    case X86_CPUID_ORIG:
-        pcCpuTypeName = "original OEM";
-        break;
-
-    case X86_CPUID_OVERD:
-        pcCpuTypeName = "overdrive";
-        break;
-
-    case X86_CPUID_DUAL:
-        pcCpuTypeName = "dual";
-        break;
-
-    default:
-        pcCpuTypeName = "<unknown>";
-        break;
-    }
-
-    iCpuIdMask = X86_CPUID_FAMILY | X86_CPUID_MODEL | X86_CPUID_EXT_MODEL;
-    for (i = 0; i < _G_iX86CpuEntriesNr; i++) {
-        pentry = &_G_x86CpuIdTable[i];
-        if ((pentry->signature & iCpuIdMask) == (pcpuid->std.signature & iCpuIdMask)) {
-            uiX86Processor = pentry->family;
-            break;
-        }
-    }
-
-    printf("    x86 processor architecture is %s, type %s\n",
-           ((uiX86Processor <= _G_iCpuFamilyNr) && (uiX86Processor != X86_FAMILY_UNSUPPORTED)) ?
-           _G_pcX86CpuFamilyNames[uiX86Processor] : "unsupported",
-           pcCpuTypeName);
 
     if (features.field.psnum) {
         ulCpuSerial = (UINT64)pcpuid->std.serialNo64[0] << 32 | pcpuid->std.serialNo64[1];

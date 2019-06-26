@@ -53,10 +53,7 @@ VOID  x86PentiumMtrrEnable (VOID)
     X86_CR_REG  uiOldCr4;
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
-    /*
-     * Not available for MinuteIA
-     */
-    if (X86_FEATURE_PROCESSOR_FAMILY == X86_FAMILY_MINUTEIA) {
+    if (!X86_FEATURE_HAS_MTRR) {
         return;
     }
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
@@ -100,10 +97,7 @@ VOID  x86PentiumMtrrDisable (VOID)
     X86_CR_REG  uiOldCr4;
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
-    /*
-     * Not available for MinuteIA
-     */
-    if (X86_FEATURE_PROCESSOR_FAMILY == X86_FAMILY_MINUTEIA) {
+    if (!X86_FEATURE_HAS_MTRR) {
         return;
     }
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
@@ -149,10 +143,7 @@ INT  x86PentiumMtrrGet (PX86_MTRR  pMtrr)
     INTREG      iregInterLevel;
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
-    /*
-     * Not available for MinuteIA
-     */
-    if (X86_FEATURE_PROCESSOR_FAMILY == X86_FAMILY_MINUTEIA) {
+    if (!X86_FEATURE_HAS_MTRR) {
         return  (PX_ERROR);
     }
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
@@ -206,10 +197,7 @@ INT  x86PentiumMtrrSet (PX86_MTRR  pMtrr)
     INTREG      iregInterLevel;
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
-    /*
-     * Not available for MinuteIA
-     */
-    if (X86_FEATURE_PROCESSOR_FAMILY == X86_FAMILY_MINUTEIA) {
+    if (!X86_FEATURE_HAS_MTRR) {
         return  (PX_ERROR);
     }
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
