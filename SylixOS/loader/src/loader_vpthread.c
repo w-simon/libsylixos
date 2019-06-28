@@ -133,6 +133,47 @@ VOID  vprocThreadKill (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
     LW_VP_UNLOCK(pvproc);                                               /*  解锁当前进程                */
 }
 /*********************************************************************************************************
+** 函数名称: vprocThreadTraversal
+** 功能描述: 遍历进程内的所有线程 (为了提高效率此函数会锁定 KERNEL)
+** 输　入  : pid            进程 id
+**           pfunc          回调函数
+**           pvArg[0 ~ 5]   遍历函数参数
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  vprocThreadTraversal (pid_t          pid,
+                           VOIDFUNCPTR    pfunc,
+                           PVOID          pvArg0,
+                           PVOID          pvArg1,
+                           PVOID          pvArg2,
+                           PVOID          pvArg3,
+                           PVOID          pvArg4,
+                           PVOID          pvArg5)
+{
+    LW_LD_VPROC      *pvproc;
+    PLW_LIST_LINE     plineTemp;
+    PLW_CLASS_TCB     ptcb;
+
+    __KERNEL_ENTER();                                                   /*  进入内核                    */
+    pvproc = vprocGet(pid);
+    if (!pvproc) {
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        return  (PX_ERROR);
+    }
+
+    for (plineTemp  = pvproc->VP_plineThread;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+
+        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        pfunc(ptcb, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
+    }
+    __KERNEL_EXIT();                                                    /*  退出内核                    */
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: vprocThreadSigaction
 ** 功能描述: 设置进程内所有任务的 sigaction
 ** 输　入  : pvVProc        进程控制块指针

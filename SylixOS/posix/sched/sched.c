@@ -90,6 +90,36 @@ int  sched_yield (void)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __sched_set
+** 功能描述: 设置指定任务调度器参数 (进入内核后被调用)
+** 输　入  : ptcb               任务控制块
+**           pucPolicy          调度策略
+**           pucPriority        优先级
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+
+static VOID  __sched_set (PLW_CLASS_TCB  ptcb, UINT8  *pucPolicy, UINT8  *pucPriority)
+{
+    if (pucPriority) {
+        if (!LW_PRIO_IS_EQU(ptcb->TCB_ucPriority, *pucPriority)) {
+            _SchedSetPrio(ptcb, *pucPriority);
+        }
+    }
+
+    if (pucPolicy) {
+        ptcb->TCB_ucSchedPolicy = *pucPolicy;
+        if (*pucPolicy == LW_OPTION_SCHED_FIFO) {
+            ptcb->TCB_usSchedCounter = ptcb->TCB_usSchedSlice;          /*  不为零                      */
+        }
+    }
+}
+
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
 ** 函数名称: sched_setparam
 ** 功能描述: 设置指定任务调度器参数
 ** 输　入  : pid           进程 / 线程 ID
@@ -102,9 +132,7 @@ int  sched_yield (void)
 LW_API 
 int  sched_setparam (pid_t  pid, const struct sched_param  *pschedparam)
 {
-    UINT8               ucPriority;
-    ULONG               ulError;
-    LW_OBJECT_HANDLE    ulThread;
+    UINT8  ucPriority;
     
     if (pschedparam == LW_NULL) {
         errno = EINVAL;
@@ -120,29 +148,29 @@ int  sched_setparam (pid_t  pid, const struct sched_param  *pschedparam)
     
 #if LW_CFG_MODULELOADER_EN > 0
     if (pid == 0) {
-        pid =  getpid();
+        pid = getpid();
     }
     if (pid == 0) {
-        ulThread = API_ThreadIdSelf();
-    } else {
-        ulThread = vprocMainThread(pid);
+        errno = ESRCH;
+        return  (PX_ERROR);
     }
-    if (ulThread == LW_OBJECT_HANDLE_INVALID) {
+
+    if (vprocThreadTraversal(pid, __sched_set, LW_NULL, &ucPriority,
+                             LW_NULL, LW_NULL, LW_NULL, LW_NULL)) {
         errno = ESRCH;
         return  (PX_ERROR);
     }
 #else
-    ulThread = (LW_OBJECT_HANDLE)pid;
+    LW_OBJECT_HANDLE  ulThread = (LW_OBJECT_HANDLE)pid;
     PX_ID_VERIFY(ulThread, LW_OBJECT_HANDLE);
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
-    ulError = API_ThreadSetPriority(ulThread, ucPriority);
-    if (ulError) {
+    if (API_ThreadSetPriority(ulThread, ucPriority)) {
         errno = ESRCH;
         return  (PX_ERROR);
-    } else {
-        return  (ERROR_NONE);
     }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: sched_getparam
@@ -209,9 +237,7 @@ int  sched_setscheduler (pid_t                      pid,
                          int                        iPolicy, 
                          const struct sched_param  *pschedparam)
 {
-    UINT8               ucPriority;
-    UINT8               ucActivatedMode;
-    LW_OBJECT_HANDLE    ulThread;
+    UINT8  ucPriority;
 
     if (pschedparam == LW_NULL) {
         errno = EINVAL;
@@ -234,21 +260,22 @@ int  sched_setscheduler (pid_t                      pid,
     
 #if LW_CFG_MODULELOADER_EN > 0
     if (pid == 0) {
-        pid =  getpid();
+        pid = getpid();
     }
     if (pid == 0) {
-        ulThread = API_ThreadIdSelf();
-    } else {
-        ulThread = vprocMainThread(pid);
+        errno = ESRCH;
+        return  (PX_ERROR);
     }
-    if (ulThread == LW_OBJECT_HANDLE_INVALID) {
+
+    if (vprocThreadTraversal(pid, __sched_set, &iPolicy, &ucPriority,
+                             LW_NULL, LW_NULL, LW_NULL, LW_NULL)) {
         errno = ESRCH;
         return  (PX_ERROR);
     }
 #else
-    ulThread = (LW_OBJECT_HANDLE)pid;
+    UINT8             ucActivatedMode;
+    LW_OBJECT_HANDLE  ulThread = (LW_OBJECT_HANDLE)pid;
     PX_ID_VERIFY(ulThread, LW_OBJECT_HANDLE);
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
     if (API_ThreadGetSchedParam(ulThread,
                                 LW_NULL,
@@ -256,15 +283,16 @@ int  sched_setscheduler (pid_t                      pid,
         errno = ESRCH;
         return  (PX_ERROR);
     }
-    
+
     API_ThreadSetSchedParam(ulThread, (UINT8)iPolicy, ucActivatedMode);
-    
+
     if (API_ThreadSetPriority(ulThread, ucPriority)) {
         errno = ESRCH;
         return  (PX_ERROR);
-    } else {
-        return  (ERROR_NONE);
     }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: sched_getscheduler
@@ -387,10 +415,16 @@ int  sched_setaffinity (pid_t pid, size_t setsize, const cpu_set_t *set)
         errno = EINVAL;
         return  (PX_ERROR);
     }
+
+#if LW_CFG_MODULELOADER_EN > 0
     if (vprocSetAffinity(pid, setsize, (PLW_CLASS_CPUSET)set)) {
         errno = ESRCH;
         return  (PX_ERROR);
     }
+#else
+    errno = ESRCH;
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
     return  (ERROR_NONE);
@@ -414,10 +448,16 @@ int  sched_getaffinity (pid_t pid, size_t setsize, cpu_set_t *set)
         errno = EINVAL;
         return  (PX_ERROR);
     }
+
+#if LW_CFG_MODULELOADER_EN > 0
     if (vprocGetAffinity(pid, setsize, set)) {
         errno = ESRCH;
         return  (PX_ERROR);
     }
+#else
+    errno = ESRCH;
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
     
     return  (ERROR_NONE);

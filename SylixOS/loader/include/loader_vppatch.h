@@ -206,8 +206,17 @@ INT                 vprocMemInfoNoLock(LW_LD_VPROC  *pvproc,
 
 VOID                vprocThreadAdd(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
 VOID                vprocThreadDelete(PVOID   pvVProc, PLW_CLASS_TCB  ptcb);
-INT                 vprocThreadNum(pid_t  pid, ULONG  *pulNum);
 VOID                vprocThreadKill(PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp);
+
+INT                 vprocThreadNum(pid_t  pid, ULONG  *pulNum);
+INT                 vprocThreadTraversal(pid_t          pid,
+                                         VOIDFUNCPTR    pfunc,
+                                         PVOID          pvArg0,
+                                         PVOID          pvArg1,
+                                         PVOID          pvArg2,
+                                         PVOID          pvArg3,
+                                         PVOID          pvArg4,
+                                         PVOID          pvArg5);
 
 #if LW_CFG_SIGNAL_EN > 0
 INT                 vprocThreadSigaction(PVOID  pvVProc, VOIDFUNCPTR  pfunc, INT  iSigIndex, 

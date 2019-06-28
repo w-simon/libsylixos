@@ -1164,11 +1164,12 @@ static ssize_t  __tpsFsWrite (PLW_FD_ENTRY  pfdentry,
                     break;
                 }
             }
+			__SHEAP_FREE(pucZoreBuf);
 
-            __SHEAP_FREE(pucZoreBuf);
-            if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
+            pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
+            if (pfdnode->FDNODE_oftSize < pfdentry->FDENTRY_oftPtr) {
                 __TPS_FILE_UNLOCK(ptpsfile);
-                _ErrorHandle(EFBIG);
+                _ErrorHandle(ENOSPC);
                 return  (PX_ERROR);
             }
         }
@@ -1244,11 +1245,12 @@ static ssize_t  __tpsFsPWrite (PLW_FD_ENTRY  pfdentry,
                     break;
                 }
             }
+			__SHEAP_FREE(pucZoreBuf);
 
-            __SHEAP_FREE(pucZoreBuf);
-            if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
+            pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
+            if (pfdnode->FDNODE_oftSize < oftPos) {
                 __TPS_FILE_UNLOCK(ptpsfile);
-                _ErrorHandle(EFBIG);
+                _ErrorHandle(ENOSPC);
                 return  (PX_ERROR);
             }
         }
