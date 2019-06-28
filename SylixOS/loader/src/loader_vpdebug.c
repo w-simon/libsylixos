@@ -92,6 +92,9 @@ VOID  vprocDebugStop (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb->TCB_iDeleteProcStatus) {
+            continue;                                                   /*  已经在删除过程中            */
+        }
         if (ptcb == ptcbExcp) {
             continue;                                                   /*  不停止此任务                */
         }
@@ -129,6 +132,9 @@ VOID  vprocDebugContinue (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb->TCB_iDeleteProcStatus) {
+            continue;                                                   /*  已经在删除过程中            */
+        }
         if (ptcb == ptcbExcp) {
             continue;                                                   /*  不启动此任务                */
         }
@@ -271,6 +277,9 @@ UINT  vprocDebugThreadGet (PVOID  pvVProc, LW_OBJECT_HANDLE  ulId[], UINT   uiTa
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb->TCB_iDeleteProcStatus) {
+            continue;                                                   /*  已经在删除过程中            */
+        }
         if (uiNum < uiTableNum) {
             ulId[uiNum] = ptcb->TCB_ulId;
             uiNum++;

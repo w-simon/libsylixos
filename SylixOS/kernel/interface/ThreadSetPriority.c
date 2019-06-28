@@ -84,6 +84,12 @@ ULONG  API_ThreadSetPriority (LW_OBJECT_HANDLE    ulId, UINT8    ucPriority)
     
     ptcb = _K_ptcbTCBIdTable[usIndex];
     
+    if (ptcb->TCB_iDeleteProcStatus) {
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        _ErrorHandle(ERROR_THREAD_OTHER_DELETE);
+        return  (ERROR_THREAD_OTHER_DELETE);
+    }
+
     if (LW_PRIO_IS_EQU(ptcb->TCB_ucPriority, ucPriority)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */
         return  (ERROR_NONE);

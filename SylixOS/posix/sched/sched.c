@@ -104,16 +104,18 @@ int  sched_yield (void)
 
 static VOID  __sched_set (PLW_CLASS_TCB  ptcb, UINT8  *pucPolicy, UINT8  *pucPriority)
 {
-    if (pucPriority) {
-        if (!LW_PRIO_IS_EQU(ptcb->TCB_ucPriority, *pucPriority)) {
-            _SchedSetPrio(ptcb, *pucPriority);
+    if (LW_LIKELY(ptcb)) {
+        if (pucPriority) {
+            if (!LW_PRIO_IS_EQU(ptcb->TCB_ucPriority, *pucPriority)) {
+                _SchedSetPrio(ptcb, *pucPriority);
+            }
         }
-    }
 
-    if (pucPolicy) {
-        ptcb->TCB_ucSchedPolicy = *pucPolicy;
-        if (*pucPolicy == LW_OPTION_SCHED_FIFO) {
-            ptcb->TCB_usSchedCounter = ptcb->TCB_usSchedSlice;          /*  不为零                      */
+        if (pucPolicy) {
+            ptcb->TCB_ucSchedPolicy = *pucPolicy;
+            if (*pucPolicy == LW_OPTION_SCHED_FIFO) {
+                ptcb->TCB_usSchedCounter = ptcb->TCB_usSchedSlice;      /*  不为零                      */
+            }
         }
     }
 }

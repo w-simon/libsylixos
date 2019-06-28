@@ -771,6 +771,9 @@ VOID  vprocKillPrepare (pid_t  pid, LW_OBJECT_HANDLE  ulId)
                  plineTemp  = _list_line_get_next(plineTemp)) {
 
                 ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+                if (ptcb->TCB_iDeleteProcStatus) {
+                    continue;                                           /*  已经在删除过程中            */
+                }
                 if (ptcb->TCB_ulId == ulId) {
                     continue;                                           /*  不停止主任务                */
                 }
@@ -811,6 +814,9 @@ static VOID  vprocKillRelease (PLW_CLASS_TCB  ptcbCur)
              plineTemp  = _list_line_get_next(plineTemp)) {
 
             ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+            if (ptcb->TCB_iDeleteProcStatus) {
+                continue;                                               /*  已经在删除过程中            */
+            }
             if (ptcb == ptcbCur) {
                 continue;
             }

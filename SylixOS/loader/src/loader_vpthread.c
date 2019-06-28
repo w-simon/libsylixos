@@ -83,6 +83,7 @@ INT  vprocThreadNum (pid_t  pid, ULONG  *pulNum)
 {
     LW_LD_VPROC     *pvproc;
     PLW_LIST_LINE    plineTemp;
+    PLW_CLASS_TCB    ptcb;
     
     if (!pulNum) {
         _ErrorHandle(EINVAL);
@@ -98,6 +99,11 @@ INT  vprocThreadNum (pid_t  pid, ULONG  *pulNum)
     for (plineTemp  = pvproc->VP_plineThread;
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
+
+        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb->TCB_iDeleteProcStatus) {
+            continue;                                                   /*  已经在删除过程中            */
+        }
         (*pulNum)++;
     }
     __KERNEL_EXIT();                                                    /*  退出内核                    */
@@ -126,6 +132,9 @@ VOID  vprocThreadKill (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
          plineTemp  = _list_line_get_next(plineTemp)) {
         
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb->TCB_iDeleteProcStatus) {
+            continue;                                                   /*  已经在删除过程中            */
+        }
         if (ptcb != ptcbExcp) {                                         /*  ptcbCur 为主线程            */
             _excJobAdd((VOIDFUNCPTR)kill, (PVOID)ptcb->TCB_ulId, (PVOID)SIGKILL, 0, 0, 0, 0);
         }
@@ -167,6 +176,9 @@ INT  vprocThreadTraversal (pid_t          pid,
          plineTemp  = _list_line_get_next(plineTemp)) {
 
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb->TCB_iDeleteProcStatus) {
+            continue;                                                   /*  已经在删除过程中            */
+        }
         pfunc(ptcb, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5);
     }
     __KERNEL_EXIT();                                                    /*  退出内核                    */
@@ -207,6 +219,9 @@ INT  vprocThreadSigaction (PVOID  pvVProc, VOIDFUNCPTR  pfunc, INT  iSigIndex,
          plineTemp  = _list_line_get_next(plineTemp)) {
          
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb->TCB_iDeleteProcStatus) {
+            continue;                                                   /*  已经在删除过程中            */
+        }
         if (ptcb != ptcbCur) {
             pfunc(ptcb, iSigIndex, psigactionNew);
         }
@@ -249,6 +264,10 @@ INT  vprocThreadAffinity (PVOID  pvVProc, size_t  stSize, const PLW_CLASS_CPUSET
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ptcb->TCB_iDeleteProcStatus) {
+            continue;                                                   /*  已经在删除过程中            */
+        }
+
         if (ptcb == ptcbCur) {
             if (!__THREAD_LOCK_GET(ptcb)) {                             /*  外部没有锁定此任务          */
                 __KERNEL_ENTER();                                       /*  进入内核                    */
