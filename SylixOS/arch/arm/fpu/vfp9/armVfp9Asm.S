@@ -50,7 +50,7 @@ FUNC_DEF(armVfp9Sid)
     FUNC_END()
     
 FUNC_DEF(armVfp9Enable)
-    MOV     R1, #0x40000000      ;/*  Set Neon/VFP Enable bit                                            */
+    MOV     R1, #(1 << 30)       ;/*  Set Neon/VFP Enable bit                                            */
     FMXR    FPEXC, R1            ;/*  FPEXC, clear others.                                               */
     BX      LR
     FUNC_END()
@@ -100,11 +100,14 @@ FUNC_DEF(armVfp9IsEnable)
 ;*********************************************************************************************************/
 
 MACRO_DEF(VFP9_SAVE_CTRL)
-    FMRX    R1, FPSCR
-    STR     R1, [R0, #VFP_FPSCR]
-
     FMRX    R1, FPEXC
+    ORR     R1, R1, #(1 << 30)
+    FMXR    FPEXC, R1
+
     STR     R1, [R0, #VFP_FPEXC]
+
+    FMRX    R2, FPSCR
+    STR     R2, [R0, #VFP_FPSCR]
 
     FMRX    R2, FPINST
     STR     R2, [R0, #VFP_FPINST]
@@ -125,6 +128,7 @@ MACRO_DEF(VFP9_SAVE_CTRL)
 
 MACRO_DEF(VFP9_RESTORE_CTRL)
     LDR     R1, [R0, #VFP_FPEXC]
+    ORR     R1, R1, #(1 << 30)
     FMXR    FPEXC, R1
 
     LDR     R2, [R0, #VFP_FPINST]

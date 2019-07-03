@@ -71,11 +71,14 @@
 ;*********************************************************************************************************/
 
 MACRO_DEF(VFPv3_SAVE_CTRL)
-    FMRX    R1, FPSCR
-    STR     R1, [R0, #VFP_FPSCR]        ;/*  ±£´æ FPSCR                                                  */
-
     FMRX    R1, FPEXC
+    ORR     R1, R1, #(1 << 30)
+    FMXR    FPEXC, R1
+
     STR     R1, [R0, #VFP_FPEXC]        ;/*  ±£´æ FPEXC                                                  */
+
+    FMRX    R2, FPSCR
+    STR     R2, [R0, #VFP_FPSCR]        ;/*  ±£´æ FPSCR                                                  */
 
     ORR     R1, R1, #((1 << 28) | (1 << 31))
     FMXR    FPEXC, R1                   ;/*  Set FPEXC.EX=1 and FPEXC.FP2V=1                             */
@@ -102,7 +105,7 @@ MACRO_DEF(VFPv3_SAVE_CTRL)
 
 MACRO_DEF(VFPv3_RESTORE_CTRL)
     FMRX    R1, FPEXC
-    ORR     R1, R1, #((1 << 28) | (1 << 31))
+    ORR     R1, R1, #((1 << 28) | (1 << 30) | (1 << 31))
     FMXR    FPEXC, R1                   ;/*  Set FPEXC.EX=1 and FPEXC.FP2V=1                             */
 
     FMRX    R1, FPEXC                   ;/*  Read back the FPEXC register                                */

@@ -103,8 +103,7 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     
     _G_fpuCtxInit.FPUCTX_fpuctxContext.FPUCTX_uiFpsid = (UINT32)ARM_VFP_HW_SID(_G_pfpuop);
     ARM_VFP_SAVE(_G_pfpuop, (PVOID)&_G_fpuCtxInit);
-    
-    _G_fpuCtxInit.FPUCTX_fpuctxContext.FPUCTX_uiFpexc = 0x00000000;     /*  disable VFP                 */
+
     _G_fpuCtxInit.FPUCTX_fpuctxContext.FPUCTX_uiFpscr = 0x01000000;     /*  Set FZ bit in VFP           */
                                                                         /*  Do not enable FPU           */
     ARM_VFP_DISABLE(_G_pfpuop);
