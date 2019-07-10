@@ -216,6 +216,8 @@ pci_size_t  API_PciSizeNumGet (pci_size_t stSize)
 LW_API 
 PCI_CTRL_HANDLE  API_PciCtrlCreate (PCI_CTRL_HANDLE hCtrl)
 {
+    PCI_AUTO_HANDLE     hPciAuto;                                       /* 自动配置控制句柄             */
+
     if (PCI_CTRL == LW_NULL) {
         PCI_CTRL = hCtrl;
         
@@ -227,8 +229,16 @@ PCI_CTRL_HANDLE  API_PciCtrlCreate (PCI_CTRL_HANDLE hCtrl)
         /*
          *  需要在设备列表创建完成之后再进行自动配置
          *  因为部分平台配置寄存器的读写需要依赖父节点的索引参数
+         *
+         *  需要在自动配置后重新更新设备列表
+         *  因为部分主控器会修改枚举设备树型结构
          */
         API_PciAutoScan(hCtrl, (UINT32 *)&hCtrl->PCI_iBusMax);
+        hPciAuto = &hCtrl->PCI_tAutoConfig;
+        if (hPciAuto->PCIAUTO_iConfigEn) {                              /* 自动配置使能                 */
+            API_PciDevDelete(LW_NULL);
+            API_PciDevListCreate();
+        }
 
 #if LW_CFG_PROCFS_EN > 0
         __procFsPciInit();

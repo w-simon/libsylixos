@@ -180,7 +180,7 @@ INTREG  archGetCpsr(VOID);
 VOID    archBogoMipsLoop(ULONG  ulLoop);
 
 #define __ARCH_BOGOMIPS_LOOP            archBogoMipsLoop
-#define __ARCH_BOGOMIPS_INS_PER_LOOP    2
+#define __ARCH_BOGOMIPS_INS_PER_LOOP    8
 
 /*********************************************************************************************************
   ARM CP15 基本功能

@@ -306,6 +306,12 @@ FUNC_DEF(archReboot)
 
 FUNC_DEF(archBogoMipsLoop)
 1:
+    MOV     R1 , #1
+    MOV     R2 , #2
+    MOV     R3 , #3
+    MOV     R1 , #1
+    MOV     R2 , #2
+    MOV     R3 , #3
     SUBS    R0 , R0 , #1
     BNE     1b
     BX      LR

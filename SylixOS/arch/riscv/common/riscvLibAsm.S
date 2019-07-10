@@ -235,6 +235,12 @@ FUNC_DEF(archReboot)
 FUNC_DEF(archBogoMipsLoop)
     LI      T0 , 1
 LINE_LABEL(again)
+    LI      T1 , 1
+    LI      T2 , 2
+    LI      T3 , 3
+    LI      T1 , 1
+    LI      T2 , 2
+    LI      T3 , 3
     SUB     A0 , A0 , T0
     BNEZ    A0 , again
     RET

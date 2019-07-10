@@ -274,9 +274,15 @@ FUNC_DEF(archReboot)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archBogoMipsLoop)
-    MOVL    X86_SP_ARG1(%ESP) , %EAX
+    MOVL    X86_SP_ARG1(%ESP) , %ECX
 1:
-    DEC     %EAX
+    MOVL    $1 , %EAX
+    MOVL    $2 , %EDX
+    MOVL    $1 , %EAX
+    MOVL    $2 , %EDX
+    MOVL    $1 , %EAX
+    MOVL    $2 , %EDX
+    DEC     %ECX
     JNS     1b
     RET
     FUNC_END(archBogoMipsLoop)

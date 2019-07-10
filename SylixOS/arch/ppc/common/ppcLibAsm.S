@@ -275,6 +275,12 @@ FUNC_DEF(archReboot)
 
 FUNC_DEF(archBogoMipsLoop)
 1:
+    LI      R4 , 4
+    LI      R5 , 5
+    LI      R6 , 6
+    LI      R4 , 4
+    LI      R5 , 5
+    LI      R6 , 6
     SUBI    R3 , R3 , 1
     CMPWI   CR0, R3 , 0
     BNE     CR0, 1b

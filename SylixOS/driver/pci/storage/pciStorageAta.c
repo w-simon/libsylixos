@@ -17,6 +17,9 @@
 ** 文件创建日期: 2018 年 09 月 04 日
 **
 ** 描        述: ATA/IDE 驱动.
+
+** BUG:
+** 2019.07.02  增加 INTEL ICH4 IDE 控制器延时的特殊处理, 否则会出现控制器复位失败.
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_ATA_DRV
@@ -30,6 +33,7 @@
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_PCI_EN > 0) && (LW_CFG_ATA_EN > 0) && (LW_CFG_DRV_ATA_IDE > 0)
 #include "pci_ids.h"
 #include "pciStorageAta.h"
+#include "../SylixOS/system/device/ata/ataLib.h"
 /*********************************************************************************************************
   板载类型.
 *********************************************************************************************************/
@@ -202,6 +206,68 @@ typedef struct ata_pci_dma_ctrl {
 } ATA_PCI_DMA_CTRL_CB;
 
 typedef ATA_PCI_DMA_CTRL_CB    *ATA_PCI_DMA_CTRL_HANDLE;
+/*********************************************************************************************************
+** 函数名称: pciStorageAtaCtrlIch4Delay
+** 功能描述: ICH4 控制器延时处理
+** 输　入  : hCtrl      控制器句柄
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  pciStorageAtaCtrlIch4Delay (ATA_CTRL_HANDLE  hCtrl)
+{
+    UINT8       ucReg;
+
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+}
+/*********************************************************************************************************
+** 函数名称: pciStorageAtaCtrlQuirk
+** 功能描述: 控制器的特殊处理
+** 输　入  : hPciDev        PCI 设备句柄
+**           hDrv           驱动句柄
+**           hCtrlCfg       控制器配置句柄
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  pciStorageAtaCtrlQuirk (PCI_DEV_HANDLE       hPciDev,
+                                    ATA_DRV_HANDLE       hDrv,
+                                    ATA_CTRL_CFG_HANDLE  hCtrlCfg)
+{
+    UINT16      usVendorId;
+    UINT16      usDeviceId;
+
+    if ((!hPciDev) || (!hDrv) || (!hCtrlCfg)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    usVendorId = PCI_DEV_VENDOR_ID(hPciDev);
+    usDeviceId = PCI_DEV_DEVICE_ID(hPciDev);
+
+    switch (usVendorId) {
+
+    case PCI_VENDOR_ID_INTEL:
+        if (usDeviceId == PCI_DEVICE_ID_INTEL_82801DB_11) {
+            hCtrlCfg->ATACTRLCFG_pfuncDelay = (FUNCPTR)pciStorageAtaCtrlIch4Delay;
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    return (ERROR_NONE);
+}
 /*********************************************************************************************************
 ** 函数名称: pciStorageAtaDevIdTblGet
 ** 功能描述: 获取设备列表
@@ -989,6 +1055,8 @@ static INT  pciStorageAtaDevProbe (PCI_DEV_HANDLE  hPciDev, const PCI_DEV_ID_HAN
     }
     hCtrlCfg->ATACTRLCFG_pfuncDelay = (FUNCPTR)LW_NULL;
 
+    pciStorageAtaCtrlQuirk(hPciDev, hDrv, hCtrlCfg);
+
     hCtrlCfg = &hDrv->ATADRV_tCtrlCfg[1];
     if (ucReg & ATA_SEC_NATIVE_EN) {
         hResource = API_PciDevResourceGet(hPciDev, PCI_IORESOURCE_IRQ, 0);
@@ -1027,6 +1095,8 @@ static INT  pciStorageAtaDevProbe (PCI_DEV_HANDLE  hPciDev, const PCI_DEV_ID_HAN
         hCtrlCfg->ATA_CTRLCFG_BUSM_HANDLE = hPciDev;
     }
     hCtrlCfg->ATACTRLCFG_pfuncDelay = (FUNCPTR)LW_NULL;
+
+    pciStorageAtaCtrlQuirk(hPciDev, hDrv, hCtrlCfg);
 
     /*
      *  驱动 IO 操作初始化

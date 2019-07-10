@@ -286,6 +286,12 @@ FUNC_END(archReboot)
 
 FUNC_DEF(archBogoMipsLoop)
 LINE_LABEL(bogo_loop)
+    MOV     1 , %o1
+    MOV     2 , %o2
+    MOV     3 , %o3
+    MOV     1 , %o1
+    MOV     2 , %o2
+    MOV     3 , %o3
     SUBCC   %o0 , 0x1 , %o0
     BNE     bogo_loop
     NOP

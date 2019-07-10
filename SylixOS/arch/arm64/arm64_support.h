@@ -152,7 +152,7 @@ VOID    arm64WaitForInterrupt(VOID);
 VOID    archBogoMipsLoop(ULONG  ulLoop);
 
 #define __ARCH_BOGOMIPS_LOOP            archBogoMipsLoop
-#define __ARCH_BOGOMIPS_INS_PER_LOOP    2
+#define __ARCH_BOGOMIPS_INS_PER_LOOP    8
 
 /*********************************************************************************************************
   ARM64 ´¦ÀíÆ÷ CACHE ²Ù×÷

@@ -323,8 +323,15 @@ FUNC_DEF(archReboot)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archBogoMipsLoop)
+1:
+    MOV     X1 , #1
+    MOV     X2 , #2
+    MOV     X3 , #3
+    MOV     X1 , #1
+    MOV     X2 , #2
+    MOV     X3 , #3
     SUBS    X0 , X0 , #1
-    BNE     archBogoMipsLoop
+    BNE     1b
     RET
     FUNC_END()
 

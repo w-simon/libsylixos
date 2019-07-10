@@ -293,6 +293,12 @@ FUNC_DEF(archReboot)
 
 FUNC_DEF(archBogoMipsLoop)
 1:
+    MOV     $1 , X86_64_ARG1
+    MOV     $2 , X86_64_ARG2
+    MOV     $3 , X86_64_ARG3
+    MOV     $1 , X86_64_ARG1
+    MOV     $2 , X86_64_ARG2
+    MOV     $3 , X86_64_ARG3
     DEC     X86_64_ARG0
     JNS     1b
     RET

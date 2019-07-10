@@ -150,7 +150,7 @@ VOID    archReboot(INT  iRebootType, addr_t  ulStartAddress);
 VOID    archBogoMipsLoop(ULONG  ulLoop);
 
 #define __ARCH_BOGOMIPS_LOOP            archBogoMipsLoop
-#define __ARCH_BOGOMIPS_INS_PER_LOOP    2
+#define __ARCH_BOGOMIPS_INS_PER_LOOP    8
 
 /*********************************************************************************************************
   x86 ´¦ÀíÆ÷ CACHE ²Ù×÷

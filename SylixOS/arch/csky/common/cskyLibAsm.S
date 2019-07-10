@@ -256,6 +256,12 @@ FUNC_DEF(archReboot)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archBogoMipsLoop)
+    MOVI        A1 , 1
+    MOVI        A2 , 2
+    MOVI        A3 , 3
+    MOVI        A1 , 1
+    MOVI        A2 , 2
+    MOVI        A3 , 3
     SUBI        A0 , 1
     BNEZ        A0 , archBogoMipsLoop
     RTS
