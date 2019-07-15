@@ -245,7 +245,7 @@ __full_with_zero:
 ** 功能描述: 分配虚拟空间
 ** 输　入  : pmapn         mmap node
 **           stLen         内存大小
-**           iFlags        LW_VMM_SHARED_CHANGE / LW_VMM_PRIVATE_CHANGE
+**           iFlags        LW_VMM_SHARED_CHANGE / LW_VMM_PRIVATE_CHANGE / LW_VMM_PHY_PREALLOC
 **           ulFlag        虚拟空间内存属性
 ** 输　出  : 内存地址
 ** 全局变量: 
@@ -255,9 +255,14 @@ static PVOID  __vmmMapnMalloc (PLW_VMM_MAP_NODE  pmapn, size_t  stLen, INT  iFla
 {
     REGISTER PVOID  pvMem;
     
-    pvMem = API_VmmMallocAreaEx(stLen, __vmmMapnFill, pmapn, iFlags, ulFlag);
-    if (pvMem) {
-        API_VmmSetFindShare(pvMem, __vmmMapnFindShare, pmapn);
+    if (iFlags & LW_VMM_PHY_PREALLOC) {
+        pvMem = API_VmmMallocEx(stLen, ulFlag);
+
+    } else {
+        pvMem = API_VmmMallocAreaEx(stLen, __vmmMapnFill, pmapn, iFlags, ulFlag);
+        if (pvMem) {
+            API_VmmSetFindShare(pvMem, __vmmMapnFindShare, pmapn);
+        }
     }
     
     return  (pvMem);
@@ -353,7 +358,7 @@ static VOID  __vmmMapnReclaim (PLW_VMM_MAP_NODE  pmapn, LW_LD_VPROC  *pvproc)
 ** 函数名称: __vmmMmapNew
 ** 功能描述: 分配一段新的虚拟内存
 ** 输　入  : stLen         映射长度
-**           iFlags        LW_VMM_SHARED_CHANGE / LW_VMM_PRIVATE_CHANGE
+**           iFlags        LW_VMM_SHARED_CHANGE / LW_VMM_PRIVATE_CHANGE / LW_VMM_PHY_PREALLOC
 **           ulFlag        LW_VMM_FLAG_READ | LW_VMM_FLAG_RDWR | LW_VMM_FLAG_EXEC
 **           iFd           文件描述符
 **           off           文件偏移量
@@ -379,10 +384,10 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
         if (iosFdGetFlag(iFd, &iFileFlag) < 0) {                        /*  获得文件权限                */
             _ErrorHandle(EBADF);
             return  (LW_VMM_MAP_FAILED);
-        } 
+        }
         
         iFileFlag &= O_ACCMODE;
-        if (iFlags == LW_VMM_SHARED_CHANGE) {
+        if (iFlags & LW_VMM_SHARED_CHANGE) {
             if ((ulFlag & LW_VMM_FLAG_WRITABLE) &&
                 (iFileFlag == O_RDONLY)) {                              /*  带有写权限映射只读文件      */
                 _ErrorHandle(EACCES);
@@ -532,6 +537,12 @@ static PVOID  __vmmMmapChange (PVOID  pvAddr, size_t  stLen, INT  iFlags,
         return  (LW_VMM_MAP_FAILED);
     }
     
+    if ((iFlags & LW_VMM_PHY_PREALLOC) ||
+        (pmapn->MAPN_iFlags & LW_VMM_PHY_PREALLOC)) {                   /*  预分配型内存不允许更改      */
+        _ErrorHandle(ENOTSUP);
+        return  (LW_VMM_MAP_FAILED);
+    }
+
     if ((pmapn->MAPN_iFd    != iFd)    ||
         (pmapn->MAPN_off    != off)    ||
         (pmapn->MAPN_iFlags != iFlags) ||
@@ -719,7 +730,7 @@ static VOID  __vmmMmapMerge (PLW_VMM_MAP_NODE  pmapnL, PLW_VMM_MAP_NODE  pmapnR)
 ** 功能描述: 内存文件映射.
 ** 输　入  : pvAddr        虚拟地址
 **           stLen         映射长度
-**           iFlags        LW_VMM_SHARED_CHANGE / LW_VMM_PRIVATE_CHANGE
+**           iFlags        LW_VMM_SHARED_CHANGE / LW_VMM_PRIVATE_CHANGE / LW_VMM_PHY_PREALLOC
 **           ulFlag        LW_VMM_FLAG_READ | LW_VMM_FLAG_RDWR | LW_VMM_FLAG_EXEC
 **           iFd           文件描述符
 **           off           文件偏移量
@@ -733,8 +744,8 @@ PVOID  API_VmmMmap (PVOID  pvAddr, size_t  stLen, INT  iFlags, ULONG  ulFlag, IN
 {
     PVOID   pvRet;
     
-    if ((iFlags != LW_VMM_SHARED_CHANGE) && 
-        (iFlags != LW_VMM_PRIVATE_CHANGE)) {
+    if ((iFlags & LW_VMM_SHARED_CHANGE) &&
+        (iFlags & LW_VMM_PRIVATE_CHANGE)) {                             /*  不允许同时出现两个          */
         _ErrorHandle(EINVAL);
         return  (LW_VMM_MAP_FAILED);
     }
@@ -747,7 +758,7 @@ PVOID  API_VmmMmap (PVOID  pvAddr, size_t  stLen, INT  iFlags, ULONG  ulFlag, IN
     stLen = ROUND_UP(stLen, LW_CFG_VMM_PAGE_SIZE);                      /*  变成页面对齐大小            */
     
 #if LW_CFG_CACHE_EN > 0
-    if (iFlags == LW_VMM_SHARED_CHANGE) {
+    if (iFlags & LW_VMM_SHARED_CHANGE) {
         if (API_CacheAliasProb()) {                                     /*  如果有 CACHE 别名可能       */
             ulFlag &= ~(LW_VMM_FLAG_CACHEABLE | LW_VMM_FLAG_WRITETHROUGH);
         }                                                               /*  共享内存不允许任何形式 CACHE*/
@@ -799,6 +810,11 @@ PVOID  API_VmmMremap (PVOID  pvAddr, size_t stOldSize, size_t stNewSize, INT  iM
         return  (LW_VMM_MAP_FAILED);
     }
     
+    if (pmapn->MAPN_iFlags & LW_VMM_PHY_PREALLOC) {                     /*  预分配型内存不允许更改      */
+        _ErrorHandle(ENOTSUP);
+        return  (LW_VMM_MAP_FAILED);
+    }
+
     if ((pmapn->MAPN_pvAddr != pvAddr) ||
         (pmapn->MAPN_stLen  != stOldSize)) {                            /*  只支持完整空间操作          */
         __VMM_MMAP_UNLOCK();
@@ -860,6 +876,13 @@ __goon:
         return  (PX_ERROR);
     }
     
+    if ((pmapn->MAPN_iFlags & LW_VMM_PHY_PREALLOC) &&
+        ((pmapn->MAPN_pvAddr != pvAddr) || (pmapn->MAPN_stLen != stLen))) {
+        __VMM_MMAP_UNLOCK();                                            /*  预分配型内存不允许更改      */
+        _ErrorHandle(ENOTSUP);
+        return  (PX_ERROR);
+    }
+
     pmapnL = LW_NULL;
     
     if (pmapn->MAPN_pvAddr != pvAddr) {                                 /*  将左侧分段隔开              */
@@ -1027,7 +1050,7 @@ INT  API_VmmMsync (PVOID  pvAddr, size_t  stLen, INT  iInval)
     if (iInval) {
         API_VmmInvalidateArea(pmapn->MAPN_pvAddr, pvAddr, stLen);       /*  释放对应的物理内存          */
         
-    } else if (pmapn->MAPN_iFlags == LW_VMM_SHARED_CHANGE) {            /*  SHARED 类型可以回写文件     */
+    } else if (pmapn->MAPN_iFlags & LW_VMM_SHARED_CHANGE) {             /*  SHARED 类型可以回写文件     */
         INT        i;
         ULONG      ulPageNum;
         size_t     stExcess;
@@ -1116,7 +1139,7 @@ VOID  API_VmmMmapShow (VOID)
             pcWrite = "false";
         }
         
-        if (pmapn->MAPN_iFlags == LW_VMM_SHARED_CHANGE) {
+        if (pmapn->MAPN_iFlags & LW_VMM_SHARED_CHANGE) {
             pcShare = "true ";
         } else {
             pcShare = "false";

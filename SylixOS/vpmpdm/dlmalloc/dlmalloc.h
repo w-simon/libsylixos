@@ -59,7 +59,7 @@ void  dlmalloc_abort(void);
 #define DIRECT_MMAP             dlmalloc_mmap
 #define MREMAP                  dlmalloc_mremap
 
-#define DEFAULT_MMAP_THRESHOLD  (256 * 1024)    /* 256K */
+#define DEFAULT_MMAP_THRESHOLD  (128 * 1024)    /* 128K */
 #endif /* LW_CFG_VMM_EN > 0 */
 
 /* Abort */

@@ -42,8 +42,9 @@ typedef struct {
     LW_LIST_LINE        PAGEP_lineManage;                               /*  area 链表                   */
     PLW_VMM_PAGE        PAGEP_pvmpageVirtual;                           /*  回指虚拟页面控制块          */
     
-#define LW_VMM_SHARED_CHANGE    1
-#define LW_VMM_PRIVATE_CHANGE   2
+#define LW_VMM_SHARED_CHANGE    0x1                                     /*  共享更改                    */
+#define LW_VMM_PRIVATE_CHANGE   0x2                                     /*  写时拷贝                    */
+#define LW_VMM_PHY_PREALLOC     0x4                                     /*  物理内存预分配              */
     INT                 PAGEP_iFlags;                                   /*  like mmap flags             */
     
     FUNCPTR             PAGEP_pfuncFiller;                              /*  页面填充器                  */

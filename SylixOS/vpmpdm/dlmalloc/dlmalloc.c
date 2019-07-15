@@ -521,6 +521,7 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
   improvement at the expense of carrying around more memory.
 */
 
+#define __SYLIXOS_EXTEND
 #include "dlmalloc.h"
 
 /* Version identifier to allow people to support multiple versions */
@@ -1644,7 +1645,7 @@ unsigned char _BitScanReverse(unsigned long *index, unsigned long mask);
 #define MAP_ANONYMOUS        MAP_ANON
 #endif /* MAP_ANON */
 #ifdef MAP_ANONYMOUS
-#define MMAP_FLAGS           (MAP_PRIVATE|MAP_ANONYMOUS)
+#define MMAP_FLAGS           (MAP_PRIVATE|MAP_ANONYMOUS|MAP_PREALLOC) /* SylixOS Add 'MAP_PREALLOC' */
 #define MMAP_DEFAULT(s)       mmap(0, (s), MMAP_PROT, MMAP_FLAGS, -1, 0)
 #else /* MAP_ANONYMOUS */
 /*

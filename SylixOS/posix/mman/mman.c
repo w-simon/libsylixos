@@ -231,6 +231,10 @@ void  *mmap (void  *pvAddr, size_t  stLen, int  iProt, int  iFlag, int  iFd, off
         return  (MAP_FAILED);
     }
     
+    if ((iFlag & MAP_ANONYMOUS) && (iFlag & MAP_PREALLOC) && (pvAddr == LW_NULL)) {
+        iFlags |= LW_VMM_PHY_PREALLOC;                                  /*  内存管理预分配              */
+    }
+
     pvRet = API_VmmMmap(pvAddr, stLen, iFlags, ulFlag, iFd, off);
     
     return  ((pvRet != LW_VMM_MAP_FAILED) ? pvRet : MAP_FAILED);

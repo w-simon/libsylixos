@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-07-15: han.hui
+    加入 mmap 匿名映射的内存预分配机制, 提高 AI 运算效率.
+
     2019-03-07: han.hui
     加入 ISO9660 光盘文件系统支持.
 
