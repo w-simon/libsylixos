@@ -86,6 +86,20 @@
 ;  ºê¶¨Òå
 ;*********************************************************************************************************/
 
+#if defined(__SYLIXOS_CSKY_ARCH_CK803__)
+
+MACRO_DEF(FPU_REG_RESTORE fr, tmp, base, offset)
+    LD.W        \tmp , (\base , \offset)
+    FMTVRL      \fr  , \tmp
+    MACRO_END()
+
+MACRO_DEF(FPU_REG_SAVE fr, tmp, base, offset)
+    FMFVRL      \tmp  , \fr
+    ST.W        \tmp , (\base , \offset)
+    MACRO_END()
+
+#else
+
 MACRO_DEF(FPU_REG_RESTORE fr, tmp, base, offsetl, offseth)
     LD.W        \tmp , (\base , \offsetl)
     FMTVRL      \fr  , \tmp
@@ -100,6 +114,8 @@ MACRO_DEF(FPU_REG_SAVE fr, tmp, base, offsetl, offseth)
     ST.W        \tmp , (\base , \offseth)
     MACRO_END()
 
+#endif
+
 ;/*********************************************************************************************************
 ;  ³õÊ¼»¯ FPU
 ;*********************************************************************************************************/
@@ -111,37 +127,42 @@ FUNC_DEF(cskyVfpInit)
     MOVI        A0 , 0
 
     FMTVRL      FR0 , A0                                                ;/*  ÇåÁã FPU ¼Ä´æÆ÷             */
-    FMTVRH      FR0 , A0
     FMTVRL      FR1 , A0
-    FMTVRH      FR1 , A0
     FMTVRL      FR2 , A0
-    FMTVRH      FR2 , A0
     FMTVRL      FR3 , A0
-    FMTVRH      FR3 , A0
     FMTVRL      FR4 , A0
-    FMTVRH      FR4 , A0
     FMTVRL      FR5 , A0
-    FMTVRH      FR5 , A0
     FMTVRL      FR6 , A0
-    FMTVRH      FR6 , A0
     FMTVRL      FR7 , A0
-    FMTVRH      FR7 , A0
     FMTVRL      FR8 , A0
-    FMTVRH      FR8 , A0
     FMTVRL      FR9 , A0
-    FMTVRH      FR9 , A0
     FMTVRL      FR10, A0
-    FMTVRH      FR10, A0
     FMTVRL      FR11, A0
-    FMTVRH      FR11, A0
     FMTVRL      FR12, A0
-    FMTVRH      FR12, A0
     FMTVRL      FR13, A0
-    FMTVRH      FR13, A0
     FMTVRL      FR14, A0
-    FMTVRH      FR14, A0
     FMTVRL      FR15, A0
+
+#if !defined(__SYLIXOS_CSKY_ARCH_CK803__)
+
+    FMTVRH      FR0 , A0
+    FMTVRH      FR1 , A0
+    FMTVRH      FR2 , A0
+    FMTVRH      FR3 , A0
+    FMTVRH      FR4 , A0
+    FMTVRH      FR5 , A0
+    FMTVRH      FR6 , A0
+    FMTVRH      FR7 , A0
+    FMTVRH      FR8 , A0
+    FMTVRH      FR9 , A0
+    FMTVRH      FR10, A0
+    FMTVRH      FR11, A0
+    FMTVRH      FR12, A0
+    FMTVRH      FR13, A0
+    FMTVRH      FR14, A0
     FMTVRH      FR15, A0
+
+#endif
 
     RTS
     FUNC_END(cskyVfpInit)
@@ -151,6 +172,28 @@ FUNC_DEF(cskyVfpInit)
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyVfpSave)
+
+#if defined(__SYLIXOS_CSKY_ARCH_CK803__)
+
+    FPU_REG_SAVE    FR0 ,  A1,  A0,  FPU_OFFSET_REG(0)
+    FPU_REG_SAVE    FR1 ,  A1,  A0,  FPU_OFFSET_REG(1)
+    FPU_REG_SAVE    FR2 ,  A1,  A0,  FPU_OFFSET_REG(2)
+    FPU_REG_SAVE    FR3 ,  A1,  A0,  FPU_OFFSET_REG(3)
+    FPU_REG_SAVE    FR4 ,  A1,  A0,  FPU_OFFSET_REG(4)
+    FPU_REG_SAVE    FR5 ,  A1,  A0,  FPU_OFFSET_REG(5)
+    FPU_REG_SAVE    FR6 ,  A1,  A0,  FPU_OFFSET_REG(6)
+    FPU_REG_SAVE    FR7 ,  A1,  A0,  FPU_OFFSET_REG(7)
+    FPU_REG_SAVE    FR8 ,  A1,  A0,  FPU_OFFSET_REG(8)
+    FPU_REG_SAVE    FR9 ,  A1,  A0,  FPU_OFFSET_REG(9)
+    FPU_REG_SAVE    FR10,  A1,  A0,  FPU_OFFSET_REG(10)
+    FPU_REG_SAVE    FR11,  A1,  A0,  FPU_OFFSET_REG(11)
+    FPU_REG_SAVE    FR12,  A1,  A0,  FPU_OFFSET_REG(12)
+    FPU_REG_SAVE    FR13,  A1,  A0,  FPU_OFFSET_REG(13)
+    FPU_REG_SAVE    FR14,  A1,  A0,  FPU_OFFSET_REG(14)
+    FPU_REG_SAVE    FR15,  A1,  A0,  FPU_OFFSET_REG(15)
+
+#else
+
     FPU_REG_SAVE    FR0 ,  A1,  A0,  FPU_OFFSET_REG_LO(0),  FPU_OFFSET_REG_HI(0)
     FPU_REG_SAVE    FR1 ,  A1,  A0,  FPU_OFFSET_REG_LO(1),  FPU_OFFSET_REG_HI(1)
     FPU_REG_SAVE    FR2 ,  A1,  A0,  FPU_OFFSET_REG_LO(2),  FPU_OFFSET_REG_HI(2)
@@ -167,6 +210,8 @@ FUNC_DEF(cskyVfpSave)
     FPU_REG_SAVE    FR13,  A1,  A0,  FPU_OFFSET_REG_LO(13), FPU_OFFSET_REG_HI(13)
     FPU_REG_SAVE    FR14,  A1,  A0,  FPU_OFFSET_REG_LO(14), FPU_OFFSET_REG_HI(14)
     FPU_REG_SAVE    FR15,  A1,  A0,  FPU_OFFSET_REG_LO(15), FPU_OFFSET_REG_HI(15)
+
+#endif
 
     MFCR        A1  , CR<1, 2>
     ST.W        A1  , (A0 , FPU_OFFSET_FCR)                             ;/*  ±£´æ FCR ×´Ì¬¼Ä´æÆ÷         */
@@ -185,6 +230,27 @@ FUNC_DEF(cskyVfpRestore)
     LD.W        A1  , (A0 , FPU_OFFSET_FESR)                            ;/*  »Ö¸´ FECR ×´Ì¬¼Ä´æÆ÷        */
     MTCR        A1  , CR<2, 2>
 
+#if defined(__SYLIXOS_CSKY_ARCH_CK803__)
+
+    FPU_REG_RESTORE FR0 ,  A1,  A0,  FPU_OFFSET_REG(0)
+    FPU_REG_RESTORE FR1 ,  A1,  A0,  FPU_OFFSET_REG(1)
+    FPU_REG_RESTORE FR2 ,  A1,  A0,  FPU_OFFSET_REG(2)
+    FPU_REG_RESTORE FR3 ,  A1,  A0,  FPU_OFFSET_REG(3)
+    FPU_REG_RESTORE FR4 ,  A1,  A0,  FPU_OFFSET_REG(4)
+    FPU_REG_RESTORE FR5 ,  A1,  A0,  FPU_OFFSET_REG(5)
+    FPU_REG_RESTORE FR6 ,  A1,  A0,  FPU_OFFSET_REG(6)
+    FPU_REG_RESTORE FR7 ,  A1,  A0,  FPU_OFFSET_REG(7)
+    FPU_REG_RESTORE FR8 ,  A1,  A0,  FPU_OFFSET_REG(8)
+    FPU_REG_RESTORE FR9 ,  A1,  A0,  FPU_OFFSET_REG(9)
+    FPU_REG_RESTORE FR10,  A1,  A0,  FPU_OFFSET_REG(10)
+    FPU_REG_RESTORE FR11,  A1,  A0,  FPU_OFFSET_REG(11)
+    FPU_REG_RESTORE FR12,  A1,  A0,  FPU_OFFSET_REG(12)
+    FPU_REG_RESTORE FR13,  A1,  A0,  FPU_OFFSET_REG(13)
+    FPU_REG_RESTORE FR14,  A1,  A0,  FPU_OFFSET_REG(14)
+    FPU_REG_RESTORE FR15,  A1,  A0,  FPU_OFFSET_REG(15)
+
+#else
+
     FPU_REG_RESTORE FR0 ,  A1,  A0,  FPU_OFFSET_REG_LO(0),  FPU_OFFSET_REG_HI(0)
     FPU_REG_RESTORE FR1 ,  A1,  A0,  FPU_OFFSET_REG_LO(1),  FPU_OFFSET_REG_HI(1)
     FPU_REG_RESTORE FR2 ,  A1,  A0,  FPU_OFFSET_REG_LO(2),  FPU_OFFSET_REG_HI(2)
@@ -201,6 +267,8 @@ FUNC_DEF(cskyVfpRestore)
     FPU_REG_RESTORE FR13,  A1,  A0,  FPU_OFFSET_REG_LO(13), FPU_OFFSET_REG_HI(13)
     FPU_REG_RESTORE FR14,  A1,  A0,  FPU_OFFSET_REG_LO(14), FPU_OFFSET_REG_HI(14)
     FPU_REG_RESTORE FR15,  A1,  A0,  FPU_OFFSET_REG_LO(15), FPU_OFFSET_REG_HI(15)
+
+#endif
 
     LD.W        A1  , (A0 , FPU_OFFSET_FCR)                             ;/*  »Ö¸´ FCR ×´Ì¬¼Ä´æÆ÷         */
     MTCR        A1  , CR<1, 2>

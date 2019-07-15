@@ -182,6 +182,70 @@ static inline void cskyTlbInvalidIndexed(void)
                     : :"r" (value));
 }
 
+static inline uint32_t cskyMpuGetCCR(void)
+{
+    register uint32_t result;
+
+    __asm__ __volatile__("mfcr %0, cr<18, 0>\n"
+                    : "=r"(result));
+
+    return (result);
+}
+
+static inline void cskyMpuSetCCR(uint32_t ccr)
+{
+    __asm__ __volatile__("mtcr %0, cr<18, 0>\n"
+                    : : "r"(ccr));
+}
+
+static inline uint32_t cskyMpuGetCAPR(void)
+{
+    register uint32_t result;
+
+    __asm__ __volatile__("mfcr %0, cr<19, 0>\n"
+                    : "=r"(result));
+
+    return (result);
+}
+
+static inline void cskyMpuSetCAPR(uint32_t capr)
+{
+    __asm__ __volatile__("mtcr %0, cr<19, 0>\n"
+                    : : "r"(capr));
+}
+
+static inline void cskyMpuSetPACR(uint32_t pacr)
+{
+    __asm__ __volatile__("mtcr %0, cr<20, 0>\n"
+                    : : "r"(pacr));
+}
+
+static inline uint32_t cskyMpuGetPACR(void)
+{
+    uint32_t result;
+
+    __asm__ __volatile__("mfcr %0, cr<20, 0>"
+                    : "=r"(result));
+
+    return (result);
+}
+
+static inline void cskyMpuSetPRSR(uint32_t prsr)
+{
+    __asm__ __volatile__("mtcr %0, cr<21, 0>\n"
+                    : : "r"(prsr));
+}
+
+static inline uint32_t cskyMpuGetPRSR(void)
+{
+    uint32_t result;
+
+    __asm__ __volatile__("mfcr %0, cr<21, 0>"
+                    : "=r"(result));
+
+    return (result);
+}
+
 #endif                                                                  /* !__ASSEMBLY__                */
 
 #define CSKY_FPUID_IMPLEMENT               (1 << 31)

@@ -642,6 +642,66 @@ static INT  __ifSubIoctl6 (INT  iCmd, PVOID  pvArg)
 
 #endif                                                                  /*  LWIP_IPV6                   */
 /*********************************************************************************************************
+** 函数名称: __ifSubIoctlStats
+** 功能描述: INET 网络统计接口 ioctl 操作
+** 输　入  : iCmd      命令
+**           pvArg     参数
+** 输　出  : 处理结果
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __ifSubIoctlStats (INT  iCmd, PVOID  pvArg)
+{
+#define MIB2_NETIF(netif)   (&((netif)->mib2_counters))
+
+    INT                 iRet = PX_ERROR;
+    struct ifstatreq   *pifstat;
+    struct netif       *pnetif;
+    struct netdev      *pnetdev;
+
+    pifstat = (struct ifstatreq *)pvArg;
+
+    pnetif = netif_find(pifstat->ifrs_name);
+    if (pnetif == LW_NULL) {
+        _ErrorHandle(EADDRNOTAVAIL);                                    /*  未找到指定的网络接口        */
+        return  (iRet);
+    }
+
+    if (netif_is_mipif(pnetif)) {
+        pnetif = netif_get_masterif(pnetif);
+        if (pnetif == LW_NULL) {
+            _ErrorHandle(EADDRNOTAVAIL);                                /*  未找到指定的网络接口        */
+            return  (iRet);
+        }
+    }
+
+    switch (iCmd) {
+
+    case SIOCGIFSTATS:
+        pifstat->ifrs_mtu        = pnetif->mtu;
+        pifstat->ifrs_collisions = MIB2_NETIF(pnetif)->ifcollisions;
+        pifstat->ifrs_baudrate   = pnetif->link_speed;
+        pifstat->ifrs_ipackets   = MIB2_NETIF(pnetif)->ifinucastpkts + MIB2_NETIF(pnetif)->ifinnucastpkts;
+        pifstat->ifrs_ierrors    = MIB2_NETIF(pnetif)->ifinerrors;
+        pifstat->ifrs_opackets   = MIB2_NETIF(pnetif)->ifoutucastpkts + MIB2_NETIF(pnetif)->ifoutnucastpkts;
+        pifstat->ifrs_oerrors    = MIB2_NETIF(pnetif)->ifouterrors;
+        pifstat->ifrs_ibytes     = MIB2_NETIF(pnetif)->ifinoctets;
+        pifstat->ifrs_obytes     = MIB2_NETIF(pnetif)->ifoutoctets;
+        pifstat->ifrs_imcasts    = MIB2_NETIF(pnetif)->ifinnucastpkts;
+        pifstat->ifrs_omcasts    = MIB2_NETIF(pnetif)->ifoutnucastpkts;
+        pifstat->ifrs_iqdrops    = MIB2_NETIF(pnetif)->ifindiscards;
+        pifstat->ifrs_noproto    = MIB2_NETIF(pnetif)->ifinunknownprotos;
+        pnetdev = (netdev_t *)(pnetif->state);
+        if (pnetdev && (pnetdev->magic_no == NETDEV_MAGIC)) {
+            pifstat->ifrs_baudrate = pnetdev->speed;
+        }
+        iRet = ERROR_NONE;
+        break;
+    }
+
+    return  (iRet);
+}
+/*********************************************************************************************************
 ** 函数名称: __ifSubIoctlCommon
 ** 功能描述: 通用网络接口 ioctl 操作
 ** 输　入  : iCmd      命令
@@ -791,6 +851,12 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
         break;
 #endif                                                                  /*  LWIP_IPV6                   */
     
+    case SIOCGIFSTATS:                                                  /*  网络统计                    */
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
+        iRet = __ifSubIoctlStats(iCmd, pvArg);
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        break;
+
     default:
         _ErrorHandle(ENOSYS);
         break;
@@ -883,6 +949,12 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
     
+    case SIOCGIFSTATS:                                                  /*  网络统计                    */
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
+        iRet = __ifSubIoctlStats(iCmd, pvArg);
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        break;
+
     default:
         _ErrorHandle(ENOSYS);
         break;

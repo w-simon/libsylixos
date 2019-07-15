@@ -249,6 +249,34 @@ struct in6_ifreq {
 #define SIOCDIFADDR6        _IOW('i', 35, struct in6_ifreq)
 
 /*********************************************************************************************************
+  sylixos if statistics
+*********************************************************************************************************/
+
+struct ifstatreq {
+    char        ifrs_name[IFNAMSIZ];                            /* if name, e.g. "en1"                  */
+    u_long      ifrs_mtu;                                       /* maximum transmission unit            */
+    u_long      ifrs_collisions;                                /* collisions on csma interfaces        */
+    uint64_t    ifrs_baudrate;                                  /* linespeed                            */
+    uint64_t    ifrs_ipackets;                                  /* packets received on interface        */
+    uint64_t    ifrs_ierrors;                                   /* input errors on interface            */
+    uint64_t    ifrs_opackets;                                  /* packets sent on interface            */
+    uint64_t    ifrs_oerrors;                                   /* output errors on interface           */
+    uint64_t    ifrs_ibytes;                                    /* total number of octets received      */
+    uint64_t    ifrs_obytes;                                    /* total number of octets sent          */
+    uint64_t    ifrs_imcasts;                                   /* packets received via multicast       */
+    uint64_t    ifrs_omcasts;                                   /* packets sent via multicast           */
+    uint64_t    ifrs_iqdrops;                                   /* dropped on input, this interface     */
+    uint64_t    ifrs_noproto;                                   /* destined for unsupported protocol    */
+    uint64_t    ifrs_reserved[8];
+};
+
+/*********************************************************************************************************
+  sylixos if statistics ioctl
+*********************************************************************************************************/
+
+#define SIOCGIFSTATS        _IOWR('i', 80, struct ifstatreq)
+
+/*********************************************************************************************************
   6lowpan IEEE802.15.4
 *********************************************************************************************************/
 

@@ -256,7 +256,7 @@ static INT  __diskPartitionScan (PLW_BLK_DEV         pblkd,
                                  ULONG               ulExtStartSector)
 {
 #ifndef MBR_Table
-#define MBR_Table			446	                                        /* MBR: Partition table offset  */
+#define MBR_Table           446                                         /* MBR: Partition table offset  */
 #endif
 
     INT                     i;

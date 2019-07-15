@@ -63,19 +63,19 @@ static int csky_get_insn (unsigned long  addr, unsigned int  *insn)
         return  (2);
     }
 }
- /********************************************************************************************************
- ** 函数名称: csky_analyze_prologue
- ** 功能描述: 分析堆栈
- ** 输　入  : start_pc        起始地址
- **           limit_pc        结束地址
- **           r15_offset      r15 偏移
- **           r8_offset       r8 偏移
- **           subi_len        sp 移动大小
- **           subi2_len       sp 第二次移动大小
- ** 输　出  : NONE
- ** 全局变量:
- ** 调用模块:
- ********************************************************************************************************/
+/*********************************************************************************************************
+** 函数名称: csky_analyze_prologue
+** 功能描述: 分析堆栈
+** 输　入  : start_pc        起始地址
+**           limit_pc        结束地址
+**           r15_offset      r15 偏移
+**           r8_offset       r8 偏移
+**           subi_len        sp 移动大小
+**           subi2_len       sp 第二次移动大小
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
 static void  csky_analyze_prologue (unsigned long   start_pc,    unsigned long   limit_pc,
                                     unsigned long  *r15_offset,  unsigned long  *r8_offset,
                                     unsigned long  *subi_len,    unsigned long  *subi2_len)

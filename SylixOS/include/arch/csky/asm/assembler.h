@@ -22,6 +22,7 @@
 #ifndef __ASMCSKY_ASSEMBLER_H
 #define __ASMCSKY_ASSEMBLER_H
 
+#include "archprob.h"
 #include "arch/csky/arch_def.h"
 
 /*********************************************************************************************************

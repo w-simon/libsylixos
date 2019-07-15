@@ -27,6 +27,8 @@
 #include <config/kernel/vmm_cfg.h>
 #include <config/kernel/memory_cfg.h>
 
+#if !defined(__SYLIXOS_CSKY_ARCH_CK803__)
+
 #if LW_CFG_VMM_EN > 0
 #include "arch/csky/arch_mmu.h"
 #include "arch/csky/inc/cskyregs.h"
@@ -268,6 +270,7 @@ LINE_LABEL(__tlbinv_handle)
 
     FILE_END()
 
+#endif
 #endif
 ;/*********************************************************************************************************
 ;  END

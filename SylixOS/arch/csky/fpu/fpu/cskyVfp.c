@@ -90,9 +90,14 @@ static VOID  cskyVfpCtxShow (INT  iFd, PVOID  pvFpuCtx)
     fdprintf(iFd, "FESR = 0x%08x\n", pcpufpuCtx->FPUCTX_uiFpesr);
 
     for (i = 0; i < FPU_REG_NR; i++) {
+#if defined(__SYLIXOS_CSKY_ARCH_CK803__)
+        fdprintf(iFd, "FP%02d = 0x%08x\n", i,
+                 pcpufpuCtx->FPUCTX_uiDreg[i].val32[0]);
+#else
         fdprintf(iFd, "FP%02d = 0x%08x0x%08x\n", i,
                  pcpufpuCtx->FPUCTX_uiDreg[i].val32[0],
                  pcpufpuCtx->FPUCTX_uiDreg[i].val32[1]);
+#endif                                                                  /*  __SYLIXOS_CSKY_ARCH_CK803__ */
     }
 #endif
 }

@@ -28,6 +28,8 @@
 #include <config/kernel/cache_cfg.h>
 #include <config/cpu/cpu_cfg_csky.h>
 
+#if !defined(__SYLIXOS_CSKY_ARCH_CK803__)
+
 #if LW_CFG_CACHE_EN > 0
 
     EXPORT_LABEL(cskyICacheInvalidateAll)
@@ -195,6 +197,7 @@ FUNC_DEF(cskyBranchPredictionDisable)
 
     FILE_END()
 
+#endif
 #endif
 ;/*********************************************************************************************************
 ;  END

@@ -22,18 +22,29 @@
 #ifndef __CSKY_ARCH_FLOAT_H
 #define __CSKY_ARCH_FLOAT_H
 
+#include "asm/archprob.h"
+
 /*********************************************************************************************************
   FPU 浮点数据寄存器的相关定义
 *********************************************************************************************************/
 #if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
 
 #define FPU_REG_NR              16                                      /*  FPU 通用寄存器数量          */
+#if defined(__SYLIXOS_CSKY_ARCH_CK803__)
+#define FPU_REG_WIDTH           32                                      /*  浮点数据寄存器的位宽        */
+#else
 #define FPU_REG_WIDTH           64                                      /*  浮点数据寄存器的位宽        */
+#endif                                                                  /*  __SYLIXOS_CSKY_ARCH_CK803__ */
 #define FPU_REG_SIZE            (FPU_REG_WIDTH / 8)                     /*  浮点数据寄存器的大小        */
 
+#if defined(__SYLIXOS_CSKY_ARCH_CK803__)
+#define FPU_OFFSET_REG(n)       ((n) * FPU_REG_SIZE)                    /*  浮点数据寄存器偏移          */
+#define FPU_OFFSET_FCR          (FPU_OFFSET_REG(FPU_REG_NR))            /*  FCR  偏移                   */
+#else
 #define FPU_OFFSET_REG_HI(n)    ((n) * FPU_REG_SIZE)                    /*  浮点数据寄存器偏移          */
 #define FPU_OFFSET_REG_LO(n)    ((n) * FPU_REG_SIZE + FPU_REG_SIZE >> 1)/*  浮点数据寄存器偏移          */
 #define FPU_OFFSET_FCR          (FPU_OFFSET_REG_HI(FPU_REG_NR))         /*  FCR  偏移                   */
+#endif                                                                  /*  __SYLIXOS_CSKY_ARCH_CK803__ */
 #define FPU_OFFSET_FESR         (FPU_OFFSET_FCR + 4)                    /*  FESR 偏移                   */
 
 /*********************************************************************************************************
@@ -43,18 +54,18 @@
 #if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 
 /*********************************************************************************************************
-  FPU 访问时需要高 32 位和低 32位分开访问
+  FPU 访问时需要高 32 位和低 32 位分开访问
 *********************************************************************************************************/
 typedef struct fpureg {                                                 /*  FPU 寄存器类型              */
     UINT32              val32[FPU_REG_WIDTH / 32];
 } ARCH_FPU_REG;
 
-#define ARCH_FPU_CTX_ALIGN      8                                       /* FPU CTX align size           */
+#define ARCH_FPU_CTX_ALIGN      8                                       /*  FPU CTX align size          */
 
 struct arch_fpu_ctx {
-    ARCH_FPU_REG        FPUCTX_uiDreg[FPU_REG_NR];                      /* FPU 通用寄存器               */
-    UINT32              FPUCTX_uiFpcr;                                  /* FPU 控制寄存器               */
-    UINT32              FPUCTX_uiFpesr;                                 /* FPU 异常寄存器               */
+    ARCH_FPU_REG        FPUCTX_uiDreg[FPU_REG_NR];                      /*  FPU 通用寄存器              */
+    UINT32              FPUCTX_uiFpcr;                                  /*  FPU 控制寄存器              */
+    UINT32              FPUCTX_uiFpesr;                                 /*  FPU 异常寄存器              */
    
 } __attribute__ ((aligned(ARCH_FPU_CTX_ALIGN)));
 

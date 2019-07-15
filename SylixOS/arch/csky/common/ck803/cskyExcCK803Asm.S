@@ -10,13 +10,13 @@
 ;**
 ;**--------------文件信息--------------------------------------------------------------------------------
 ;**
-;** 文   件   名: cskyExcAsm.S
+;** 文   件   名: cskyExcCK803Asm.S
 ;**
-;** 创   建   人: Hui.Kai (惠凯)
+;** 创   建   人: Wang.Xuan (王翾)
 ;**
-;** 文件创建日期: 2018 年 05 月 11 日
+;** 文件创建日期: 2018 年 11 月 12 日
 ;**
-;** 描        述: C-SKY 体系架构异常处理.
+;** 描        述: C-SKY CK803 体系架构异常处理.
 ;*********************************************************************************************************/
 
 #ifndef ASSEMBLY
@@ -27,9 +27,9 @@
 #include <config/kernel/kernel_cfg.h>
 #include <config/mp/mp_cfg.h>
 
-#if !defined(__SYLIXOS_CSKY_ARCH_CK803__)
+#if defined(__SYLIXOS_CSKY_ARCH_CK803__)
 
-#include "cskyContextAsm.h"
+#include "cskyContextCK803Asm.h"
 
     FILE_BEGIN()
 
@@ -50,24 +50,16 @@
     IMPORT_LABEL(archFatalErrExceptHandle)
     IMPORT_LABEL(archIdlyExceptHandle)
     IMPORT_LABEL(archAutoIntHandle)
-    IMPORT_LABEL(archFastAutoIntHandle)
     IMPORT_LABEL(archReservedExceptHandle)
-    IMPORT_LABEL(archTlbFatalExceptHandle)
-    IMPORT_LABEL(archTlbModExceptHandle)
     IMPORT_LABEL(archTrap0ExceptHandle)
     IMPORT_LABEL(archTrap1ExceptHandle)
     IMPORT_LABEL(archTrap2ExceptHandle)
     IMPORT_LABEL(archTrap3ExceptHandle)
-    IMPORT_LABEL(archTlbLoadExceptHandle)
-    IMPORT_LABEL(archTlbStoreExceptHandle)
+    IMPORT_LABEL(archTspendIntHandle)
+    IMPORT_LABEL(archFpuExceptHandle)
+    IMPORT_LABEL(archExcOldStack)
+    IMPORT_LABEL(archExcIrqStack)
     
-#if LW_CFG_VMM_EN > 0
-    IMPORT_LABEL(cskyMmuTlbRefillExceptEntry)
-#else
-    IMPORT_LABEL(archTlbRefillExceptHandle)
-    EXPORT_LABEL(archTlbRefillExceptEntry)
-#endif
-
     EXPORT_LABEL(archUnalignedExceptEntry)
     EXPORT_LABEL(archAccessExceptEntry)
     EXPORT_LABEL(archDivideZeroExceptEntry)
@@ -78,16 +70,13 @@
     EXPORT_LABEL(archFatalErrExceptEntry)
     EXPORT_LABEL(archIdlyExceptEntry)
     EXPORT_LABEL(archAutoIntEntry)
-    EXPORT_LABEL(archFastAutoIntEntry)
     EXPORT_LABEL(archReservedExceptEntry)
-    EXPORT_LABEL(archTlbFatalExceptEntry)
-    EXPORT_LABEL(archTlbModExceptEntry)
     EXPORT_LABEL(archTrap0ExceptEntry)
     EXPORT_LABEL(archTrap1ExceptEntry)
     EXPORT_LABEL(archTrap2ExceptEntry)
     EXPORT_LABEL(archTrap3ExceptEntry)
-    EXPORT_LABEL(archTlbLoadExceptEntry)
-    EXPORT_LABEL(archTlbStoreExceptEntry)
+    EXPORT_LABEL(archTspendIntEntry)
+    EXPORT_LABEL(archFpuExceptEntry)
 
     EXPORT_LABEL(vector)
 
@@ -107,34 +96,29 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ;/*
     ; * 使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将寄存器保存到临时上下文保存区
     ; */
-    MTCR        SP , SS1                                                ;/*  SS1 暂存异常前 SP           */
-    MFCR        SP , SS0                                                ;/*  SP = 异常临时栈             */
+    PUSH        R4 , R5                                                 ;/*  先将 R4, R5 入栈            */
+    LRW         R4 , archExcOldStack                                    ;/*  获取存储异常前 SP 的位置    */
+    ADDI        R5 , SP , 2 * ARCH_REG_SIZE                             ;/*  获取异常前 SP 指针          */
+    ST.W        R5 , (R4)                                               ;/*  将异常前 SP 存入对应位置    */
+    LD.W        R4 , (SP)                                               ;/*  不能使用 POP 指令           */
+    LD.W        R5 , (SP, ARCH_REG_SIZE)                                ;/*  POP 指令会同时改变 PC       */
 
+    LRW         SP , archExcIrqStack                                    ;/*  获取异常临时栈 SP 的位置    */
+    LD.W        SP , (SP)                                               ;/*  得到异常栈指针              */
     SUBI        SP , ARCH_REG_CTX_SIZE                                  ;/*  在临时堆栈开辟上下文保存区  */
 
-    STM         R0-R31 , (SP)
+    STM         R0-R15 , (SP)
+    ST.W        R28 , (SP , XGREG28)
 
-    MFCR        R18 , EPC                                               ;/*  EPC 代替 PC 保存            */
-    ST.W        R18 , (SP , XPC)
+    MFCR        R0 , EPC                                                ;/*  EPC 代替 PC 保存            */
+    STW         R0 , (SP , XPC)
 
-    MFCR        R18 , EPSR                                              ;/*  EPSR 代替 PSR 保存          */
-    ST.W        R18 , (SP , XPSR)
+    MFCR        R0 , EPSR                                               ;/*  保存 PSR 寄存器             */
+    ST.W        R0 , (SP , XPSR)
 
-    MFLO        R18                                                     ;/*  保存 LO 寄存器              */
-    ST.W        R18 , (SP , XLO)
-
-    MFHI        R18                                                     ;/*  保存 HI 寄存器              */
-    ST.W        R18 , (SP , XHI)
-
-    MFCR        R18 , CR<4, 15>                                         ;/*  保存 MEH 寄存器             */
-    ST.W        R18 , (SP , XMEH)
-
-    MFCR        R18 , SS1                                               ;/*  读出异常前 SP               */
-#ifdef __CSKYABIV2__
-    ST.W        R18 , (SP , XGREG(14))                                  ;/*  保存异常前 SP               */
-#else
-    ST.W        R18 , (SP , XGREG(0))
-#endif
+    LRW         R0 , archExcOldStack                                    ;/*  读出异常前 SP               */
+    LD.W        R0 , (R0)
+    ST.W        R0 , (SP , XGREG(14))                                   ;/*  保存异常前 SP               */
 
     ;/*
     ; * API_InterEnter(寄存器上下文)
@@ -158,12 +142,13 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     MOV         A1 , A0
 
 2:
-    PSRSET      EE                                                      ;/*  使能异常                    */
+    PSRSET      EE
 
     ;/*
     ; * handle(vector, 寄存器上下文)
     ; */
     MOVI        A0 , \irq
+
     JSRI        \handle
 
     ;/*
@@ -176,13 +161,14 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ; * 来到这里, 说明发生了中断嵌套
     ; */
     MOV         A1 , SP
-    RESTORE_KERN_REGS
+    RESTORE_REGS
 
 3:
     ;/*
     ; * 不是第一次进入中断
     ; */
-    MFCR        SP , SS1                                                ;/*  异常前 SP                   */
+    LRW         SP , archExcOldStack
+    LD.W        SP , (SP)                                               ;/*  获取异常前 SP 的位置        */
     SUBI        SP , ARCH_REG_CTX_SIZE
     MOV         A1 , SP
     BR          2b
@@ -269,47 +255,12 @@ FUNC_DEF(archAutoIntEntry)
     FUNC_END(archAutoIntEntry)
 
 ;/*********************************************************************************************************
-;  快速中断入口函数
-;*********************************************************************************************************/
-
-FUNC_DEF(archFastAutoIntEntry)
-    JSRI            archFastAutoIntHandle
-    RFI
-    FUNC_END(archFastAutoIntEntry)
-
-;/*********************************************************************************************************
 ;  Reserved 异常入口函数
 ;*********************************************************************************************************/
 
 FUNC_DEF(archReservedExceptEntry)
     IRQ_ENTRY   12  archReservedExceptHandle
     FUNC_END(archReservedExceptEntry)
-
-;/*********************************************************************************************************
-;  TLB 不可恢复异常入口函数
-;*********************************************************************************************************/
-
-FUNC_DEF(archTlbFatalExceptEntry)
-    IRQ_ENTRY   13  archTlbFatalExceptHandle
-    FUNC_END(archTlbFatalExceptEntry)
-
-;/*********************************************************************************************************
-;  TLB 重填异常入口函数
-;*********************************************************************************************************/
-
-#if LW_CFG_VMM_EN == 0
-FUNC_DEF(archTlbRefillExceptEntry)
-    IRQ_ENTRY   14  archTlbRefillExceptHandle
-    FUNC_END(archTlbRefillExceptEntry)
-#endif
-
-;/*********************************************************************************************************
-;  TLB 修改异常入口函数
-;*********************************************************************************************************/
-
-FUNC_DEF(archTlbModExceptEntry)
-    IRQ_ENTRY   15  archTlbModExceptHandle
-    FUNC_END(archTlbModExceptEntry)
 
 ;/*********************************************************************************************************
 ;  陷阱指令异常 0 入口函数
@@ -344,20 +295,20 @@ FUNC_DEF(archTrap3ExceptEntry)
     FUNC_END(archTrap3ExceptEntry)
 
 ;/*********************************************************************************************************
-;  TLB 读无效异常入口函数
+;  TSPEND 中断入口函数
 ;*********************************************************************************************************/
 
-FUNC_DEF(archTlbLoadExceptEntry)
-    IRQ_ENTRY   20  archTlbLoadExceptHandle
-    FUNC_END(archTlbLoadExceptEntry)
+FUNC_DEF(archTspendIntEntry)
+    IRQ_ENTRY   22  archTspendIntHandle
+    FUNC_END(archTspendIntEntry)
 
 ;/*********************************************************************************************************
-;  TLB 写无效异常入口函数
+;  浮点运算异常入口函数
 ;*********************************************************************************************************/
 
-FUNC_DEF(archTlbStoreExceptEntry)
-    IRQ_ENTRY   21  archTlbStoreExceptHandle
-    FUNC_END(archTlbStoreExceptEntry)
+FUNC_DEF(archFpuExceptEntry)
+    IRQ_ENTRY   30  archFpuExceptHandle
+    FUNC_END(archFpuExceptEntry)
 
 ;/*********************************************************************************************************
 ;  32 ~ 255 号中断入口函数
@@ -410,22 +361,18 @@ FUNC_DEF(vector)
     .long   archFatalErrExceptEntry                                     ;/*  8  - Fatal Err              */
     .long   archIdlyExceptEntry                                         ;/*  9  - Idly                   */
     .long   archAutoIntEntry                                            ;/*  10 - Auto                   */
-    .long   archFastAutoIntEntry + 0x1                                  ;/*  11 - Fast Auto              */
+    .long   archReservedExceptEntry                                     ;/*  11 - Reserved               */
     .long   archReservedExceptEntry                                     ;/*  12 - Reserved               */
-    .long   archTlbFatalExceptEntry                                     ;/*  13 - TLB Fatal              */
-#if LW_CFG_VMM_EN > 0
-    .long   cskyMmuTlbRefillExceptEntry + 0x1                           ;/*  14 - TLB Refill             */
-#else
-    .long   archTlbRefillExceptEntry                                    ;/*  14 - TLB Refill             */
-#endif
-    .long   archTlbModExceptEntry                                       ;/*  15 - TLB Modified Fault     */
+    .long   archReservedExceptEntry                                     ;/*  13 - Reserved               */
+    .long   archReservedExceptEntry                                     ;/*  14 - Reserved               */
+    .long   archReservedExceptEntry                                     ;/*  15 - Reserved               */
     .long   archTrap0ExceptEntry                                        ;/*  16 - Trap0                  */
     .long   archTrap1ExceptEntry                                        ;/*  17 - Trap1                  */
     .long   archTrap2ExceptEntry                                        ;/*  18 - Trap2                  */
     .long   archTrap3ExceptEntry                                        ;/*  19 - Trap3                  */
-    .long   archTlbLoadExceptEntry                                      ;/*  20 - TLB Load               */
-    .long   archTlbStoreExceptEntry                                     ;/*  21 - TLB Store              */
-    .long   archReservedExceptEntry                                     ;/*  22 - Reserved               */
+    .long   archReservedExceptEntry                                     ;/*  20 - Reserved               */
+    .long   archReservedExceptEntry                                     ;/*  21 - Reserved               */
+    .long   archTspendIntEntry                                          ;/*  22 - TSPEND                 */
     .long   archReservedExceptEntry                                     ;/*  23 - Reserved               */
     .long   archReservedExceptEntry                                     ;/*  24 - Reserved               */
     .long   archReservedExceptEntry                                     ;/*  25 - Reserved               */
@@ -433,7 +380,7 @@ FUNC_DEF(vector)
     .long   archReservedExceptEntry                                     ;/*  27 - Reserved               */
     .long   archReservedExceptEntry                                     ;/*  28 - Reserved               */
     .long   archReservedExceptEntry                                     ;/*  29 - Reserved               */
-    .long   archReservedExceptEntry                                     ;/*  30 - Reserved               */
+    .long   archFpuExceptEntry                                          ;/*  30 - FPU                    */
     .long   archReservedExceptEntry                                     ;/*  31 - Reserved               */
 
     .irp    Id,                                       \

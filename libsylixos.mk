@@ -635,6 +635,10 @@ SylixOS/arch/csky/common/cskyExcAsm.S \
 SylixOS/arch/csky/common/cskyIo.c \
 SylixOS/arch/csky/common/cskyLib.c \
 SylixOS/arch/csky/common/cskyLibAsm.S \
+SylixOS/arch/csky/common/ck803/cskyContextCK803.c \
+SylixOS/arch/csky/common/ck803/cskyContextCK803Asm.S \
+SylixOS/arch/csky/common/ck803/cskyExcCK803.c \
+SylixOS/arch/csky/common/ck803/cskyExcCK803Asm.S \
 SylixOS/arch/csky/common/unaligned/cskyUnaligned.c \
 SylixOS/arch/csky/dbg/cskyDbg.c \
 SylixOS/arch/csky/dbg/cskyGdb.c \
@@ -646,9 +650,12 @@ SylixOS/arch/csky/fpu/vfpnone/cskyVfpNone.c \
 SylixOS/arch/csky/mm/cskyCache.c \
 SylixOS/arch/csky/mm/cache/cskyCache.c \
 SylixOS/arch/csky/mm/cache/cskyCacheAsm.S \
+SylixOS/arch/csky/mm/cache/ck803/cskyCacheCK803.c \
 SylixOS/arch/csky/mm/cskyMmu.c \
 SylixOS/arch/csky/mm/mmu/cskyMmu.c \
 SylixOS/arch/csky/mm/mmu/cskyMmuAsm.S \
+SylixOS/arch/csky/mm/cskyMpu.c \
+SylixOS/arch/csky/mm/mpu/cskyMpu.c \
 SylixOS/arch/csky/mpcore/cskyMpCoreAsm.S \
 SylixOS/arch/csky/mpcore/cskySpinlock.c \
 SylixOS/arch/csky/param/cskyParam.c

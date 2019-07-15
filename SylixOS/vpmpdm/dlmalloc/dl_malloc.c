@@ -83,10 +83,15 @@ void *dlmalloc_mmap (size_t  stLen)
 {
     void  *mem;
 
+#ifdef MAP_PREALLOC
+    mem = mmap(NULL, stLen, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_PREALLOC, -1, 0);
+
+#else
     mem = mmap(NULL, stLen, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (mem != MAP_FAILED) {
         __vp_pre_alloc_phy(mem, stLen, 1);
     }
+#endif
 
     return  (mem);
 }
@@ -97,7 +102,12 @@ void *dlmalloc_mmap (size_t  stLen)
 void  *dlmalloc_mremap (void *pvAddr, size_t stOldSize, size_t stNewSize, int mv)
 {
     void  *mem;
-    int    flag = 0;
+
+#ifdef MAP_PREALLOC
+    mem = MAP_FAILED;
+
+#else
+    int  flag = 0;
 
     if (mv) {
         flag = MREMAP_MAYMOVE;
@@ -107,6 +117,7 @@ void  *dlmalloc_mremap (void *pvAddr, size_t stOldSize, size_t stNewSize, int mv
     if (mem != MAP_FAILED) {
         __vp_pre_alloc_phy(mem, stNewSize, 1);
     }
+#endif
 
     return  (mem);
 }

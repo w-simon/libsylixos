@@ -34,6 +34,7 @@
 #include "lwip/mem.h"
 #include "lwip/netif.h"
 #include "lwip/tcpip.h"
+#include "netdev.h"
 #include "af_route.h"
 /*********************************************************************************************************
   º¯ÊýÉùÃ÷
@@ -1389,6 +1390,7 @@ VOID  route_hook_netif_updown (struct netif *pnetif)
 #define MIB2_NETIF(netif)   (&((netif)->mib2_counters))
 
     size_t              stMsgLen;
+    struct netdev      *pnetdev;
     struct if_msghdr   *pmsghdr;
     struct sockaddr_dl *psockaddrdl;
     struct if_data     *pifdata;
@@ -1448,17 +1450,24 @@ VOID  route_hook_netif_updown (struct netif *pnetif)
                 pifdata->ifi_type = IFT_OTHER;
             }
             
-            pifdata->ifi_baudrate = pnetif->link_speed;
-            pifdata->ifi_ipackets = MIB2_NETIF(pnetif)->ifinucastpkts + MIB2_NETIF(pnetif)->ifinnucastpkts;
-            pifdata->ifi_ierrors  = MIB2_NETIF(pnetif)->ifinerrors;
-            pifdata->ifi_opackets = MIB2_NETIF(pnetif)->ifoutucastpkts + MIB2_NETIF(pnetif)->ifoutnucastpkts;
-            pifdata->ifi_oerrors  = MIB2_NETIF(pnetif)->ifouterrors;
-            pifdata->ifi_ibytes   = (u_long)MIB2_NETIF(pnetif)->ifinoctets;
-            pifdata->ifi_obytes   = (u_long)MIB2_NETIF(pnetif)->ifoutoctets;
-            pifdata->ifi_imcasts  = MIB2_NETIF(pnetif)->ifinnucastpkts;
-            pifdata->ifi_omcasts  = MIB2_NETIF(pnetif)->ifoutnucastpkts;
-            pifdata->ifi_iqdrops  = MIB2_NETIF(pnetif)->ifindiscards;
-            pifdata->ifi_noproto  = MIB2_NETIF(pnetif)->ifinunknownprotos;
+            pnetdev = (netdev_t *)(pnetif->state);
+            if (pnetdev && (pnetdev->magic_no == NETDEV_MAGIC)) {
+                pifdata->ifi_baudrate = pnetdev->speed;
+            } else {
+                pifdata->ifi_baudrate = pnetif->link_speed;
+            }
+
+            pifdata->ifi_ipackets   = MIB2_NETIF(pnetif)->ifinucastpkts + MIB2_NETIF(pnetif)->ifinnucastpkts;
+            pifdata->ifi_ierrors    = MIB2_NETIF(pnetif)->ifinerrors;
+            pifdata->ifi_opackets   = MIB2_NETIF(pnetif)->ifoutucastpkts + MIB2_NETIF(pnetif)->ifoutnucastpkts;
+            pifdata->ifi_oerrors    = MIB2_NETIF(pnetif)->ifouterrors;
+            pifdata->ifi_collisions = MIB2_NETIF(pnetif)->ifcollisions;
+            pifdata->ifi_ibytes     = (u_long)MIB2_NETIF(pnetif)->ifinoctets;
+            pifdata->ifi_obytes     = (u_long)MIB2_NETIF(pnetif)->ifoutoctets;
+            pifdata->ifi_imcasts    = MIB2_NETIF(pnetif)->ifinnucastpkts;
+            pifdata->ifi_omcasts    = MIB2_NETIF(pnetif)->ifoutnucastpkts;
+            pifdata->ifi_iqdrops    = MIB2_NETIF(pnetif)->ifindiscards;
+            pifdata->ifi_noproto    = MIB2_NETIF(pnetif)->ifinunknownprotos;
             
             lib_clock_gettime(CLOCK_REALTIME, &ts);
             pifdata->ifi_lastchange.tv_sec  = ts.tv_sec;

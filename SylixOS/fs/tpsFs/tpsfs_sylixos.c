@@ -1164,7 +1164,7 @@ static ssize_t  __tpsFsWrite (PLW_FD_ENTRY  pfdentry,
                     break;
                 }
             }
-			__SHEAP_FREE(pucZoreBuf);
+            __SHEAP_FREE(pucZoreBuf);
 
             pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
             if (pfdnode->FDNODE_oftSize < pfdentry->FDENTRY_oftPtr) {
@@ -1245,7 +1245,7 @@ static ssize_t  __tpsFsPWrite (PLW_FD_ENTRY  pfdentry,
                     break;
                 }
             }
-			__SHEAP_FREE(pucZoreBuf);
+            __SHEAP_FREE(pucZoreBuf);
 
             pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
             if (pfdnode->FDNODE_oftSize < oftPos) {

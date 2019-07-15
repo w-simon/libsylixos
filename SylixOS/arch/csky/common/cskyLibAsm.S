@@ -147,6 +147,7 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
     ST.W        R11 , (A0 , XGREG(11))
     ST.W        R14 , (A0 , XGREG(14))
     ST.W        R15 , (A0 , XGREG(15))
+#if !defined(__SYLIXOS_CSKY_ARCH_CK803__)
     ST.W        R16 , (A0 , XGREG(16))
     ST.W        R17 , (A0 , XGREG(17))
     ST.W        R26 , (A0 , XGREG(26))
@@ -155,6 +156,9 @@ MACRO_DEF(SAVE_NON_VOLATILE_REG)
     ST.W        R29 , (A0 , XGREG(29))
     ST.W        R30 , (A0 , XGREG(30))
     ST.W        R31 , (A0 , XGREG(31))
+#else
+    ST.W        R28 , (A0 , XGREG28)
+#endif
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -173,6 +177,7 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
     LD.W        R11 , (A0 , XGREG(11))
     LD.W        R14 , (A0 , XGREG(14))
     LD.W        R15 , (A0 , XGREG(15))
+#if !defined(__SYLIXOS_CSKY_ARCH_CK803__)
     LD.W        R16 , (A0 , XGREG(16))
     LD.W        R17 , (A0 , XGREG(17))
     LD.W        R26 , (A0 , XGREG(26))
@@ -181,6 +186,9 @@ MACRO_DEF(RESTORE_NON_VOLATILE_REG)
     LD.W        R29 , (A0 , XGREG(29))
     LD.W        R30 , (A0 , XGREG(30))
     LD.W        R31 , (A0 , XGREG(31))
+#else
+    LD.W        R28 , (A0 , XGREG28)
+#endif
     MACRO_END()
 
 ;/*********************************************************************************************************

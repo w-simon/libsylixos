@@ -10,13 +10,13 @@
 ;**
 ;**--------------文件信息--------------------------------------------------------------------------------
 ;**
-;** 文   件   名: cskyContextAsm.S
+;** 文   件   名: cskyContextCK803Asm.S
 ;**
 ;** 创   建   人: Wang.Xuan (王翾)
 ;**
-;** 文件创建日期: 2018 年 05 月 11 日
+;** 文件创建日期: 2019 年 04 月 26 日
 ;**
-;** 描        述: C-SKY 体系架构上下文切换.
+;** 描        述: C-SKY CK803 体系架构上下文切换.
 ;*********************************************************************************************************/
 
 #ifndef ASSEMBLY
@@ -27,9 +27,9 @@
 #include <config/kernel/kernel_cfg.h>
 #include <config/mp/mp_cfg.h>
 
-#if !defined(__SYLIXOS_CSKY_ARCH_CK803__)
+#if defined(__SYLIXOS_CSKY_ARCH_CK803__)
 
-#include "cskyContextAsm.h"
+#include "cskyContextCK803Asm.h"
 
     FILE_BEGIN()
 
@@ -49,6 +49,19 @@
 #endif
     EXPORT_LABEL(archIntCtxLoad)
     EXPORT_LABEL(archSigCtxLoad)
+    EXPORT_LABEL(archExcOldStack)
+    EXPORT_LABEL(archExcIrqStack)
+
+;/*********************************************************************************************************
+;  异常栈
+;*********************************************************************************************************/
+
+    .balign     ARCH_STK_ALIGN_SIZE
+LINE_LABEL(archExcOldStack)
+    .long       archExcOldStack
+
+LINE_LABEL(archExcIrqStack)
+    .long       archExcIrqStack
 
 ;/*********************************************************************************************************
 ;  当前 CPU 开始运行多任务执行
@@ -58,7 +71,8 @@
 FUNC_DEF(archTaskCtxStart)
     SUBI        SP , 1024                                               ;/*  在启动栈开辟异常临时栈      */
     ANDNI       SP , SP , 0x7                                           ;/*  SP 向下 8 字节对齐          */
-    MTCR        SP , SS0                                                ;/*  设置异常临时栈(使用启动栈)  */
+    LRW         A1 , archExcIrqStack
+    ST.W        SP , (A1)
 
     LD.W        A1 , (A0 , 0)                                           ;/*  获取当前 TCB 的 REG_CTX 地址*/
 
@@ -73,7 +87,7 @@ FUNC_DEF(archTaskCtxStart)
 FUNC_DEF(archTaskCtxSwitch)
     LD.W        A1 , (A0 , 0)                                           ;/*  获取当前 TCB 的 REG_CTX 地址*/
 
-    SAVE_KERN_REGS                                                      ;/*  保存内核态任务寄存器        */
+    SAVE_REGS                                                           ;/*  保存任务寄存器              */
 
     MOV         S0 , A0                                                 ;/*  S0 暂存 A0                  */
 
@@ -99,7 +113,7 @@ FUNC_DEF(archTaskCtxSwitch)
 FUNC_DEF(archCrtCtxSwitch)
     LD.W        A1 , (A0 , (2 * PTRSIZE))                               ;/*  当前 CCB 的 REG_CTX 地址    */
     
-    SAVE_KERN_REGS                                                      ;/*  保存内核态协程寄存器        */
+    SAVE_REGS                                                           ;/*  保存协程寄存器              */
     
     MOV         S0 , A0                                                 ;/*  S0 暂存 A0                  */
 
@@ -107,7 +121,7 @@ FUNC_DEF(archCrtCtxSwitch)
     
     LD.W        A1 , (S0 , (2 * PTRSIZE))                               ;/*  当前 CCB 的 REG_CTX 地址    */
 
-    RESTORE_KERN_REGS                                                   ;/*  恢复内核态协程寄存器        */
+    RESTORE_REGS                                                        ;/*  恢复协程寄存器              */
     FUNC_END(archCrtCtxSwitch)
 #endif
 
@@ -139,28 +153,31 @@ FUNC_DEF(archSigCtxLoad)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxCopy)
-    LDM         R18-R25 , (A1)
-    STM         R18-R25 , (A0)
-    ADDI        A0 , (8 * ARCH_REG_SIZE)
-    ADDI        A1 , (8 * ARCH_REG_SIZE)
+    PUSH        R4-R8
+
+    LDM         R4-R8 , (A1)
+    STM         R4-R8 , (A0)
+    ADDI        A0 , (5 * ARCH_REG_SIZE)
+    ADDI        A1 , (5 * ARCH_REG_SIZE)
+
+    LDM         R4-R8 , (A1)
+    STM         R4-R8 , (A0)
+    ADDI        A0 , (5 * ARCH_REG_SIZE)
+    ADDI        A1 , (5 * ARCH_REG_SIZE)
+
+    LDM         R4-R8 , (A1)
+    STM         R4-R8 , (A0)
+    ADDI        A0 , (5 * ARCH_REG_SIZE)
+    ADDI        A1 , (5 * ARCH_REG_SIZE)
+
+    LDM         R4-R8 , (A1)
+    STM         R4-R8 , (A0)
+    ADDI        A0 , (5 * ARCH_REG_SIZE)
+    ADDI        A1 , (5 * ARCH_REG_SIZE)
     
-    LDM         R18-R25 , (A1)
-    STM         R18-R25 , (A0)
-    ADDI        A0 , (8 * ARCH_REG_SIZE)
-    ADDI        A1 , (8 * ARCH_REG_SIZE)
-    
-    LDM         R18-R25 , (A1)
-    STM         R18-R25 , (A0)
-    ADDI        A0 , (8 * ARCH_REG_SIZE)
-    ADDI        A1 , (8 * ARCH_REG_SIZE)
-    
-    LDM         R18-R25 , (A1)
-    STM         R18-R25 , (A0)
-    ADDI        A0 , (8 * ARCH_REG_SIZE)
-    ADDI        A1 , (8 * ARCH_REG_SIZE)
-    
-    LDM         R18-R23 , (A1)
-    STM         R18-R23 , (A0)
+    LDM         R4-R8 , (SP)
+    ADDI        SP , (5 * ARCH_REG_SIZE)
+
     RTS
     FUNC_END(archTaskCtxCopy)
     

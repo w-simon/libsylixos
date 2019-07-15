@@ -106,6 +106,7 @@
 #include "csky/arch_limits.h"
 #include "csky/arch_regs.h"
 #include "csky/arch_mmu.h"
+#include "csky/arch_mpu.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_INC_H                */
