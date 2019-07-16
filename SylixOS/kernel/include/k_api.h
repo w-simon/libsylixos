@@ -1105,6 +1105,8 @@ LW_API VOID             API_InterVectorIpiEx(ULONG    ulCPUId,
 #if LW_CFG_ISR_DEFER_EN > 0
 LW_API PLW_JOB_QUEUE    API_InterDeferGet(ULONG  ulCPUId);              /*  获得对应 CPU 的中断延迟队列 */
 
+LW_API INT              API_InterDeferContext(VOID);                    /*  是否在中断或 defer 上下文   */
+
 LW_API ULONG            API_InterDeferJobAdd(PLW_JOB_QUEUE  pjobq, VOIDFUNCPTR  pfunc, PVOID  pvArg);
                                                                         /*  向中断延迟处理队列加入任务  */
 LW_API ULONG            API_InterDeferJobDelete(PLW_JOB_QUEUE  pjobq, BOOL  bMatchArg, 

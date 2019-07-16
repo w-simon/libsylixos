@@ -806,7 +806,12 @@ INT  __tshellRestartEx (LW_OBJECT_HANDLE  ulThread, BOOL  bNeedAuthen)
              INT              iMsg;
              UINT16           usIndex;
 
-    if (LW_CPU_GET_CUR_NESTING()) {
+#if LW_CFG_ISR_DEFER_EN > 0
+    if (API_InterDeferContext())
+#else
+    if (LW_CPU_GET_CUR_NESTING())
+#endif
+    {
         return  (_excJobAdd((VOIDFUNCPTR)__tshellRestartEx, 
                             (PVOID)ulThread, (PVOID)bNeedAuthen, 0, 0, 0, 0));
     }

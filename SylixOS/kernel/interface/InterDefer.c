@@ -28,9 +28,11 @@
   每一个 CPU 的 DEFER ISR QUEUE
 *********************************************************************************************************/
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_ISR_DEFER_PER_CPU > 0)
+static LW_OBJECT_HANDLE _K_ulIsrDefer[LW_CFG_MAX_PROCESSORS];
 static LW_JOB_QUEUE     _K_jobqIsrDefer[LW_CFG_MAX_PROCESSORS];
 static LW_JOB_MSG       _K_jobmsgIsrDefer[LW_CFG_MAX_PROCESSORS][LW_CFG_ISR_DEFER_SIZE];
 #else
+static LW_OBJECT_HANDLE _K_ulIsrDefer[1];
 static LW_JOB_QUEUE     _K_jobqIsrDefer[1];
 static LW_JOB_MSG       _K_jobmsgIsrDefer[LW_CFG_ISR_DEFER_SIZE];
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
@@ -66,7 +68,6 @@ VOID  _interDeferInit (VOID)
 {
     CHAR                  cDefer[LW_CFG_OBJECT_NAME_SIZE] = "t_isrdefer";
     LW_CLASS_THREADATTR   threadattr;
-    LW_OBJECT_HANDLE      ulId;
     
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_ISR_DEFER_PER_CPU > 0)
     INT                   i;
@@ -94,17 +95,17 @@ VOID  _interDeferInit (VOID)
         
         lib_itoa(i, &cDefer[10], 10);
         API_ThreadAttrSetArg(&threadattr, &_K_jobqIsrDefer[i]);
-        ulId = API_ThreadInit(cDefer, _interDeferTask, &threadattr, LW_NULL);
-        if (ulId == LW_OBJECT_HANDLE_INVALID) {
+        _K_ulIsrDefer[i] = API_ThreadInit(cDefer, _interDeferTask, &threadattr, LW_NULL);
+        if (_K_ulIsrDefer[i] == LW_OBJECT_HANDLE_INVALID) {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create ISR defer task.\r\n");
             return;
         }
         
-        LW_CPU_SET(i, &cpuset);
-        API_ThreadSetAffinity(ulId, sizeof(LW_CLASS_CPUSET), &cpuset);  /*  锁定到指定 CPU              */
+        LW_CPU_SET(i, &cpuset);                                         /*  锁定到指定 CPU              */
+        API_ThreadSetAffinity(_K_ulIsrDefer[i], sizeof(LW_CLASS_CPUSET), &cpuset);
         LW_CPU_CLR(i, &cpuset);
         
-        API_ThreadStart(ulId);
+        API_ThreadStart(_K_ulIsrDefer[i]);
     }
     
 #else
@@ -125,13 +126,13 @@ VOID  _interDeferInit (VOID)
                         LW_OPTION_THREAD_AFFINITY_ALWAYS), 
                         &_K_jobqIsrDefer[0]);
     
-    ulId = API_ThreadInit(cDefer, _interDeferTask, &threadattr, LW_NULL);
-    if (ulId == LW_OBJECT_HANDLE_INVALID) {
+    _K_ulIsrDefer[0] = API_ThreadInit(cDefer, _interDeferTask, &threadattr, LW_NULL);
+    if (_K_ulIsrDefer[0] == LW_OBJECT_HANDLE_INVALID) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create ISR defer task.\r\n");
         return;
     }
     
-    API_ThreadStart(ulId);
+    API_ThreadStart(_K_ulIsrDefer[0]);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */ 
 }                                                                       /*  LW_CFG_ISR_DEFER_PER_CPU    */
 /*********************************************************************************************************
@@ -157,6 +158,55 @@ PLW_JOB_QUEUE  API_InterDeferGet (ULONG  ulCPUId)
     return  (&_K_jobqIsrDefer[0]);
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */ 
 }                                                                       /*  LW_CFG_ISR_DEFER_PER_CPU    */
+/*********************************************************************************************************
+** 函数名称: API_InterDeferContext
+** 功能描述: 是否在中断延迟队列任务上下文
+** 输　入  : NONE
+** 输　出  : 0: 不在中断上下文也不在中断延迟队列任务上下文
+**           1: 在中断上下文
+**           2: 中断延迟队列任务上下文
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_InterDeferContext (VOID)
+{
+    INTREG          iregInterLevel;
+    ULONG           ulNesting;
+    PLW_CLASS_TCB   ptcbCur;
+
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
+
+    ulNesting = LW_CPU_GET_CUR()->CPU_ulInterNesting;
+    if (ulNesting) {
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
+        return  (1);
+    }
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
+
+#if (LW_CFG_SMP_EN > 0) && (LW_CFG_ISR_DEFER_PER_CPU > 0)
+    {
+        INT  i;
+
+        LW_CPU_FOREACH_ACTIVE (i) {
+            if (_K_ulIsrDefer[i] == ptcbCur->TCB_ulId) {
+                return  (2);
+            }
+        }
+    }
+
+#else
+    if (_K_ulIsrDefer[0] == ptcbCur->TCB_ulId) {
+        return  (2);
+    }
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+
+    return  (0);
+}
 /*********************************************************************************************************
 ** 函数名称: API_InterDeferJobAdd
 ** 功能描述: 向中断延迟处理队列加入一个任务
