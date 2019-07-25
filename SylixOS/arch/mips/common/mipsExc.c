@@ -720,6 +720,26 @@ static VOID  archDefaultExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
     API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
+** 函数名称: archExecInhibitExceptHandle
+** 功能描述: 执行禁止的异常处理
+** 输　入  : ulRetAddr     返回地址
+**           ulAbortAddr   终止地址
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  archExecInhibitExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
+{
+    PLW_CLASS_TCB  ptcbCur;
+    LW_VMM_ABORT   abtInfo;
+
+    LW_TCB_GET_CUR(ptcbCur);
+
+    abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+    abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_PERM;
+    API_VmmAbortIsr(ulRetAddr, ulAbortAddr, &abtInfo, ptcbCur);
+}
+/*********************************************************************************************************
 ** 函数名称: archMachineCheckExceptHandle
 ** 功能描述: 机器检查异常处理
 ** 输　入  : ulRetAddr     返回地址
@@ -772,7 +792,7 @@ static MIPS_EXCEPT_HANDLE   _G_mipsExceptHandle[32] = {
      * 读阻止例外没使能, 执行阻止例外复用 TLBL 例外
      */
     [EXCCODE_TLBRI]    = (PVOID)archDefaultExceptHandle,                /*  TLB Read-Inhibit exception  */
-    [EXCCODE_TLBXI]    = (PVOID)archDefaultExceptHandle,                /*  TLB Exec-Inhibit exception  */
+    [EXCCODE_TLBXI]    = (PVOID)archExecInhibitExceptHandle,            /*  TLB Exec-Inhibit exception  */
     [EXCCODE_MSADIS]   = (PVOID)archDefaultExceptHandle,                /*  MSA disabled exception      */
     [EXCCODE_MDMX]     = (PVOID)archDefaultExceptHandle,                /*  MDMX unusable exception     */
     [EXCCODE_WATCH]    = (PVOID)archDefaultExceptHandle,                /*  Watch address reference     */

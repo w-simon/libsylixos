@@ -152,7 +152,7 @@ static INT    __tshellBgCreate(INT      iFd,
   装载器内部函数声明
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
-extern BOOL   __ldPathIsFile(CPCHAR  pcName);
+extern BOOL   __ldPathIsFile(CPCHAR  pcName, struct stat *pstatFile);
 /*********************************************************************************************************
 ** 函数名称: __tshellIsResCmd
 ** 功能描述: 是否为强制内建命令
@@ -190,7 +190,7 @@ static BOOL  __tshellCheckFile (CPCHAR  pcKeyword)
     PCHAR   pcDiv;
     
     if (lib_strchr(pcKeyword, PX_DIVIDER)) {                            /*  是一个路径                  */
-        if (__ldPathIsFile(pcKeyword)) {
+        if (__ldPathIsFile(pcKeyword, LW_NULL)) {
             return  (LW_TRUE);
         
         } else {
@@ -223,7 +223,7 @@ static BOOL  __tshellCheckFile (CPCHAR  pcKeyword)
             
             snprintf(pcPathBuffer, MAX_FILENAME_LENGTH, "%s/%s", 
                      pcStart, pcKeyword);                               /*  合并为完整的目录            */
-            if (__ldPathIsFile(pcPathBuffer)) {                         /*  此文件可以被访问            */
+            if (__ldPathIsFile(pcPathBuffer, LW_NULL)) {                /*  此文件可以被访问            */
                 __SHEAP_FREE(pcBuffer);
                 return  (LW_TRUE);
             }

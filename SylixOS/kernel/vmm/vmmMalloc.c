@@ -493,6 +493,11 @@ PVOID  API_VmmMallocAreaAlign (size_t  stSize, size_t  stAlign,
         return  (LW_NULL);
     }
     
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+    pvmpagep->PAGEP_ulPtStart = 0;
+    pvmpagep->PAGEP_stPtSize  = 0;
+#endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
+
     pvmpagep->PAGEP_pfuncFiller = pfuncFiller;
     pvmpagep->PAGEP_pvArg       = pvArg;
     
@@ -924,6 +929,50 @@ ULONG  API_VmmSetFindShare (PVOID  pvVirtualMem, PVOIDFUNCPTR  pfuncFindShare, P
     
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: API_VmmSetProtect
+** 功能描述: 设置虚拟空间受保护区域.
+** 输　入  : pvVirtualMem    连续虚拟地址  (必须为 vmmMallocArea 返回地址)
+**           pvSubMem        当出现缺页时, 不允许 copy-on-write 的保护区起始地址
+**           stSize          保护区大小.
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+
+LW_API
+ULONG  API_VmmSetProtect (PVOID  pvVirtualMem, PVOID  pvSubMem, size_t  stSize)
+{
+    REGISTER PLW_VMM_PAGE           pvmpageVirtual;
+    REGISTER PLW_VMM_PAGE_PRIVATE   pvmpagep;
+             addr_t                 ulAddr = (addr_t)pvVirtualMem;
+
+    __VMM_LOCK();
+    pvmpageVirtual = __areaVirtualSearchPage(ulAddr);
+    if (pvmpageVirtual == LW_NULL) {
+        __VMM_UNLOCK();
+        _ErrorHandle(ERROR_VMM_VIRTUAL_PAGE);                           /*  无法反向查询虚拟页面控制块  */
+        return  (ERROR_VMM_VIRTUAL_PAGE);
+    }
+
+    pvmpagep = (PLW_VMM_PAGE_PRIVATE)pvmpageVirtual->PAGE_pvAreaCb;
+    if (!pvmpagep) {
+        __VMM_UNLOCK();
+        _ErrorHandle(ERROR_VMM_VIRTUAL_PAGE);                           /*  无法反向查询虚拟页面控制块  */
+        return  (ERROR_VMM_VIRTUAL_PAGE);
+    }
+
+    pvmpagep->PAGEP_ulPtStart = (addr_t)pvSubMem;
+    pvmpagep->PAGEP_stPtSize  = stSize;
+
+    __VMM_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
 /*********************************************************************************************************
 ** 函数名称: API_VmmPCountInArea
 ** 功能描述: API_VmmMallocAreaEx 分配的连续虚拟内存中包含的物理页面个数 (此物理内存为缺页中断分配)

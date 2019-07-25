@@ -1488,6 +1488,13 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
 #endif
         bCanExec  = PF_X & pphdr->p_flags ? LW_TRUE  : LW_FALSE;        /*  是否可执行                  */
 
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+        if (!pmodule->EMOD_stCodeLen && bCanExec) {                     /*  记录代码段位置信息          */
+            pmodule->EMOD_ulCodeOft = dwMapOff;
+            pmodule->EMOD_stCodeLen = pphdr->p_memsz;
+        }
+#endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
+
         if (LW_LD_VMSAFEMAP_AREA(pmodule->EMOD_pvBaseAddr, dwMapOff, iFd, &stat64Buf,
                                  pphdr->p_offset, pphdr->p_filesz, 
                                  bCanShare, bCanExec) != ERROR_NONE) {
@@ -2052,6 +2059,14 @@ INT __elfListLoad (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcPath)
             if (elfPhdrBuildInitTable(pmodTemp, (ELF_DYN_DIR *)pmodTemp->EMOD_pvFormatInfo)) {
                 goto    __out;
             }
+
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+            if (pmodTemp->EMOD_stCodeLen) {                             /*  保护代码段                  */
+                LW_LD_VMSAFE_PROTECT(pmodTemp->EMOD_pvBaseAddr,
+                                     pmodTemp->EMOD_ulCodeOft,
+                                     pmodTemp->EMOD_stCodeLen);
+            }
+#endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
         }
 #if LW_CFG_CACHE_EN > 0
         API_CacheTextUpdate(pmodTemp->EMOD_pvBaseAddr, pmodTemp->EMOD_stLen);

@@ -216,6 +216,10 @@ LW_API ULONG        API_VmmSetFiller(PVOID  pvVirtualMem, FUNCPTR  pfuncFiller, 
                                                                         /*  设置填充函数                */
 LW_API ULONG        API_VmmSetFindShare(PVOID  pvVirtualMem, PVOIDFUNCPTR  pfuncFindShare, PVOID  pvArg);
                                                                         /*  设置查询共享函数            */
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+LW_API ULONG        API_VmmSetProtect(PVOID  pvVirtualMem, PVOID  pvSubMem, size_t  stSize);
+#endif                                                                  /*  设置禁止 copy-on-write 区   */
+
 LW_API ULONG        API_VmmPreallocArea(PVOID       pvVirtualMem, 
                                         PVOID       pvSubMem, 
                                         size_t      stSize, 

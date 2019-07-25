@@ -616,6 +616,22 @@ INT  __ldMmap (PVOID  pvBase, size_t  stAddrOft, INT  iFd, struct stat64 *pstat6
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
+** 函数名称: __ldProtect
+** 功能描述: 设置内存保护区, 不允许写.
+** 输　入  : pvBase         __ldMallocArea 或者 __ldMallocAreaAlign 返回的地址 (__ldMmap 已经装载完成)
+**           stAddrOft      起始偏移量
+**           stLen          大小
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  __ldProtect (PVOID  pvBase, size_t  stAddrOft, size_t  stLen)
+{
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+    API_VmmSetProtect(pvBase, (PVOID)((addr_t)pvBase + stAddrOft), stLen);
+#endif
+}
+/*********************************************************************************************************
 ** 函数名称: __ldShare
 ** 功能描述: 允许共享当前共享库
 ** 输　入  : pvBase         __ldMallocArea 或者 __ldMallocAreaAlign 返回的地址 (__ldMmap 已经装载完成)

@@ -216,8 +216,9 @@ static INT  mipsMmuGlobalInit (CPCHAR  pcMachineName)
 #if LW_CFG_CPU_WORD_LENGHT == 64
                               PG_ELPA |                                 /*  支持 48 位物理地址          */
 #endif
-                              PG_XIE);                                  /*  使能 EntryLo 执行阻止位     */
-                                                                        /*  执行阻止例外复用 TLBL 例外  */
+                              PG_XIE  |                                 /*  使能 EntryLo 执行阻止位     */
+                              PG_IEC);                                  /*  执行阻止例外在 TLBXI 例外   */
+
         /*
          * 目前为了通用性, 并没有使能个别处理器(GS264, GS464E, 华睿, 君正)才有的读阻止 RI 位,
          * 而是使用 ENTRYLO_V 位来判断映射是否有效

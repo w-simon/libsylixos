@@ -47,6 +47,11 @@ typedef struct {
 #define LW_VMM_PHY_PREALLOC     0x4                                     /*  物理内存预分配              */
     INT                 PAGEP_iFlags;                                   /*  like mmap flags             */
     
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+    addr_t              PAGEP_ulPtStart;                                /*  非缺页中断保护段            */
+    size_t              PAGEP_stPtSize;
+#endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
+
     FUNCPTR             PAGEP_pfuncFiller;                              /*  页面填充器                  */
     PVOID               PAGEP_pvArg;                                    /*  页面填充器参数              */
     

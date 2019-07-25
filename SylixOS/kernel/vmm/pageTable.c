@@ -230,6 +230,13 @@ static INT  __vmmLibGlobalMap (PLW_MMU_CONTEXT   pmmuctx, LW_MMU_PHYSICAL_DESC  
     INT     i;
     ULONG   ulError;
     ULONG   ulPageNum;
+    ULONG   ulTextFlags;
+
+    if (LW_KERN_TEXT_RO_GET()) {
+        ulTextFlags = LW_VMM_FLAG_EXEC | LW_VMM_FLAG_READ;
+    } else {
+        ulTextFlags = LW_VMM_FLAG_EXEC | LW_VMM_FLAG_RDWR;
+    }
 
     for (i = 0; pphydesc[i].PHYD_stSize; i++) {
         if ((pphydesc[i].PHYD_uiType == LW_PHYSICAL_MEM_BUSPOOL) ||
@@ -253,7 +260,7 @@ static INT  __vmmLibGlobalMap (PLW_MMU_CONTEXT   pmmuctx, LW_MMU_PHYSICAL_DESC  
         case LW_PHYSICAL_MEM_TEXT:
             ulError = __vmmLibPageMap(pphydesc[i].PHYD_ulPhyAddr, 
                                       pphydesc[i].PHYD_ulVirMap,
-                                      ulPageNum, LW_VMM_FLAG_EXEC | LW_VMM_FLAG_RDWR);
+                                      ulPageNum, ulTextFlags);
             break;
             
         case LW_PHYSICAL_MEM_DATA:

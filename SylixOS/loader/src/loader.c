@@ -92,7 +92,7 @@ extern void __cxa_module_finalize(void *pvBase, size_t stLen, BOOL bCall);
 /*********************************************************************************************************
   装载器判断文件是否可被装载 (进判断文件权限和类型, 不判断文件格式)
 *********************************************************************************************************/
-extern BOOL __ldPathIsFile(CPCHAR  pcName);
+extern BOOL __ldPathIsFile(CPCHAR  pcName, struct stat *pstatFile);
 /*********************************************************************************************************
 ** 函数名称: moduleCreate
 ** 功能描述: 创建并初始化模块结构.
@@ -103,19 +103,21 @@ extern BOOL __ldPathIsFile(CPCHAR  pcName);
 **           pcExit        模块退出函数名
 **           pcEntry       模块入口函数名
 **           pcSection     仅从指定的 section 中导出符号表
+**           pstatFile     文件 stat
 **           pvVProc       指向的进程主模块
 ** 输　出  : 创建好的模块指针，如果失败，输出NULL。
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR  pcPath,
-                                         BOOL    bExportSym,
-                                         BOOL    bIsGlobal,
-                                         CPCHAR  pcInit,
-                                         CPCHAR  pcExit,
-                                         CPCHAR  pcEntry,
-                                         CPCHAR  pcSection,
-                                         PVOID   pvVProc)
+static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR       pcPath,
+                                         BOOL         bExportSym,
+                                         BOOL         bIsGlobal,
+                                         CPCHAR       pcInit,
+                                         CPCHAR       pcExit,
+                                         CPCHAR       pcEntry,
+                                         CPCHAR       pcSection,
+                                         struct stat *pstatFile,
+                                         PVOID        pvVProc)
 {
     LW_LD_EXEC_MODULE *pmodule      = LW_NULL;
     size_t             stModuleSize = 0;                                /*  模块大小                    */
@@ -179,6 +181,8 @@ static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR  pcPath,
     pmodule->EMOD_bExportSym   = bExportSym;
     pmodule->EMOD_bIsGlobal    = bIsGlobal;
     pmodule->EMOD_pvFormatInfo = LW_NULL;
+    pmodule->EMOD_dev          = pstatFile->st_dev;
+    pmodule->EMOD_ino          = pstatFile->st_ino;
     pmodule->EMOD_pvproc       = (LW_LD_VPROC *)pvVProc;
 
     if (pcInit) {
@@ -314,11 +318,13 @@ static INT moduleDelAndDestory (LW_LD_EXEC_MODULE *pmodule)
 **           pcPathBuffer  查找到的文件路径缓冲
 **           stMaxLen      缓冲区大小
 **           pcEnv         环境变量名
+**           pstatFile     获取文件 stat
 ** 输　出  : 0
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT moduleGetLibPath (CPCHAR  pcFileName, PCHAR  pcPathBuffer, size_t  stMaxLen, CPCHAR  pcEnv)
+static INT moduleGetLibPath (CPCHAR  pcFileName, PCHAR  pcPathBuffer,
+                             size_t  stMaxLen, CPCHAR  pcEnv, struct stat *pstatFile)
 {
     CHAR    cBuffer[MAX_FILENAME_LENGTH];
 
@@ -330,7 +336,7 @@ static INT moduleGetLibPath (CPCHAR  pcFileName, PCHAR  pcPathBuffer, size_t  st
         return  (PX_ERROR);
     }
 
-    if (__ldPathIsFile(pcFileName)) {                                   /*  在当前目录下                */
+    if (__ldPathIsFile(pcFileName, pstatFile)) {                        /*  在当前目录下                */
         _PathGetFull(pcPathBuffer, stMaxLen, pcFileName);               /*  保存绝对路径                */
         return  (ERROR_NONE);
     
@@ -351,10 +357,9 @@ static INT moduleGetLibPath (CPCHAR  pcFileName, PCHAR  pcPathBuffer, size_t  st
                 *pcDiv = PX_EOS;
                 pcDiv++;
             }
-
-            snprintf(pcPathBuffer, stMaxLen, "%s/%s", pcStart, pcFileName);
                                                                         /*  合并为完整的目录            */
-            if (__ldPathIsFile(pcPathBuffer)) {                         /*  此文件可以被访问            */
+            snprintf(pcPathBuffer, stMaxLen, "%s/%s", pcStart, pcFileName);
+            if (__ldPathIsFile(pcPathBuffer, pstatFile)) {              /*  此文件可以被访问            */
                 return  (ERROR_NONE);
             }
         } while (pcDiv);
@@ -375,11 +380,11 @@ static INT moduleGetLibPath (CPCHAR  pcFileName, PCHAR  pcPathBuffer, size_t  st
 *********************************************************************************************************/
 LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, BOOL bCreate)
 {
+    struct stat        statFile;
     LW_LD_EXEC_MODULE *pmoduleNeed = LW_NULL;
     CHAR               cLibPath[MAX_FILENAME_LENGTH];
     LW_LIST_RING      *pringTemp;
     CHAR              *pcEntry;
-    CHAR              *pcFileName;
 
     if (LW_NULL == pcLibName) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "invalid parameter\r\n");
@@ -390,6 +395,18 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
     if (LW_NULL == pmodule) {
         return  (LW_NULL);
     }
+
+    /*
+     *  获取动态链接库位置
+     */
+    if (ERROR_NONE != moduleGetLibPath(pcLibName, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH", &statFile)) {
+        if (ERROR_NONE != moduleGetLibPath(pcLibName, cLibPath, MAX_FILENAME_LENGTH, "PATH", &statFile)) {
+            fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcLibName);
+            _ErrorHandle(ERROR_LOADER_NO_MODULE);
+            return  (LW_NULL);
+        }
+    }
+
     /*
      *  查找依赖链表中已经加载的库
      */
@@ -397,11 +414,10 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
     pringTemp = &pmodule->EMOD_ringModules;
     do {
         pmoduleNeed = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
-
-        _PathLastName(pmoduleNeed->EMOD_pcModulePath, &pcFileName);     /*  取出文件名                  */
-        if (pcFileName && (lib_strcmp(pcFileName, pcLibName) == 0)) {
+        if (pmoduleNeed->EMOD_dev == statFile.st_dev &&
+            pmoduleNeed->EMOD_ino == statFile.st_ino) {                 /*  如果已加载该模块，直接返回  */
             LW_VP_UNLOCK(pmodule->EMOD_pvproc);
-            return  (pmoduleNeed);                                      /*  如果已加载该模块，直接返回  */
+            return  (pmoduleNeed);
         }
 
         pringTemp = _list_ring_get_next(pringTemp);
@@ -410,17 +426,6 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
 
     if (!bCreate) {                                                     /*  如果没有找到, 不需要创建    */
         return  (LW_NULL);
-    }
-    
-    /*
-     *  获取动态链接库位置
-     */
-    if (ERROR_NONE != moduleGetLibPath(pcLibName, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH")) {
-        if (ERROR_NONE != moduleGetLibPath(pcLibName, cLibPath, MAX_FILENAME_LENGTH, "PATH")) {
-            fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcLibName);
-            _ErrorHandle(ERROR_LOADER_NO_MODULE);
-            return  (LW_NULL);
-        }
     }
 
     if (pmodule->EMOD_bIsSymbolEntry) {
@@ -436,6 +441,7 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
                                pmodule->EMOD_pcExit,
                                pcEntry, 
                                LW_NULL,
+                               &statFile,
                                pmodule->EMOD_pvproc);
                                                                         /*  创建模块                    */
     if (LW_NULL == pmoduleNeed) {
@@ -864,6 +870,7 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
                          PVOID   pvVProc)
 {
     CHAR               cLibPath[MAX_FILENAME_LENGTH];
+    struct stat        statFile;
     LW_LD_EXEC_MODULE *pmodule   = LW_NULL;
     LW_LD_EXEC_MODULE *pmodVProc = LW_NULL;
     LW_LD_VPROC       *pvproc;
@@ -880,8 +887,6 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
     } else {
         bIsGlobal = LW_FALSE;
     }
-    
-    _PathLastName(pcFile, &pcFileName);                                 /*  取出文件名                  */
 
     pvproc = (LW_LD_VPROC *)pvVProc;
     if (LW_NULL == pvproc) {                                            /*  内核模块                    */
@@ -898,15 +903,13 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
     }
 
     if (pmodVProc) {
+        _PathLastName(pcFile, &pcFileName);                             /*  取出文件名                  */
         pmodule = moduleLoadSub(pmodVProc, pcFileName, LW_FALSE);       /*  查找进程已装载模块链表      */
     }
 
-    if (LW_NULL == pmodule) {
-        /*
-         *  获取动态链接库位置
-         */
-        if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH")) {
-            if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "PATH")) {
+    if (LW_NULL == pmodule) {                                           /*  获取动态链接库位置          */
+        if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH", &statFile)) {
+            if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "PATH", &statFile)) {
                 fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcFile);
                 _ErrorHandle(ERROR_LOADER_NO_MODULE);
                 return  (LW_NULL);
@@ -915,12 +918,13 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
 
         pmodule = moduleCreate(cLibPath, LW_TRUE, bIsGlobal,
                                pcInit, pcExit, pcEntry,
-                               pcSection, pvproc);                      /*  创建新子模块                */
+                               pcSection, &statFile, pvproc);           /*  创建新子模块                */
         if (pmodule) {
             LW_VP_LOCK(pmodule->EMOD_pvproc);
             _List_Ring_Add_Last(&pmodule->EMOD_ringModules, &pvproc->VP_ringModules);
             LW_VP_UNLOCK(pmodule->EMOD_pvproc);
         }
+
     } else {
         if (bIsGlobal) {                                                /*  只要一次global加载则为global*/
             pmodule->EMOD_bIsGlobal = bIsGlobal;
@@ -1430,7 +1434,7 @@ ssize_t  API_ModuleGetName (PVOID  pvAddr, PCHAR  pcFullPath, size_t  stLen)
     return  (sstRet);
 }
 /*********************************************************************************************************
-** 函数名称: API_ModuleUpdate
+** 函数名称: API_ModuleGlobal
 ** 功能描述: 查找模块并更新模块相关设置.
 ** 输　入  : pcFile      模块文件
 **           iMode       装载模式 (全局还是局部)
@@ -1446,6 +1450,7 @@ PVOID  API_ModuleGlobal (CPCHAR  pcFile,
                          PVOID   pvVProc)
 {
     CHAR               cLibPath[MAX_FILENAME_LENGTH];
+    struct stat        statFile;
     BOOL               bStart;
     LW_LIST_RING      *pringTemp;
     LW_LD_EXEC_MODULE *pmodTemp;
@@ -1464,8 +1469,8 @@ PVOID  API_ModuleGlobal (CPCHAR  pcFile,
         pvproc = (LW_LD_VPROC *)pvVProc;
     }
     
-    if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH")) {
-        if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "PATH")) {
+    if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH", &statFile)) {
+        if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "PATH", &statFile)) {
             fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcFile);
             _ErrorHandle(ERROR_LOADER_NO_MODULE);
             return  (LW_NULL);
@@ -1478,7 +1483,8 @@ PVOID  API_ModuleGlobal (CPCHAR  pcFile,
          pringTemp  = _list_ring_get_next(pringTemp), bStart = LW_FALSE) {
          
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
-        if (lib_strcmp(pmodTemp->EMOD_pcModulePath, cLibPath) == 0) {
+        if (pmodTemp->EMOD_dev == statFile.st_dev &&
+            pmodTemp->EMOD_ino == statFile.st_ino) {
             if ((pmodTemp->EMOD_bIsGlobal == LW_FALSE) && 
                 (iMode & LW_OPTION_LOADER_SYM_GLOBAL)) {
                 pmodTemp->EMOD_bIsGlobal = LW_TRUE;                     /*  可对外提供符号的模块        */

@@ -99,16 +99,20 @@ static const CHAR               _G_cVProcInfoHdr[] = "\n\
 ** 函数名称: __ldPathIsFile
 ** 功能描述: 判断文件的路径是否为文件
 ** 输　入  : pcParam       用户路径参数
+**           pstatFile     获取文件 stat
 ** 输　出  : BOOL
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-BOOL __ldPathIsFile (CPCHAR  pcName)
+BOOL __ldPathIsFile (CPCHAR  pcName, struct stat *pstatFile)
 {
     struct stat     statFs;
     
     if (stat(pcName, &statFs) >= 0) {
         if (S_ISREG(statFs.st_mode)) {
+            if (pstatFile) {
+                *pstatFile = statFs;
+            }
             return  (LW_TRUE);
         }
     }
@@ -138,7 +142,7 @@ INT  __ldGetFilePath (CPCHAR  pcParam, PCHAR  pcPathBuffer, size_t  stMaxLen)
     }
     
     if (lib_strchr(pcParam, '/')) {                                     /*  是一个路径                  */
-        if (__ldPathIsFile(pcParam)) {                                  /*  直接使用参数即可            */
+        if (__ldPathIsFile(pcParam, LW_NULL)) {                         /*  直接使用参数即可            */
             _PathGetFull(pcPathBuffer, stMaxLen, pcParam);              /*  保存绝对路径                */
             return  (ERROR_NONE);
         }
@@ -162,7 +166,7 @@ INT  __ldGetFilePath (CPCHAR  pcParam, PCHAR  pcPathBuffer, size_t  stMaxLen)
             }
             
             snprintf(pcPathBuffer, stMaxLen, "%s/%s", pcStart, pcParam);/*  合并为完整的目录            */
-            if (__ldPathIsFile(pcPathBuffer)) {                         /*  此文件可以被访问            */
+            if (__ldPathIsFile(pcPathBuffer, LW_NULL)) {                /*  此文件可以被访问            */
                 return  (ERROR_NONE);
             }
         } while (pcDiv);

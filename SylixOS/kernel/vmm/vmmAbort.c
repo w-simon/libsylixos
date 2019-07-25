@@ -263,22 +263,42 @@ static INT  __vmmAbortCopyOnWrite (PLW_VMM_PAGE  pvmpageVirtual, addr_t  ulAbort
 ** 函数名称: __vmmAbortWriteProtect
 ** 功能描述: 发生写保护中止
 ** 输　入  : pvmpageVirtual        虚拟空间
-**           ulAbortAddrAlign      异常的地址
+**           ulAbortAddr           异常的地址
 **           ulFlag                页面属性
+**           ptcbCur               当前任务控制块
 ** 输　出  : 是否成功
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : 
 *********************************************************************************************************/
-static INT  __vmmAbortWriteProtect (PLW_VMM_PAGE  pvmpageVirtual, 
-                                    addr_t        ulAbortAddrAlign,
-                                    ULONG         ulFlag)
+static INT  __vmmAbortWriteProtect (PLW_VMM_PAGE   pvmpageVirtual,
+                                    addr_t         ulAbortAddr,
+                                    ULONG          ulFlag,
+                                    PLW_CLASS_TCB  ptcbCur)
 {
+    addr_t  ulAbortAddrAlign = ulAbortAddr & LW_CFG_VMM_PAGE_MASK;
+
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+    PLW_VMM_PAGE_PRIVATE   pvmpagep;
+#endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
+
     if (ulFlag & LW_VMM_FLAG_WRITABLE) {
         return  (ERROR_NONE);                                           /*  可能其他任务同时访问此地址  */
     }
     
     if (pvmpageVirtual->PAGE_ulFlags & LW_VMM_FLAG_WRITABLE) {          /*  虚拟空间允许写操作          */
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+        pvmpagep = (PLW_VMM_PAGE_PRIVATE)pvmpageVirtual->PAGE_pvAreaCb;
+        if (pvmpagep && pvmpagep->PAGEP_stPtSize) {
+            if ((ulAbortAddr >= pvmpagep->PAGEP_ulPtStart) ||
+                (ulAbortAddr < (pvmpagep->PAGEP_ulPtStart + pvmpagep->PAGEP_stPtSize))) {
+                if (ptcbCur->TCB_pvVProcessContext) {                   /*  进程内修改保护段            */
+                    return  (PX_ERROR);                                 /*  杀死任务, 内存不可写        */
+                }
+            }
+        }
+#endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
+
         return  (__vmmAbortCopyOnWrite(pvmpageVirtual, 
                                        ulAbortAddrAlign));              /*  copy-on-write               */
     }
@@ -621,8 +641,8 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
                                                                         /*  写入异常                    */
         if (__ABTCTX_ABORT_METHOD(pabtctx) == LW_VMM_ABORT_METHOD_WRITE) {
             if (__vmmAbortWriteProtect(pvmpageVirtual,                  /*  尝试 copy-on-write 处理     */
-                                       ulVirtualPageAlign,
-                                       ulError) == ERROR_NONE) {        /*  进入写保护处理              */
+                                       ulAbortAddr,
+                                       ulFlag, ptcbCur) == ERROR_NONE) {/*  进入写保护处理              */
                 __VMM_UNLOCK();
                 goto    __abort_return;
             }

@@ -57,6 +57,7 @@ extern LW_API INT   API_RootFsMapInit(CPCHAR  pcMap);
                                             建议 Lite 类型处理器可采用 simple 转换法.
                            netlockfifo=no   网络互斥锁使用 FIFO 顺序等待.
                            autorectcb=no    POSIX 非 detach 线程删除后, 是否不等待 join 或 detach 自动删除 TCB
+                           textro=no        Kernel TEXT 端只读
 
                            rfsmap=/boot:[*],/:[*],...   这是根文件系统映射关系选项, 用逗号隔开, 
                                                         /boot /etc /tmp /apps ... 为可选映射, 
@@ -246,8 +247,15 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
             } else {
                 LW_KERN_AUTO_REC_TCB_SET(LW_TRUE);
             }
+
+        } else if (lib_strncmp(pcTok, "textro=", 7) == 0) {             /*  自动删除 TCB                */
+            if (pcTok[7] == 'n') {
+                LW_KERN_TEXT_RO_SET(LW_FALSE);
+            } else {
+                LW_KERN_TEXT_RO_SET(LW_TRUE);
+            }
         }
-        
+
 #if LW_CFG_DEVICE_EN > 0
           else if (lib_strncmp(pcTok, "rfsmap=", 7) == 0) {             /*  根文件系统映射              */
             API_RootFsMapInit(&pcTok[7]);

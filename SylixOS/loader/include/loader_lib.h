@@ -155,6 +155,14 @@ typedef struct {
     BOOL                    EMOD_bKoUnloadDisallow;                     /*  不允许卸载内核模块          */
     LW_LIST_MONO_HEADER     EMOD_pmonoAtexit;                           /*  内核模块 atexit             */
 
+    dev_t                   EMOD_dev;                                   /*  模块文件设备标识            */
+    ino_t                   EMOD_ino;                                   /*  模块文件 inode 标识         */
+
+#if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
+    size_t                  EMOD_stCodeLen;                             /*  模块代码段长度              */
+    ULONG                   EMOD_ulCodeOft;                             /*  模块代码段偏移              */
+#endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
+
 #ifdef LW_CFG_CPU_ARCH_ARM
     size_t                  EMOD_stARMExidxCount;                       /*  ARM.exidx 段长度            */
     PVOID                   EMOD_pvARMExidx;                            /*  ARM.exidx 段内存地址        */
@@ -299,10 +307,14 @@ INT     __ldMmap(PVOID  pvBase, size_t  stAddrOft, INT  iFd, struct stat64 *psta
 VOID    __ldShare(PVOID  pvBase, size_t  stLen, dev_t  dev, ino64_t ino64);
 VOID    __ldShareAbort(dev_t  dev, ino64_t  ino64);
 INT     __ldShareConfig(BOOL  bShareEn, BOOL  *pbPrev);
+VOID    __ldProtect(PVOID  pvBase, size_t  stAddrOft, size_t  stLen);
 
 #define LW_LD_VMSAFEMAP_AREA(base, addr_offset, fd, pstat64, file_offset, len, can_share, can_exec) \
         __ldMmap(base, addr_offset, fd, pstat64, file_offset, len, can_share, can_exec)
         
+#define LW_LD_VMSAFE_PROTECT(base, addr_offset, len) \
+        __ldProtect(base, addr_offset, len)
+
 #define LW_LD_VMSAFE_SHARE(base, len, dev, ino64) \
         __ldShare(base, len, dev, ino64)
         
