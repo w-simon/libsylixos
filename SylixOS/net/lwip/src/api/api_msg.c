@@ -1019,7 +1019,9 @@ lwip_netconn_do_close_internal(struct netconn *conn  WRITE_DELAYED_PARAM)
     /* check linger possibilites before calling tcp_close */
     err = ERR_OK;
     /* linger enabled/required at all? (i.e. is there untransmitted data left?) */
-    if ((conn->linger >= 0) && (conn->pcb.tcp->unsent || conn->pcb.tcp->unacked)) {
+    /* SylixOS Fixed listen conn do not need check linger */
+    if ((conn->state != NETCONN_LISTEN) &&
+        (conn->linger >= 0) && (conn->pcb.tcp->unsent || conn->pcb.tcp->unacked)) {
       if ((conn->linger == 0)) {
         /* data left but linger prevents waiting */
         tcp_abort(tpcb);
