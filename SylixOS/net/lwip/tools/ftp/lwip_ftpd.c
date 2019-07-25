@@ -1145,6 +1145,10 @@ __recv_over:
         __SHEAP_FREE(pcTransBuffer);                                    /*  释放缓冲区                  */
     }
     
+#if LW_CFG_NET_FTPD_AUTO_SYNC > 0
+    sync();                                                             /*  执行数据同步                */
+#endif                                                                  /*  LW_CFG_NET_FTPD_AUTO_SYNC   */
+
     __ftpdCloseSessionData(pftpds);                                     /*  关闭数据连接                */
     
     if (0 == iResult) {

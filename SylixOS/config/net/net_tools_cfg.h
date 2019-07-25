@@ -99,6 +99,7 @@
 #endif
                                                                         /*  ftp 线程堆栈                */
 #define LW_CFG_NET_FTPD_MAX_LINKS                   10                  /*  ftp 最大客户机连接数        */
+#define LW_CFG_NET_FTPD_AUTO_SYNC                   0                   /*  每次文件写保证 sync (效率低)*/
 #define LW_CFG_NET_FTPC_EN                          1                   /*  是否使能 ftp 客户机         */
                                                                         /*  推荐使用 ncftp 这样的客户机 */
 /*********************************************************************************************************
