@@ -544,7 +544,7 @@ static INT __moduleArchCheck (LW_LD_EXEC_MODULE *pmodule)
         }
 
         pringTemp = _list_ring_get_next(pringTemp);
-    } while (pringTemp != &pmodule->EMOD_ringModules);                  /*  查找 libvpmpdm.so fpu设置  */
+    } while (pringTemp != &pmodule->EMOD_ringModules);                  /*  查找 libvpmpdm.so fpu 设置  */
 
     if (LW_NULL == ppcBaseFpuType) {
         LW_VP_UNLOCK(pmodule->EMOD_pvproc);
@@ -662,7 +662,6 @@ static INT finiArrayCall (LW_LD_EXEC_MODULE *pmodule, BOOL  bRunFini)
                 if (__moduleTreeFindSym(pmodTemp, "__c6x_call_internal_func", 
                                         &ulValue, LW_LD_SYM_FUNCTION, 20)) {
                     pfuncCallFunc = LW_NULL;
-                
                 } else {
                     pfuncCallFunc = (VOIDFUNCPTR)ulValue;               /*  C6x 需要使用此函数析构      */
                 }

@@ -694,12 +694,13 @@ typedef struct __lw_tcb {
 *********************************************************************************************************/
 
 #if LW_CFG_GDB_EN > 0
+#define LW_GDB_ADDR_INVAL   ((addr_t)PX_ERROR)                          /*  无效地址                    */
     addr_t                TCB_ulStepAddr;                               /*  单步地址，-1 表示非单步模式 */
     ULONG                 TCB_ulStepInst;                               /*  单步地址指令备份            */
     BOOL                  TCB_bStepClear;                               /*  单步断点是否被清除          */
     addr_t                TCB_ulAbortPointAddr;                         /*  终止点地址                  */
     ULONG                 TCB_ulAbortPointInst;                         /*  终止点地址指令备份          */
-#endif
+#endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 /*********************************************************************************************************
   TCB 权限管理扩展

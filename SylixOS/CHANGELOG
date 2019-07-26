@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-07-26: han.hui
+    加入 TEXT 段保护与调试断点协同工作支持.
+
     2019-07-15: han.hui
     加入 mmap 匿名映射的内存预分配机制, 提高 AI 运算效率.
 

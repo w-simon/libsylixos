@@ -296,9 +296,10 @@ VOID  _TCBBuild (UINT8                    ucPriority,
 #endif
 
 #if LW_CFG_GDB_EN > 0
-    ptcb->TCB_ulStepAddr = (addr_t)PX_ERROR;
-    ptcb->TCB_ulStepInst = 0ul;
-    ptcb->TCB_bStepClear = LW_TRUE;
+    ptcb->TCB_ulStepAddr       = LW_GDB_ADDR_INVAL;
+    ptcb->TCB_ulStepInst       = 0ul;
+    ptcb->TCB_bStepClear       = LW_TRUE;
+    ptcb->TCB_ulAbortPointAddr = LW_GDB_ADDR_INVAL;
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 #if LW_CFG_THREAD_NOTE_PAD_EN > 0                                       /*  任务记事本                  */

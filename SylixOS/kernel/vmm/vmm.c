@@ -250,7 +250,7 @@ ULONG  API_VmmLibAddPhyRam (addr_t  ulPhyRam, size_t  stSize)
     ulPageNum = (ULONG)(stSize >> LW_CFG_VMM_PAGE_SHIFT);
     
     phydesc[0].PHYD_ulPhyAddr = ulPhyRam;
-    phydesc[0].PHYD_ulVirMap  = (addr_t)PX_ERROR;
+    phydesc[0].PHYD_ulVirMap  = PAGE_MAP_ADDR_INV;
     phydesc[0].PHYD_stSize    = stSize;
     phydesc[0].PHYD_uiType    = LW_PHYSICAL_MEM_APP;
     phydesc[1].PHYD_stSize    = 0;
@@ -828,7 +828,7 @@ ULONG  API_VmmZoneStatus (ULONG     ulZoneIndex,
     }
     if (pulPgd) {
 #if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
-        *pulPgd = (addr_t)PX_ERROR;
+        *pulPgd = PAGE_MAP_ADDR_INV;
 #else
         *pulPgd = (addr_t)pmmuctx->MMUCTX_pgdEntry;
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */

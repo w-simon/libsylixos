@@ -269,7 +269,7 @@ INT  API_DtraceBreakTrap (addr_t  ulAddr, UINT  uiBpType)
     if (uiBpType == LW_TRAP_ABORT) {                                    /*  恢复终止点指令              */
         archDbgApRemove(ulAddr, ptcbCur->TCB_ulAbortPointInst);
         ptcbCur->TCB_ulAbortPointInst = 0;
-        ptcbCur->TCB_ulAbortPointAddr = 0;
+        ptcbCur->TCB_ulAbortPointAddr = LW_GDB_ADDR_INVAL;
     }
 
     dtm.DTM_ulAddr   = ulAddr;
@@ -1145,7 +1145,7 @@ ULONG  API_DtraceDelBreakInfo (PVOID             pvDtrace,
     if (ulThread) {
         if (__dtraceReadMsgEx(pdtrace, &dtm, LW_TRUE, ulThread) == ERROR_NONE) {
             if ((ulBreakAddr == dtm.DTM_ulAddr) ||
-                ((ulBreakAddr == (addr_t)PX_ERROR) && (dtm.DTM_uiType == LW_TRAP_ISTEP))) {
+                ((ulBreakAddr == LW_GDB_ADDR_INVAL) && (dtm.DTM_uiType == LW_TRAP_ISTEP))) {
                 __dtraceReadMsgEx(pdtrace, &dtm, LW_FALSE, ulThread);
                 if (bContinue) {
                     API_ThreadContinue(ulThread);
@@ -1313,7 +1313,7 @@ ULONG  API_DtraceThreadStepSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, add
         return  (EINVAL);
     }
 
-    if (ulAddr != (addr_t)PX_ERROR) {
+    if (ulAddr != LW_GDB_ADDR_INVAL) {
         archDbgBpPrefetch(ulAddr);                                      /*  预先产生相关页面中断        */
     }
 
@@ -1336,7 +1336,7 @@ ULONG  API_DtraceThreadStepSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, add
     ptcb = _K_ptcbTCBIdTable[usIndex];
 
 #ifdef __DTRACE_DEBUG
-    if (ulAddr == (addr_t)PX_ERROR) {
+    if (ulAddr == LW_GDB_ADDR_INVAL) {
         __DTRACE_MSG("[DTRACE] <GDB>  Pre-Clear thread 0x%lx Step-Breakpoint @ 0x%08lx.\r\n", 
                      ulThread, ptcb->TCB_ulStepAddr);
     
@@ -1417,7 +1417,7 @@ VOID  API_DtraceSchedHook (LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulTh
 
     usIndex = _ObjectGetIndex(ulThreadOld);
     ptcb    = __GET_TCB_FROM_INDEX(usIndex);
-    if (ptcb && (ptcb->TCB_ulStepAddr != (addr_t)PX_ERROR) && !ptcb->TCB_bStepClear) {
+    if (ptcb && (ptcb->TCB_ulStepAddr != LW_GDB_ADDR_INVAL) && !ptcb->TCB_bStepClear) {
         archDbgBpRemove(ptcb->TCB_ulStepAddr, sizeof(addr_t), 
                         ptcb->TCB_ulStepInst, (LW_CFG_GDB_SMP_TU_LAZY) ? LW_TRUE : LW_FALSE);
         ptcb->TCB_bStepClear = LW_TRUE;                                 /*  单步断点已经被清除          */
@@ -1427,7 +1427,7 @@ VOID  API_DtraceSchedHook (LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulTh
 
     usIndex = _ObjectGetIndex(ulThreadNew);
     ptcb    = __GET_TCB_FROM_INDEX(usIndex);
-    if ((ptcb->TCB_ulStepAddr != (addr_t)PX_ERROR) && ptcb->TCB_bStepClear) {
+    if ((ptcb->TCB_ulStepAddr != LW_GDB_ADDR_INVAL) && ptcb->TCB_bStepClear) {
         archDbgBpInsert(ptcb->TCB_ulStepAddr, sizeof(addr_t), 
                         &ptcb->TCB_ulStepInst, LW_TRUE);                /*  仅更新本地 I-CACHE          */
         ptcb->TCB_bStepClear = LW_FALSE;                                /*  单步断点生效                */

@@ -293,7 +293,12 @@ static INT  __vmmAbortWriteProtect (PLW_VMM_PAGE   pvmpageVirtual,
             if ((ulAbortAddr >= pvmpagep->PAGEP_ulPtStart) ||
                 (ulAbortAddr < (pvmpagep->PAGEP_ulPtStart + pvmpagep->PAGEP_stPtSize))) {
                 if (ptcbCur->TCB_pvVProcessContext) {                   /*  进程内修改保护段            */
-                    return  (PX_ERROR);                                 /*  杀死任务, 内存不可写        */
+#if LW_CFG_GDB_EN > 0
+                    if (ptcbCur->TCB_ulAbortPointAddr == LW_GDB_ADDR_INVAL)
+#endif                                                                  /*  LW_CFG_GDB_EN               */
+                    {
+                        return  (PX_ERROR);                             /*  杀死任务, 内存不可写        */
+                    }
                 }
             }
         }

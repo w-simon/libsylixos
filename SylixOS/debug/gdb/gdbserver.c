@@ -191,7 +191,7 @@ static VOID gdbClearStepMode (LW_GDB_PARAM *pparam, LW_OBJECT_HANDLE ulThread)
     API_DtraceThreadStepSet(pparam->GDB_pvDtrace, ulThread, LW_FALSE);
     
 #else
-    API_DtraceThreadStepSet(pparam->GDB_pvDtrace, ulThread, (addr_t)PX_ERROR);
+    API_DtraceThreadStepSet(pparam->GDB_pvDtrace, ulThread, LW_GDB_ADDR_INVAL);
 #endif                                                                  /*  LW_DTRACE_HW_ISTEP          */
 }
 /*********************************************************************************************************
@@ -238,7 +238,7 @@ static BOOL gdbIsStepBp (LW_GDB_PARAM *pparam, PLW_DTRACE_MSG pdmsg)
 static VOID gdbRemoveStepBp (LW_GDB_PARAM *pparam, LW_OBJECT_HANDLE ulThread)
 {
 #ifdef LW_DTRACE_HW_ISTEP
-    API_DtraceDelBreakInfo(pparam->GDB_pvDtrace, ulThread, (addr_t)PX_ERROR, LW_TRUE);
+    API_DtraceDelBreakInfo(pparam->GDB_pvDtrace, ulThread, LW_GDB_ADDR_INVAL, LW_TRUE);
     
 #else
     addr_t      addrNP;

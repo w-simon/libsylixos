@@ -47,7 +47,7 @@ static LW_VMM_ZONE          _G_vmzoneVirDev;
 /*********************************************************************************************************
   切换通道
 *********************************************************************************************************/
-static addr_t               _G_ulVmmSwitchAddr = (addr_t)PX_ERROR;
+static addr_t               _G_ulVmmSwitchAddr = PAGE_MAP_ADDR_INV;
 /*********************************************************************************************************
 ** 函数名称: __vmmVirtualDesc
 ** 功能描述: 获得虚拟空间区域.
@@ -171,7 +171,7 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
                                                                         /*  目前不支持 NULL 起始地址    */
             if (ulZone < LW_CFG_VMM_VIR_NUM) {
                 _G_vmvirDescApp[ulZone] = pvirdes[i];
-                if (_G_ulVmmSwitchAddr == (addr_t)PX_ERROR) {
+                if (_G_ulVmmSwitchAddr == PAGE_MAP_ADDR_INV) {
                     _G_ulVmmSwitchAddr =  pvirdes[i].VIRD_ulVirAddr;
                     ulAddr =  _G_ulVmmSwitchAddr + LW_CFG_VMM_PAGE_SIZE;
                 
@@ -216,7 +216,7 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
         }
     }
     
-    _BugHandle((_G_ulVmmSwitchAddr == (addr_t)PX_ERROR), LW_TRUE, 
+    _BugHandle((_G_ulVmmSwitchAddr == PAGE_MAP_ADDR_INV), LW_TRUE,
                "virtual switich page invalidate.\r\n");
     
     return  (ERROR_NONE);

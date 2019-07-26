@@ -174,7 +174,7 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID  pvArch)
     if (API_CacheGetOption() & CACHE_TEXT_UPDATE_MP) {
         ulCPUId = LW_CPU_GET_CUR_ID();
         if (ulLastBpAddr[ulCPUId] == ulAddr) {                          /*  不是断点的停止              */
-            ulLastBpAddr[ulCPUId] =  (addr_t)PX_ERROR;                  /*  同一地址连续失效            */
+            ulLastBpAddr[ulCPUId] =  LW_GDB_ADDR_INVAL;                 /*  同一地址连续失效            */
             return  (LW_TRAP_INVAL);
 
         } else {
