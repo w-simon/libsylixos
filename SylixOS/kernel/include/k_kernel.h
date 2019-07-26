@@ -51,7 +51,7 @@
 
 #define __SYLIXOS_MAJOR_VER     1
 #define __SYLIXOS_MINOR_VER     10
-#define __SYLIXOS_PATCH_VER     4
+#define __SYLIXOS_PATCH_VER     5
 #define __SYLIXOS_PATCH_PAD     0
 
 /*********************************************************************************************************

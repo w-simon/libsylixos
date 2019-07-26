@@ -401,8 +401,10 @@ LW_LD_EXEC_MODULE *moduleLoadSub (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcLibName, 
      */
     if (ERROR_NONE != moduleGetLibPath(pcLibName, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH", &statFile)) {
         if (ERROR_NONE != moduleGetLibPath(pcLibName, cLibPath, MAX_FILENAME_LENGTH, "PATH", &statFile)) {
-            fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcLibName);
-            _ErrorHandle(ERROR_LOADER_NO_MODULE);
+            if (bCreate) {
+                fprintf(stderr, "[ld]Can not find dependent library: %s\n", pcLibName);
+                _ErrorHandle(ERROR_LOADER_NO_MODULE);
+            }
             return  (LW_NULL);
         }
     }

@@ -131,5 +131,22 @@ wchar_t *_wcsdup (const wchar_t *str)
 }
 
 /*
+ * gcc library depend
+ */
+
+void __eprintf (const char *string, const char *expression,
+                unsigned int line, const char *filename)
+{
+    fprintf(stderr, string, expression, line, filename);
+    fflush(stderr);
+    lib_abort();
+}
+
+errno_t *__errno_location (void)
+{
+    return  (__errno());
+}
+
+/*
  * end
  */

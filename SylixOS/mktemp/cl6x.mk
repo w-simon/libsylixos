@@ -95,8 +95,13 @@ TOOLCHAIN_LINK_GTEST     =
 TOOLCHAIN_LINK_PIC_GCOV  =
 TOOLCHAIN_LINK_PIC_OMP   =
 TOOLCHAIN_LINK_PIC_CXX   = cplusplus
+ifeq ($(DEBUG_LEVEL), debug)
+TOOLCHAIN_LINK_PIC_M     = -Wl,-static -lm
+TOOLCHAIN_LINK_PIC_GCC   = -Wl,-static -lgcc
+else
 TOOLCHAIN_LINK_PIC_M     =
 TOOLCHAIN_LINK_PIC_GCC   = -llibrts$(CPU_TYPE)_elf_pic.a
+endif
 
 #*********************************************************************************************************
 # Toolchain include & define

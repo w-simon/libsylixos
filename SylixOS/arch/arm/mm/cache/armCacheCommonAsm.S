@@ -189,17 +189,9 @@ FUNC_DEF(armDCacheInvalidate)
 
 ;/*********************************************************************************************************
 ;  将指定虚拟地址的 DCACHE 回写  R0=void *start; R1=void *end; R2=cache line size
-;  MMU 初始化写页表映射关系时也会调用此函数, 此时 CACHE 并未使能, ARM1176 会卡死, 所以这里加入使能判断.
 ;*********************************************************************************************************/
 
 FUNC_DEF(armDCacheFlush)
-#if __SYLIXOS_ARM_ARCH__ == 6
-    MRC     p15, 0, R3, c1, c0, 0
-    AND     R3, R3, #P15_R1_C
-    CMP     R3, #0
-    BEQ     dcache_not_en
-#endif
-
     ARM_DSB()
     ARM_ISB()
 1:
@@ -209,10 +201,6 @@ FUNC_DEF(armDCacheFlush)
     BCC     1b
     ARM_DSB()
     ARM_ISB()
-
-#if __SYLIXOS_ARM_ARCH__ == 6
-LINE_LABEL(dcache_not_en)
-#endif
     BX      LR
     FUNC_END()
 
