@@ -183,6 +183,17 @@ $(OBJPATH)/$(target)/%.o: %.asm
 		@-$(DEPFIX) $(__PP) $(__DEP)
 		@-rm -rf $(__PP)
 
+ifeq ($($(target)_USE_CXX), yes)
+$(OBJPATH)/$(target)/%.o: %.c
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__PP))" ]; then \
+			mkdir -p "$(dir $(__PP))"; fi
+		@-rm -rf $(__DEP)
+		$(CC) $($(__TARGET)_CFLAGS) --preproc_with_compile --cplusplus --preproc_dependency=$(__PP) $< -fe=$@
+		@-$(DEPFIX) $(__PP) $(__DEP)
+		@-rm -rf $(__PP)
+else
 $(OBJPATH)/$(target)/%.o: %.c
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
@@ -192,6 +203,7 @@ $(OBJPATH)/$(target)/%.o: %.c
 		$(CC) $($(__TARGET)_CFLAGS) --preproc_with_compile --preproc_dependency=$(__PP) $< -fe=$@
 		@-$(DEPFIX) $(__PP) $(__DEP)
 		@-rm -rf $(__PP)
+endif
 
 $(OBJPATH)/$(target)/%.o: %.cpp
 		@if [ ! -d "$(dir $@)" ]; then \
