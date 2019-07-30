@@ -543,7 +543,7 @@ INT            _ThreadSched(PLW_CLASS_TCB  ptcbCur);
 *********************************************************************************************************/
 
 #if LW_CFG_SMP_EN > 0
-VOID           _ThreadSetAffinity(PLW_CLASS_TCB  ptcb, size_t stSize, const PLW_CLASS_CPUSET  pcpuset);
+ULONG          _ThreadSetAffinity(PLW_CLASS_TCB  ptcb, size_t stSize, const PLW_CLASS_CPUSET  pcpuset);
 VOID           _ThreadGetAffinity(PLW_CLASS_TCB  ptcb, size_t stSize, PLW_CLASS_CPUSET  pcpuset);
 VOID           _ThreadOffAffinity(PLW_CLASS_CPU  pcpu);
 #endif                                                                  /*  LW_CFG_SMP_EN               */

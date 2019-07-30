@@ -110,8 +110,7 @@ ULONG  API_CpuBogoMips (ULONG  ulCPUId, ULONG  *pulKInsPerSec)
             API_ThreadGetAffinity(ulMe, sizeof(pcpusetOld), &pcpusetOld);
             LW_CPU_ZERO(&pcpusetNew);
             LW_CPU_SET(ulCPUId, &pcpusetNew);                           /*  锁定 CPU                    */
-            API_ThreadSetAffinity(ulMe, sizeof(pcpusetNew), &pcpusetNew);   
-            API_TimeSleep(1);                                           /*  确保进入指定的 CPU 运行     */
+            API_ThreadSetAffinity(ulMe, sizeof(pcpusetNew), &pcpusetNew);
             _CpuBogoMipsCalc(ulCPUId);
             API_ThreadSetAffinity(ulMe, sizeof(pcpusetOld), &pcpusetOld);
         }

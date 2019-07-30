@@ -42,7 +42,8 @@ ULONG  API_ThreadSetAffinity (LW_OBJECT_HANDLE  ulId, size_t  stSize, const PLW_
 {
     REGISTER UINT16         usIndex;
     REGISTER PLW_CLASS_TCB  ptcb;
-             ULONG          ulError;
+             PLW_CLASS_TCB  ptcbCur;
+             ULONG          ulMaxLock;
 
     usIndex = _ObjectGetIndex(ulId);
 
@@ -66,33 +67,29 @@ ULONG  API_ThreadSetAffinity (LW_OBJECT_HANDLE  ulId, size_t  stSize, const PLW_
         return  (EPERM);
     }
     
-    if (ulId == API_ThreadIdSelf()) {                                   /*  设置自己                    */
-        LW_TCB_GET_CUR_SAFE(ptcb);
-        if (__THREAD_LOCK_GET(ptcb)) {                                  /*  当前任务被锁定              */
-            _ErrorHandle(EPERM);
-            return  (EPERM);
-        }
-        __KERNEL_ENTER();                                               /*  进入内核                    */
-        _ThreadSetAffinity(ptcb, stSize, pcpuset);
-        __KERNEL_EXIT();                                                /*  退出内核                    */
-        return  (ERROR_NONE);
-    }
-    
-    ulError = API_ThreadStop(ulId);                                     /*  首先停止目标线程            */
-    if (ulError) {
-        return  (ulError);
-    }
-    
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (_Thread_Invalid(usIndex)) {
         __KERNEL_EXIT();                                                /*  退出内核                    */
         _ErrorHandle(ERROR_KERNEL_HANDLE_NULL);
         return  (ERROR_KERNEL_HANDLE_NULL);
     }
-    
+
     ptcb = _K_ptcbTCBIdTable[usIndex];
+    if (ptcb->TCB_iDeleteProcStatus) {                                  /*  在删除和重启的过程中        */
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        _ErrorHandle(ERROR_THREAD_NULL);
+        return  (ERROR_THREAD_NULL);
+    }
+
+    LW_TCB_GET_CUR(ptcbCur);
+    ulMaxLock = (ptcb == ptcbCur) ? 1 : 0;
+    if (__THREAD_LOCK_GET(ptcb) > ulMaxLock) {                          /*  任务被锁定                  */
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+        _ErrorHandle(EBUSY);
+        return  (EBUSY);
+    }
+    
     _ThreadSetAffinity(ptcb, stSize, pcpuset);                          /*  设置                        */
-    _ThreadContinue(ptcb, LW_FALSE);                                    /*  唤醒目标                    */
     __KERNEL_EXIT();                                                    /*  退出内核                    */
 
     return  (ERROR_NONE);

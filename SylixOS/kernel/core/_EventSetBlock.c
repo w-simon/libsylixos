@@ -72,7 +72,6 @@ VOID  _EventSetBlock (PLW_CLASS_EVENTSET        pes,
     _List_Line_Add_Ahead(&pesn->EVENTSETNODE_lineManage, &pes->EVENTSET_plineWaitList);
     
     ppcb = _GetPcb(ptcbCur);
-    
     __DEL_FROM_READY_RING(ptcbCur, ppcb);                               /*  从就绪环中删除              */
 }
 

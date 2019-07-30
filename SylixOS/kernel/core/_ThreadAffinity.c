@@ -28,43 +28,80 @@
 #if LW_CFG_SMP_EN > 0
 /*********************************************************************************************************
 ** 函数名称: _ThreadSetAffinity
-** 功能描述: 将线程锁定到指定的 CPU 运行. (进入内核被调用且目标任务已经被停止)
+** 功能描述: 将线程锁定到指定的 CPU 运行. (进入内核被调用)
 ** 输　入  : ptcb          线程控制块
 **           stSize        CPU 掩码集内存大小
 **           pcpuset       CPU 掩码
-** 输　出  : NONE
+** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : LW_CPU_ZERO(pcpuset) 可以解除 CPU 锁定.
 *********************************************************************************************************/
-VOID  _ThreadSetAffinity (PLW_CLASS_TCB  ptcb, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset)
+ULONG  _ThreadSetAffinity (PLW_CLASS_TCB  ptcb, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset)
 {
-    ULONG   i;
-    ULONG   ulNumChk;
-    
+    INTREG         iregInterLevel;
+    ULONG          i;
+    ULONG          ulNumChk;
+    ULONG          ulError;
+    PLW_CLASS_TCB  ptcbCur;
+    PLW_CLASS_PCB  ppcb;
+
     ulNumChk = ((ULONG)stSize << 3);
     ulNumChk = (ulNumChk > LW_NCPUS) ? LW_NCPUS : ulNumChk;
     
     for (i = 0; i < ulNumChk; i++) {
         if (ptcb->TCB_ulOption & LW_OPTION_THREAD_AFFINITY_ALWAYS) {
             if (LW_CPU_ISSET(i, pcpuset)) {
-                ptcb->TCB_ulCPULock = i;
-                ptcb->TCB_bCPULock  = LW_TRUE;                          /*  锁定执行 CPU                */
-                return;
+                break;                                                  /*  锁定执行 CPU                */
             }
         
         } else {
             if (LW_CPU_ISSET(i, pcpuset) && 
                 LW_CPU_IS_ACTIVE(LW_CPU_GET(i)) &&
                 !(LW_CPU_GET_IPI_PEND(i) & LW_IPI_DOWN_MSK)) {          /*  必须激活并且没有要被停止    */
-                ptcb->TCB_ulCPULock = i;
-                ptcb->TCB_bCPULock  = LW_TRUE;                          /*  锁定执行 CPU                */
-                return;
+                break;                                                  /*  锁定执行 CPU                */
             }
         }
     }
     
-    ptcb->TCB_bCPULock = LW_FALSE;                                      /*  关闭 CPU 锁定               */
+    LW_TCB_GET_CUR(ptcbCur);
+
+    if (ptcbCur == ptcb) {
+        if (i >= ulNumChk) {
+            ptcb->TCB_bCPULock = LW_FALSE;                              /*  关闭 CPU 锁定               */
+
+        } else {
+            iregInterLevel = KN_INT_DISABLE();
+            ppcb = _GetPcb(ptcbCur);
+            __DEL_FROM_READY_RING(ptcbCur, ppcb);                       /*  从就绪表中删除              */
+
+            ptcbCur->TCB_ulCPULock = i;
+            ptcbCur->TCB_bCPULock  = LW_TRUE;                           /*  锁定执行 CPU                */
+
+            ptcbCur->TCB_ucSchedActivate = LW_SCHED_ACT_INTERRUPT;      /*  中断激活方式                */
+            ppcb = _GetPcb(ptcbCur);
+            __ADD_TO_READY_RING(ptcbCur, ppcb);                         /*  加入到相对优先级就绪环      */
+            KN_INT_ENABLE(iregInterLevel);
+        }
+
+    } else {
+        ulError = _ThreadStop(ptcb);
+        if (ulError) {
+            return  (ulError);
+        }
+
+        if (i >= ulNumChk) {
+            ptcb->TCB_bCPULock = LW_FALSE;                              /*  关闭 CPU 锁定               */
+
+        } else {
+            ptcb->TCB_ulCPULock = i;
+            ptcb->TCB_bCPULock  = LW_TRUE;                              /*  锁定执行 CPU                */
+        }
+
+        _ThreadContinue(ptcb, LW_FALSE);                                /*  唤醒目标                    */
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: _ThreadGetAffinity

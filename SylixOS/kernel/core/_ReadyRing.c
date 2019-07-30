@@ -64,8 +64,6 @@ VOID  _AddTCBToReadyRing (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb, BOOL  bIsHea
         }
         break;
     }
-    
-    return;
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: _DelTCBFromReadyRing

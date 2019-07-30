@@ -249,15 +249,12 @@ INT  vprocThreadAffinity (PVOID  pvVProc, size_t  stSize, const PLW_CLASS_CPUSET
     LW_LD_VPROC    *pvproc = (LW_LD_VPROC *)pvVProc;
     PLW_LIST_LINE   plineTemp;
     PLW_CLASS_TCB   ptcb;
-    PLW_CLASS_TCB   ptcbCur;
 
     if (!pvproc) {
         _ErrorHandle(ESRCH);
         return  (PX_ERROR);
     }
-    
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
-    
+
     LW_VP_LOCK(pvproc);                                                 /*  锁定当前进程                */
     for (plineTemp  = pvproc->VP_plineThread;
          plineTemp != LW_NULL;
@@ -267,24 +264,13 @@ INT  vprocThreadAffinity (PVOID  pvVProc, size_t  stSize, const PLW_CLASS_CPUSET
         if (ptcb->TCB_iDeleteProcStatus) {
             continue;                                                   /*  已经在删除过程中            */
         }
-
-        if (ptcb == ptcbCur) {
-            if (!__THREAD_LOCK_GET(ptcb)) {                             /*  外部没有锁定此任务          */
-                __KERNEL_ENTER();                                       /*  进入内核                    */
-                _ThreadSetAffinity(ptcb, stSize, pcpuset);
-                __KERNEL_EXIT();                                        /*  退出内核                    */
-            }
-        
-        } else if (ptcb->TCB_iDeleteProcStatus == LW_TCB_DELETE_PROC_NONE) {
-            __KERNEL_ENTER();                                           /*  进入内核                    */
-            _ThreadStop(ptcb);
-            __KERNEL_EXIT();                                            /*  退出内核 (可能产生调度)     */
-            
-            __KERNEL_ENTER();                                           /*  进入内核                    */
-            _ThreadSetAffinity(ptcb, stSize, pcpuset);
-            _ThreadContinue(ptcb, LW_FALSE);
-            __KERNEL_EXIT();                                            /*  退出内核                    */
+        if (__THREAD_LOCK_GET(ptcb)) {                                  /*  外部没有锁定此任务          */
+            continue;                                                   /*  线程被锁定                  */
         }
+
+        __KERNEL_ENTER();                                               /*  进入内核                    */
+        _ThreadSetAffinity(ptcb, stSize, pcpuset);
+        __KERNEL_EXIT();                                                /*  退出内核                    */
     }
     LW_VP_UNLOCK(pvproc);                                               /*  解锁当前进程                */
     

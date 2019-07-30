@@ -130,7 +130,6 @@ ULONG  API_RmsPeriod (LW_OBJECT_HANDLE  ulId, ULONG  ulPeriod)
          *  当前线程开始睡眠
          */
         ppcb = _GetPcb(ptcbCur);
-        
         __DEL_FROM_READY_RING(ptcbCur, ppcb);                           /*  从就绪表中删除              */
 
         ptcbCur->TCB_ulDelay = ulWaitTime;
