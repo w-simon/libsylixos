@@ -43,7 +43,7 @@ ULONG  API_ThreadSetAffinity (LW_OBJECT_HANDLE  ulId, size_t  stSize, const PLW_
     REGISTER UINT16         usIndex;
     REGISTER PLW_CLASS_TCB  ptcb;
              PLW_CLASS_TCB  ptcbCur;
-             ULONG          ulMaxLock;
+             ULONG          ulError;
 
     usIndex = _ObjectGetIndex(ulId);
 
@@ -82,14 +82,40 @@ ULONG  API_ThreadSetAffinity (LW_OBJECT_HANDLE  ulId, size_t  stSize, const PLW_
     }
 
     LW_TCB_GET_CUR(ptcbCur);
-    ulMaxLock = (ptcb == ptcbCur) ? 1 : 0;
-    if (__THREAD_LOCK_GET(ptcb) > ulMaxLock) {                          /*  任务被锁定                  */
+    if (ptcb == ptcbCur) {
+        if (__THREAD_LOCK_GET(ptcb) > 1) {                              /*  任务被锁定                  */
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            _ErrorHandle(EBUSY);
+            return  (EBUSY);
+        }
+        _ThreadSetAffinity(ptcb, stSize, pcpuset);                      /*  设置                        */
+
+    } else {
+        if (__THREAD_LOCK_GET(ptcb)) {                                  /*  任务被锁定                  */
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            _ErrorHandle(EBUSY);
+            return  (EBUSY);
+        }
+
+        ulError = _ThreadStop(ptcb);
         __KERNEL_EXIT();                                                /*  退出内核                    */
-        _ErrorHandle(EBUSY);
-        return  (EBUSY);
+        if (ulError) {
+            return  (ulError);
+        }
+
+#if LW_CFG_SMP_EN > 0
+        if (ptcbCur->TCB_uiStatusChangeReq) {
+            ptcbCur->TCB_uiStatusChangeReq = 0;
+            _ErrorHandle(ERROR_THREAD_NULL);
+            return  (ERROR_THREAD_NULL);
+        }
+#endif                                                                  /*  LW_CFG_SMP_EN               */
+
+        __KERNEL_ENTER();                                               /*  进入内核                    */
+        _ThreadSetAffinity(ptcb, stSize, pcpuset);                      /*  设置                        */
+        _ThreadContinue(ptcb, LW_FALSE);                                /*  唤醒目标                    */
     }
-    
-    _ThreadSetAffinity(ptcb, stSize, pcpuset);                          /*  设置                        */
+
     __KERNEL_EXIT();                                                    /*  退出内核                    */
 
     return  (ERROR_NONE);

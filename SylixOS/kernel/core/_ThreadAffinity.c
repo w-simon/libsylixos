@@ -36,13 +36,13 @@
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : LW_CPU_ZERO(pcpuset) 可以解除 CPU 锁定.
+**           如果是设置其他 ptcb 则外层必须保证目标线程没有就绪或运行.
 *********************************************************************************************************/
 ULONG  _ThreadSetAffinity (PLW_CLASS_TCB  ptcb, size_t  stSize, const PLW_CLASS_CPUSET  pcpuset)
 {
     INTREG         iregInterLevel;
     ULONG          i;
     ULONG          ulNumChk;
-    ULONG          ulError;
     PLW_CLASS_TCB  ptcbCur;
     PLW_CLASS_PCB  ppcb;
 
@@ -85,11 +85,6 @@ ULONG  _ThreadSetAffinity (PLW_CLASS_TCB  ptcb, size_t  stSize, const PLW_CLASS_
         }
 
     } else {
-        ulError = _ThreadStop(ptcb);
-        if (ulError) {
-            return  (ulError);
-        }
-
         if (i >= ulNumChk) {
             ptcb->TCB_bCPULock = LW_FALSE;                              /*  关闭 CPU 锁定               */
 
@@ -97,8 +92,6 @@ ULONG  _ThreadSetAffinity (PLW_CLASS_TCB  ptcb, size_t  stSize, const PLW_CLASS_
             ptcb->TCB_ulCPULock = i;
             ptcb->TCB_bCPULock  = LW_TRUE;                              /*  锁定执行 CPU                */
         }
-
-        _ThreadContinue(ptcb, LW_FALSE);                                /*  唤醒目标                    */
     }
 
     return  (ERROR_NONE);
@@ -115,11 +108,10 @@ ULONG  _ThreadSetAffinity (PLW_CLASS_TCB  ptcb, size_t  stSize, const PLW_CLASS_
 *********************************************************************************************************/
 VOID  _ThreadGetAffinity (PLW_CLASS_TCB  ptcb, size_t  stSize, PLW_CLASS_CPUSET  pcpuset)
 {
+    lib_bzero(pcpuset, stSize);                                         /*  没有亲和度设置              */
+
     if (ptcb->TCB_bCPULock) {
         LW_CPU_SET(ptcb->TCB_ulCPULock, pcpuset);
-    
-    } else {
-        lib_bzero(pcpuset, stSize);                                     /*  没有亲和度设置              */
     }
 }
 /*********************************************************************************************************

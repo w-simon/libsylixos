@@ -1156,7 +1156,7 @@ INT  _FdLockfIoctl (PLW_FD_ENTRY   pfdentry, INT  iCmd, struct flock *pfl)
     }
     
     pfdnode = (PLW_FD_NODE)pfdentry->FDENTRY_lValue;
-    if (pfdnode == LW_NULL) {
+    if ((pfdnode == LW_NULL) || (pfdnode == (PLW_FD_NODE)PX_ERROR)) {
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);
         return  (PX_ERROR);
     }
@@ -1216,7 +1216,7 @@ INT  _FdLockfProc (PLW_FD_ENTRY   pfdentry, INT  iType, pid_t  pid)
     }
     
     pfdnode = (PLW_FD_NODE)pfdentry->FDENTRY_lValue;
-    if (pfdnode == LW_NULL) {
+    if ((pfdnode == LW_NULL) || (pfdnode == (PLW_FD_NODE)PX_ERROR)) {
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);
         return  (PX_ERROR);
     }
@@ -1286,7 +1286,7 @@ INT  _FdLockfClearFdEntry (PLW_FD_ENTRY  pfdentry, pid_t  pid)
     }
     
     pfdnode = (PLW_FD_NODE)pfdentry->FDENTRY_lValue;
-    if (pfdnode == LW_NULL) {
+    if ((pfdnode == LW_NULL) || (pfdnode == (PLW_FD_NODE)PX_ERROR)) {
         _ErrorHandle(ERROR_IOS_DRIVER_NOT_SUP);
         return  (PX_ERROR);
     }

@@ -106,6 +106,7 @@ typedef struct netbd {
   sys_mutex_t lock; /* net bonding lock */
   netdev_t netdev_bd;  /* net bonding net device */
   netbd_eth_t *master; /* master device */
+  netbd_eth_t *working; /* current device */
   
   LW_LIST_RING_HEADER eth_ring; /* sub ethernet device ring */
   LW_LIST_LINE_HEADER arp_list; /* arp detect list */
@@ -124,6 +125,34 @@ static sys_mutex_t netdb_list_lock;
 #define NETBD_LIST_LOCK()   sys_mutex_lock(&netdb_list_lock)
 #define NETBD_LIST_UNLOCK() sys_mutex_unlock(&netdb_list_lock)
 
+/* net bonding select device */
+static void netbd_select_working (netbd_t *netbd)
+{
+  int i, ok = 0;
+  netbd_eth_t *netbd_eth;
+
+  if (netbd->master) {
+    netbd_eth = netbd->master; /* first check master device */
+    if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
+      netbd->working = netbd_eth;
+      ok = 1;
+    }
+  }
+
+  if (!ok) {
+    for (i = 0; i < netbd->eth_cnt; i++) {
+      netbd_eth = (netbd_eth_t *)netbd->eth_ring;
+      if (netbd->master != netbd_eth) { /* not master */
+        if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
+          netbd->working = netbd_eth;
+          break;
+        }
+      }
+      netbd->eth_ring = _list_ring_get_next(&netbd_eth->ring); /* next sub net device (Rotation) */
+    }
+  }
+}
+
 /* net bonding traffic detect */
 static void netbd_traffic_detect (netbd_t *netbd)
 {
@@ -135,8 +164,12 @@ static void netbd_traffic_detect (netbd_t *netbd)
   for (i = 0; i < netbd->eth_cnt; i++) {
     if (netbd_eth->alive > NETBONDING_POLL_INTERVAL) {
       netbd_eth->alive -= NETBONDING_POLL_INTERVAL;
-    } else {
+
+    } else if (netbd_eth->alive) {
       netbd_eth->alive = 0; /* dead! not use this device transmit */
+      if (netbd->working == netbd_eth) {
+        netbd_select_working(netbd);
+      }
     }
     netbd_eth = (netbd_eth_t *)_list_ring_get_next(&netbd_eth->ring);
   }
@@ -158,8 +191,27 @@ static void netbd_arp_detect (netbd_t *netbd)
     return;
   }
   
-  netbd_traffic_detect(netbd); /* process time alive */
-  
+  NETBD_LOCK(netbd);
+  netbd_eth = (netbd_eth_t *)netbd->eth_ring;
+  for (i = 0; i < netbd->eth_cnt; i++) {
+    if (netbd->working == netbd_eth) {
+      if (netbd_eth->alive > NETBONDING_POLL_INTERVAL) {
+        netbd_eth->alive -= NETBONDING_POLL_INTERVAL;
+      } else {
+        netbd_eth->alive = 0; /* dead! not use this device transmit */
+      }
+
+    } else {
+      if (netbd_eth->netdev->if_flags & IFF_RUNNING) {
+        netbd_eth->alive = netbd->alive; /* not current, if linkup we think it is a valid */
+      } else {
+        netbd_eth->alive = 0;
+      }
+    }
+    netbd_eth = (netbd_eth_t *)_list_ring_get_next(&netbd_eth->ring);
+  }
+  NETBD_UNLOCK(netbd);
+
   if (netbd->timer > NETBONDING_POLL_INTERVAL) {
     netbd->timer -= NETBONDING_POLL_INTERVAL;
     
@@ -172,17 +224,17 @@ static void netbd_arp_detect (netbd_t *netbd)
     NETBD_LOCK(netbd);
     netdbif = (struct netif *)(netbd->netdev_bd.sys);
     MEMCPY(&macsrc.addr, netdbif->hwaddr, ETH_ALEN);
+
+    if (!netbd->working->alive || !(netbd->working->netdev->if_flags & IFF_RUNNING)) {
+      netbd_select_working(netbd);
+    }
   
-    for (pline = netbd->arp_list; pline != NULL; pline = _list_line_get_next(pline)) {
-      netbd_arp = (netbd_arp_t *)pline;
-      netbd_eth = (netbd_eth_t *)netbd->eth_ring;
-      for (i = 0; i < netbd->eth_cnt; i++) {
-        if (netbd_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
-          sendif = (struct netif *)(netbd_eth->netdev->sys);
-          etharp_raw(sendif, &macsrc, &ethbroadcast, &macsrc, netif_ip4_addr(netdbif), 
-                     &ethzero, &netbd_arp->ipaddr, ARP_REQUEST); /* send ARP request */
-        }
-        netbd_eth = (netbd_eth_t *)_list_ring_get_next(&netbd_eth->ring);
+    if (netbd->working->netdev->if_flags & IFF_RUNNING) {
+      for (pline = netbd->arp_list; pline != NULL; pline = _list_line_get_next(pline)) {
+        netbd_arp = (netbd_arp_t *)pline;
+        sendif = (struct netif *)(netbd->working->netdev->sys);
+        etharp_raw(sendif, &macsrc, &ethbroadcast, &macsrc, netif_ip4_addr(netdbif),
+                   &ethzero, &netbd_arp->ipaddr, ARP_REQUEST); /* send ARP request */
       }
     }
     NETBD_UNLOCK(netbd);
@@ -214,6 +266,9 @@ static void netbd_arp_process (netbd_t *netbd, netbd_eth_t *netbd_eth, struct et
   for (pline = netbd->arp_list; pline != NULL; pline = _list_line_get_next(pline)) {
     netbd_arp = (netbd_arp_t *)pline;
     if (ip4_addr_cmp(&netbd_arp->ipaddr, &srcip)) {
+      if (!netbd->working->alive) {
+        netbd->working = netbd_eth; /* use this net device as working */
+      }
       netbd_eth->alive = netbd->alive; /* refresh time alive counter */
       break;
     }
@@ -230,6 +285,12 @@ static int  netbd_transmit (struct netdev *netdev, struct pbuf *p)
   netbd_eth_t *netbd_eth;
   struct ethhdr *eh = (struct ethhdr *)p->payload;
   
+  if (!netbd->eth_cnt) { /* no sub device */
+    netdev_linkinfo_err_inc(netdev);
+    netdev_statinfo_errors_inc(netdev, LINK_OUTPUT);
+    return (-1);
+  }
+
   NETBD_LOCK(netbd);
   if (netbd->mode == NETBD_MODE_BALANCE_RR) { /* 'balance-rr' */
     for (i = 0; i < netbd->eth_cnt; i++) {
@@ -243,26 +304,34 @@ static int  netbd_transmit (struct netdev *netdev, struct pbuf *p)
     }
     
   } else if (netbd->mode == NETBD_MODE_ACTIVE_BACKUP) { /* 'active-backup' */
-    if (netbd->master) {
-      netbd_eth = netbd->master; /* first check master device */
-      if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
-        netbd_eth->netdev->drv->transmit(netbd_eth->netdev, p); /* transmit */
-        ok = 1;
-      }
-    }
-    
-    if (!ok) {
-      for (i = 0; i < netbd->eth_cnt; i++) {
-        netbd_eth = (netbd_eth_t *)netbd->eth_ring;
-        if (netbd->master != netbd_eth) { /* not master */
-          if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
-            netbd_eth->netdev->drv->transmit(netbd_eth->netdev, p); /* transmit */
-            ok = 1;
-            break;
-          }
+    if (!netbd->working->alive || !(netbd->working->netdev->if_flags & IFF_RUNNING)) { /* working dead ? */
+      if (netbd->master) {
+        netbd_eth = netbd->master; /* first check master device */
+        if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
+          netbd->working = netbd_eth;
+          netbd_eth->netdev->drv->transmit(netbd_eth->netdev, p); /* transmit */
+          ok = 1;
         }
-        netbd->eth_ring = _list_ring_get_next(&netbd_eth->ring); /* next sub net device (Rotation) */
       }
+
+      if (!ok) {
+        for (i = 0; i < netbd->eth_cnt; i++) {
+          netbd_eth = (netbd_eth_t *)netbd->eth_ring;
+          if (netbd->master != netbd_eth) { /* not master */
+            if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
+              netbd->working = netbd_eth;
+              netbd_eth->netdev->drv->transmit(netbd_eth->netdev, p); /* transmit */
+              ok = 1;
+              break;
+            }
+          }
+          netbd->eth_ring = _list_ring_get_next(&netbd_eth->ring); /* next sub net device (Rotation) */
+        }
+      }
+
+    } else { /* use working transmit */
+      netbd->working->netdev->drv->transmit(netbd->working->netdev, p); /* transmit */
+      ok = 1;
     }
     
   } else { /* broadcast */
@@ -389,6 +458,9 @@ to_bd:
   
   if (netbd->mode == NETBD_MODE_ACTIVE_BACKUP) { /* active backup */
     if (netbd->mon_mode == NETBD_MON_MODE_TRAFFIC) {
+      if (!netbd->working->alive) {
+        netbd->working = netbd_eth; /* use this net device as working */
+      }
       netbd_eth->alive = netbd->alive; /* refresh time alive counter */
   
     } else { /* NETBD_MON_MODE_ARP */
@@ -416,6 +488,13 @@ to_bd:
   }
   
 input: /* TODO: this function may be parallelization, and statistical variables should be locked */
+  if (netbd->mode == NETBD_MODE_ACTIVE_BACKUP) {
+    if (netbd->working != netbd_eth) {
+      pbuf_free(p);
+      return (ERR_OK); /* not working net device */
+    }
+  }
+
   if (netif_bd->input(p, netif_bd)) { /* send to our tcpip stack */
     netdev_linkinfo_drop_inc(netdev_bd);
     netdev_statinfo_discards_inc(netdev_bd, LINK_INPUT);
@@ -547,6 +626,8 @@ int  netbd_add_dev (const char *bddev, int bdindex, const char *sub, int sub_is_
     
     MEMCPY(netdev_bd->hwaddr, netdev->hwaddr, ETH_ALEN); /* use first port mac address */
     MEMCPY(netif_bd->hwaddr, netdev->hwaddr, ETH_ALEN);
+
+    netbd->working = netbd_eth; /* first working net device */
   }
   
   MEMCPY(netbd_eth->old_hwaddr, netdev->hwaddr, ETH_ALEN); /* save old hwaddr */
@@ -705,6 +786,9 @@ int  netbd_delete_dev (const char *bddev, int bdindex, const char *sub, int sub_
     }
   }
   
+  netif->input = netbd_eth->input; /* restore old input function */
+  netif->ext_ctl = netif->ext_eth = NULL;
+
   NETBD_LOCK(netbd);
   if (netbd->master == netbd_eth) {
     netbd->master = NULL;
@@ -712,10 +796,14 @@ int  netbd_delete_dev (const char *bddev, int bdindex, const char *sub, int sub_
   netif->vlanid = netbd_eth->old_vlanid;
   _List_Ring_Del(&netbd_eth->ring, &netbd->eth_ring);
   netbd->eth_cnt--;
+  if (netbd->working == netbd_eth) {
+    if (netbd->eth_cnt) {
+      netbd_select_working(netbd);
+    } else {
+      netbd->working = NULL;
+    }
+  }
   NETBD_UNLOCK(netbd);
-  
-  netif->input = netbd_eth->input; /* restore old input function */
-  netif->ext_ctl = netif->ext_eth = NULL;
   
   mem_free(netbd_eth);
   
@@ -1280,6 +1368,12 @@ int  netbd_show_dev (const char *bddev, int bdindex, int fd)
     fdprintf(fd, "Moniting    : %s\n", (netbd->mon_mode == NETBD_MON_MODE_TRAFFIC) ? "Traffic" : "ARP Detect");
     fdprintf(fd, "Timeout     : %d (milliseconds)\n", netbd->alive);
     
+    if (netbd->working) {
+      netdev = netbd->working->netdev;
+      netif = (struct netif *)netdev->sys;
+      fdprintf(fd, "Working     : Dev: %s Prev-Ifname: %s\n", netdev->dev_name, netif_get_name(netif, ifname));
+    }
+
     if (netbd->mon_mode == NETBD_MON_MODE_ARP) {
       fdprintf(fd, "ARP Interval: %d (milliseconds)\n", netbd->interval);
       fdprintf(fd, "\nNet bonding ARP target list >>\n\n");

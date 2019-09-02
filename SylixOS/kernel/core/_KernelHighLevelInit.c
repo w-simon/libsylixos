@@ -83,8 +83,8 @@ static VOID  _CreateIdleThread (VOID)
         
         LW_CPU_SET(i, &cpuset);                                         /*  锁定到指定 CPU              */
         _ThreadSetAffinity(_K_ptcbIdle[i], sizeof(LW_CLASS_CPUSET), &cpuset);
-        LW_CPU_CLR(i, &cpuset);
-        
+        LW_CPU_CLR(i, &cpuset);                                         /*  绑核操作确保目标线程未就绪  */
+                                                                        /*  不需要使用 stop 操作        */
         API_ThreadStart(_K_ulIdleId[i]);
     }
 

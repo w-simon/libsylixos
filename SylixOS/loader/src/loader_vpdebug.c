@@ -92,9 +92,6 @@ VOID  vprocDebugStop (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
-        if (ptcb->TCB_iDeleteProcStatus) {
-            continue;                                                   /*  已经在删除过程中            */
-        }
         if (ptcb == ptcbExcp) {
             continue;                                                   /*  不停止此任务                */
         }
@@ -132,15 +129,14 @@ VOID  vprocDebugContinue (PVOID  pvVProc, PLW_CLASS_TCB  ptcbExcp)
          plineTemp  = _list_line_get_next(plineTemp)) {
     
         ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
-        if (ptcb->TCB_iDeleteProcStatus) {
-            continue;                                                   /*  已经在删除过程中            */
-        }
         if (ptcb == ptcbExcp) {
             continue;                                                   /*  不启动此任务                */
         }
-        __KERNEL_ENTER();                                               /*  进入内核                    */
-        _ThreadContinue(ptcb, LW_FALSE);
-        __KERNEL_EXIT();                                                /*  退出内核                    */
+        if (ptcb->TCB_iDeleteProcStatus == LW_TCB_DELETE_PROC_NONE) {
+            __KERNEL_ENTER();                                           /*  进入内核                    */
+            _ThreadContinue(ptcb, LW_FALSE);
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+        }
     }
     LW_VP_UNLOCK(pvproc);                                               /*  解锁当前进程                */
 }

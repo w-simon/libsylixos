@@ -555,12 +555,12 @@ int  netbr_delete_dev (const char *brdev, int brindex, const char *sub, int sub_
     }
   }
   
+  netif->input = netbr_eth->input; /* restore old input function */
+  netif->ext_ctl = netif->ext_eth = NULL;
+
   NETBR_LOCK(netbr);
   _List_Line_Del(&netbr_eth->list, &netbr->eth_list);
   NETBR_UNLOCK(netbr);
-  
-  netif->input = netbr_eth->input; /* restore old input function */
-  netif->ext_ctl = netif->ext_eth = NULL;
   
   mem_free(netbr_eth);
   
