@@ -27,7 +27,7 @@
 #include "../ppcL2.h"
 #include "ppcL3CacheQorIQ.h"
 /*********************************************************************************************************
-  L3 Cache controller registers defines
+  L3 CACHE controller registers defines
 *********************************************************************************************************/
 #define CPCCSR0                 0x0000
 #define CPCCFG0                 0x0008

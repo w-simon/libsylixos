@@ -33,6 +33,19 @@
 *********************************************************************************************************/
 static LW_FPU_CONTEXT   _G_fpuCtxInit;
 static PPPC_FPU_OP      _G_pfpuop;
+static UINT             _G_uiFpuType = PPC_FPU_TYPE_NONE;
+/*********************************************************************************************************
+** 函数名称: archFpuTypeGet
+** 功能描述: 获得 Fpu 控制器类型
+** 输　入  : NONE
+** 输　出  : Fpu 控制器类型
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+UINT  archFpuTypeGet (VOID)
+{
+    return  (_G_uiFpuType);
+}
 /*********************************************************************************************************
 ** 函数名称: archFpuPrimaryInit
 ** 功能描述: 主核 Fpu 控制器初始化
@@ -49,12 +62,15 @@ VOID  archFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 
     if (lib_strcmp(pcFpuName, PPC_FPU_NONE) == 0) {                     /*  选择 VFP 架构               */
         _G_pfpuop    = ppcVfpNonePrimaryInit(pcMachineName, pcFpuName);
+        _G_uiFpuType = PPC_FPU_TYPE_NONE;
 
     } else if (lib_strcmp(pcFpuName, PPC_FPU_VFP) == 0) {
         _G_pfpuop    = ppcVfpPrimaryInit(pcMachineName, pcFpuName);
+        _G_uiFpuType = PPC_FPU_TYPE_FPU;
 
     } else if (lib_strcmp(pcFpuName, PPC_FPU_SPE) == 0) {
         _G_pfpuop    = ppcVfpSpePrimaryInit(pcMachineName, pcFpuName);
+        _G_uiFpuType = PPC_FPU_TYPE_SPE;
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");

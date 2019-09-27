@@ -33,9 +33,11 @@ typedef BOOL            bool;
 
 typedef ALTIVEC_REG     __vector128;
 typedef __vector128     vector128;
+
 /*********************************************************************************************************
   定义
 *********************************************************************************************************/
+
 #define nokprobe_inline                 inline
 
 #define NOKPROBE_SYMBOL(sym)
@@ -44,8 +46,8 @@ typedef __vector128     vector128;
 #define preempt_disable()
 #define preempt_enable()
 
-#define access_ok(type, va, len)        1
-#define user_mode(x)                    1
+#define access_ok(type, va, len)        LW_TRUE
+#define user_mode(x)                    LW_TRUE
 
 #define put_user(val, va)               (*va = val, 0)
 #define __put_user(val, va)             (*va = val, 0)
@@ -58,7 +60,7 @@ typedef __vector128     vector128;
 
 #define EX_TABLE(a, b)
 
-#define FULL_REGS(reg)      1
+#define FULL_REGS(reg)                  LW_TRUE
 #define CHECK_FULL_REGS(reg)
 
 #define flush_spe_to_thread(tcb)
@@ -100,9 +102,11 @@ static inline void isync(void)
 {
     __asm__ __volatile__ ("isync" : : : "memory");
 }
+
 /*********************************************************************************************************
   任务上下文的寄存器
 *********************************************************************************************************/
+
 #define gpr                 REG_uiReg
 #define ctr                 REG_uiCtr
 #define ccr                 REG_uiCr
@@ -117,9 +121,10 @@ static inline void isync(void)
   MSR 定义
 *********************************************************************************************************/
 #if defined(__ASSEMBLY__) || defined(ASSEMBLY)
-#define __MASK(X)           (1<<(X))
+
+#define __MASK(X)           (1 << (X))
 #else
-#define __MASK(X)           (1UL<<(X))
+#define __MASK(X)           (1ul << (X))
 #endif
 
 #define MSR_VEC_LG          25                                      /*  Enable AltiVec                  */
@@ -139,29 +144,33 @@ static inline void isync(void)
 #define MSR_LE              __MASK(MSR_LE_LG)                       /*  Little Endian                   */
 
 #define MSR_KERNEL          0                                       /*  Big Endian                      */
+
 /*********************************************************************************************************
   寄存器定义
 *********************************************************************************************************/
+
 #define SPRN_XER            0x001                                   /*  Fixed Point Exception Register  */
 #define SPRN_LR             0x008                                   /*  Link Register                   */
 #define SPRN_CTR            0x009                                   /*  Count Register                  */
 
 #define SRR1_PROGPRIV       0x00040000                              /*  Privileged instruction          */
 #define SRR1_PROGTRAP       0x00020000                              /*  Trap                            */
+
 /*********************************************************************************************************
   指令定义
 *********************************************************************************************************/
+
 #define PPC_INST_COPY       0x7c20060c
 
 #ifdef CONFIG_PPC_BOOK3S_64
 #define RFI                 rfid
 #define MTMSRD(r)           mtmsrd  r
-#define MTMSR_EERI(reg)     mtmsrd  reg,1
+#define MTMSR_EERI(reg)     mtmsrd  reg , 1
 #else
 #ifndef CONFIG_40x
 #define RFI                 rfi
 #else
-#define RFI                 rfi; b .                                /*  Prevent prefetch past rfi       */
+#define RFI                 rfi;    b .                             /*  Prevent prefetch past rfi       */
 #endif
 #define MTMSRD(r)           mtmsr   r
 #define MTMSR_EERI(reg)     mtmsr   reg

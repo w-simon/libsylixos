@@ -710,15 +710,22 @@ static VOID  __sigRunHandle (PLW_CLASS_SIGCONTEXT  psigctx,
                 break;
 
             case SIGSTOP:
-            case SIGTSTP:
                 __signalStopHandle(ptcbCur, iSigNo, psiginfo);
                 break;
 
+            case SIGTSTP:
+                if (pfuncHandle == SIG_DFL) {
+                    __signalStopHandle(ptcbCur, iSigNo, psiginfo);
+                }
+                break;
+
             case SIGCHLD:
-                if ((psiginfo->si_code == CLD_EXITED) ||
-                    (psiginfo->si_code == CLD_KILLED) ||
-                    (psiginfo->si_code == CLD_DUMPED)) {                /*  回收子进程资源              */
-                    __signalWaitHandle(ptcbCur, iSigNo, psiginfo);
+                if (pfuncHandle == SIG_IGN) {                           /*  IGN 时自动回收              */
+                    if ((psiginfo->si_code == CLD_EXITED) ||
+                        (psiginfo->si_code == CLD_KILLED) ||
+                        (psiginfo->si_code == CLD_DUMPED)) {            /*  回收子进程资源              */
+                        __signalWaitHandle(ptcbCur, iSigNo, psiginfo);
+                    }
                 }
                 break;
 
@@ -727,7 +734,9 @@ static VOID  __sigRunHandle (PLW_CLASS_SIGCONTEXT  psigctx,
                 break;
 
             case SIGSTKSHOW:
-                __signalStkShowHandle(ptcbCur, psigctlmsg);
+                if (pfuncHandle == SIG_DFL) {
+                    __signalStkShowHandle(ptcbCur, psigctlmsg);
+                }
                 break;
 
             default:

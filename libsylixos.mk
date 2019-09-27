@@ -286,6 +286,8 @@ SylixOS/arch/ppc/mm/cache/ppc60x/ppcCacheEC603.c \
 SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache604.c \
 SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache745x.c \
 SylixOS/arch/ppc/mm/cache/ppc60x/ppcCache83xx.c \
+SylixOS/arch/ppc/mm/cache/ppc460/ppcCache460Asm.S \
+SylixOS/arch/ppc/mm/cache/ppc460/ppcCache460.c \
 SylixOS/arch/ppc/mm/cache/l2/ppcL2.c \
 SylixOS/arch/ppc/mm/cache/l2/corenet/ppcL2CacheCoreNet.c \
 SylixOS/arch/ppc/mm/cache/l2/e500mc/ppcL2CacheE500mc.c \
@@ -295,15 +297,19 @@ SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache750Asm.S \
 SylixOS/arch/ppc/mm/cache/l2/ppc750/ppcL2Cache745xAsm.S \
 SylixOS/arch/ppc/mm/cache/l2/qoriq/ppcL2CacheQorIQ.c \
 SylixOS/arch/ppc/mm/cache/l2/qoriq/ppcL3CacheQorIQ.c \
-SylixOS/arch/ppc/mm/mmu/common/ppcMmu.c \
-SylixOS/arch/ppc/mm/mmu/common/ppcMmuAsm.S \
-SylixOS/arch/ppc/mm/mmu/common/ppcMmuHashPageTbl.c \
-SylixOS/arch/ppc/mm/mmu/ppc603/ppcMmu603Asm.S \
+SylixOS/arch/ppc/mm/mmu/hash/ppcMmuHash.c \
+SylixOS/arch/ppc/mm/mmu/hash/ppcMmuHashAsm.S \
+SylixOS/arch/ppc/mm/mmu/hash/ppcMmuHashPageTbl.c \
+SylixOS/arch/ppc/mm/mmu/hash/ppcMmuHash603Asm.S \
 SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500.c \
 SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500Asm.S \
 SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500RegAsm.S \
 SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500Tlb1.c \
 SylixOS/arch/ppc/mm/mmu/e500/ppcMmuE500Tlb1Asm.S \
+SylixOS/arch/ppc/mm/mmu/ppc460/ppcMmu460.c \
+SylixOS/arch/ppc/mm/mmu/ppc460/ppcMmu460Asm.S \
+SylixOS/arch/ppc/mm/mmu/ppc460/ppcMmu460FTlb.c \
+SylixOS/arch/ppc/mm/mmu/ppc460/ppcMmu460RegAsm.S \
 SylixOS/arch/ppc/mpcore/ppcMpCoreAsm.S \
 SylixOS/arch/ppc/mpcore/ppcSpinlock.c \
 SylixOS/arch/ppc/param/ppcParam.c 

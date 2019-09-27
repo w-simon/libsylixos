@@ -41,6 +41,7 @@ UINT32  ppcE500GetDECAR(VOID);
 VOID    ppcE500SetDECAR(UINT32  uiValue);
 
 UINT32  ppcE500GetMCAR(VOID);
+UINT32  ppcE500GetMCSR(VOID);
 
 #endif                                                                  /*  __ARCH_PPCSPRE500_H         */
 /*********************************************************************************************************

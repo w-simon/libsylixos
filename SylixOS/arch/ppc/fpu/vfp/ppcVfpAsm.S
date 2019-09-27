@@ -116,38 +116,38 @@ LINE_LABEL(__ppcVfpIsEnable)
 FUNC_DEF(ppcVfpSave)
     ENABLE_VFP  R4
 
-    STFD    FPR0  ,  XFPR(0)(R3)                                        ;/*  ±£´æ FPR0                   */
-    STFD    FPR1  ,  XFPR(1)(R3)                                        ;/*  ±£´æ FPR1                   */
-    STFD    FPR2  ,  XFPR(2)(R3)                                        ;/*  ±£´æ FPR2                   */
-    STFD    FPR3  ,  XFPR(3)(R3)                                        ;/*  ±£´æ FPR3                   */
-    STFD    FPR4  ,  XFPR(4)(R3)                                        ;/*  ±£´æ FPR4                   */
-    STFD    FPR5  ,  XFPR(5)(R3)                                        ;/*  ±£´æ FPR5                   */
-    STFD    FPR6  ,  XFPR(6)(R3)                                        ;/*  ±£´æ FPR6                   */
-    STFD    FPR7  ,  XFPR(7)(R3)                                        ;/*  ±£´æ FPR7                   */
-    STFD    FPR8  ,  XFPR(8)(R3)                                        ;/*  ±£´æ FPR8                   */
-    STFD    FPR9  ,  XFPR(9)(R3)                                        ;/*  ±£´æ FPR9                   */
-    STFD    FPR10 , XFPR(10)(R3)                                        ;/*  ±£´æ FPR10                  */
-    STFD    FPR11 , XFPR(11)(R3)                                        ;/*  ±£´æ FPR11                  */
-    STFD    FPR12 , XFPR(12)(R3)                                        ;/*  ±£´æ FPR12                  */
-    STFD    FPR13 , XFPR(13)(R3)                                        ;/*  ±£´æ FPR13                  */
-    STFD    FPR14 , XFPR(14)(R3)                                        ;/*  ±£´æ FPR14                  */
-    STFD    FPR15 , XFPR(15)(R3)                                        ;/*  ±£´æ FPR15                  */
-    STFD    FPR16 , XFPR(16)(R3)                                        ;/*  ±£´æ FPR16                  */
-    STFD    FPR17 , XFPR(17)(R3)                                        ;/*  ±£´æ FPR17                  */
-    STFD    FPR18 , XFPR(18)(R3)                                        ;/*  ±£´æ FPR18                  */
-    STFD    FPR19 , XFPR(19)(R3)                                        ;/*  ±£´æ FPR19                  */
-    STFD    FPR20 , XFPR(20)(R3)                                        ;/*  ±£´æ FPR20                  */
-    STFD    FPR21 , XFPR(21)(R3)                                        ;/*  ±£´æ FPR21                  */
-    STFD    FPR22 , XFPR(22)(R3)                                        ;/*  ±£´æ FPR22                  */
-    STFD    FPR23 , XFPR(23)(R3)                                        ;/*  ±£´æ FPR23                  */
-    STFD    FPR24 , XFPR(24)(R3)                                        ;/*  ±£´æ FPR24                  */
-    STFD    FPR25 , XFPR(25)(R3)                                        ;/*  ±£´æ FPR25                  */
-    STFD    FPR26 , XFPR(26)(R3)                                        ;/*  ±£´æ FPR26                  */
-    STFD    FPR27 , XFPR(27)(R3)                                        ;/*  ±£´æ FPR27                  */
-    STFD    FPR28 , XFPR(28)(R3)                                        ;/*  ±£´æ FPR28                  */
-    STFD    FPR29 , XFPR(29)(R3)                                        ;/*  ±£´æ FPR29                  */
-    STFD    FPR30 , XFPR(30)(R3)                                        ;/*  ±£´æ FPR30                  */
-    STFD    FPR31 , XFPR(31)(R3)                                        ;/*  ±£´æ FPR31                  */
+    STFD    FPR0  ,  XFPR(0)(R3)                                        ;/*  ±£´æ FPR0-FPR31             */
+    STFD    FPR1  ,  XFPR(1)(R3)
+    STFD    FPR2  ,  XFPR(2)(R3)
+    STFD    FPR3  ,  XFPR(3)(R3)
+    STFD    FPR4  ,  XFPR(4)(R3)
+    STFD    FPR5  ,  XFPR(5)(R3)
+    STFD    FPR6  ,  XFPR(6)(R3)
+    STFD    FPR7  ,  XFPR(7)(R3)
+    STFD    FPR8  ,  XFPR(8)(R3)
+    STFD    FPR9  ,  XFPR(9)(R3)
+    STFD    FPR10 , XFPR(10)(R3)
+    STFD    FPR11 , XFPR(11)(R3)
+    STFD    FPR12 , XFPR(12)(R3)
+    STFD    FPR13 , XFPR(13)(R3)
+    STFD    FPR14 , XFPR(14)(R3)
+    STFD    FPR15 , XFPR(15)(R3)
+    STFD    FPR16 , XFPR(16)(R3)
+    STFD    FPR17 , XFPR(17)(R3)
+    STFD    FPR18 , XFPR(18)(R3)
+    STFD    FPR19 , XFPR(19)(R3)
+    STFD    FPR20 , XFPR(20)(R3)
+    STFD    FPR21 , XFPR(21)(R3)
+    STFD    FPR22 , XFPR(22)(R3)
+    STFD    FPR23 , XFPR(23)(R3)
+    STFD    FPR24 , XFPR(24)(R3)
+    STFD    FPR25 , XFPR(25)(R3)
+    STFD    FPR26 , XFPR(26)(R3)
+    STFD    FPR27 , XFPR(27)(R3)
+    STFD    FPR28 , XFPR(28)(R3)
+    STFD    FPR29 , XFPR(29)(R3)
+    STFD    FPR30 , XFPR(30)(R3)
+    STFD    FPR31 , XFPR(31)(R3)
 
     SYNC
 
@@ -177,38 +177,38 @@ FUNC_DEF(ppcVfpRestore)
     MTFSF   255   , FPR1                                                ;/*  »Ö¸´ FPSCR                  */
     ISYNC
 
-    LFD     FPR0  ,  XFPR(0)(R3)                                        ;/*  »Ö¸´ FPR0                   */
-    LFD     FPR1  ,  XFPR(1)(R3)                                        ;/*  »Ö¸´ FPR1                   */
-    LFD     FPR2  ,  XFPR(2)(R3)                                        ;/*  »Ö¸´ FPR2                   */
-    LFD     FPR3  ,  XFPR(3)(R3)                                        ;/*  »Ö¸´ FPR3                   */
-    LFD     FPR4  ,  XFPR(4)(R3)                                        ;/*  »Ö¸´ FPR4                   */
-    LFD     FPR5  ,  XFPR(5)(R3)                                        ;/*  »Ö¸´ FPR5                   */
-    LFD     FPR6  ,  XFPR(6)(R3)                                        ;/*  »Ö¸´ FPR6                   */
-    LFD     FPR7  ,  XFPR(7)(R3)                                        ;/*  »Ö¸´ FPR7                   */
-    LFD     FPR8  ,  XFPR(8)(R3)                                        ;/*  »Ö¸´ FPR8                   */
-    LFD     FPR9  ,  XFPR(9)(R3)                                        ;/*  »Ö¸´ FPR9                   */
-    LFD     FPR10 , XFPR(10)(R3)                                        ;/*  »Ö¸´ FPR10                  */
-    LFD     FPR11 , XFPR(11)(R3)                                        ;/*  »Ö¸´ FPR11                  */
-    LFD     FPR12 , XFPR(12)(R3)                                        ;/*  »Ö¸´ FPR12                  */
-    LFD     FPR13 , XFPR(13)(R3)                                        ;/*  »Ö¸´ FPR13                  */
-    LFD     FPR14 , XFPR(14)(R3)                                        ;/*  »Ö¸´ FPR14                  */
-    LFD     FPR15 , XFPR(15)(R3)                                        ;/*  »Ö¸´ FPR15                  */
-    LFD     FPR16 , XFPR(16)(R3)                                        ;/*  »Ö¸´ FPR16                  */
-    LFD     FPR17 , XFPR(17)(R3)                                        ;/*  »Ö¸´ FPR17                  */
-    LFD     FPR18 , XFPR(18)(R3)                                        ;/*  »Ö¸´ FPR18                  */
-    LFD     FPR19 , XFPR(19)(R3)                                        ;/*  »Ö¸´ FPR19                  */
-    LFD     FPR20 , XFPR(20)(R3)                                        ;/*  »Ö¸´ FPR20                  */
-    LFD     FPR21 , XFPR(21)(R3)                                        ;/*  »Ö¸´ FPR21                  */
-    LFD     FPR22 , XFPR(22)(R3)                                        ;/*  »Ö¸´ FPR22                  */
-    LFD     FPR23 , XFPR(23)(R3)                                        ;/*  »Ö¸´ FPR23                  */
-    LFD     FPR24 , XFPR(24)(R3)                                        ;/*  »Ö¸´ FPR24                  */
-    LFD     FPR25 , XFPR(25)(R3)                                        ;/*  »Ö¸´ FPR25                  */
-    LFD     FPR26 , XFPR(26)(R3)                                        ;/*  »Ö¸´ FPR26                  */
-    LFD     FPR27 , XFPR(27)(R3)                                        ;/*  »Ö¸´ FPR27                  */
-    LFD     FPR28 , XFPR(28)(R3)                                        ;/*  »Ö¸´ FPR28                  */
-    LFD     FPR29 , XFPR(29)(R3)                                        ;/*  »Ö¸´ FPR29                  */
-    LFD     FPR30 , XFPR(30)(R3)                                        ;/*  »Ö¸´ FPR30                  */
-    LFD     FPR31 , XFPR(31)(R3)                                        ;/*  »Ö¸´ FPR31                  */
+    LFD     FPR0  ,  XFPR(0)(R3)                                        ;/*  »Ö¸´ FPR0-FPR31             */
+    LFD     FPR1  ,  XFPR(1)(R3)
+    LFD     FPR2  ,  XFPR(2)(R3)
+    LFD     FPR3  ,  XFPR(3)(R3)
+    LFD     FPR4  ,  XFPR(4)(R3)
+    LFD     FPR5  ,  XFPR(5)(R3)
+    LFD     FPR6  ,  XFPR(6)(R3)
+    LFD     FPR7  ,  XFPR(7)(R3)
+    LFD     FPR8  ,  XFPR(8)(R3)
+    LFD     FPR9  ,  XFPR(9)(R3)
+    LFD     FPR10 , XFPR(10)(R3)
+    LFD     FPR11 , XFPR(11)(R3)
+    LFD     FPR12 , XFPR(12)(R3)
+    LFD     FPR13 , XFPR(13)(R3)
+    LFD     FPR14 , XFPR(14)(R3)
+    LFD     FPR15 , XFPR(15)(R3)
+    LFD     FPR16 , XFPR(16)(R3)
+    LFD     FPR17 , XFPR(17)(R3)
+    LFD     FPR18 , XFPR(18)(R3)
+    LFD     FPR19 , XFPR(19)(R3)
+    LFD     FPR20 , XFPR(20)(R3)
+    LFD     FPR21 , XFPR(21)(R3)
+    LFD     FPR22 , XFPR(22)(R3)
+    LFD     FPR23 , XFPR(23)(R3)
+    LFD     FPR24 , XFPR(24)(R3)
+    LFD     FPR25 , XFPR(25)(R3)
+    LFD     FPR26 , XFPR(26)(R3)
+    LFD     FPR27 , XFPR(27)(R3)
+    LFD     FPR28 , XFPR(28)(R3)
+    LFD     FPR29 , XFPR(29)(R3)
+    LFD     FPR30 , XFPR(30)(R3)
+    LFD     FPR31 , XFPR(31)(R3)
     SYNC
 
     BLR

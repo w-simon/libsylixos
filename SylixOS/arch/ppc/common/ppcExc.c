@@ -24,7 +24,7 @@
 #include "ppcSpr.h"
 #include "arch/ppc/param/ppcParam.h"
 #if LW_CFG_VMM_EN > 0
-#include "arch/ppc/mm/mmu/common/ppcMmu.h"
+#include "arch/ppc/mm/mmu/hash/ppcMmuHash.h"
 #endif
 #include "arch/ppc/common/unaligned/ppcUnaligned.h"
 /*********************************************************************************************************
@@ -117,7 +117,7 @@ LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 /*********************************************************************************************************
 ** 函数名称: archDataStorageExceptionHandle
 ** 功能描述: 数据存储异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -135,7 +135,7 @@ VOID  archDataStorageExceptionHandle (addr_t  ulRetAddr)
     LW_TCB_GET_CUR(ptcbCur);
 
 #if LW_CFG_VMM_EN > 0
-    UINT32  uiDSISR = ppcMmuGetDSISR();
+    UINT32  uiDSISR = ppcHashMmuGetDSISR();
 
     /*
      * See << programming_environment_manual >> Figure 7-16
@@ -144,7 +144,7 @@ VOID  archDataStorageExceptionHandle (addr_t  ulRetAddr)
         /*
          * Page fault (no PTE found)
          */
-        abtInfo.VMABT_uiType   = ppcMmuPteMissHandle(ulAbortAddr);
+        abtInfo.VMABT_uiType   = ppcHashMmuPteMissHandle(ulAbortAddr);
         abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_READ;
 
     } else if (uiDSISR & (0x1 << (31 - 4))) {
@@ -181,7 +181,7 @@ VOID  archDataStorageExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archInstructionStorageExceptionHandle
 ** 功能描述: 指令访问异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -202,13 +202,13 @@ VOID  archInstructionStorageExceptionHandle (addr_t  ulRetAddr)
     /*
      * See << programming_environment_manual >> Figure 7-16
      */
-    UINT32  uiSRR1 = ppcMmuGetSRR1();
+    UINT32  uiSRR1 = ppcHashMmuGetSRR1();
 
     if (uiSRR1 & (0x1 << (31 - 1))) {
         /*
          * Page fault (no PTE found)
          */
-        abtInfo.VMABT_uiType   = ppcMmuPteMissHandle(ulAbortAddr);
+        abtInfo.VMABT_uiType   = ppcHashMmuPteMissHandle(ulAbortAddr);
         abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_READ;
 
     } else if (uiSRR1 & (0x1 << (31 - 4))) {
@@ -256,13 +256,14 @@ static VOID  archUnalignedHandle (PLW_VMM_ABORT_CTX  pabtctx)
 /*********************************************************************************************************
 ** 函数名称: archAlignmentExceptionHandle
 ** 功能描述: 非对齐异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
+**           pregctx    寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-VOID  archAlignmentExceptionHandle (addr_t  ulRetAddr)
+VOID  archAlignmentExceptionHandle (addr_t  ulRetAddr, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
@@ -272,7 +273,7 @@ VOID  archAlignmentExceptionHandle (addr_t  ulRetAddr)
     LW_TCB_GET_CUR(ptcbCur);
 
     ulAbortAddr = ppcGetDAR();
-    ptcbCur->TCB_archRegCtx.REG_uiDar = ulAbortAddr;
+    pregctx->REG_uiDar = ulAbortAddr;
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
     abtInfo.VMABT_uiMethod = BUS_ADRALN;
@@ -287,7 +288,7 @@ VOID  archAlignmentExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archProgramExceptionHandle
 ** 功能描述: 程序异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -316,7 +317,7 @@ VOID  archProgramExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archFpuUnavailableExceptionHandle
 ** 功能描述: FPU 不可用异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -342,7 +343,7 @@ VOID  archFpuUnavailableExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archSystemCallHandle
 ** 功能描述: 系统调用处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -361,7 +362,7 @@ VOID  archSystemCallHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archTraceHandle
 ** 功能描述: Trace 处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -380,7 +381,7 @@ VOID  archTraceHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archFpAssistExceptionHandle
 ** 功能描述: Floating-Point Assist 异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -414,7 +415,7 @@ VOID  archFpAssistExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archMachineCheckExceptionHandle
 ** 功能描述: 机器检查异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -490,7 +491,7 @@ VOID  archDecrementerInit (ULONG    ulVector,
 /*********************************************************************************************************
 ** 函数名称: archAltiVecUnavailableExceptionHandle
 ** 功能描述: AltiVec 不可用异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -516,7 +517,7 @@ VOID  archAltiVecUnavailableExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archAltiVecAssistExceptionHandle
 ** 功能描述: AltiVec Assist 异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:

@@ -16,11 +16,11 @@
 **
 ** 文件创建日期: 2016 年 01 月 15 日
 **
-** 描        述: PowerPC 体系构架 MMU Hashed 页表驱动.
+** 描        述: PowerPC 体系构架 HASH 页表 MMU 驱动.
 *********************************************************************************************************/
 
-#ifndef __ARCH_PPCMMUHASHTBL_H
-#define __ARCH_PPCMMUHASHTBL_H
+#ifndef __ARCH_PPCMMUHASHPAGETBL_H
+#define __ARCH_PPCMMUHASHPAGETBL_H
 
 #define MMU_HASH_DIVISOR                    0x00800000
 #define MMU_SDR1_HTABORG_MASK               0xffff0000                  /*  HTABORG mask                */
@@ -70,12 +70,18 @@
 #define MMU_SR_VSID_MASK                    0x00ffffff                  /*  Virtual segment ID          */
 #define MMU_SR_NB_SHIFT                     28
 
+#define MMU_SEG_NR                          16
+#define MMU_SEG_T                           0x80000000                  /*  T=0 for page, T=1 for I/O   */
+#define MMU_SEG_KS                          0x40000000                  /*  Sup-state protect   (T=0)   */
+#define MMU_SEG_KP                          0x20000000                  /*  User-state protect  (T=0)   */
+#define MMU_SEG_N                           0x10000000                  /*  No-execute protect  (T=0)   */
+#define MMU_SEG_VSID_MASK                   0x00ffffff                  /*  Virtual segment ID  (T=0)   */
+#define MMU_SEG_VSID_SHIFT                  0
+
 #define MMU_VSID_PRIM_HASH                  0x000fffff                  /*  Primary hash value in VSID  */
 
 #define MMU_HASH_VALUE_LOW                  0x000003ff
-
 #define MMU_HASH_VALUE_HIGH                 0x0007fc00
-
 #define MMU_HASH_VALUE_HIGH_SHIFT           10
 
 #define MMU_PTE_HASH_VALUE_HIGH_SHIFT       16
@@ -89,6 +95,12 @@
 #define MMU_PTE_API_SHIFT                   0                           /*  API shift in PTE            */
 
 #define MMU_PTES_IN_PTEG                    8
+
+/*********************************************************************************************************
+  是否使能 PTE 调试信息
+*********************************************************************************************************/
+
+#define MMU_PTE_DEBUG
 
 /*********************************************************************************************************
   PTE for 32-bit implementations
@@ -113,11 +125,11 @@ typedef union {
         UINT32  PTE_uiWord0;                                            /*  Word 0                      */
         UINT32  PTE_uiWord1;                                            /*  Word 1                      */
     } words;
-} PTE;
+} HASH_MMU_PTE;
 
 typedef struct {
-    PTE         PTEG_PTEs[MMU_PTES_IN_PTEG];
-} PTEG;
+    HASH_MMU_PTE    PTEG_PTEs[MMU_PTES_IN_PTEG];
+} HASH_MMU_PTEG;
 
 typedef union {
     UINT32      EA_uiValue;                                             /*  Effective address           */
@@ -126,7 +138,7 @@ typedef union {
         UINT    EA_uiPageIndex      : 16;                               /*  Page index                  */
         UINT    EA_uiPageOffset     : 12;                               /*  Byte offset                 */
     } field;
-} EA;
+} HASH_MMU_EA;
 
 typedef union {
     UINT32      SR_uiValue;                                             /*  SR value                    */
@@ -138,23 +150,50 @@ typedef union {
         UINT    SR_ucReserved       :  4;                               /*  Reserved                    */
         UINT    SR_uiVSID           : 24;                               /*  Virtual segment Id          */
     } field;
-} SR;
+} HASH_MMU_SR;
+
+typedef struct {
+    spinlock_t      HPT_splLock;
+    PVOID           HPT_pvHashPageTblAddr;
+    UINT32          HPT_uiHashPageTblOrg;
+    UINT32          HPT_uiHashPageTblMask;
+    HASH_MMU_SR    *HPT_SR;
+#ifdef MMU_PTE_DEBUG
+    UINT            HPT_uiPtegNr;
+    UINT            HPT_uiPteMissCounter;
+#endif                                                                  /*  defined(MMU_PTE_DEBUG)      */
+} HASH_PAGE_TBL, *PHASH_PAGE_TBL;
 
 /*********************************************************************************************************
-  PPC MMU HASH
+  HASH PAGE TABLE MMU 操作函数
 *********************************************************************************************************/
 
-INT   ppcMmuHashPageTblInit(UINT32  uiMemSize);
-VOID  ppcMmuHashPageTblMakeTrans(addr_t  ulEffectiveAddr,
-                                 UINT32  uiPteValue1);
-VOID  ppcMmuHashPageTblFlagSet(addr_t  ulEffectiveAddr,
-                               UINT32  uiPteValue1);
-VOID  ppcMmuHashPageTblPteMiss(addr_t  ulEffectiveAddr,
-                               UINT32  uiPteValue1);
-VOID  ppcMmuHashPageTblPtePreLoad(addr_t  ulEffectiveAddr,
-                                  UINT32  uiPteValue1);
+ULONG           ppcHashPageTblSegmentFlag(PHASH_PAGE_TBL    pHashPageTbl, addr_t  ulAddr);
 
-#endif                                                                  /*  __ARCH_PPCMMUHASHTBL_H      */
+INT             ppcHashPageTblGlobalInit(CPCHAR             pcMachineName);
+VOID            ppcHashPageTblMakeCurCtx(PHASH_PAGE_TBL     pHashPageTbl);
+
+PHASH_PAGE_TBL  ppcHashPageTblMemInit(PLW_MMU_CONTEXT       pmmuctx, UINT32  uiMemSize);
+INT             ppcHashPageTblMemFree(PHASH_PAGE_TBL        pHashPageTbl);
+
+VOID            ppcHashPageTblMakeTrans(PHASH_PAGE_TBL      pHashPageTbl,
+                                        addr_t              ulEffectiveAddr,
+                                        UINT32              uiPteValue1);
+INT             ppcHashPageTblFlagSet(PHASH_PAGE_TBL        pHashPageTbl,
+                                      addr_t                ulEffectiveAddr,
+                                      UINT32                uiPteValue1);
+ULONG           ppcHashPageTblPteMissHandle(PHASH_PAGE_TBL  pHashPageTbl,
+                                            addr_t          ulEffectiveAddr,
+                                            UINT32          uiPteValue1);
+INT             ppcHashPageTblPtePreLoad(PHASH_PAGE_TBL     pHashPageTbl,
+                                         addr_t             ulEffectiveAddr,
+                                         UINT32             uiPteValue1);
+
+#ifdef MMU_PTE_DEBUG
+VOID            ppcHashPageTblDump(PHASH_PAGE_TBL           pHashPageTbl);
+#endif
+
+#endif                                                                  /*  __ARCH_PPCMMUHASHPAGETBL_H  */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

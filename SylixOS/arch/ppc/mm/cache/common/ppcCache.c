@@ -50,7 +50,7 @@ static INT              _G_iCacheStatus = L1_CACHE_DIS;
 /*********************************************************************************************************
   CACHE 信息
 *********************************************************************************************************/
-static PPC_CACHE        _G_ICache, _G_DCache;                           /*  I-Cache 和 D-Cache 信息     */
+static PPC_CACHE        _G_ICache, _G_DCache;                           /*  ICACHE 和 DCACHE 信息       */
 /*********************************************************************************************************
   Pointer of a page-aligned cacheable region to use as a flush buffer.
 *********************************************************************************************************/
@@ -58,6 +58,7 @@ UINT8                  *_G_pucPpcCacheReadBuffer = (UINT8 *)0x10000;
 /*********************************************************************************************************
   CACHE 驱动
 *********************************************************************************************************/
+extern PPC_L1C_DRIVER   _G_ppc460CacheDriver;
 extern PPC_L1C_DRIVER   _G_ppc603CacheDriver;
 extern PPC_L1C_DRIVER   _G_ppc604CacheDriver;
 extern PPC_L1C_DRIVER   _G_ppc745xCacheDriver;
@@ -67,6 +68,7 @@ extern PPC_L1C_DRIVER   _G_ppcE200CacheDriver;
 extern PPC_L1C_DRIVER   _G_ppcE500CacheDriver;
 
 static PPC_L1C_DRIVER  *_G_ppcCacheDrivers[] = {
+    &_G_ppc460CacheDriver,
     &_G_ppc603CacheDriver,
     &_G_ppc604CacheDriver,
     &_G_ppc745xCacheDriver,

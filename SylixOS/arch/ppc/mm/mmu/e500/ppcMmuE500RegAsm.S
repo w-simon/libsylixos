@@ -61,8 +61,13 @@
     EXPORT_LABEL(ppcE500MmuGetMAS7)
     EXPORT_LABEL(ppcE500MmuSetMAS7)
 
+    EXPORT_LABEL(ppcE500MmuGetPID0)
     EXPORT_LABEL(ppcE500MmuSetPID0)
+
+    EXPORT_LABEL(ppcE500MmuGetPID1)
     EXPORT_LABEL(ppcE500MmuSetPID1)
+
+    EXPORT_LABEL(ppcE500MmuGetPID2)
     EXPORT_LABEL(ppcE500MmuSetPID2)
 
 ;/*********************************************************************************************************
@@ -157,12 +162,24 @@ FUNC_DEF(ppcE500MmuSetMAS7)
     SET_SPR     MAS7
     FUNC_END()
 
+FUNC_DEF(ppcE500MmuGetPID0)
+    GET_SPR     PID0
+    FUNC_END()
+
 FUNC_DEF(ppcE500MmuSetPID0)
     SET_SPR     PID0
     FUNC_END()
 
+FUNC_DEF(ppcE500MmuGetPID1)
+    GET_SPR     PID1
+    FUNC_END()
+
 FUNC_DEF(ppcE500MmuSetPID1)
     SET_SPR     PID1
+    FUNC_END()
+
+FUNC_DEF(ppcE500MmuGetPID2)
+    GET_SPR     PID2
     FUNC_END()
 
 FUNC_DEF(ppcE500MmuSetPID2)

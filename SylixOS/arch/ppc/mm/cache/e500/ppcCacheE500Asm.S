@@ -30,6 +30,7 @@
 
 #define  __SYLIXOS_PPC_E500__
 #include "arch/ppc/arch_e500.h"
+#include "arch/ppc/arch_mmu.h"
 
     EXPORT_LABEL(ppcE500ICacheEnable)
     EXPORT_LABEL(ppcE500DCacheEnable)
@@ -66,10 +67,10 @@
 ;*********************************************************************************************************/
 
 ;/* pages are 4K bytes */
-#define PPC_MMU_PAGE_SIZE               0x1000
+#define PPC_MMU_PAGE_SIZE               (4 * 1024)
 
 ;/* RPN field offset in TLB Word 0 (left shift this number of bits) */
-#define PPC_MMU_RPN_SHIFT               12
+#define PPC_MMU_RPN_SHIFT               (12)
 
     FILE_BEGIN()
 
@@ -251,7 +252,7 @@ LINE_LABEL(cacheE500DisableLoadItlb)
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  D-CACHE 所有数据回写
+;  DCACHE 所有数据回写
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE500DCacheFlushAll)
@@ -321,7 +322,7 @@ LINE_LABEL(cacheE500DisableLoadItlb2)
     FUNC_END()
 
 ;/*********************************************************************************************************
-;  I-CACHE 所有数据无效
+;  ICACHE 所有数据无效
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE500ICacheInvalidateAll)
@@ -399,6 +400,8 @@ FUNC_DEF(ppcE500TextUpdate)
     DCBST   R0 , R3
     SYNC
     ICBI    R0 , R3
+    SYNC
+    ISYNC
     ADD     R3 , R3 , R6
     CMPLW   R3 , R4
     BLT     ppcE500TextUpdate

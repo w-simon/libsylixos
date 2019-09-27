@@ -31,32 +31,35 @@
 #include "./ppcMmuE500Reg.h"
 #include "alloca.h"
 /*********************************************************************************************************
-    The E500 MMU has two levels.  In level 1, instruction and data are
-    split, while they are unified in level 2.  Level 1 is maintained by
-    the hardware and level 2 is maintained by the OS.  The number of entries
-    are as follows:
+  The E500 MMU has two levels.  In level 1, instruction and data are
+  split, while they are unified in level 2.  Level 1 is maintained by
+  the hardware and level 2 is maintained by the OS.  The number of entries
+  are as follows:
 
-    Name      Level   Type No of pg sizes Assoc     #entries     filled by
-    I-L1VSP     L1    Instr     9         Full         4         TLB1 hit
-    I-L1TLB4K   L1    Instr   1(4k)       4-way        64        TLB0 hit
-    D-L1VSP     L1    Data      9         Full         4         TLB1 hit
-    D-L1TLB4K   L1    Data    1(4k)       4-way        64        TLB0 hit
-    TLB1        L2    I/D       9         Full         16        s/w tlbwe
-    TLB0        L2    I/D     1(4k)       2-way        256       s/w tlbwe
+  Name      Level   Type No of pg sizes Assoc     #entries     filled by
+  I-L1VSP     L1    Instr     9         Full         4         TLB1 hit
+  I-L1TLB4K   L1    Instr   1(4k)       4-way        64        TLB0 hit
+  D-L1VSP     L1    Data      9         Full         4         TLB1 hit
+  D-L1TLB4K   L1    Data    1(4k)       4-way        64        TLB0 hit
+  TLB1        L2    I/D       9         Full         16        s/w tlbwe
+  TLB0        L2    I/D     1(4k)       2-way        256       s/w tlbwe
 
-    The VSP (variable sized page) are used as static entries like the BATs,
-    while the 4k page are dynamic entries that gets loaded with the PTEs.
-    When a TLB miss occur in TLB0, an exception occurs and the OS walks the
-    data structure and copies a PTE into a TLB0 entry.  Hence, TLB1 is
-    filled with mapping from the _G_tlb1StaticMapDesc[] array(in bspMap.h), and TLB0 is
-    filled with mapping from the ppcE500Mmu.c.
+  The VSP (variable sized page) are used as static entries like the BATs,
+  while the 4k page are dynamic entries that gets loaded with the PTEs.
+  When a TLB miss occur in TLB0, an exception occurs and the OS walks the
+  data structure and copies a PTE into a TLB0 entry.  Hence, TLB1 is
+  filled with mapping from the _G_tlb1StaticMapDesc[] array(in bspMap.h), and TLB0 is
+  filled with mapping from the ppcMmuE500.c.
 
-    Note that the E500 MMU cannot be turned off.
+  Note that the E500 MMU cannot be turned off.
 *********************************************************************************************************/
 /*********************************************************************************************************
-  定义
+  全局变量
 *********************************************************************************************************/
-#define MMU_MAS2_M              _G_bMas2MBit                            /*  是否多核一致性              */
+static UINT             _G_uiTlb1Size = 0;                              /*  TLB1 数组大小               */
+       BOOL             _G_bMas2MBit  = LW_FALSE;                       /*  多核一致性                  */
+       BOOL             _G_bHasMAS7   = LW_FALSE;                       /*  是否有 MAS7 寄存器          */
+       BOOL             _G_bHasHID1   = LW_FALSE;                       /*  是否有 HID1 寄存器          */
 /*********************************************************************************************************
   MAS 寄存器数组
 *********************************************************************************************************/
@@ -67,19 +70,6 @@ typedef struct {
     MAS3_REG            MASR_uiMAS3;                                    /*  MAS3                        */
     MAS7_REG            MASR_uiMAS7;                                    /*  MAS7                        */
 } MAS_REGS;
-/*********************************************************************************************************
-  全局变量
-*********************************************************************************************************/
-static UINT             _G_uiTlbSize = 0;                               /*  TLB 数组大小                */
-static BOOL             _G_bMas2MBit = LW_FALSE;                        /*  多核一致性                  */
-static BOOL             _G_bHasMAS7  = LW_FALSE;                        /*  是否有 MAS7 寄存器          */
-static BOOL             _G_bHasHID1  = LW_FALSE;                        /*  是否有 HID1 寄存器          */
-/*********************************************************************************************************
-  外部接口声明
-*********************************************************************************************************/
-extern VOID    ppcE500MmuTLB1Invalidate(VOID);
-extern VOID    ppcE500MmuTLB1InvalidateEA(addr_t  ulAddr);
-extern VOID    ppcE500MmuInvalidateTLB(VOID);
 /*********************************************************************************************************
 ** 函数名称: ppcE500MmuGlobalInit
 ** 功能描述: 调用 BSP 对 MMU TLB1 初始化
@@ -110,16 +100,15 @@ static INT  ppcE500MmuTLB1GlobalInit (CPCHAR  pcMachineName)
      * 设置 MAS4
      */
     uiMAS4.MAS4_uiValue   = 0;
-    uiMAS4.MAS4_bTLBSELD  = 0;
-    uiMAS4.MAS4_ucTIDSELD = 0;
-    uiMAS4.MAS4_ucTSIZED  = MMU_TRANS_SZ_4K;
-    uiMAS4.MAS4_bX0D      = 0;
-    uiMAS4.MAS4_bX1D      = 0;
-    uiMAS4.MAS4_bWD       = LW_FALSE;
-    uiMAS4.MAS4_bID       = LW_TRUE;
-    uiMAS4.MAS4_bMD       = LW_TRUE;
-    uiMAS4.MAS4_bGD       = LW_FALSE;
-    uiMAS4.MAS4_bED       = LW_FALSE;
+    uiMAS4.MAS4_ucTLBSELD = 0;                                          /*  默认选择 TLB0               */
+    uiMAS4.MAS4_ucTSIZED  = MMU_TSIZED;                                 /*  默认页面大小                */
+    uiMAS4.MAS4_bX0D      = MMU_MAS4_X0D;
+    uiMAS4.MAS4_bX1D      = MMU_MAS4_X1D;
+    uiMAS4.MAS4_bWD       = LW_TRUE;                                    /*  默认写穿透 CACHE            */
+    uiMAS4.MAS4_bID       = LW_TRUE;                                    /*  默认不可 CACHE              */
+    uiMAS4.MAS4_bMD       = LW_TRUE;                                    /*  默认一致性                  */
+    uiMAS4.MAS4_bGD       = LW_TRUE;                                    /*  默认阻止猜测访问            */
+    uiMAS4.MAS4_bED       = LW_FALSE;                                   /*  默认大端                    */
 
     ppcE500MmuSetMAS4(uiMAS4.MAS4_uiValue);
 
@@ -147,8 +136,8 @@ static INT  ppcE500MmuTLB1GlobalInit (CPCHAR  pcMachineName)
         ppcE500SetHID0(uiHID0);
     }
 
-    ppcE500MmuInvalidateTLB();
-    ppcE500MmuTLB1Invalidate();
+    ppcE500MmuInvalidateTLB();                                          /*  无效 TLB0                   */
+    ppcE500MmuTLB1Invalidate();                                         /*  无效 TLB1                   */
 
     return  (ERROR_NONE);
 }
@@ -190,7 +179,7 @@ static VOID  ppcE500MmuTLB1Init (CPCHAR  pcMachineName)
      * 获得 TLB1 条目数
      */
     uiTLB1CFG.TLBCFG_uiValue = ppcE500MmuGetTLB1CFG();
-    _G_uiTlbSize = uiTLB1CFG.TLBCFG_usNENTRY;
+    _G_uiTlb1Size = uiTLB1CFG.TLBCFG_usNENTRY;
 }
 /*********************************************************************************************************
 ** 函数名称: archE500MmuTLB1GlobalMap
@@ -230,13 +219,13 @@ INT  archE500MmuTLB1GlobalMap (CPCHAR               pcMachineName,
     /*
      * 第一步: 分析物理内存信息描述
      */
-    masRegs = (MAS_REGS *)alloca(sizeof(MAS_REGS) * _G_uiTlbSize);      /*  从栈里分配                  */
-    lib_bzero(masRegs, sizeof(MAS_REGS) * _G_uiTlbSize);
+    masRegs = (MAS_REGS *)alloca(sizeof(MAS_REGS) * _G_uiTlb1Size);     /*  从栈里分配                  */
+    lib_bzero(masRegs, sizeof(MAS_REGS) * _G_uiTlb1Size);
 
     desc         = *pdesc;                                              /*  从第一个开始分析            */
     stRemainSize = desc.TLB1D_stSize;
 
-    for (i = 0; (i < _G_uiTlbSize) && stRemainSize;) {
+    for (i = 0; (i < _G_uiTlb1Size) && stRemainSize;) {
         if (!(desc.TLB1D_ulFlag & E500_TLB1_FLAG_VALID)) {              /*  无效的映射关系              */
             pdesc++;
             desc         = *pdesc;
@@ -248,10 +237,10 @@ INT  archE500MmuTLB1GlobalMap (CPCHAR               pcMachineName,
          * MAS1
          */
         uiMAS1.MAS1_uiValue = 0;
-        uiMAS1.MAS1_bVaild  = LW_TRUE;
-        uiMAS1.MAS1_bIPROT  = LW_TRUE;
-        uiMAS1.MAS1_ucTID   = 0;
-        uiMAS1.MAS1_bTS     = 0;
+        uiMAS1.MAS1_bVaild  = LW_TRUE;                                  /*   TLB 有效                   */
+        uiMAS1.MAS1_bIPROT  = LW_TRUE;                                  /*   TLB 无效保护               */
+        uiMAS1.MAS1_usTID   = 0;                                        /*   全局映射                   */
+        uiMAS1.MAS1_bTS     = 0;                                        /*   地址空间 0                 */
 
         if ((desc.TLB1D_stSize >= 1 * LW_CFG_GB_SIZE) &&
            !(desc.TLB1D_ui64PhyAddr & (1 * LW_CFG_GB_SIZE - 1))) {
@@ -311,49 +300,52 @@ INT  archE500MmuTLB1GlobalMap (CPCHAR               pcMachineName,
          * MAS2
          */
         uiMAS2.MAS2_uiValue = 0;
-        uiMAS2.MAS2_uiEPN   = desc.TLB1D_ulVirMap >> LW_CFG_VMM_PAGE_SHIFT;
-        uiMAS2.MAS2_bLittleEndian = LW_FALSE;
-
-        if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_GUARDED) {               /*  阻止猜测访问                */
-            uiMAS2.MAS2_bGuarded = LW_TRUE;
-        }
+        uiMAS2.MAS2_uiEPN   = desc.TLB1D_ulVirMap >> MMU_RPN_SHIFT;
+        uiMAS2.MAS2_bLittleEndian = LW_FALSE;                           /*  大端                        */
 
         if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_CACHEABLE) {             /*  回写 CACHE                  */
             uiMAS2.MAS2_bUnCache = LW_FALSE;
             uiMAS2.MAS2_bWT      = LW_FALSE;
+            uiMAS2.MAS2_bGuarded = LW_FALSE;
+
+            if (MMU_MAS2_M) {
+                uiMAS2.MAS2_bMemCoh = LW_TRUE;                          /*  多核一致性                  */
+            }
 
         } else if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_WRITETHROUGH) {   /*  写穿透 CACHE                */
             uiMAS2.MAS2_bUnCache = LW_FALSE;
             uiMAS2.MAS2_bWT      = LW_TRUE;
+            uiMAS2.MAS2_bGuarded = LW_FALSE;
 
-        } else {                                                        /*  UNCACHE                     */
+            if (MMU_MAS2_M) {
+                uiMAS2.MAS2_bMemCoh = LW_TRUE;                          /*  多核一致性                  */
+            }
+
+        } else {                                                        /*  不可以 CACHE                */
             uiMAS2.MAS2_bUnCache = LW_TRUE;
             uiMAS2.MAS2_bWT      = LW_TRUE;
-        }
-
-        if (MMU_MAS2_M) {
-            uiMAS2.MAS2_bMemCoh = LW_TRUE;                              /*  多核一致性                  */
+            uiMAS2.MAS2_bGuarded = LW_TRUE;                             /*  阻止猜测访问                */
         }
 
         /*
          * MAS3
          */
         uiMAS3.MAS3_uiValue = 0;                                        /*  MAS3                        */
-        uiMAS3.MAS3_uiRPN   = (desc.TLB1D_ui64PhyAddr & 0xffffffff) >> LW_CFG_VMM_PAGE_SHIFT;
+        uiMAS3.MAS3_uiRPN   = (desc.TLB1D_ui64PhyAddr >> MMU_RPN_SHIFT) & 0xfffff;
 
         if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_ACCESS) {
+            uiMAS3.MAS3_bSuperRead = LW_TRUE;                           /*  特权态可读                  */
             uiMAS3.MAS3_bUserRead  = LW_FALSE;                          /*  用户态不可读                */
-            uiMAS3.MAS3_bSuperRead = LW_TRUE;                           /*  可读                        */
         }
 
         if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_WRITABLE) {
+            uiMAS3.MAS3_bSuperWrite = LW_TRUE;                          /*  特权态可写                  */
             uiMAS3.MAS3_bUserWrite  = LW_FALSE;                         /*  用户态不可写                */
-            uiMAS3.MAS3_bSuperWrite = LW_TRUE;                          /*  可写                        */
         }
 
         if (desc.TLB1D_ulFlag & E500_TLB1_FLAG_EXECABLE) {
+            uiMAS3.MAS3_bSuperExec = LW_TRUE;                           /*  特权态可执行                */
             uiMAS3.MAS3_bUserExec  = LW_FALSE;                          /*  用户态不可执行              */
-            uiMAS3.MAS3_bSuperExec = LW_TRUE;                           /*  可执行                      */
         }
 
         /*
@@ -386,18 +378,18 @@ INT  archE500MmuTLB1GlobalMap (CPCHAR               pcMachineName,
         }
     }
 
-    _BugHandle(i == _G_uiTlbSize, LW_TRUE, "to many map desc!\r\n");
+    _BugHandle(i == _G_uiTlb1Size, LW_TRUE, "to many map desc!\r\n");
 
     /*
      * 第二步: 用 masRegs 数组记录的值来进行真正的映射
      */
     PPC_EXEC_INS("SYNC");
 
-    for (i = 0; i < _G_uiTlbSize; i++) {
-        uiMAS0.MAS0_uiValue = 0;                                        /*  MAS0                        */
-        uiMAS0.MAS0_bTLBSEL = 1;
-        uiMAS0.MAS0_ucESEL  = i;
-        uiMAS0.MAS0_ucNV    = 0;
+    for (i = 0; i < _G_uiTlb1Size; i++) {
+        uiMAS0.MAS0_uiValue  = 0;                                       /*  MAS0                        */
+        uiMAS0.MAS0_ucTLBSEL = 1;                                       /*  选择 TLB1                   */
+        uiMAS0.MAS0_ucESEL   = i;                                       /*  选择 TLB1 的第 i entry      */
+        uiMAS0.MAS0_usNV     = 0;
         ppcE500MmuSetMAS0(uiMAS0.MAS0_uiValue);
 
         ppcE500MmuSetMAS0(uiMAS0.MAS0_uiValue);
@@ -423,12 +415,12 @@ INT  archE500MmuTLB1GlobalMap (CPCHAR               pcMachineName,
     /*
      * 第三步: 删除临时映射
      */
-    for (i = 0; i < _G_uiTlbSize; i++) {
+    for (i = 0; i < _G_uiTlb1Size; i++) {
         if (masRegs[i].MASR_ulFlag & E500_TLB1_FLAG_TEMP) {
-            uiMAS0.MAS0_uiValue = 0;                                    /*  MAS0                        */
-            uiMAS0.MAS0_bTLBSEL = 1;
-            uiMAS0.MAS0_ucESEL  = i;
-            uiMAS0.MAS0_ucNV    = 0;
+            uiMAS0.MAS0_uiValue  = 0;                                   /*  MAS0                        */
+            uiMAS0.MAS0_ucTLBSEL = 1;                                   /*  选择 TLB1                   */
+            uiMAS0.MAS0_ucESEL   = i;                                   /*  选择 TLB1 的第 i entry      */
+            uiMAS0.MAS0_usNV     = 0;
             ppcE500MmuSetMAS0(uiMAS0.MAS0_uiValue);
 
             ppcE500MmuSetMAS1(0);

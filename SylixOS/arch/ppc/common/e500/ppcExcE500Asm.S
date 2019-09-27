@@ -138,6 +138,8 @@ MACRO_DEF(E500_EXC_ENTRY, handle)
     ; */
     EXC_SAVE_NON_VOLATILE
 
+    OR      R14 , R3 , R3                                               ;/*  R14 = R3 = ARCH_REG_CTX 指针*/
+
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     ;/*
@@ -146,9 +148,10 @@ MACRO_DEF(E500_EXC_ENTRY, handle)
     BL      API_InterStackBaseGet
     SUBI    SP , R3 , 16                                                ;/*  开辟 C 函数栈帧             */
 
+    OR      R4 , R14 , R14                                              ;/*  R4 = R14 = ARCH_REG_CTX 指针*/
 2:
     ;/*
-    ; * handle(返回地址)
+    ; * handle(返回地址, ARCH_REG_CTX 指针)
     ; */
     MFSPR   R3 , SRR0                                                   ;/*  传递返回地址                */
     ISYNC
@@ -186,7 +189,7 @@ MACRO_DEF(E500_EXC_ENTRY, handle)
     EXC_SAVE_NON_VOLATILE
 
     SUBI    SP , R3 , 16                                                ;/*  使用异常堆栈并开辟C函数栈帧 */
-
+    OR      R4 , R3 , R3                                                ;/*  R4 = R3 = ARCH_REG_CTX 指针 */
     B       2b
     MACRO_END()
 
@@ -227,6 +230,8 @@ MACRO_DEF(E500_CI_EXC_ENTRY, handle)
     ; */
     EXC_SAVE_NON_VOLATILE
 
+    OR      R14 , R3 , R3                                               ;/*  R14 = R3 = ARCH_REG_CTX 指针*/
+
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     ;/*
@@ -235,9 +240,11 @@ MACRO_DEF(E500_CI_EXC_ENTRY, handle)
     BL      API_InterStackBaseGet
     SUBI    SP , R3 , 16                                                ;/*  开辟 C 函数栈帧             */
 
+    OR      R4 , R14 , R14                                              ;/*  R4 = R14 = ARCH_REG_CTX 指针*/
+
 2:
     ;/*
-    ; * handle(返回地址)
+    ; * handle(返回地址, ARCH_REG_CTX 指针)
     ; */
     MFSPR   R3 , CSRR0                                                  ;/*  传递返回地址                */
     ISYNC
@@ -275,7 +282,7 @@ MACRO_DEF(E500_CI_EXC_ENTRY, handle)
     EXC_SAVE_NON_VOLATILE
 
     SUBI    SP , R3 , 16                                                ;/*  使用异常堆栈并开辟C函数栈帧 */
-
+    OR      R4 , R3 , R3                                                ;/*  R4 = R3 = ARCH_REG_CTX 指针 */
     B       2b
     MACRO_END()
 
@@ -316,6 +323,8 @@ MACRO_DEF(E500_MC_EXC_ENTRY, handle)
     ; */
     EXC_SAVE_NON_VOLATILE
 
+    OR      R14 , R3 , R3                                               ;/*  R14 = R3 = ARCH_REG_CTX 指针*/
+
     SUBI    SP , SP , 16                                                ;/*  开辟 C 函数栈帧             */
 
     ;/*
@@ -324,9 +333,11 @@ MACRO_DEF(E500_MC_EXC_ENTRY, handle)
     BL      API_InterStackBaseGet
     SUBI    SP , R3 , 16                                                ;/*  开辟 C 函数栈帧             */
 
+    OR      R4 , R14 , R14                                              ;/*  R4 = R14 = ARCH_REG_CTX 指针*/
+
 2:
     ;/*
-    ; * handle(返回地址)
+    ; * handle(返回地址, ARCH_REG_CTX 指针)
     ; */
     MFSPR   R3 , MCSRR0                                                 ;/*  传递返回地址                */
     ISYNC
@@ -364,7 +375,7 @@ MACRO_DEF(E500_MC_EXC_ENTRY, handle)
     EXC_SAVE_NON_VOLATILE
 
     SUBI    SP , R3 , 16                                                ;/*  使用异常堆栈并开辟C函数栈帧 */
-
+    OR      R4 , R3 , R3                                                ;/*  R4 = R3 = ARCH_REG_CTX 指针 */
     B       2b
     MACRO_END()
 

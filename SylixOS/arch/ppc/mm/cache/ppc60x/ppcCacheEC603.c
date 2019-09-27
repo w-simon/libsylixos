@@ -52,8 +52,8 @@ extern VOID     ppcEC603TextUpdate(PVOID  pvStart, PVOID  pvEnd,
 ** 函数名称: ppcEC603CacheProbe
 ** 功能描述: CACHE 探测
 ** 输　入  : pcMachineName         机器名
-**           pICache               I-Cache 信息
-**           pDCache               D-Cache 信息
+**           pICache               ICACHE 信息
+**           pDCache               DCACHE 信息
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:

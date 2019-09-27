@@ -24,8 +24,9 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
-#include "mmu/common/ppcMmu.h"
+#include "mmu/hash/ppcMmuHash.h"
 #include "mmu/e500/ppcMmuE500.h"
+#include "mmu/ppc460/ppcMmu460.h"
 /*********************************************************************************************************
   MMU 数据 TLB 预加载驱动函数
 *********************************************************************************************************/
@@ -53,9 +54,10 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
         (lib_strcmp(pcMachineName, PPC_MACHINE_745X)    == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_E300)    == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_E600)    == 0)) {
+        _BugHandle(LW_CFG_PPC_PAGE_SHIFT != 12, LW_TRUE, "LW_CFG_PPC_PAGE_SHIFT MUST be 12!\r\n");
         _BugHandle(LW_CFG_CPU_PHYS_ADDR_64BIT, LW_TRUE, "LW_CFG_CPU_PHYS_ADDR_64BIT MUST be 0!\r\n");
-        ppcMmuInit(pmmuop, pcMachineName);
-        _G_pfuncMmuDataTlbPreLoad = ppcMmuPtePreLoad;
+        ppcHashMmuInit(pmmuop, pcMachineName);
+        _G_pfuncMmuDataTlbPreLoad = ppcHashMmuPtePreLoad;
 
     } else if ((lib_strcmp(pcMachineName, PPC_MACHINE_E500)   == 0) ||
                (lib_strcmp(pcMachineName, PPC_MACHINE_E500V1) == 0) ||
@@ -64,6 +66,10 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
                (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
                (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         ppcE500MmuInit(pmmuop, pcMachineName);
+
+    } else if (lib_strcmp(pcMachineName, PPC_MACHINE_460) == 0) {
+        _BugHandle(LW_CFG_CPU_PHYS_ADDR_64BIT, LW_TRUE, "LW_CFG_CPU_PHYS_ADDR_64BIT MUST be 0!\r\n");
+        ppc460MmuInit(pmmuop, pcMachineName);
 
     } else {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown machine name.\r\n");

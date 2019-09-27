@@ -59,7 +59,7 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
         uiMsr &= ~ARCH_PPC_MSR_FP;                                      /*  禁能 FPU                    */
         uiMsr &= ~ARCH_PPC_MSR_VEC;                                     /*  禁能 ALTIVEC                */
 #if LW_CFG_VMM_EN > 0
-        uiMsr |= ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR;                     /*  使能 MMU                    */
+        uiMsr |=  ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR;                    /*  使能 MMU                    */
 #else
         uiMsr &= ~(ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR);                  /*  禁能 MMU                    */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
@@ -71,8 +71,8 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
 #define ARCH_PPC_MSR_DS             0x00000010                          /*  data address space selector */
 
         uiMsr |=  ARCH_PPC_MSR_EE;                                      /*  使能中断                    */
-        uiMsr &= ~ARCH_PPC_MSR_SPE;                                     /*  禁能 SPE(E6500 时为 ALTIVEC)*/
         uiMsr &= ~ARCH_PPC_MSR_FP;                                      /*  禁能 FPU(E500mc E5500 E6500)*/
+        uiMsr &= ~ARCH_PPC_MSR_SPE;                                     /*  禁能 SPE(E6500 时为 ALTIVEC)*/
         uiMsr &= ~(ARCH_PPC_MSR_IS | ARCH_PPC_MSR_DS);                  /*  使用地址空间 0              */
 
 #undef  ARCH_PPC_MSR_SPE
@@ -82,50 +82,50 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
 
     pstkTop = (PLW_STACK)ROUND_DOWN(pstkTop, ARCH_STK_ALIGN_SIZE);      /*  堆栈指针向下 8 字节对齐     */
 
-    pfpctx  = (ARCH_FP_CTX  *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX));
+    pfpctx  = (ARCH_FP_CTX *)((PCHAR)pstkTop - sizeof(ARCH_FP_CTX));
 
-    pfpctx->FP_uiFp     = (ARCH_REG_T)LW_NULL;
-    pfpctx->FP_uiLr     = (ARCH_REG_T)LW_NULL;
+    pfpctx->FP_uiFp    = (ARCH_REG_T)LW_NULL;
+    pfpctx->FP_uiLr    = (ARCH_REG_T)LW_NULL;
 
-    pregctx->REG_uiR0   = 0;
-    pregctx->REG_uiSp   = (ARCH_REG_T)pfpctx;
-    pregctx->REG_uiR2   = 2;
-    pregctx->REG_uiR3   = (ARCH_REG_T)pvArg;                            /*  R3 用于参数传递             */
-    pregctx->REG_uiR4   = 4;
-    pregctx->REG_uiR5   = 5;
-    pregctx->REG_uiR6   = 6;
-    pregctx->REG_uiR7   = 7;
-    pregctx->REG_uiR8   = 8;
-    pregctx->REG_uiR9   = 9;
-    pregctx->REG_uiR10  = 10;
-    pregctx->REG_uiR11  = 11;
-    pregctx->REG_uiR12  = 12;
-    pregctx->REG_uiR13  = 13;
-    pregctx->REG_uiR14  = 14;
-    pregctx->REG_uiR15  = 15;
-    pregctx->REG_uiR16  = 16;
-    pregctx->REG_uiR17  = 17;
-    pregctx->REG_uiR18  = 18;
-    pregctx->REG_uiR19  = 19;
-    pregctx->REG_uiR20  = 20;
-    pregctx->REG_uiR21  = 21;
-    pregctx->REG_uiR22  = 22;
-    pregctx->REG_uiR23  = 23;
-    pregctx->REG_uiR24  = 24;
-    pregctx->REG_uiR25  = 25;
-    pregctx->REG_uiR26  = 26;
-    pregctx->REG_uiR27  = 27;
-    pregctx->REG_uiR28  = 28;
-    pregctx->REG_uiR29  = 29;
-    pregctx->REG_uiR30  = 30;
-    pregctx->REG_uiFp   = pfpctx->FP_uiFp;
+    pregctx->REG_uiR0  = 0;
+    pregctx->REG_uiSp  = (ARCH_REG_T)pfpctx;
+    pregctx->REG_uiR2  = 2;
+    pregctx->REG_uiR3  = (ARCH_REG_T)pvArg;                             /*  R3 用于参数传递             */
+    pregctx->REG_uiR4  = 4;
+    pregctx->REG_uiR5  = 5;
+    pregctx->REG_uiR6  = 6;
+    pregctx->REG_uiR7  = 7;
+    pregctx->REG_uiR8  = 8;
+    pregctx->REG_uiR9  = 9;
+    pregctx->REG_uiR10 = 10;
+    pregctx->REG_uiR11 = 11;
+    pregctx->REG_uiR12 = 12;
+    pregctx->REG_uiR13 = 13;
+    pregctx->REG_uiR14 = 14;
+    pregctx->REG_uiR15 = 15;
+    pregctx->REG_uiR16 = 16;
+    pregctx->REG_uiR17 = 17;
+    pregctx->REG_uiR18 = 18;
+    pregctx->REG_uiR19 = 19;
+    pregctx->REG_uiR20 = 20;
+    pregctx->REG_uiR21 = 21;
+    pregctx->REG_uiR22 = 22;
+    pregctx->REG_uiR23 = 23;
+    pregctx->REG_uiR24 = 24;
+    pregctx->REG_uiR25 = 25;
+    pregctx->REG_uiR26 = 26;
+    pregctx->REG_uiR27 = 27;
+    pregctx->REG_uiR28 = 28;
+    pregctx->REG_uiR29 = 29;
+    pregctx->REG_uiR30 = 30;
+    pregctx->REG_uiFp  = pfpctx->FP_uiFp;
 
-    pregctx->REG_uiLr   = (ARCH_REG_T)pfuncTask;
-    pregctx->REG_uiPc   = (ARCH_REG_T)pfuncTask;                        /*  RFI 返回的地址              */
-    pregctx->REG_uiMsr  = uiMsr;                                        /*  RFI 后的 MSR                */
-    pregctx->REG_uiCtr  = 0;
-    pregctx->REG_uiXer  = 0;
-    pregctx->REG_uiCr   = 0;
+    pregctx->REG_uiLr  = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_uiPc  = (ARCH_REG_T)pfuncTask;                         /*  RFI 返回的地址              */
+    pregctx->REG_uiMsr = uiMsr;                                         /*  RFI 后的 MSR                */
+    pregctx->REG_uiCtr = 0;
+    pregctx->REG_uiXer = 0;
+    pregctx->REG_uiCr  = 0;
 
     return  ((PLW_STACK)pfpctx);
 }

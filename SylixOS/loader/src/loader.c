@@ -1060,16 +1060,16 @@ INT API_ModuleFinish (PVOID pvVProc)
         return  (ERROR_NONE);
     }
 
+#if LW_CFG_POSIX_EN > 0
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+    _PthreadKeyCleanup(ptcbCur);                                        /*  提前执行 key cleanup 操作   */
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+
     pmodule = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
 
     moduleCleanup(pmodule);
 
     finiArrayCall(pmodule, !pvproc->VP_bImmediatelyTerm);               /*  调用c++析构函数代码         */
-
-#if LW_CFG_POSIX_EN > 0
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
-    _PthreadKeyCleanup(ptcbCur);                                        /*  提前执行 key cleanup 操作   */
-#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 
     __moduleVpPatchFini(pmodule);
 

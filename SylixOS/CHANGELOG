@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2019-09-27: han.hui
+    加入 PowerPC 460 处理器支持.
+
     2019-07-26: han.hui
     加入 TEXT 段保护与调试断点协同工作支持.
 

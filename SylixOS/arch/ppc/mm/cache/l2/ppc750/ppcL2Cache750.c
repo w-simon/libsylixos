@@ -105,8 +105,8 @@ VOID  ppc750L2CacheInit (L2C_DRVIER  *pl2cdrv,
 
         /*
          * See <<PowerPC 750 RISC Microprocessor User's Manual>>
-         * The icbi instruction invalidates only L1 cache blocks and is never forwarded to the L2 cache.
-         * 所以 L2-Cache 只能是 D-Cache only，必须设置 DO 位
+         * The icbi instruction invalidates only L1 CACHE blocks and is never forwarded to the L2 CACHE.
+         * 所以 L2 CACHE 只能是 DCACHE only，必须设置 DO 位
          */
         if (lib_strcmp(pcMachineName, PPC_MACHINE_750) == 0) {
             _G_l2Config.CFG_uiL2CR  |= L2CR_DO;

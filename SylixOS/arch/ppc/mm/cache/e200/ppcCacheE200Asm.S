@@ -158,6 +158,7 @@ LINE_LABEL(nextSet)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE200ICacheInvalidate)
+    XOR     R0 , R0 , R0
     ICBI    R0 , R3
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
@@ -171,6 +172,7 @@ FUNC_DEF(ppcE200ICacheInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE200DCacheInvalidate)
+    XOR     R0 , R0 , R0
     DCBI    R0 , R3
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
@@ -184,6 +186,7 @@ FUNC_DEF(ppcE200DCacheInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE200DCacheClear)
+    XOR     R0 , R0 , R0
     DCBF    R0 , R3                                             ;/*  PPC "flush" == SylixOS "clear"      */
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
@@ -197,6 +200,7 @@ FUNC_DEF(ppcE200DCacheClear)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE200DCacheFlush)
+    XOR     R0 , R0 , R0
     DCBST   R0 , R3                                             ;/*  PPC "store" == SylixOS "flush"      */
     ADD     R3 , R3 , R5
     CMPLW   R3 , R4
@@ -210,6 +214,7 @@ FUNC_DEF(ppcE200DCacheFlush)
 ;*********************************************************************************************************/
 
 FUNC_DEF(ppcE200TextUpdate)
+    XOR     R0 , R0 , R0
     DCBST   R0 , R3
     SYNC
     ICBI    R0 , R3

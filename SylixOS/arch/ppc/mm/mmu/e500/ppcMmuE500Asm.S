@@ -24,11 +24,13 @@
 #endif
 
 #include <arch/assembler.h>
+#include <config/kernel/kernel_cfg.h>
 #include <config/kernel/vmm_cfg.h>
 
 #if LW_CFG_VMM_EN > 0
 
 #include "arch/ppc/arch_e500.h"
+#include "arch/ppc/arch_mmu.h"
 
     FILE_BEGIN()
 
@@ -85,28 +87,47 @@ FUNC_DEF(ppcE500MmuInvalidateTLBEA)
 ;*********************************************************************************************************/
 
 MACRO_DEF(E500_TLB_ERROR_ENTRY, addr_reg, exc_entry)
-    MTSPR       SPRG4_W , R3                ;/*  用 SPRG4, 5, 6, 7 备份 R3 , R4 , R5, CR                 */
+    MTSPR       SPRG4_W , R3                ;/*  用 SPRG4, 5, 6, 7 备份 R3, R4, R5, CR                   */
     MTSPR       SPRG5_W , R4
     MTSPR       SPRG6_W , R5
     MFCR        R3
     MTSPR       SPRG7_W , R3
 
-    MFSPR       R3 , \addr_reg              ;/*  R3 = ulMissAddr;                                        */
+    MFSPR       R5 , \addr_reg              ;/*  R5 = ulMissAddr;                                        */
+    ISYNC
+    MFSPR       R4 , SPRG3                  ;/*  R4 = PGDTable | _G_bHasMAS7;                            */
 
-    RLWINM      R3 , R3 , 20 , 12 , 31      ;/*  R3 = uiEPN = ulMissAddr >> LW_CFG_VMM_PAGE_SHIFT;       */
+    RLWINM      R3 , R5 , 10 , 22 , 31      ;/*  R3 = ulMissAddr >> LW_CFG_VMM_PGD_SHIFT = PGD_NR;       */
 
-#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
-    RLWINM      R3 , R3 , 3  , 0  , 28      ;/*  R3 = uiEPN * sizeof(LW_PTE_TRANSENTRY);                 */
-#else
-    RLWINM      R3 , R3 , 2  , 0  , 29      ;/*  R3 = uiEPN * sizeof(LW_PTE_TRANSENTRY);                 */
+    RLWINM      R3 , R3 , 2 , 0 , 29        ;/*  R3 = R3 << 2 = PGD_NR * sizeof(LW_PGD_TRANSENTRY);      */
+
+    ADD         R3 , R4 , R3                ;/*  R3 = p_pgdentry = PGDTable + PGD_NR * sizeof(PGD_ENTRY);*/
+    RLWINM      R3 , R3 , 0 , 0 , 29        ;/*  R3 = R3 & ~3;  remove _G_bHasMAS7                       */
+
+    LWZ         R3 , 0(R3)                  ;/*  R3 = pgdentry = *p_pgdentry;                            */
+
+    CMPWI       CR7 , R3 , 0                ;/*  if (!pgdentry)                                          */
+    BEQ         CR7 , 2f                    ;/*  then goto 2;                                            */
+
+    RLWINM      R5 , R5 , 10 , 0 , 21       ;/*  R5 = ulMissAddr << (32 - LW_CFG_VMM_PGD_SHIFT);         */
+
+#if   LW_CFG_VMM_PAGE_SIZE == (4 * LW_CFG_KB_SIZE)
+    RLWINM      R5 , R5 , 10 , 22 , 31      ;/*  R5 = R5 >> (32 - PGD_SHIFT + PAGE_SHIFT) = PAGE_NR;     */
+#elif LW_CFG_VMM_PAGE_SIZE == (16 * LW_CFG_KB_SIZE)
+    RLWINM      R5 , R5 , 8 , 24 , 31       ;/*  R5 = R5 >> (32 - PGD_SHIFT + PAGE_SHIFT) = PAGE_NR;     */
+#elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
+    RLWINM      R5 , R5 , 6 , 26 , 31       ;/*  R5 = R5 >> (32 - PGD_SHIFT + PAGE_SHIFT) = PAGE_NR;     */
 #endif
 
-    MFSPR       R4 , SPRG3                  ;/*  R4 = _G_ulPTETable;                                     */
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+    RLWINM      R5 , R5 , 3  , 0 , 28       ;/*  R5 = PAGE_NR * sizeof(LW_PTE_TRANSENTRY);               */
+#else
+    RLWINM      R5 , R5 , 2  , 0 , 29       ;/*  R5 = PAGE_NR * sizeof(LW_PTE_TRANSENTRY);               */
+#endif
 
-    ADD         R3 , R4 , R3                ;/*  R3 = p_pteentry = (_G_ulPTETable +                      */
-                                            ;/*  uiEPN * sizeof(LW_PTE_TRANSENTRY));                     */
+    ADD         R3 , R5 , R3                ;/*  R3 = p_pteentry + PAGE_NR * sizeof(LW_PTE_TRANSENTRY);  */
 
-    MFSPR       R4 , SPRG2                  ;/*  R4 = _G_bHasMAS7;                                       */
+    CLRLWI      R4 , R4 , 31                ;/*  R4 = _G_bHasMAS7;                                       */
     CMPWI       CR7 , R4 , 0                ;/*  if (!_G_bHasMAS7)                                       */
     BEQ         CR7 , 1f                    ;/*  then goto 1;                                            */
 
@@ -118,23 +139,22 @@ MACRO_DEF(E500_TLB_ERROR_ENTRY, addr_reg, exc_entry)
     MTSPR       MAS7 , R4                   ;/*  MAS7 = R4;                                              */
 
 LINE_LABEL(1)
-    LWZ         R3 , 0(R3)                  ;/*  R3 = *p_pteentry;                                       */
+    LWZ         R3 , 0(R3)                  ;/*  R3 = pteentry = *p_pteentry;                            */
 
-    RLWINM      R4  , R3 , 0 , 22 , 22      ;/*  R4 = pteentry.MAS3_bValid;                              */
+    RLWINM      R4 , R3 , 0 , 21 , 21       ;/*  R4 = pteentry.MAS3_bValid;                              */
 
     CMPWI       CR7 , R4 , 0                ;/*  if (!pteentry.MAS3_bValid)                              */
     BEQ         CR7 , 2f                    ;/*  then goto 2;                                            */
 
     MFSPR       R4 , MAS2                   ;/*  R4 = MAS2;                                              */
+    RLWINM      R4 , R4 , 0  , 31 , 26      ;/*  去掉 MAS2 的 WIMG                                       */
 
-    RLWINM      R4 , R4 , 0  , 0  , 26      ;/*  去掉 MAS2 MAS2_bWT 及后面的内容                         */
+    RLWINM      R5 , R3 , 27 , 5  , 31      ;/*  R5  = R3 >> 5; pteentry 右移 5 位                       */
+    RLWINM      R5 , R5 , 0  , 27 , 30      ;/*  R5 &= 0x1e;    取出 WIMG                                */
 
-    RLWINM      R5 , R3 , 28 , 27 , 29      ;/*  PTE 右移 4 位, 并取出 bWT bUnCache bMemCoh              */
-
-    OR          R4 , R5 , R4                ;/*  合并成真正的 MAS2                                       */
+    OR          R4 , R5 , R4                ;/*  R4 = R5 | R4;  合并成真正的 MAS2                        */
 
     MTSPR       MAS2 , R4                   ;/*  设置 MAS2                                               */
-
     MTSPR       MAS3 , R3                   ;/*  设置 MAS3                                               */
 
     ISYNC
@@ -142,16 +162,16 @@ LINE_LABEL(1)
     TLBWE
     ISYNC
 
-    MFSPR       R3 , SPRG7_R                ;/*  从 SPRG4, 5, 6 恢复 R3 , R4 , R5                        */
+    MFSPR       R3 , SPRG7_R                ;/*  从 SPRG4, 5, 6 恢复 R3, R4, R5                          */
     MTCR        R3
     MFSPR       R5 , SPRG6_R
     MFSPR       R4 , SPRG5_R
     MFSPR       R3 , SPRG4_R
 
-    RFI                                     ;/*  从 SRR0 返回，同时 MSR=SRR1                             */
+    RFI                                     ;/*  从 SRR0 返回, 同时 MSR = SRR1                           */
 
 LINE_LABEL(2)
-    MFSPR       R3 , SPRG7_R                ;/*  从 SPRG4, 5, 6, 7 恢复 R3 , R4 , R5, CR                 */
+    MFSPR       R3 , SPRG7_R                ;/*  从 SPRG4, 5, 6, 7 恢复 R3, R4, R5, CR                   */
     MTCR        R3
     MFSPR       R5 , SPRG6_R
     MFSPR       R4 , SPRG5_R

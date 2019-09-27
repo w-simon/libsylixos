@@ -152,6 +152,7 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
   PowerPC 处理器定义
 *********************************************************************************************************/
 
+#define PPC_MACHINE_460         "460"
 #define PPC_MACHINE_603         "603"
 #define PPC_MACHINE_EC603       "EC603"
 #define PPC_MACHINE_604         "604"

@@ -32,7 +32,8 @@
 #include "arch/ppc/param/ppcParam.h"
 #if LW_CFG_VMM_EN > 0
 #include "arch/ppc/mm/mmu/e500/ppcMmuE500.h"
-#endif
+#include "arch/ppc/mm/mmu/ppc460/ppcMmu460.h"
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 #include "arch/ppc/common/unaligned/ppcUnaligned.h"
 /*********************************************************************************************************
   汇编函数声明
@@ -61,10 +62,20 @@ extern VOID  archE500AltiVecAssistExceptionEntry(VOID);
 extern VOID  archE500PerfMonitorExceptionEntry(VOID);
 extern VOID  archE500DoorbellExceptionEntry(VOID);
 extern VOID  archE500DoorbellCriticalExceptionEntry(VOID);
+
+extern VOID  arch460DataTLBErrorEntry(VOID);
+extern VOID  arch460InstructionTLBErrorEntry(VOID);
+/*********************************************************************************************************
+  实现相关函数指针
+*********************************************************************************************************/
+static UINT32  (*_G_pfuncGetMCAR)(VOID) = ppcE500GetMCAR;
+#if LW_CFG_VMM_EN > 0
+static ULONG   (*_G_pfuncMmuStorageAbortType)(addr_t, UINT) = ppcE500MmuStorageAbortType;
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: archE500CriticalInputExceptionHandle
 ** 功能描述: 临界输入异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -83,7 +94,7 @@ VOID  archE500CriticalInputExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500MachineCheckExceptionHandle
 ** 功能描述: 机器检查异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -93,33 +104,34 @@ VOID  archE500MachineCheckExceptionHandle (addr_t  ulRetAddr)
 {
     PLW_CLASS_TCB   ptcbCur;
     LW_VMM_ABORT    abtInfo;
-
+    UINT32          uiMCSR = ppcE500GetMCSR();
 #if LW_CFG_CPU_EXC_HOOK_EN > 0
-    addr_t          ulAbortAddr = ppcE500GetMCAR();
+    addr_t          ulAbortAddr = _G_pfuncGetMCAR();
 #endif
 
     LW_TCB_GET_CUR(ptcbCur);
 
 #if LW_CFG_CPU_EXC_HOOK_EN > 0
-    if (bspCpuExcHook(ptcbCur, ulRetAddr, ulAbortAddr, ARCH_MACHINE_EXCEPTION, 0)) {
+    if (bspCpuExcHook(ptcbCur, ulRetAddr, ulAbortAddr, ARCH_MACHINE_EXCEPTION, uiMCSR)) {
         return;
     }
 #endif
 
-    _DebugHandle(__ERRORMESSAGE_LEVEL, "Machine error detected!\r\n");
+    _DebugFormat(__ERRORMESSAGE_LEVEL, "Machine error detected! MCSR 0x%x.\r\n", uiMCSR);
     abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_FATAL_ERROR;
     API_VmmAbortIsr(ulRetAddr, ulRetAddr, &abtInfo, ptcbCur);
 }
 /*********************************************************************************************************
 ** 函数名称: archE500DataStorageExceptionHandle
 ** 功能描述: 数据存储异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
+**           pregctx    寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-VOID  archE500DataStorageExceptionHandle (addr_t  ulRetAddr)
+VOID  archE500DataStorageExceptionHandle (addr_t  ulRetAddr, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB   ptcbCur;
     addr_t          ulAbortAddr;
@@ -143,12 +155,13 @@ VOID  archE500DataStorageExceptionHandle (addr_t  ulRetAddr)
 
     } else if (uiESR & ARCH_PPC_ESR_ST) {                               /*  a store or store-class cache*/
                                                                         /*  management instruction      */
-        abtInfo.VMABT_uiType   = ppcE500MmuDataStorageAbortType(ulAbortAddr, LW_TRUE);
         abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_WRITE;
-
+        abtInfo.VMABT_uiType   = _G_pfuncMmuStorageAbortType(ulAbortAddr,
+                                                             LW_VMM_ABORT_METHOD_WRITE);
     } else {
-        abtInfo.VMABT_uiType   = ppcE500MmuDataStorageAbortType(ulAbortAddr, LW_FALSE);
         abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_READ;
+        abtInfo.VMABT_uiType   = _G_pfuncMmuStorageAbortType(ulAbortAddr,
+                                                             LW_VMM_ABORT_METHOD_READ);
     }
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
@@ -159,13 +172,14 @@ VOID  archE500DataStorageExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500InstructionStorageExceptionHandle
 ** 功能描述: 指令访问异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
+**           pregctx    寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-VOID  archE500InstructionStorageExceptionHandle (addr_t  ulRetAddr)
+VOID  archE500InstructionStorageExceptionHandle (addr_t  ulRetAddr, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB   ptcbCur;
     addr_t          ulAbortAddr;
@@ -183,8 +197,9 @@ VOID  archE500InstructionStorageExceptionHandle (addr_t  ulRetAddr)
         abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_TERMINAL;
 
     } else {
-        abtInfo.VMABT_uiType   = ppcE500MmuInstStorageAbortType(ulAbortAddr);
         abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+        abtInfo.VMABT_uiType   = _G_pfuncMmuStorageAbortType(ulAbortAddr,
+                                                             LW_VMM_ABORT_METHOD_EXEC);
     }
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
@@ -210,13 +225,14 @@ static VOID  archE500UnalignedHandle (PLW_VMM_ABORT_CTX  pabtctx)
 /*********************************************************************************************************
 ** 函数名称: archE500AlignmentExceptionHandle
 ** 功能描述: 非对齐异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
+**           pregctx    寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 ** 注  意  : 此函数退出时必须为中断关闭状态.
 *********************************************************************************************************/
-VOID  archE500AlignmentExceptionHandle (addr_t  ulRetAddr)
+VOID  archE500AlignmentExceptionHandle (addr_t  ulRetAddr, ARCH_REG_CTX  *pregctx)
 {
     PLW_CLASS_TCB  ptcbCur;
     LW_VMM_ABORT   abtInfo;
@@ -226,7 +242,7 @@ VOID  archE500AlignmentExceptionHandle (addr_t  ulRetAddr)
     LW_TCB_GET_CUR(ptcbCur);
 
     ulAbortAddr = ppcE500GetDEAR();
-    ptcbCur->TCB_archRegCtx.REG_uiDar = ulAbortAddr;
+    pregctx->REG_uiDar = ulAbortAddr;
 
     abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;
     abtInfo.VMABT_uiMethod = BUS_ADRALN;
@@ -241,7 +257,7 @@ VOID  archE500AlignmentExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500ProgramExceptionHandle
 ** 功能描述: 程序异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -270,7 +286,7 @@ VOID  archE500ProgramExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500FpuUnavailableExceptionHandle
 ** 功能描述: FPU 不可用异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -296,7 +312,7 @@ VOID  archE500FpuUnavailableExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500ApUnavailableExceptionHandle
 ** 功能描述: AP 不可用异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -316,7 +332,7 @@ LW_WEAK VOID  archE500ApUnavailableExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500SystemCallHandle
 ** 功能描述: 系统调用处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -335,7 +351,7 @@ VOID  archE500SystemCallHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500DataTLBErrorHandle
 ** 功能描述: 数据访问 TLB 错误异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -359,7 +375,7 @@ VOID  archE500DataTLBErrorHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500InstructionTLBErrorHandle
 ** 功能描述: 指令访问 TLB 错误异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -380,7 +396,7 @@ VOID  archE500InstructionTLBErrorHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500DebugExceptionHandle
 ** 功能描述: 调试异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -399,7 +415,7 @@ VOID  archE500DebugExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500SpeUnavailableExceptionHandle
 ** 功能描述: SPE 不可用异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -425,7 +441,7 @@ VOID  archE500SpeUnavailableExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500FpDataExceptionHandle
 ** 功能描述: SPE floating-point data 异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -451,7 +467,7 @@ VOID  archE500FpDataExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500FpRoundExceptionHandle
 ** 功能描述: SPE floating-point round 异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -476,7 +492,7 @@ VOID  archE500FpRoundExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500AltiVecUnavailableExceptionHandle
 ** 功能描述: AltiVec 不可用异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -502,7 +518,7 @@ VOID  archE500AltiVecUnavailableExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500AltiVecAssistExceptionHandle
 ** 功能描述: AltiVec Assist 异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -522,7 +538,7 @@ VOID  archE500AltiVecAssistExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500PerfMonitorExceptionHandle
 ** 功能描述: Performance monitor 异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -534,7 +550,7 @@ LW_WEAK VOID  archE500PerfMonitorExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500DoorbellExceptionHandle
 ** 功能描述: Processor doorbell 异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -546,7 +562,7 @@ LW_WEAK VOID  archE500DoorbellExceptionHandle (addr_t  ulRetAddr)
 /*********************************************************************************************************
 ** 函数名称: archE500DoorbellCriticalExceptionHandle
 ** 功能描述: Processor doorbell critical 异常处理
-** 输　入  : NONE
+** 输　入  : ulRetAddr  异常返回地址
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -841,14 +857,14 @@ VOID  archE500VectorInit (CPCHAR  pcMachineName, addr_t  ulVectorBase)
 #define tostring(rn)    #rn
 #define mtspr(rn, v)    asm volatile("mtspr " tostring(rn) ",%0" : : "r" (v))
 
-    archE500WatchdogInterruptDisable();                                 /*   关闭看门狗中断             */
-    archE500DecrementerInterruptDisable();                              /*   关闭 DEC 中断              */
-    archE500TimerInterruptDisable();                                    /*   关闭固定间隔定时器中断     */
+    archE500WatchdogInterruptDisable();                                 /*  关闭看门狗中断              */
+    archE500DecrementerInterruptDisable();                              /*  关闭 DEC 中断               */
+    archE500TimerInterruptDisable();                                    /*  关闭固定间隔定时器中断      */
 
     mtspr(IVPR, ulVectorBase);
 
     mtspr(IVOR0,  (addr_t)archE500CriticalInputExceptionEntry - ulVectorBase);
-    mtspr(IVOR1,  (addr_t)archE500MachineCheckExceptionEntry  - ulVectorBase);
+    mtspr(IVOR1,  (addr_t)archE500MachineCheckExceptionEntry - ulVectorBase);
     mtspr(IVOR2,  (addr_t)archE500DataStorageExceptionEntry - ulVectorBase);
     mtspr(IVOR3,  (addr_t)archE500InstructionStorageExceptionEntry - ulVectorBase);
     mtspr(IVOR4,  (addr_t)archE500ExternalInterruptEntry - ulVectorBase);
@@ -882,6 +898,52 @@ VOID  archE500VectorInit (CPCHAR  pcMachineName, addr_t  ulVectorBase)
         mtspr(IVOR36, (addr_t)archE500DoorbellExceptionEntry - ulVectorBase);
         mtspr(IVOR37, (addr_t)archE500DoorbellCriticalExceptionEntry - ulVectorBase);
     }
+}
+/*********************************************************************************************************
+** 函数名称: arch460VectorInit
+** 功能描述: 初始化 PPC460 异常向量表
+** 输　入  : pcMachineName         机器名
+**           ulVectorBase          Interrupt Vector Prefix
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  arch460VectorInit (CPCHAR  pcMachineName, addr_t  ulVectorBase)
+{
+    archE500WatchdogInterruptDisable();                                 /*  关闭看门狗中断              */
+    archE500DecrementerInterruptDisable();                              /*  关闭 DEC 中断               */
+    archE500TimerInterruptDisable();                                    /*  关闭固定间隔定时器中断      */
+
+    _G_pfuncGetMCAR = ppcE500GetDEAR;                                   /*  PPC460 无 MCAR, 使用 DEAR   */
+#if LW_CFG_VMM_EN > 0
+    _G_pfuncMmuStorageAbortType = ppc460MmuStorageAbortType;
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+
+    mtspr(IVPR, ulVectorBase);
+
+    mtspr(IVOR0,  (addr_t)archE500CriticalInputExceptionEntry - ulVectorBase);
+    mtspr(IVOR1,  (addr_t)archE500MachineCheckExceptionEntry - ulVectorBase);
+    mtspr(IVOR2,  (addr_t)archE500DataStorageExceptionEntry - ulVectorBase);
+    mtspr(IVOR3,  (addr_t)archE500InstructionStorageExceptionEntry - ulVectorBase);
+    mtspr(IVOR4,  (addr_t)archE500ExternalInterruptEntry - ulVectorBase);
+    mtspr(IVOR5,  (addr_t)archE500AlignmentExceptionEntry - ulVectorBase);
+    mtspr(IVOR6,  (addr_t)archE500ProgramExceptionEntry - ulVectorBase);
+    mtspr(IVOR7,  (addr_t)archE500FpuUnavailableExceptionEntry - ulVectorBase);
+    mtspr(IVOR8,  (addr_t)archE500SystemCallEntry - ulVectorBase);
+    mtspr(IVOR9,  (addr_t)archE500ApUnavailableExceptionEntry - ulVectorBase);
+    mtspr(IVOR10, (addr_t)archE500DecrementerInterruptEntry - ulVectorBase);
+    mtspr(IVOR11, (addr_t)archE500TimerInterruptEntry - ulVectorBase);
+    mtspr(IVOR12, (addr_t)archE500WatchdogInterruptEntry - ulVectorBase);
+
+#if LW_CFG_VMM_EN > 0
+    mtspr(IVOR13, (addr_t)arch460DataTLBErrorEntry - ulVectorBase);
+    mtspr(IVOR14, (addr_t)arch460InstructionTLBErrorEntry - ulVectorBase);
+#else
+    mtspr(IVOR13, (addr_t)archE500DataTLBErrorEntry - ulVectorBase);
+    mtspr(IVOR14, (addr_t)archE500InstructionTLBErrorEntry - ulVectorBase);
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+
+    mtspr(IVOR15, (addr_t)archE500DebugExceptionEntry - ulVectorBase);
 }
 /*********************************************************************************************************
   END

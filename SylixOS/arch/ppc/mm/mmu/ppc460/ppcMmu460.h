@@ -10,27 +10,22 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: ppcMmu.h
+** 文   件   名: ppcMmu460.h
 **
 ** 创   建   人: Jiao.JinXing (焦进星)
 **
-** 文件创建日期: 2016 年 01 月 14 日
+** 文件创建日期: 2019 年 08 月 14 日
 **
-** 描        述: PowerPC 体系构架 MMU 驱动.
+** 描        述: PowerPC 460 体系构架 MMU 驱动.
 *********************************************************************************************************/
 
-#ifndef __ARCH_PPCMMU_H
-#define __ARCH_PPCMMU_H
+#ifndef __ARCH_PPCMMU460_H
+#define __ARCH_PPCMMU460_H
 
-VOID   ppcMmuInit(LW_MMU_OP *pmmuop, CPCHAR  pcMachineName);
+VOID   ppc460MmuInit(LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName);
+ULONG  ppc460MmuStorageAbortType(addr_t  ulAddr, UINT  uiMethod);
 
-ULONG  ppcMmuPteMissHandle(addr_t  ulAddr);
-INT    ppcMmuPtePreLoad(addr_t  ulAddr);
-
-UINT32 ppcMmuGetSRR1(VOID);
-UINT32 ppcMmuGetDSISR(VOID);
-
-#endif                                                                  /*  __ARCH_PPCMMU_H             */
+#endif                                                                  /*  __ARCH_PPCMMU460_H          */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

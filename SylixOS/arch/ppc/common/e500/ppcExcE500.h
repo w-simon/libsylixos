@@ -67,6 +67,7 @@ VOID  archE500WatchdogInterruptDisable(VOID);
 BOOL  archE500WatchdogInterruptIsEnable(VOID);
 
 VOID  archE500VectorInit(CPCHAR  pcMachineName, addr_t  ulVectorBase);
+VOID  arch460VectorInit(CPCHAR  pcMachineName, addr_t  ulVectorBase);
 
 #endif                                                                  /*  __ARCH_PPCEXCE500_H         */
 /*********************************************************************************************************

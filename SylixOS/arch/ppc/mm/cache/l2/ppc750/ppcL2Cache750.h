@@ -45,7 +45,7 @@ VOID  ppc750L2CacheConfig(PPC750_L2CACHE_CONFIG  *pL2Config);
 #endif
 
 /*********************************************************************************************************
-  L2 Cache - Define for 755/74xx with L2 cache.
+  L2 CACHE - Define for 755/74xx with L2 cache.
 *********************************************************************************************************/
 #define L2CR_REG                1017                /*  L2CR register number                            */
 #define HID0_REG                1008

@@ -81,8 +81,8 @@ static VOID  ppcE500CacheNoop (VOID)
 ** 函数名称: ppcE500CacheProbe
 ** 功能描述: CACHE 探测
 ** 输　入  : pcMachineName         机器名
-**           pICache               I-Cache 信息
-**           pDCache               D-Cache 信息
+**           pICache               ICACHE 信息
+**           pDCache               DCACHE 信息
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
@@ -96,7 +96,7 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
         (lib_strcmp(pcMachineName, PPC_MACHINE_E5500)  == 0) ||
         (lib_strcmp(pcMachineName, PPC_MACHINE_E6500)  == 0)) {
         /*
-         * D-Cache 探测
+         * DCACHE 探测
          */
         {
             E500_L1CFG0     l1cfg0;
@@ -137,7 +137,7 @@ static INT   ppcE500CacheProbe (CPCHAR  pcMachineName, PPC_CACHE  *pICache, PPC_
         }
 
         /*
-         * I-Cache 探测
+         * ICACHE 探测
          */
         {
             E500_L1CFG1     l1cfg1;

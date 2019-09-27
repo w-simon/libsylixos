@@ -38,9 +38,9 @@ VOID  archKernelParam (CPCHAR  pcParam)
 {
     if (lib_strncmp(pcParam, "ppc32=", 6) == 0) {                       /*  是否为通用的 PPC32 处理器   */
         if (pcParam[6] == 'n') {
-            ppcParam.PP_bGenericPPC32 = LW_FALSE;
+            ppcParam.PP_bGenericPPC32 = LW_FALSE;                       /*  E500 PPC460                 */
         } else {
-            ppcParam.PP_bGenericPPC32 = LW_TRUE;
+            ppcParam.PP_bGenericPPC32 = LW_TRUE;                        /*  E300 PPC750                 */
         }
 
     } else if (lib_strncmp(pcParam, "unalign=", 8) == 0) {              /*  是否支持非对齐访问          */

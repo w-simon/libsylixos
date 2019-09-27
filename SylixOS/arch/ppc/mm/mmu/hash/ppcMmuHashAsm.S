@@ -10,13 +10,13 @@
 ;**
 ;**--------------文件信息--------------------------------------------------------------------------------
 ;**
-;** 文   件   名: ppcMmuAsm.S
+;** 文   件   名: ppcMmuHashAsm.S
 ;**
 ;** 创   建   人: Jiao.JinXing (焦进星)
 ;**
 ;** 文件创建日期: 2016 年 01 月 14 日
 ;**
-;** 描        述: PowerPC 体系构架 MMU 驱动.
+;** 描        述: PowerPC 体系构架 HASH 页表 MMU 驱动.
 ;*********************************************************************************************************/
 
 #ifndef ASSEMBLY
@@ -30,25 +30,25 @@
 
     FILE_BEGIN()
 
-    EXPORT_LABEL(ppcMmuEnable)
-    EXPORT_LABEL(ppcMmuDisable)
+    EXPORT_LABEL(ppcHashMmuEnable)
+    EXPORT_LABEL(ppcHashMmuDisable)
 
-    EXPORT_LABEL(ppcMmuInvalidateTLBNr)
-    EXPORT_LABEL(ppcMmuInvalidateTLBEA)
+    EXPORT_LABEL(ppcHashMmuInvalidateTLBNr)
+    EXPORT_LABEL(ppcHashMmuInvalidateTLBEA)
 
-    EXPORT_LABEL(ppcMmuSetSDR1)
-    EXPORT_LABEL(ppcMmuSetSR)
+    EXPORT_LABEL(ppcHashMmuSetSDR1)
+    EXPORT_LABEL(ppcHashMmuSetSR)
 
-    EXPORT_LABEL(ppcMmuGetSRR1)
-    EXPORT_LABEL(ppcMmuGetDSISR)
+    EXPORT_LABEL(ppcHashMmuGetSRR1)
+    EXPORT_LABEL(ppcHashMmuGetDSISR)
 
-    EXPORT_LABEL(ppcHashPageTblPteSet)
+    EXPORT_LABEL(ppcHashMmuHashPageTblPteSet)
 
 ;/*********************************************************************************************************
 ;  使能 MMU
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcMmuEnable)
+FUNC_DEF(ppcHashMmuEnable)
     MFMSR   R3
     ISYNC
     ORI     R3 , R3 , ARCH_PPC_MSR_DR | ARCH_PPC_MSR_IR
@@ -62,7 +62,7 @@ FUNC_DEF(ppcMmuEnable)
 ;  禁能 MMU
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcMmuDisable)
+FUNC_DEF(ppcHashMmuDisable)
     MFMSR   R3
     ISYNC
     ARCH_PPC_MMU_MASK(R3 , R3)
@@ -74,9 +74,13 @@ FUNC_DEF(ppcMmuDisable)
 
 ;/*********************************************************************************************************
 ;  无效所有 TLB
+;  The tlbia instruction is not implemented on 750/E600/745x/E300/603e and when its opcode is encountered,
+;  an illegal instruction program exception is generated. To invalidate all entries of both TLBs,
+;  64(750/E600/745x)/32(E300/603e) tlbie instructions must be executed,
+;  incrementing the value in EA14–EA19(750/E600/745x)/EA15–EA19(E300/603e) by one each time.
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcMmuInvalidateTLBNr)
+FUNC_DEF(ppcHashMmuInvalidateTLBNr)
     ISYNC
     MTCTR   R3                                                          ;/*  CTR = R3                    */
     XOR     R4 , R4 , R4                                                ;/*  R4 = 0                      */
@@ -87,7 +91,7 @@ LINE_LABEL(tlbloop)
     EIEIO
     TLBSYNC
     SYNC
-    ADDI    R4 , R4 , 0x1000                                            ;/*  Increment bits 15-19        */
+    ADDI    R4 , R4 , 0x1000                                            ;/*  Increment bits 14-19        */
     BDNZ    tlbloop                                                     ;/*  Dec CTR, branch if CTR != 0 */
     BLR
     FUNC_END()
@@ -96,7 +100,7 @@ LINE_LABEL(tlbloop)
 ;  无效指定 EA 的 TLB
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcMmuInvalidateTLBEA)
+FUNC_DEF(ppcHashMmuInvalidateTLBEA)
     SYNC
     TLBIE   R3
     EIEIO
@@ -107,13 +111,13 @@ FUNC_DEF(ppcMmuInvalidateTLBEA)
 
 ;/*********************************************************************************************************
 ;  设置 PTE，并无效 TLB
-;  VOID  ppcHashPageTblPteSet(PTE    *pPte,
-;                             UINT32  uiWord0,
-;                             UINT32  uiWord1,
-;                             UINT32  uiEffectiveAddr);
+;  VOID  ppcHashMmuHashPageTblPteSet(PTE    *pPte,
+;                                    UINT32  uiWord0,
+;                                    UINT32  uiWord1,
+;                                    UINT32  uiEffectiveAddr);
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcHashPageTblPteSet)
+FUNC_DEF(ppcHashMmuHashPageTblPteSet)
     SYNC
     STW     R5, 4(R3)
     EIEIO
@@ -130,7 +134,7 @@ FUNC_DEF(ppcHashPageTblPteSet)
 ;  设置 SDR1 寄存器
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcMmuSetSDR1)
+FUNC_DEF(ppcHashMmuSetSDR1)
     SYNC
     MTSPR   SDR1 , R3
     ISYNC
@@ -139,10 +143,10 @@ FUNC_DEF(ppcMmuSetSDR1)
 
 ;/*********************************************************************************************************
 ;  设置段寄存器
-;  VOID  ppcMmuSetSR(UINT32  uiSRn, UINT32  uiValue);
+;  VOID  ppcHashMmuSetSR(UINT32  uiSRn, UINT32  uiValue);
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcMmuSetSR)
+FUNC_DEF(ppcHashMmuSetSR)
     SYNC
     RLWINM  R3 , R3 , 28 , 0 , 3
     ISYNC
@@ -155,7 +159,7 @@ FUNC_DEF(ppcMmuSetSR)
 ;  获得 SRR1 寄存器
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcMmuGetSRR1)
+FUNC_DEF(ppcHashMmuGetSRR1)
     MFSPR   R3 , SRR1
     ISYNC
     BLR
@@ -165,7 +169,7 @@ FUNC_DEF(ppcMmuGetSRR1)
 ;  获得 DSISR 寄存器
 ;*********************************************************************************************************/
 
-FUNC_DEF(ppcMmuGetDSISR)
+FUNC_DEF(ppcHashMmuGetDSISR)
     MFSPR   R3 , DSISR
     ISYNC
     BLR
