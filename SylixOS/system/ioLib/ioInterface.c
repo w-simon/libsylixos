@@ -763,13 +763,17 @@ off_t  lseek (INT      iFd,
              off_t      oftWhere;
              off_t      oftNBytes;
              
+             INT        iOldErr;
     REGISTER INT        iError;
     REGISTER off_t      oftRetVal;
       struct stat       statFile;
 
+    iOldErr = errno;
     oftRetVal = API_IosLseek(iFd, oftOffset, iWhence);
     if (oftRetVal != PX_ERROR) {                                        /*  优先考虑驱动函数            */
         return  (oftRetVal);
+    } else {
+        errno = iOldErr;                                                /*  恢复 errno                  */
     }
     
     switch (iWhence) {

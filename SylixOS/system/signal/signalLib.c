@@ -370,8 +370,8 @@ static VOID    __sigTaskDeleteHook (LW_OBJECT_HANDLE  ulId)
     __KERNEL_EXIT();                                                    /*  退出内核                    */
     
 #if LW_CFG_SIGNALFD_EN > 0
-    psigctx->SIGCTX_bRead      = LW_FALSE;
-    psigctx->SIGCTX_sigsetWait = 0ull;
+    psigctx->SIGCTX_bRead     = LW_FALSE;
+    psigctx->SIGCTX_sigsetFdw = 0ull;
     SEL_WAKE_UP_TERM(&psigctx->SIGCTX_selwulist);
 #endif                                                                  /*  LW_CFG_SIGNALFD_EN > 0      */
 }
@@ -947,12 +947,13 @@ INT  _sigPendGet (PLW_CLASS_SIGCONTEXT  psigctx, const sigset_t  *psigset, struc
     iSigIndex      = __sigindex(iSigNo);
     
     if (sigsetNeedRun & psigctx->SIGCTX_sigsetKill) {                   /*  有 kill 的信号需要被运行    */
-        psigctx->SIGCTX_sigsetKill  &= ~sigsetNeedRun;
+        psigctx->SIGCTX_sigsetKill     &= ~sigsetNeedRun;
+        psigctx->SIGCTX_sigsetPending  &= ~sigsetNeedRun;
         
         psiginfo->si_signo           = iSigNo;
         psiginfo->si_errno           = ERROR_NONE;
         psiginfo->si_code            = SI_KILL;
-        psiginfo->si_value.sival_ptr = LW_NULL;
+        psiginfo->si_value.sival_int = iSigNo;
     
     } else {                                                            /*  没有 kill, 则一定有排队信号 */
         psigpend = _LIST_ENTRY(psigctx->SIGCTX_pringSigQ[iSigIndex], 
@@ -971,10 +972,10 @@ INT  _sigPendGet (PLW_CLASS_SIGCONTEXT  psigctx, const sigset_t  *psigset, struc
             (psigpend->SIGPEND_iNotify         == SIGEV_SIGNAL)) {      /*  使用 queue 发送信号         */
             _sigPendFree(psigpend);                                     /*  需要交换空闲队列            */
         }
-    }
-    
-    if (psigctx->SIGCTX_pringSigQ[iSigIndex] == LW_NULL) {              /*  此信号队列中已无 pend       */
-        psigctx->SIGCTX_sigsetPending &= ~sigsetNeedRun;
+
+        if (psigctx->SIGCTX_pringSigQ[iSigIndex] == LW_NULL) {          /*  此信号队列中已无 pend       */
+            psigctx->SIGCTX_sigsetPending &= ~sigsetNeedRun;
+        }
     }
     
     return  (iSigNo);

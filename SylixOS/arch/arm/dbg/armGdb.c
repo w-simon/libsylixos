@@ -484,6 +484,11 @@ ULONG  armGetNextPc (GDB_REG_SET *pRegs)
             UINT32 rn, cFlag, base;
             INT32  offset;
 
+            if ((BITS(uiInstr, 24, 27) == 7) &&
+                (BITS(uiInstr, 4, 7) == 1)) {                           /* ¹ýÂËcortex-a7 SDIVºÍUDIVÖ¸Áî */
+                break;
+            }
+
             rn = BITS(uiInstr, 16, 19);
             base = rn == 15 ? uiPc + 8 : pRegs->regArr[rn].GDBRA_ulValue;
             cFlag = BITSET(pRegs->regArr[ARM_REG_INDEX_CPSR].GDBRA_ulValue, 29);

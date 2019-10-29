@@ -221,9 +221,9 @@ INT   sigaction (INT                      iSigNo,
                  const struct sigaction  *psigactionNew,
                  struct sigaction        *psigactionOld)
 {
-    struct sigaction               *psigaction;
-    PLW_CLASS_SIGCONTEXT            psigctx;
-    PLW_CLASS_TCB                   ptcbCur;
+             struct sigaction      *psigaction;
+             PLW_CLASS_SIGCONTEXT   psigctx;
+             PLW_CLASS_TCB          ptcbCur;
     REGISTER PLW_CLASS_SIGPEND      psigpend;
     REGISTER INT                    iSigIndex = __sigindex(iSigNo);     /*  TCB_sigaction 下标          */
     
@@ -232,7 +232,7 @@ INT   sigaction (INT                      iSigNo,
         return  (PX_ERROR);
     }
     
-    if (iSigNo == SIGSTOP) {                                            /*  不能捕获和忽略              */
+    if (__SIGNO_UNCATCH & __sigmask(iSigNo)) {                          /*  不能捕获和忽略              */
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -574,6 +574,10 @@ INT  sighold (INT  iSigNo)
     }
 
     sigset = __sigmask(iSigNo);
+    if (__SIGNO_UNMASK & sigset) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
 
     return  (sigprocmask(SIG_BLOCK, &sigset, LW_NULL));
 }
@@ -594,6 +598,11 @@ INT  sigignore (INT  iSigNo)
         return  (PX_ERROR);
     }
     
+    if (__SIGNO_UNMASK & __sigmask(iSigNo)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     if (signal(iSigNo, SIG_IGN) == SIG_ERR) {
         return  (PX_ERROR);
     }
@@ -639,7 +648,7 @@ INT  sigpause (INT  iSigMask)
 {
     sigset_t    sigset;
     
-    sigset = (sigset_t)iSigMask;
+    sigset = ~(sigset_t)iSigMask;
     
     return  (sigsuspend(&sigset));
 }
@@ -933,6 +942,11 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
 LW_API  
 INT  raise (INT  iSigNo)
 {
+    if (!__issig(iSigNo)) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     return  (kill(API_ThreadIdSelf(), iSigNo));
 }
 /*********************************************************************************************************
@@ -1063,6 +1077,12 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
     if (_Thread_Index_Invalid(usIndex)) {                               /*  检查线程有效性              */
         _ErrorHandle(ESRCH);
         return  (PX_ERROR);
+    }
+    if ((iSigNo != SIGUSR1) && (iSigNo != SIGUSR2)) {
+        if (sigvalue.sival_int == 0) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
     }
 
     if (LW_CPU_GET_CUR_NESTING() || (ulId == API_ThreadIdSelf())) {
@@ -1300,7 +1320,7 @@ INT  sigwait (const sigset_t  *psigset, INT  *piSig)
              struct siginfo         siginfo;
              LW_CLASS_SIGWAIT       sigwt;
     
-    if (!psigset) {
+    if (!psigset || !piSig) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -1446,7 +1466,12 @@ INT  sigtimedwait (const sigset_t *psigset, struct  siginfo  *psiginfo, const st
     
     if (ptv == LW_NULL) {                                               /*  永久等待                    */
         ulTimeout = LW_OPTION_WAIT_INFINITE;
+
     } else {
+        if ((ptv->tv_nsec < 0) || (ptv->tv_nsec >= 1000000000)) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
         ulTimeout = __timespecToTick(ptv);
     }
     

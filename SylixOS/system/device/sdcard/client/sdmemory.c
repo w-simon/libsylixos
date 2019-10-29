@@ -1903,6 +1903,13 @@ static INT __sdMemMmcSelectPwrClass (PLW_SDCORE_DEVICE psdcoredevice,
         return  (ERROR_NONE);
     }
 
+    API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_GETOCR, (LONG)&uiVdd);
+    if (uiVdd & SD_VDD_165_195) {
+        uiVdd = SD_VDD_165_195;
+    } else {
+        uiVdd = SD_VDD_32_33;
+    }
+
     switch (uiVdd) {
 
     case SD_VDD_165_195:

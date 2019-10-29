@@ -144,7 +144,8 @@ VOID  _WakeupStatus (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, ULONG  
 {
     PLW_LIST_LINE           plineTemp;
     PLW_CLASS_WAKEUP_NODE   pwunTemp;
-    ULONG                   ulCounter = 0;
+    INT64                   i64CurTime;
+    ULONG                   ulDelta, ulCounter = 0;
     
     for (plineTemp  = pwu->WU_plineHeader;
          plineTemp != LW_NULL;
@@ -158,7 +159,10 @@ VOID  _WakeupStatus (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, ULONG  
     }
     
     if (plineTemp) {
-        *pulLeft = ulCounter;
+        __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);
+        ulDelta   = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
+        ulCounter = (ulCounter > ulDelta) ? (ulCounter - ulDelta) : 0ul;
+        *pulLeft  = ulCounter;
     
     } else {
         *pulLeft = 0ul;                                                 /*  没有找到节点                */

@@ -301,7 +301,7 @@ VOID  _sigfdReadUnblock (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
     }
     __KERNEL_EXIT_IRQ(iregInterLevel);
     
-    if (psigctx->SIGCTX_sigsetWait & __sigmask(iSigNo)) {
+    if (psigctx->SIGCTX_sigsetFdw & __sigmask(iSigNo)) {
         SEL_WAKE_UP_ALL(&psigctx->SIGCTX_selwulist, SELREAD);           /*  符合条件则唤醒 select       */
     }
 }
@@ -429,7 +429,7 @@ static VOID  _sigfdSelect (PLW_SIGFD_FILE  psigfdfil, PLW_SEL_WAKEUPNODE   pselw
     switch (pselwunNode->SELWUN_seltypType) {
     
     case SELREAD:
-        psigctx->SIGCTX_sigsetWait = psigfdfil->SF_sigsetMask;          /*  设置唤醒条件                */
+        psigctx->SIGCTX_sigsetFdw = psigfdfil->SF_sigsetMask;           /*  设置唤醒条件                */
         __KERNEL_ENTER();                                               /*  进入内核                    */
         if (psigctx->SIGCTX_sigsetPending & psigfdfil->SF_sigsetMask) {
             bHaveSigPend = LW_TRUE;
@@ -437,7 +437,7 @@ static VOID  _sigfdSelect (PLW_SIGFD_FILE  psigfdfil, PLW_SEL_WAKEUPNODE   pselw
         __KERNEL_EXIT();                                                /*  退出内核                    */
         if (bHaveSigPend) {
             SEL_WAKE_UP(pselwunNode);
-            psigctx->SIGCTX_sigsetWait = 0ull;                          /*  已经满足条件, 不需要唤醒    */
+            psigctx->SIGCTX_sigsetFdw = 0ull;                           /*  已经满足条件, 不需要唤醒    */
         }
         break;
         
@@ -466,7 +466,7 @@ static VOID  _sigfdUnselect (PLW_SIGFD_FILE  psigfdfil, PLW_SEL_WAKEUPNODE   pse
     
     SEL_WAKE_NODE_DELETE(&psigctx->SIGCTX_selwulist, pselwunNode);
     
-    psigctx->SIGCTX_sigsetWait = 0ull;                                  /*  不需要 select 唤醒          */
+    psigctx->SIGCTX_sigsetFdw = 0ull;                                   /*  不需要 select 唤醒          */
 }
 /*********************************************************************************************************
 ** 函数名称: _sigfdIoctl

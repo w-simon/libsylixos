@@ -1257,12 +1257,15 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
                     pmodule->EMOD_pulDsbtTable = (Elf_Addr *)LW_LD_V2PADDR(addrMin,
                                                  pmodule->EMOD_pvBaseAddr,
                                                  pdyn->d_un.d_ptr);
+                    break;
 
                 case DT_C6000_DSBT_SIZE:
                     pmodule->EMOD_ulDsbtSize   = pdyn->d_un.d_val;
+                    break;
 
                 case DT_C6000_DSBT_INDEX:
                     pmodule->EMOD_ulDsbtIndex  = pdyn->d_un.d_val;
+                    break;
 #endif                                                                  /*  LW_CFG_CPU_ARCH_C6X         */
                 }
             }

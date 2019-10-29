@@ -78,7 +78,7 @@ typedef struct __sig_context {
     
 #if LW_CFG_SIGNALFD_EN > 0
     BOOL                  SIGCTX_bRead;                                 /*  是否在读 signalfd           */
-    sigset_t              SIGCTX_sigsetWait;                            /*  正在等待的 sigset           */
+    sigset_t              SIGCTX_sigsetFdw;                             /*  正在等待的 sigset           */
     LW_SEL_WAKEUPLIST     SIGCTX_selwulist;                             /*  signalfd select list        */
 #endif
 } LW_CLASS_SIGCONTEXT;
@@ -137,12 +137,18 @@ typedef LW_CLASS_SIGCTLMSG  *PLW_CLASS_SIGCTLMSG;
 *********************************************************************************************************/
 
 #define __SIGNO_UNMASK              (__sigmask(SIGKILL) |       \
-                                     __sigmask(SIGABRT) |       \
                                      __sigmask(SIGSTOP) |       \
                                      __sigmask(SIGFPE)  |       \
                                      __sigmask(SIGILL)  |       \
                                      __sigmask(SIGBUS)  |       \
                                      __sigmask(SIGSEGV))
+
+/*********************************************************************************************************
+  UNCATCH SIG
+*********************************************************************************************************/
+
+#define __SIGNO_UNCATCH             (__sigmask(SIGKILL) |       \
+                                     __sigmask(SIGSTOP))
                                      
 /*********************************************************************************************************
   EXIT SIG
@@ -150,7 +156,6 @@ typedef LW_CLASS_SIGCTLMSG  *PLW_CLASS_SIGCTLMSG;
 
 #define __SIGNO_MUST_EXIT           (__sigmask(SIGKILL) |       \
                                      __sigmask(SIGTERM) |       \
-                                     __sigmask(SIGABRT) |       \
                                      __sigmask(SIGFPE)  |       \
                                      __sigmask(SIGILL)  |       \
                                      __sigmask(SIGBUS)  |       \
