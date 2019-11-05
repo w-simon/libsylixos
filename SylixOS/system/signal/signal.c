@@ -232,10 +232,14 @@ INT   sigaction (INT                      iSigNo,
         return  (PX_ERROR);
     }
     
-    if (__SIGNO_UNCATCH & __sigmask(iSigNo)) {                          /*  不能捕获和忽略              */
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
+#if LW_CFG_MODULELOADER_EN > 0
+    if (__SIGNO_UNCATCH & __sigmask(iSigNo)) {                          /*  进程不能捕获和忽略          */
+        if (__LW_VP_GET_CUR_PROC()) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+        }
     }
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     

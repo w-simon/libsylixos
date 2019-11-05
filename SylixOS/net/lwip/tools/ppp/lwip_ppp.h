@@ -66,6 +66,7 @@ LW_API INT  API_PppGetPhase(CPCHAR  pcIfName, INT  *piPhase);
 #define pppOsCreate     API_PppOsCreate
 #define pppOeCreate     API_PppOeCreate
 #define pppOl2tpCreate  API_PppOl2tpCreate
+#define pppIfDelete     API_PppDelete
 #define pppConnect      API_PppConnect
 #define pppDisconnect   API_PppDisconnect
 #define pppGetPhase     API_PppGetPhase
