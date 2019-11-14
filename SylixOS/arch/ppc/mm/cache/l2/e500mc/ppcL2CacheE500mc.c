@@ -71,6 +71,7 @@
 /*********************************************************************************************************
   外部函数声明
 *********************************************************************************************************/
+extern UINT32  ppcE500mcGetL2Cfg0(VOID);
 extern UINT32  ppcE500mcGetL2Csr0(VOID);
 extern VOID    ppcE500mcSetL2Csr0(UINT32);
 /*********************************************************************************************************
@@ -183,7 +184,7 @@ VOID  ppcE500mcL2CacheInit (L2C_DRVIER  *pl2cdrv,
     pl2cdrv->L2CD_pfuncClear         = LW_NULL;
     pl2cdrv->L2CD_pfuncClearAll      = LW_NULL;
 
-    uil2CacheSize = (ppcE500mcGetL2Csr0() & L2CFG0_L2CSIZE_MSK) * 0x10000;
+    uil2CacheSize = (ppcE500mcGetL2Cfg0() & L2CFG0_L2CSIZE_MSK) * 0x10000;
 
     PPC_E500_DCACHE_FLUSH_NUM = (uil2CacheSize * 3) / (2 * PPC_E500_DCACHE_ALIGN_SIZE);
 }

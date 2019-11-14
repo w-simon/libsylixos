@@ -33,6 +33,7 @@
 
     FILE_BEGIN()
 
+    EXPORT_LABEL(ppcE500mcGetL2Cfg0)
     EXPORT_LABEL(ppcE500mcGetL2Csr0)
     EXPORT_LABEL(ppcE500mcSetL2Csr0)
 
@@ -51,6 +52,10 @@ MACRO_DEF(GET_SPR, spr)
     ISYNC
     BLR
     MACRO_END()
+
+FUNC_DEF(ppcE500mcGetL2Cfg0)
+    GET_SPR     L2CFG0
+    FUNC_END()
 
 FUNC_DEF(ppcE500mcGetL2Csr0)
     GET_SPR     L2CSR0
