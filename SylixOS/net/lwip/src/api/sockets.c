@@ -203,6 +203,20 @@ static void sockaddr_to_ipaddr_port(const struct sockaddr *sockaddr, ip_addr_t *
   ((struct timeval *)(optval))->tv_usec = (long)(((loc) % 1000U) * 1000U); }while(0)
 #define LWIP_SO_SNDRCVTIMEO_GET_MS(optval) ((((const struct timeval *)(optval))->tv_sec * 1000) + (((const struct timeval *)(optval))->tv_usec / 1000))
 
+#ifdef SYLIXOS /* SylixOS Add multi-length assignment */
+#define LWIP_GET_ASSIGNMENT(ptr, len, value) \
+  if ((len) == 1) { \
+    *(u8_t *)(ptr) = (u8_t)(value); \
+  } else { \
+    *(u32_t *)(ptr) = (u32_t)(value); \
+  }
+#define LWIP_SET_ASSIGNMENT(ptr, len, value) \
+  if ((len) == 1) { \
+    value = (u8_t)*(const u8_t *)(ptr); \
+  } else { \
+    value = (u8_t)*(const u32_t *)(ptr); \
+  }
+#endif /* SylixOS */
 
 /** A struct sockaddr replacement that has the same alignment as sockaddr_in/
  *  sockaddr_in6 if instantiated.
@@ -3254,12 +3268,14 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, *optlen, u8_t);
 #if LWIP_UDP
           if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
-            *(u8_t *)optval = udp_get_multicast_ttl(sock->conn->pcb.udp);
+            u8_t ttl = udp_get_multicast_ttl(sock->conn->pcb.udp);
+            LWIP_GET_ASSIGNMENT(optval, *optlen, ttl);
           } else
 #endif /* LWIP_UDP */
 #if LWIP_RAW
           if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
-            *(u8_t *)optval = raw_get_multicast_ttl(sock->conn->pcb.raw);
+            u8_t ttl = raw_get_multicast_ttl(sock->conn->pcb.raw);
+            LWIP_GET_ASSIGNMENT(optval, *optlen, ttl);
           } else
 #endif /* LWIP_RAW */
           {
@@ -3293,18 +3309,18 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
 #if LWIP_UDP
           if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
             if ((sock->conn->pcb.udp->flags & UDP_FLAGS_MULTICAST_LOOP) != 0) {
-              *(u8_t *)optval = 1;
+              LWIP_GET_ASSIGNMENT(optval, *optlen, 1);
             } else {
-              *(u8_t *)optval = 0;
+              LWIP_GET_ASSIGNMENT(optval, *optlen, 0);
             }
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
           if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
             if ((sock->conn->pcb.raw->flags & RAW_FLAGS_MULTICAST_LOOP) != 0) {
-              *(u8_t *)optval = 1;
+              LWIP_GET_ASSIGNMENT(optval, *optlen, 1);
             } else {
-              *(u8_t *)optval = 0;
+              LWIP_GET_ASSIGNMENT(optval, *optlen, 0);
             }
           } else 
 #endif /* LWIP_RAW */
@@ -4008,12 +4024,16 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, u8_t);
 #if LWIP_UDP
           if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
-            udp_set_multicast_ttl(sock->conn->pcb.udp, (u8_t)(*(const u8_t *)optval));
+            u8_t ttl;
+            LWIP_SET_ASSIGNMENT(optval, optlen, ttl);
+            udp_set_multicast_ttl(sock->conn->pcb.udp, ttl);
           } else 
 #endif /* LWIP_UDP */
 #if LWIP_RAW
           if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
-            raw_set_multicast_ttl(sock->conn->pcb.raw, (u8_t)(*(const u8_t *)optval));
+            u8_t ttl;
+            LWIP_SET_ASSIGNMENT(optval, optlen, ttl);
+            raw_set_multicast_ttl(sock->conn->pcb.raw, ttl);
           } else 
 #endif /* LWIP_RAW */
           {
@@ -4063,7 +4083,9 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, optlen, u8_t);
 #if LWIP_UDP
           if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
-            if (*(const u8_t *)optval) {
+            u8_t loop;
+            LWIP_SET_ASSIGNMENT(optval, optlen, loop);
+            if (loop) {
               udp_set_flags(sock->conn->pcb.udp, UDP_FLAGS_MULTICAST_LOOP);
             } else {
               udp_clear_flags(sock->conn->pcb.udp, UDP_FLAGS_MULTICAST_LOOP);
@@ -4072,7 +4094,9 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
 #endif /* LWIP_UDP */
 #if LWIP_RAW
           if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_RAW) {
-            if (*(const u8_t *)optval) {
+            u8_t loop;
+            LWIP_SET_ASSIGNMENT(optval, optlen, loop);
+            if (loop) {
               raw_set_flags(sock->conn->pcb.raw, RAW_FLAGS_MULTICAST_LOOP);
             } else {
               raw_clear_flags(sock->conn->pcb.raw, RAW_FLAGS_MULTICAST_LOOP);

@@ -768,6 +768,13 @@ mqd_t  mq_open (const char  *name, int  flag, ...)
                 return  (MQ_FAILED);
             }
             
+            pmq = (__PX_MSG *)pxnode->PXNODE_pvData;
+            if (pmq->PMSG_bUnlinkReq) {
+                __PX_UNLOCK();                                          /*  解锁 posix                  */
+                errno = ENOENT;
+                return  (MQ_FAILED);                                    /*  有删除请求, 不能打开        */
+            }
+
             pmqfile = (__PX_MSG_FILE *)__SHEAP_ALLOC(sizeof(__PX_MSG_FILE));
             if (pmqfile == LW_NULL) {
                 __PX_UNLOCK();                                          /*  解锁 posix                  */
@@ -775,7 +782,7 @@ mqd_t  mq_open (const char  *name, int  flag, ...)
                 return  (MQ_FAILED);
             }
             
-            pmqfile->PMSGF_pmg     = (__PX_MSG *)pxnode->PXNODE_pvData;
+            pmqfile->PMSGF_pmg     = pmq;
             pmqfile->PMSGF_bCreate = LW_FALSE;
             pmqfile->PMSGF_iFlag   = flag;
             

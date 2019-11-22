@@ -620,7 +620,6 @@ int  pthread_attr_setinitonly_np (pthread_attr_t  *pattr, int  init)
 
     return  (ERROR_NONE);
 }
-
 /*********************************************************************************************************
 ** 函数名称: pthread_attr_getinitonly_np
 ** 功能描述: 获取一个线程属性块是否仅初始化线程.

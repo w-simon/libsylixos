@@ -91,6 +91,7 @@ INT  __pxnameAdd (__PX_NAME_NODE  *pxnode)
         errno = EEXIST;                                                 /*  已经存在此节点              */
         return  (PX_ERROR);
     }
+
     API_AtomicSet(0, &pxnode->PXNODE_atomic);                           /*  初始化计数器                */
     
     _List_Line_Add_Ahead(&pxnode->PXNODE_lineManage,

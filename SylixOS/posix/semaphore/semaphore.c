@@ -288,6 +288,11 @@ sem_t  *sem_open (const char  *name, int  flag, ...)
         
         } else {
             pxsem = (__PX_SEM *)pxnode->PXNODE_pvData;                  /*  获得信号量句柄指针          */
+            if (pxsem->PSEM_bUnlinkReq) {
+                __PX_UNLOCK();                                          /*  解锁 posix                  */
+                errno = ENOENT;
+                return  (SEM_FAILED);                                   /*  有删除请求, 不能打开        */
+            }
             
             if ((pxnode->PXNODE_iType != __PX_NAMED_OBJECT_SEM) ||
                 !_ObjectClassOK(pxsem->PSEM_ulSemaphore, 

@@ -202,11 +202,6 @@ ULONG  API_ThreadCondDestroy (PLW_THREAD_COND  ptcd)
         return  (ERROR_NONE);                                           /*  Ö±½ÓÍË³ö                    */
     }
     
-    if (ulError) {
-        _ErrorHandle(ulError);
-        return  (ulError);
-    }
-    
     if (ptcd->TCD_ulSignal) {
         ulError = API_SemaphoreBDelete(&ptcd->TCD_ulSignal);
     }

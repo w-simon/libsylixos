@@ -399,6 +399,7 @@ typedef struct {
 typedef __LW_CLEANUP_ROUTINE    *__PLW_CLEANUP_ROUTINE;
 
 typedef struct {
+    BOOL                 *TEX_pbOnce;                                   /*  正在执行的 once 操作        */
     LW_OBJECT_HANDLE      TEX_ulMutex;                                  /*  互斥量                      */
     PLW_LIST_MONO         TEX_pmonoCurHeader;                           /*  cleanup node header         */
 } __LW_THREAD_EXT;

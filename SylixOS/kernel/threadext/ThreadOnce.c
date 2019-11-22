@@ -38,8 +38,9 @@
 LW_API  
 INT  API_ThreadOnce (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine)
 {
-             INTREG     iregInterLevel;
-    REGISTER INT        iOk = LW_FALSE;
+             INTREG         iregInterLevel;
+    REGISTER INT            iOk = LW_FALSE;
+             PLW_CLASS_TCB  ptcbCur;
     
     if (!pbOnce) {
         _ErrorHandle(EINVAL);
@@ -47,6 +48,9 @@ INT  API_ThreadOnce (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine)
     }
     
     __LW_ATOMIC_LOCK(iregInterLevel);                                   /*  锁定                        */
+    LW_TCB_GET_CUR(ptcbCur);
+    ptcbCur->TCB_texExt.TEX_pbOnce = pbOnce;
+
     if (*pbOnce == LW_FALSE) {                                          /*  互斥的判断是否执行          */
         *pbOnce =  LW_TRUE;
         iOk     =  LW_TRUE;                                             /*  设置独立标志                */
@@ -58,6 +62,9 @@ INT  API_ThreadOnce (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine)
         pfuncRoutine();                                                 /*  执行                        */
     }
     
+    ptcbCur->TCB_texExt.TEX_pbOnce = LW_NULL;                           /*  结束 once 过程              */
+    KN_SMP_WMB();
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -74,8 +81,9 @@ INT  API_ThreadOnce (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine)
 LW_API  
 INT  API_ThreadOnce2 (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg)
 {
-             INTREG     iregInterLevel;
-    REGISTER INT        iOk = LW_FALSE;
+             INTREG         iregInterLevel;
+    REGISTER INT            iOk = LW_FALSE;
+             PLW_CLASS_TCB  ptcbCur;
     
     if (!pbOnce) {
         _ErrorHandle(EINVAL);
@@ -83,6 +91,9 @@ INT  API_ThreadOnce2 (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg)
     }
     
     __LW_ATOMIC_LOCK(iregInterLevel);                                   /*  锁定                        */
+    LW_TCB_GET_CUR(ptcbCur);
+    ptcbCur->TCB_texExt.TEX_pbOnce = pbOnce;
+
     if (*pbOnce == LW_FALSE) {                                          /*  互斥的判断是否执行          */
         *pbOnce =  LW_TRUE;
         iOk     =  LW_TRUE;                                             /*  设置独立标志                */
@@ -94,6 +105,9 @@ INT  API_ThreadOnce2 (BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg)
         pfuncRoutine(pvArg);                                            /*  执行                        */
     }
     
+    ptcbCur->TCB_texExt.TEX_pbOnce = LW_NULL;                           /*  结束 once 过程              */
+    KN_SMP_WMB();
+
     return  (ERROR_NONE);
 }
 

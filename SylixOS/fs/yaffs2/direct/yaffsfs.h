@@ -263,6 +263,10 @@ int yaffs_unmount_reldev(struct yaffs_dev *dev);
 int yaffs_unmount2_reldev(struct yaffs_dev *dev, int force);
 int yaffs_remount_reldev(struct yaffs_dev *dev, int force, int read_only);
 
+int yaffs_format_reldev(struct yaffs_dev *dev,
+        int unmount_flag,
+        int force_unmount_flag,
+        int remount_flag);
 
 /* Some non-standard functions to use fds to access directories */
 struct yaffs_dirent *yaffs_readdir_fd(int fd);

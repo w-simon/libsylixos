@@ -314,7 +314,14 @@ static INT  __tshellYaffsCmd (INT  iArgC, PCHAR  ppcArgV[])
             yaffs_erase_block(pyaffsDev, i);
         }
         
-        printf("yaffs volume erase ok.\n");
+        printf("yaffs volume erase ok\n");
+
+    } else if (lib_strcmp("format", ppcArgV[2]) == 0) {                 /*  ¸ñÊ½»¯Ð¾Æ¬                  */
+        if (yaffs_format_reldev(pyaffsDev, 1, 0, 1) == 0) {
+            printf("yaffs volume format ok.\n");
+        } else {
+            printf("yaffs volume format error!\n");
+        }
     }
     __YAFFS_OPUNLOCK();
     
@@ -371,11 +378,12 @@ INT  API_YaffsDrvInstall (VOID)
 
 #if LW_CFG_SHELL_EN > 0
     API_TShellKeywordAdd("yaffscmd", __tshellYaffsCmd);
-    API_TShellFormatAdd("yaffscmd", " volname [{bad | info | markbad | erase}]");
+    API_TShellFormatAdd("yaffscmd", " volname [{bad | info | markbad | erase | format}]");
     API_TShellHelpAdd("yaffscmd", "eg. yaffscmd n0 bad         show volume \"n0\" bad block.\n"
-                                  "    yaffscmd n0 info        show volume \"n0\" infomation.\n"
+                                  "    yaffscmd n0 info        show volume \"n0\" information.\n"
                                   "    yaffscmd n0 markbad 3a  mark block 0x3a is a bad block.\n"
-                                  "    yaffscmd n1 erase       erase volume \"n1\"\n");
+                                  "    yaffscmd n1 erase       erase volume \"n1\"\n"
+                                  "    yaffscmd n1 format      format volume \"n1\"\n");
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 
     return  ((_G_iYaffsDrvNum > 0) ? (ERROR_NONE) : (PX_ERROR));

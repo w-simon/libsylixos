@@ -415,6 +415,7 @@ ULONG  _TCBBuildExt (PLW_CLASS_TCB  ptcb)
 #if LW_CFG_THREAD_EXT_EN > 0
     REGISTER __PLW_THREAD_EXT  ptex = &ptcb->TCB_texExt;
     
+    ptex->TEX_pbOnce         = LW_NULL;
     ptex->TEX_ulMutex        = 0ul;                                     /*  暂时不需要内部互斥量        */
     ptex->TEX_pmonoCurHeader = LW_NULL;
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
@@ -434,6 +435,10 @@ VOID  _TCBDestroyExt (PLW_CLASS_TCB  ptcb)
 #if LW_CFG_THREAD_EXT_EN > 0
     REGISTER __PLW_THREAD_EXT   ptex = &ptcb->TCB_texExt;
     
+    if (ptex->TEX_pbOnce) {
+        *(ptex->TEX_pbOnce) = LW_FALSE;                                 /*  未完成的 once 操作          */
+        ptex->TEX_pbOnce = LW_NULL;
+    }
     if (ptex->TEX_ulMutex) {                                            /*  是否需要删除互斥量          */
         API_SemaphoreMDelete(&ptex->TEX_ulMutex);
     }
