@@ -45,6 +45,7 @@ VOID  archMmuInit (CPCHAR  pcMachineName)
         (lib_strcmp(pcMachineName, ARM_MACHINE_926)  == 0) ||
         (lib_strcmp(pcMachineName, ARM_MACHINE_1136) == 0) ||
         (lib_strcmp(pcMachineName, ARM_MACHINE_1176) == 0)) {           /* ARMv4/v5/v6 ºÊ»›             */
+        _BugHandle(LW_CFG_CPU_PHYS_ADDR_64BIT, LW_TRUE, "LW_CFG_CPU_PHYS_ADDR_64BIT MUST be 0!\r\n");
         armMmuV4Init(pmmuop, pcMachineName);
         
     } else if ((lib_strcmp(pcMachineName, ARM_MACHINE_A5)  == 0) ||

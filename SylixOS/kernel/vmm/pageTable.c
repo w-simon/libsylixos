@@ -547,7 +547,7 @@ ULONG  __vmmLibSetFlag (addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag,
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAddr)
+ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, phys_addr_t  *ppaPhysicalAddr)
 {
     INT                      iError;
     
@@ -562,7 +562,7 @@ ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAdd
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     
 #if LW_CFG_VMM_L4_HYPERVISOR_EN > 0
-    iError = __VMM_MMU_PHYS_GET(ulVirtualAddr, pulPhysicalAddr);
+    iError = __VMM_MMU_PHYS_GET(ulVirtualAddr, ppaPhysicalAddr);
     if (iError < 0) {
         return  (ERROR_VMM_LOW_LEVEL);
     }
@@ -594,13 +594,13 @@ ULONG  __vmmLibVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAdd
         goto    __error_handle;
     }
     
-    iError = __VMM_MMU_PHYS_GET((*p_pteentry), pulPhysicalAddr);        /*  查询页面基地址              */
+    iError = __VMM_MMU_PHYS_GET((*p_pteentry), ppaPhysicalAddr);        /*  查询页面基地址              */
     if (iError < 0) {
         return  (ERROR_VMM_LOW_LEVEL);
     
     } else {
-        *pulPhysicalAddr = (ulVirtualAddr & (LW_CFG_VMM_PAGE_SIZE - 1))
-                         + (*pulPhysicalAddr);                          /*  加入页内偏移量              */
+        *ppaPhysicalAddr = (ulVirtualAddr & (LW_CFG_VMM_PAGE_SIZE - 1))
+                         + (*ppaPhysicalAddr);                          /*  加入页内偏移量              */
         return  (ERROR_NONE);
     }
     

@@ -156,7 +156,15 @@ INT     __tshellGetGrpName(gid_t  gid, PCHAR  pcName, size_t  stSize);
 VOID    __tshellFlushCache(VOID);
 ULONG   __tshellUserAuthen(INT  iTtyFd, BOOL  bWaitInf);
 VOID    __tshellUserCmdInit(VOID);
-                          
+
+/*********************************************************************************************************
+  shell 任务 hook
+*********************************************************************************************************/
+
+#if LW_CFG_SHELL_HOOK_EN > 0
+FUNCPTR __tshellThreadHook(FUNCPTR  pfuncShellHook);
+#endif                                                                  /*  LW_CFG_SHELL_HOOK_EN > 0    */
+
 /*********************************************************************************************************
   变量保存文件
 *********************************************************************************************************/

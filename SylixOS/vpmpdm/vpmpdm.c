@@ -40,6 +40,11 @@
 #define MALLOC_ALGORITHM "dl-malloc"
 #define NEED_CALL_SBRK 0
 
+#elif LW_CFG_VP_HEAP_ALGORITHM == 3
+#include "ptmalloc3/pt_malloc.h"
+#define MALLOC_ALGORITHM "pt-malloc"
+#define NEED_CALL_SBRK 0
+
 #else
 #error LW_CFG_VP_HEAP_ALGORITHM set error.
 #endif /* LW_CFG_VP_HEAP_ALGORITHM */
@@ -150,6 +155,24 @@ void __vp_patch_unlock (void)
 _Unwind_Ptr __gnu_Unwind_Find_exidx (_Unwind_Ptr pc, int *pcount)
 {
     return dl_unwind_find_exidx(pc, pcount, ctx.proc);
+}
+
+/*
+ * handle div zero
+ */
+void __aeabi_idiv0(void)
+{
+    fprintf(stderr, "Div by ZERO, abort!\n");
+    lib_abort();
+}
+
+/*
+ * handle div zero
+ */
+void __aeabi_ldiv0(void)
+{
+    fprintf(stderr, "Div by ZERO, abort!\n");
+    lib_abort();
 }
 #endif /* LW_CFG_CPU_ARCH_ARM */
 

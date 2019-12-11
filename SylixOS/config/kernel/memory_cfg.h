@@ -129,7 +129,8 @@
 #define LW_CFG_VP_HEAP_ALGORITHM                    2                   /*  0: 表示与内核相同 heap 算法 */
                                                                         /*  1: 表示 TLSF O(1) 内存算法  */
                                                                         /*  2: DLmalloc 内存算法        */
-                                                                        
+                                                                        /*  3: Ptmalloc 内存算法        */
+
 #define LW_CFG_VP_TLSF_LOCK_TYPE                    1                   /*  0: 互斥信号量               */
                                                                         /*  1: 自旋锁                   */
 #endif                                                                  /*  __MEMORY_CFG_H              */

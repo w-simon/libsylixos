@@ -585,14 +585,14 @@ static VOID  sv32MmuPteFree (LW_PTE_TRANSENTRY  *p_pteentry)
 ** 函数名称: sv32MmuPtePhysGet
 ** 功能描述: 通过 PTE 表项, 查询物理地址
 ** 输　入  : pteentry           pte 表项
-**           pulPhysicalAddr    获得的物理地址
+**           ppaPhysicalAddr    获得的物理地址
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  sv32MmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysicalAddr)
+static INT  sv32MmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, phys_addr_t  *ppaPhysicalAddr)
 {
-    *pulPhysicalAddr = (addr_t)(SV32_MMU_PA(pteentry));                 /*  获得物理地址                */
+    *ppaPhysicalAddr = (addr_t)(SV32_MMU_PA(pteentry));                 /*  获得物理地址                */
     
     return  (ERROR_NONE);
 }

@@ -5,6 +5,8 @@
 #include "stdlib.h"
 #include "string.h"
 
+#if LW_CFG_VP_HEAP_ALGORITHM == 1
+
 #include "tlsf.h"
 
 #if defined(__cplusplus)
@@ -1268,3 +1270,5 @@ void* tlsf_realloc(tlsf_t tlsf, void* ptr, size_t size)
 
 	return p;
 }
+
+#endif /* LW_CFG_VP_HEAP_ALGORITHM == 1 */

@@ -2969,7 +2969,7 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellKeywordAdd("crashtrap", __tshellSysCmdCrashTrap);
     API_TShellFormatAdd("crashtrap", " [pid] [1 | 0]");
     API_TShellHelpAdd("crashtrap",   "set or get process crash trap setting.\n"
-                                     "if enable, the process crash will not be killed but waiting for debuger.\n");
+                                     "if enable, the process crash will not be killed but waiting for debugger.\n");
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 }
 

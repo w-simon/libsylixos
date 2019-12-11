@@ -946,7 +946,24 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
     
     return  (iRet);
 }
+/*********************************************************************************************************
+** 函数名称: API_TShellHookSet
+** 功能描述: 向 ttiny shell 任务注册一个回调钩子.
+** 输　入  : pfuncShellHook     向 shell 注册的回调钩子
+** 输　出  : 之前的回调钩子
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_SHELL_HOOK_EN > 0
 
+LW_API
+FUNCPTR  API_TShellHookSet (FUNCPTR  pfuncShellHook)
+{
+    return  (__tshellThreadHook(pfuncShellHook));
+}
+
+#endif                                                                  /*  LW_CFG_SHELL_HOOK_EN > 0    */
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   END

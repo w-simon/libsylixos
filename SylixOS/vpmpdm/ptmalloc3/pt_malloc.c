@@ -5,14 +5,14 @@
  * MODULE PRIVATE DYNAMIC MEMORY IN VPROCESS PATCH
  * this file is support current module malloc/free use his own heap in a vprocess.
  *
- * Author: Han.hui <sylixos@gmail.com>
+ * Author: Jiao.jinxing <jiaojixing1987@gmail.com>
  */
 
 #define  __SYLIXOS_KERNEL /* need some kernel function */
 #include <unistd.h>
 #include <sys/mman.h>
 
-#if LW_CFG_VP_HEAP_ALGORITHM == 2
+#if LW_CFG_VP_HEAP_ALGORITHM == 3
 
 /*
  * sbrk lock
@@ -32,18 +32,18 @@ void  __vp_pre_alloc_phy(const void *pmem, size_t nbytes, int mmap);
 static PLW_CLASS_HEAP  pctx_heap;
 
 /*
- * dlmalloc_init
+ * ptmalloc_sylixos_init
  */
-void  dlmalloc_init (PLW_CLASS_HEAP  pheap, void  *mem, size_t  size)
+void  ptmalloc_sylixos_init (PLW_CLASS_HEAP  pheap, void  *mem, size_t  size)
 {
     _HeapCtor(pheap, mem, size);
     pctx_heap = pheap;
 }
 
 /*
- * dlmalloc_sbrk
+ * ptmalloc_sbrk
  */
-void *dlmalloc_sbrk (int  size)
+void *ptmalloc_sbrk (int  size)
 {
     void *mem;
     int mextern = 0;
@@ -79,62 +79,16 @@ __re_try:
 }
 
 /*
- * dlmalloc_mmap
+ * ptmalloc_abort
  */
-void *dlmalloc_mmap (size_t  stLen)
+void  ptmalloc_abort (void)
 {
-    void  *mem;
-
-#ifdef MAP_PREALLOC
-    mem = mmap(NULL, stLen, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_PREALLOC, -1, 0);
-
-#else
-    mem = mmap(NULL, stLen, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    if (mem != MAP_FAILED) {
-        __vp_pre_alloc_phy(mem, stLen, 1);
-    }
-#endif
-
-    return  (mem);
-}
-
-/*
- * dlmalloc_mremap
- */
-void  *dlmalloc_mremap (void *pvAddr, size_t stOldSize, size_t stNewSize, int mv)
-{
-    void  *mem;
-
-#ifdef MAP_PREALLOC
-    mem = MAP_FAILED;
-
-#else
-    int  flag = 0;
-
-    if (mv) {
-        flag = MREMAP_MAYMOVE;
-    }
-
-    mem = mremap(pvAddr, stOldSize, stNewSize, flag);
-    if (mem != MAP_FAILED) {
-        __vp_pre_alloc_phy(mem, stNewSize, 1);
-    }
-#endif
-
-    return  (mem);
-}
-
-/*
- * dlmalloc_abort
- */
-void  dlmalloc_abort (void)
-{
-    fprintf(stderr, "dlmalloc abort!\n");
+    fprintf(stderr, "ptmalloc abort!\n");
     API_BacktraceShow(STD_ERR, 100);
     lib_abort();
 }
 
-#endif /* LW_CFG_VP_HEAP_ALGORITHM == 2 */
+#endif /* LW_CFG_VP_HEAP_ALGORITHM == 3 */
 /*
  * end
  */

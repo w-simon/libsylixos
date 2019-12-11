@@ -102,6 +102,10 @@ LW_API INT                  API_TShellSetOption(LW_OBJECT_HANDLE  hTShellHandle,
 LW_API INT                  API_TShellGetOption(LW_OBJECT_HANDLE  hTShellHandle, 
                                                 ULONG            *pulOpt);
                                                                         /*  获取当前 shell 选项         */
+
+#if LW_CFG_SHELL_HOOK_EN > 0
+LW_API FUNCPTR              API_TShellHookSet(FUNCPTR  pfuncShellHook);
+#endif                                                                  /*  LW_CFG_SHELL_HOOK_EN > 0    */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 /*********************************************************************************************************

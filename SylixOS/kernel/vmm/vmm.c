@@ -741,19 +741,19 @@ ULONG  API_VmmGetFlag (PVOID  pvVirtualAddr,
 ** 函数名称: API_VmmVirtualToPhysical
 ** 功能描述: 通过虚拟地址查询对应的物理地址 (vmm dma alloc 后需要通过此函数来获取真实的物理地址)
 ** 输　入  : ulVirtualAddr      虚拟地址
-**           pulPhysicalAddr    返回的物理地址
+**           ppaPhysicalAddr    返回的物理地址
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAddr)
+ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, phys_addr_t  *ppaPhysicalAddr)
 {
     REGISTER ULONG  ulError;
 
     __VMM_LOCK();
-    ulError = __vmmLibVirtualToPhysical(ulVirtualAddr, pulPhysicalAddr);
+    ulError = __vmmLibVirtualToPhysical(ulVirtualAddr, ppaPhysicalAddr);
     __VMM_UNLOCK();
     
     return  (ulError);
@@ -761,7 +761,7 @@ ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAddr
 /*********************************************************************************************************
 ** 函数名称: API_VmmPhysicalToVirtual
 ** 功能描述: 通过物理地址查询虚拟地址
-** 输　入  : ulPhysicalAddr      物理地址
+** 输　入  : paPhysicalAddr      物理地址
 **           pulVirtualAddr      返回的虚拟地址
 ** 输　出  : ERROR CODE
 ** 全局变量: 
@@ -769,7 +769,7 @@ ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, addr_t  *pulPhysicalAddr
                                            API 函数
 *********************************************************************************************************/
 LW_API  
-ULONG  API_VmmPhysicalToVirtual (addr_t  ulPhysicalAddr, addr_t  *pulVirtualAddr)
+ULONG  API_VmmPhysicalToVirtual (phys_addr_t  paPhysicalAddr, addr_t  *pulVirtualAddr)
 {
     _ErrorHandle(ENOSYS);
     return  (ENOSYS);

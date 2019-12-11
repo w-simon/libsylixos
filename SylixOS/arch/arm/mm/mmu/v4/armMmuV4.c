@@ -43,16 +43,16 @@
 /*********************************************************************************************************
   描述符中的 C B 位 (C: Cache B: WriteBuffer)
 *********************************************************************************************************/
-#define	NC_NB               (0)                                         /*  UNCACHE UNBUFFER            */
+#define NC_NB               (0)                                         /*  UNCACHE UNBUFFER            */
 #define NC_B                (1)                                         /*  UNCACHE BUFFER              */
-#define	C_NB                (2)                                         /*  CACHE   BUFFER WRITE THROUGH*/
+#define C_NB                (2)                                         /*  CACHE   BUFFER WRITE THROUGH*/
 #define C_B                 (3)                                         /*  CACHE   BUFFER WRITE BACK   */
 /*********************************************************************************************************
   描述符中的 A P 位 (访问权限位, C1 sys=0 rom=1)
 *********************************************************************************************************/
-#define	AP_RW               (3)										    /*  特权模式：READ / WRITE      */
+#define AP_RW               (3)                                         /*  特权模式：READ / WRITE      */
                                                                         /*  用户模式：READ / WRITE      */
-#define AP_RO               (0)										    /*  特权模式：READ              */
+#define AP_RO               (0)                                         /*  特权模式：READ              */
                                                                         /*  用户模式：READ              */
 /*********************************************************************************************************
   域属性位
@@ -563,14 +563,14 @@ static VOID  armMmuPteFree (LW_PTE_TRANSENTRY  *p_pteentry)
 ** 函数名称: armMmuPtePhysGet
 ** 功能描述: 通过 PTE 表项, 查询物理地址
 ** 输　入  : pteentry           pte 表项
-**           pulPhysicalAddr    获得的物理地址
+**           ppaPhysicalAddr    获得的物理地址
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  armMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysicalAddr)
+static INT  armMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, phys_addr_t  *ppaPhysicalAddr)
 {
-    *pulPhysicalAddr = (addr_t)(pteentry & (UINT32)0xFFFFF000);         /*  获得物理地址                */
+    *ppaPhysicalAddr = (addr_t)(pteentry & (UINT32)0xFFFFF000);         /*  获得物理地址                */
     
     return  (ERROR_NONE);
 }

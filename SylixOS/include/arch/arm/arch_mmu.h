@@ -41,6 +41,24 @@
   虚拟内存页表相关配置
 *********************************************************************************************************/
 
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+#define LW_CFG_VMM_PAGE_SHIFT                 12                        /*  2^12 = 4096                 */
+#define LW_CFG_VMM_PAGE_SIZE                  (1ul << LW_CFG_VMM_PAGE_SHIFT)
+#define LW_CFG_VMM_PAGE_MASK                  (~(LW_CFG_VMM_PAGE_SIZE - 1))
+
+#define LW_CFG_VMM_PTE_SHIFT                  LW_CFG_VMM_PAGE_SHIFT
+#define LW_CFG_VMM_PTE_SIZE                   LW_CFG_VMM_PAGE_SIZE
+#define LW_CFG_VMM_PTE_MASK                   (0x1fful << LW_CFG_VMM_PTE_SHIFT)
+
+#define LW_CFG_VMM_PMD_SHIFT                  21                        /*  2^21 = 2MB                  */
+#define LW_CFG_VMM_PMD_SIZE                   (1ul << LW_CFG_VMM_PMD_SHIFT)
+#define LW_CFG_VMM_PMD_MASK                   (0x1fful << LW_CFG_VMM_PMD_SHIFT)
+
+#define LW_CFG_VMM_PGD_SHIFT                  30                        /*  2^30 = 1GB                  */
+#define LW_CFG_VMM_PGD_SIZE                   (1ul << LW_CFG_VMM_PGD_SHIFT)
+#define LW_CFG_VMM_PGD_MASK                   (0x3ul << LW_CFG_VMM_PGD_SHIFT)
+
+#else
 #define LW_CFG_VMM_PAGE_SHIFT                 12                        /*  2^12 = 4096                 */
 #define LW_CFG_VMM_PAGE_SIZE                  (1ul << LW_CFG_VMM_PAGE_SHIFT)
 #define LW_CFG_VMM_PAGE_MASK                  (~(LW_CFG_VMM_PAGE_SIZE - 1))
@@ -52,6 +70,7 @@
 #define LW_CFG_VMM_PGD_SHIFT                  20                        /*  2^20 = 1MB                  */
 #define LW_CFG_VMM_PGD_SIZE                   (1ul << LW_CFG_VMM_PGD_SHIFT)
 #define LW_CFG_VMM_PGD_MASK                   (~(LW_CFG_VMM_PGD_SIZE - 1))
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT  */
 
 /*********************************************************************************************************
   内存分组数量
@@ -66,9 +85,16 @@
 *********************************************************************************************************/
 #if !defined(__ASSEMBLY__) && !defined(ASSEMBLY)
 
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+typedef UINT64  LW_PGD_TRANSENTRY;                                      /*  页目录类型                  */
+typedef UINT64  LW_PMD_TRANSENTRY;                                      /*  中间页目录类型              */
+typedef UINT64  LW_PTE_TRANSENTRY;                                      /*  页表条目类型                */
+
+#else                                                                   /*  LW_CFG_ARM_LPAE > 0         */
 typedef UINT32  LW_PGD_TRANSENTRY;                                      /*  页目录类型                  */
 typedef UINT32  LW_PMD_TRANSENTRY;                                      /*  中间页目录类型              */
 typedef UINT32  LW_PTE_TRANSENTRY;                                      /*  页表条目类型                */
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT  */
 
 #endif
 #endif                                                                  /*  __SYLIXOS_KERNEL            */

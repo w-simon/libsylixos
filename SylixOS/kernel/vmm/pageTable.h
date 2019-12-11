@@ -320,8 +320,8 @@ extern LW_OBJECT_HANDLE     _G_ulVmmLock;
   MMU 获取物理地址
 *********************************************************************************************************/
 
-#define __VMM_MMU_PHYS_GET(pteentry, pulPhysicalAddr)   (_G_mmuOpLib.MMUOP_pfuncPTEPhysGet) ?    \
-            _G_mmuOpLib.MMUOP_pfuncPTEPhysGet(pteentry, pulPhysicalAddr) : (PX_ERROR)
+#define __VMM_MMU_PHYS_GET(pteentry, paPhysicalAddr)   (_G_mmuOpLib.MMUOP_pfuncPTEPhysGet) ?    \
+            _G_mmuOpLib.MMUOP_pfuncPTEPhysGet(pteentry, paPhysicalAddr) : (PX_ERROR)
 
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
 
@@ -471,7 +471,7 @@ ULONG           __vmmLibPageMap2(phys_addr_t paPhysicalAddr, addr_t ulVirtualAdd
 ULONG           __vmmLibGetFlag(addr_t  ulVirtualAddr, ULONG  *pulFlag);
 ULONG           __vmmLibSetFlag(addr_t  ulVirtualAddr, ULONG   ulPageNum, ULONG  ulFlag, BOOL  bFlushTlb);
 
-ULONG           __vmmLibVirtualToPhysical(addr_t  ulVirtualAddr, addr_t  *pulPhysicalAddr);
+ULONG           __vmmLibVirtualToPhysical(addr_t  ulVirtualAddr, phys_addr_t  *ppaPhysicalAddr);
 
 /*********************************************************************************************************
   bsp api

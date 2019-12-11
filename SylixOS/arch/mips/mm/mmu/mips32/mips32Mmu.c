@@ -344,17 +344,17 @@ static VOID  mips32MmuPteFree (LW_PTE_TRANSENTRY  *p_pteentry)
 ** 函数名称: mips32MmuPtePhysGet
 ** 功能描述: 通过 PTE 表项, 查询物理地址
 ** 输　入  : pteentry           pte 表项
-**           pulPhysicalAddr    获得的物理地址
+**           ppaPhysicalAddr    获得的物理地址
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  mips32MmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysicalAddr)
+static INT  mips32MmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, phys_addr_t  *ppaPhysicalAddr)
 {
     ULONG  ulPFN = (pteentry & MIPS32_ENTRYLO_PFN_MASK) >>
                     MIPS_ENTRYLO_PFN_SHIFT;                             /*  获得物理页面号              */
 
-    *pulPhysicalAddr = ulPFN << 12;                                     /*  计算页面物理地址            */
+    *ppaPhysicalAddr = ulPFN << 12;                                     /*  计算页面物理地址            */
 
     return  (ERROR_NONE);
 }

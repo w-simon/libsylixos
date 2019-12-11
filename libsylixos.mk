@@ -87,6 +87,7 @@ SylixOS/arch/arm/mm/cache/v8/armCacheV8.c \
 SylixOS/arch/arm/mm/cache/armCacheCommonAsm.S \
 SylixOS/arch/arm/mm/mmu/v4/armMmuV4.c \
 SylixOS/arch/arm/mm/mmu/v7/armMmuV7.c \
+SylixOS/arch/arm/mm/mmu/v7/armMmuV7Lpae.c \
 SylixOS/arch/arm/mm/mmu/v7/armMmuV7Asm.S \
 SylixOS/arch/arm/mm/mmu/armMmuCommon.c \
 SylixOS/arch/arm/mm/mmu/armMmuCommonAsm.S \

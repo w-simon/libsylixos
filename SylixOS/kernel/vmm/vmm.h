@@ -137,8 +137,8 @@ LW_API PVOID        API_VmmMallocAlign(size_t stSize,
                                        ULONG  ulFlag);                  /*  分配逻辑连续内存, 虚拟地址  */
 LW_API VOID         API_VmmFree(PVOID  pvVirtualMem);                   /*  回收虚拟连续内存            */
 
-LW_API ULONG        API_VmmVirtualToPhysical(addr_t  ulVirtualAddr, 
-                                             addr_t *pulPhysicalAddr);  /*  通过虚拟地址获取物理地址    */
+LW_API ULONG        API_VmmVirtualToPhysical(addr_t  ulVirtualAddr,     /*  通过虚拟地址获取物理地址    */
+                                             phys_addr_t  *ppaPhysicalAddr);
 
 LW_API BOOL         API_VmmVirtualIsInside(addr_t  ulAddr);             /*  指定地址是否在管理的虚拟空间*/
 
@@ -286,10 +286,10 @@ LW_API VOID         API_VmmDmaFree(PVOID  pvDmaMem);                    /*  回收
 #else
 
 #ifdef __SYLIXOS_KERNEL
-static LW_INLINE ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, addr_t *pulPhysicalAddr)
+static LW_INLINE ULONG  API_VmmVirtualToPhysical (addr_t  ulVirtualAddr, phys_addr_t *ppaPhysicalAddr)
 {
-    if (pulPhysicalAddr) {
-        *pulPhysicalAddr = ulVirtualAddr;
+    if (ppaPhysicalAddr) {
+        *ppaPhysicalAddr = ulVirtualAddr;
     }
     
     return  (ERROR_NONE);

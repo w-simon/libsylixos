@@ -410,16 +410,16 @@ static VOID  ppcHashMmuPteFree (LW_PTE_TRANSENTRY  *p_pteentry)
 ** 函数名称: ppcHashMmuPtePhysGet
 ** 功能描述: 通过 PTE 表项, 查询物理地址
 ** 输　入  : pteentry           pte 表项
-**           pulPhysicalAddr    获得的物理地址
+**           ppaPhysicalAddr    获得的物理地址
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  ppcHashMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysicalAddr)
+static INT  ppcHashMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, phys_addr_t  *ppaPhysicalAddr)
 {
     UINT32   uiRPN   = pteentry.PTE_uiRPN;                              /*  获得物理页面号              */
 
-    *pulPhysicalAddr = uiRPN << LW_CFG_VMM_PAGE_SHIFT;                  /*  计算页面物理地址            */
+    *ppaPhysicalAddr = uiRPN << LW_CFG_VMM_PAGE_SHIFT;                  /*  计算页面物理地址            */
 
     return  (ERROR_NONE);
 }

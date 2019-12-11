@@ -740,12 +740,12 @@ static VOID  sparcMmuPteFree (LW_PTE_TRANSENTRY  *p_pteentry)
 ** 函数名称: sparcMmuPtePhysGet
 ** 功能描述: 通过 PTE 表项, 查询物理地址
 ** 输　入  : pteentry           pte 表项
-**           pulPhysicalAddr    获得的物理地址
+**           ppaPhysicalAddr    获得的物理地址
 ** 输　出  : ERROR CODE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  sparcMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysicalAddr)
+static INT  sparcMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, phys_addr_t  *ppaPhysicalAddr)
 {
     UINT32      uiPPN;
     UINT32      uiPhyAddr;
@@ -753,7 +753,7 @@ static INT  sparcMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysica
     uiPPN     = pteentry >> SPARC_MMU_PPN_SHIFT;
     uiPhyAddr = uiPPN    << SPARC_MMU_PPN_PA_SHIFT;
 
-    *pulPhysicalAddr = (addr_t)(uiPhyAddr);                             /*  获得物理地址                */
+    *ppaPhysicalAddr = (addr_t)(uiPhyAddr);                             /*  获得物理地址                */
     
     return  (ERROR_NONE);
 }

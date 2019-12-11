@@ -238,6 +238,7 @@ VOID    archMmuInit(CPCHAR  pcMachineName);
 
 #define __ARCH_MMU_INIT     archMmuInit
 
+#if LW_CFG_CPU_PHYS_ADDR_64BIT == 0
 VOID    armMmuV7ForceShare(BOOL  bEnOrDis);                             /*  强制置位共享位              */
 VOID    armMmuV7ForceNonSecure(BOOL  bEnOrDis);                         /*  强制使用 Non-Secure 模式    */
 
@@ -246,6 +247,11 @@ VOID    armMmuV7ForceNonSecure(BOOL  bEnOrDis);                         /*  强制
 #define ARM_MMU_V7_DEV_NON_SHAREABLE        2                           /*  非共享设备内存              */
 
 VOID    armMmuV7ForceDevType(UINT  uiType);                             /*  选择设备内存类型            */
+
+#else
+VOID    armMmuV7ShareableSet(UINT  uiInnerOrOuter);                     /*  MMU 系统 share 模式设置     */
+UINT    armMmuV7ShareableGet(VOID);                                     /*  MMU 系统 share 模式获取     */
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT  */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
 /*********************************************************************************************************
@@ -545,6 +551,7 @@ INT     bspL2CAux(UINT32 *puiAuxVal, UINT32 *puiAuxMask);               /*  L2 c
 
 #if LW_CFG_VMM_EN > 0
 ULONG   bspMmuPgdMaxNum(VOID);
+ULONG   bspMmuPmdMaxNum(VOID);
 ULONG   bspMmuPteMaxNum(VOID);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 

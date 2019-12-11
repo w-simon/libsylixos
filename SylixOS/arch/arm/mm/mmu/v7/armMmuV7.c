@@ -28,6 +28,7 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
+#if LW_CFG_CPU_PHYS_ADDR_64BIT == 0
 #include "../armMmuCommon.h"
 #include "../../cache/armCacheCommon.h"
 #include "../../../common/cp15/armCp15.h"
@@ -622,14 +623,14 @@ static VOID  armMmuPteFree (LW_PTE_TRANSENTRY  *p_pteentry)
 ** 函数名称: armMmuPtePhysGet
 ** 功能描述: 通过 PTE 表项, 查询物理地址
 ** 输　入  : pteentry           pte 表项
-**           pulPhysicalAddr    获得的物理地址
+**           ppaPhysicalAddr    获得的物理地址
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  armMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, addr_t  *pulPhysicalAddr)
+static INT  armMmuPtePhysGet (LW_PTE_TRANSENTRY  pteentry, phys_addr_t  *ppaPhysicalAddr)
 {
-    *pulPhysicalAddr = (addr_t)(pteentry & (UINT32)0xFFFFF000);         /*  获得物理地址                */
+    *ppaPhysicalAddr = (addr_t)(pteentry & (UINT32)0xFFFFF000);         /*  获得物理地址                */
     
     return  (ERROR_NONE);
 }
@@ -961,6 +962,7 @@ VOID  armMmuV7ForceDevType (UINT  uiType)
     _G_uiVMSADevType = uiType;
 }
 
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT  */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

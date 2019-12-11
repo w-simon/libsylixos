@@ -104,6 +104,9 @@
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
+#if LW_CFG_SHELL_HOOK_EN > 0
+static FUNCPTR          _G_pfuncShellHook   = LW_NULL;
+#endif                                                                  /*  LW_CFG_SHELL_HOOK_EN > 0    */
 static PLW_LIST_LINE    _G_plineTSKeyHeader = LW_NULL;                  /*  命令链表头                  */
 static PLW_LIST_LINE    _G_plineTSKeyHeaderHashTbl[LW_CFG_SHELL_KEY_HASH_SIZE];
                                                                         /*  哈希搜索表                  */
@@ -236,6 +239,26 @@ static BOOL  __tshellCheckFile (CPCHAR  pcKeyword)
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
+** 函数名称: __tshellThreadHook
+** 功能描述: 向 ttiny shell 任务注册一个回调钩子.
+** 输　入  : pfuncShellHook     向 shell 注册的回调钩子
+** 输　出  : 之前的回调钩子
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_SHELL_HOOK_EN > 0
+
+FUNCPTR  __tshellThreadHook (FUNCPTR  pfuncShellHook)
+{
+    FUNCPTR  pfuncOrg = _G_pfuncShellHook;
+
+    _G_pfuncShellHook = pfuncShellHook;
+
+    return  (pfuncOrg);
+}
+
+#endif                                                                  /*  LW_CFG_SHELL_HOOK_EN > 0    */
 /*********************************************************************************************************
 ** 函数名称: __tshellUndef
 ** 功能描述: shell 未定义命令处理 (将可执行文件转交给 exec 命令执行)
@@ -1356,6 +1379,14 @@ __reauthen:
             optreset = 1;
             
             iRetValue = API_TShellExec(cRecvBuffer);                    /*  执行 shell 指令             */
+
+#if LW_CFG_SHELL_HOOK_EN > 0
+            if ((iRetValue == -ERROR_TSHELL_CMDNOTFUND) && _G_pfuncShellHook) {
+                LW_SOFUNC_PREPARE(_G_pfuncShellHook);
+                iRetValue = _G_pfuncShellHook(cRecvBuffer);
+            }
+#endif                                                                  /*  LW_CFG_SHELL_HOOK_EN > 0    */
+
             if (iRetValue < 0) {
                 switch (iRetValue) {                                    /*  系统级错误提示              */
                 
