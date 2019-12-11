@@ -210,10 +210,6 @@ int  pthread_attr_setstacksize (pthread_attr_t  *pattr, size_t  stSize)
             errno = EINVAL;
             return  (EINVAL);
         }
-        
-        if (stSize < LW_CFG_PTHREAD_DEFAULT_STK_SIZE) {
-            stSize = LW_CFG_PTHREAD_DEFAULT_STK_SIZE;
-        }
     }
     
     pattr->PTHREADATTR_stStackByteSize = stSize;
