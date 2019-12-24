@@ -1675,6 +1675,7 @@ static INT  __fatFsRename (PLW_FD_ENTRY  pfdentry, PCHAR  pcNewName)
         iError  = PX_ERROR;
     
     } else {
+        pfdnode->FDNODE_inode64 = (ino64_t)-1;                          /*  已失效 (等待被 close)       */
         iError  = ERROR_NONE;
     }
     __FAT_FILE_UNLOCK(pfatfile);

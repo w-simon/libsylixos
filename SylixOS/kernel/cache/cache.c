@@ -400,7 +400,7 @@ INT    API_CacheDisable (LW_CACHE_TYPE  cachetype)
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
-** 注  意  : 此操作一般用于多核同步 CACHE.
+** 注  意  : 此操作一般用于多核同步 CACHE. 此函数不支持嵌套调用 (hook 中不能再调用此函数)
 
                                            API 函数
 *********************************************************************************************************/
@@ -434,28 +434,29 @@ INT    API_CacheBarrier (VOIDFUNCPTR             pfuncHook,
     ulCPUId = LW_CPU_GET_CUR_ID();
     pcpuCur = LW_CPU_GET(ulCPUId);
     
-    pcpuCur->CPU_bCacheBarrier = LW_TRUE;                               /*  设置当前核同步点            */
+    pcpuCur->CPU_bCacheBarStart = LW_TRUE;                              /*  设置当前核起始同步点        */
+    pcpuCur->CPU_bCacheBarEnd   = LW_FALSE;                             /*  未开始第二阶段同步          */
     KN_SMP_MB();
     
     for (i = 0; i < ulNumChk; i++) {
         if (LW_CPU_ISSET(i, pcpuset)) {
             pcpu = LW_CPU_GET(i);
-            while (!pcpu->CPU_bCacheBarrier);                           /*  自旋等待其他 CPU            */
+            while (!pcpu->CPU_bCacheBarStart);                          /*  自旋等待其他 CPU            */
         }
     }
     
     pfuncHook(pvArg);                                                   /*  执行回调函数                */
     
-    pcpuCur->CPU_bCacheBarrier = LW_FALSE;                              /*  取消当前核同步点            */
+    pcpuCur->CPU_bCacheBarEnd = LW_TRUE;                                /*  设置当前核结束同步点        */
     KN_SMP_MB();
     
     for (i = 0; i < ulNumChk; i++) {
         if (LW_CPU_ISSET(i, pcpuset)) {
             pcpu = LW_CPU_GET(i);
-            while (pcpu->CPU_bCacheBarrier);                            /*  自旋等待其他 CPU            */
+            while (!pcpu->CPU_bCacheBarEnd);                            /*  自旋等待其他 CPU            */
         }
     }
-    
+
     __SMP_CPU_UNLOCK(bLock);
     
     return  (ERROR_NONE);

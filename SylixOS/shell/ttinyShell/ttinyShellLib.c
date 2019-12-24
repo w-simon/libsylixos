@@ -893,6 +893,8 @@ INT  __tshellRestartEx (LW_OBJECT_HANDLE  ulThread, BOOL  bNeedAuthen)
                            "    Restart SylixOS is recommended!\n");
         }
     } else {                                                            /*  ÷ÿ∆Ùœﬂ≥Ã                    */
+        __tshellHistoryBackup(ptcbShell);
+
         API_ThreadRestart(ulThread, (PVOID)__TTINY_SHELL_GET_STDFILE(ptcbShell));
     }
     

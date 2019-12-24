@@ -86,8 +86,11 @@ typedef __SHELL_INPUT_CTX       *__PSHELL_INPUT_CTX;
 *********************************************************************************************************/
 #define __INPUT_SAVE_MAX            20
 typedef struct {
+    LW_LIST_LINE                 SIHC_lineManage;
     LW_LIST_RING_HEADER          SIHC_pringHeader;
     UINT                         SIHC_uiCounter;
+    BOOL                         SIHC_bNeedBackup;
+    LW_OBJECT_HANDLE             SIHC_ulId;
 } __SHELL_HISTORY_CTX;
 typedef __SHELL_HISTORY_CTX     *__PSHELL_HISTORY_CTX;
 
@@ -96,6 +99,10 @@ typedef struct {
     CHAR                         SIH_cInputSave[1];
 } __SHELL_HISTORY;
 typedef __SHELL_HISTORY         *__PSHELL_HISTORY;
+/*********************************************************************************************************
+  历史记录
+*********************************************************************************************************/
+static LW_LIST_LINE_HEADER       _K_plineShellHisc;
 /*********************************************************************************************************
 ** 函数名称: __tshellReadlineClean
 ** 功能描述: shell 退出时清除 readline 信息.
@@ -112,15 +119,24 @@ VOID  __tshellReadlineClean (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal, PLW_CLASS_
     __PSHELL_HISTORY        psihHistory;
     
     if (psihc) {
-        while (psihc->SIHC_pringHeader) {
-            psihHistory = _LIST_ENTRY(psihc->SIHC_pringHeader, __SHELL_HISTORY, SIH_ringManage);
-            _List_Ring_Del(&psihHistory->SIH_ringManage, 
-                           &psihc->SIHC_pringHeader);
-            __SHEAP_FREE(psihHistory);
+        if (psihc->SIHC_bNeedBackup) {
+            __KERNEL_ENTER();                                           /*  进入内核                    */
+            _List_Line_Add_Ahead(&psihc->SIHC_lineManage, &_K_plineShellHisc);
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            psihc->SIHC_bNeedBackup = LW_FALSE;
+            __TTINY_SHELL_SET_HIS(ptcbDel, LW_NULL);
+
+        } else {
+            while (psihc->SIHC_pringHeader) {
+                psihHistory = _LIST_ENTRY(psihc->SIHC_pringHeader, __SHELL_HISTORY, SIH_ringManage);
+                _List_Ring_Del(&psihHistory->SIH_ringManage,
+                               &psihc->SIHC_pringHeader);
+                __SHEAP_FREE(psihHistory);
+            }
+
+            __SHEAP_FREE(psihc);
+            __TTINY_SHELL_SET_HIS(ptcbDel, LW_NULL);
         }
-        
-        __SHEAP_FREE(psihc);
-        __TTINY_SHELL_SET_HIS(ptcbDel, LW_NULL);
     }
 }
 /*********************************************************************************************************
@@ -134,23 +150,54 @@ VOID  __tshellReadlineClean (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal, PLW_CLASS_
 static INT  __tshellReadlineInit (VOID)
 {
     PLW_CLASS_TCB           ptcbCur;
+    PLW_LIST_LINE           pline;
     __PSHELL_HISTORY_CTX    psihc;
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     psihc = __TTINY_SHELL_GET_HIS(ptcbCur);
-    
     if (psihc == LW_NULL) {
-        psihc = (__PSHELL_HISTORY_CTX)__SHEAP_ALLOC(sizeof(__SHELL_HISTORY_CTX));
-        if (psihc == LW_NULL) {
-            fprintf(stderr, "read line tool no memory!\n");
-            return  (PX_ERROR);
+        __KERNEL_ENTER();                                               /*  进入内核                    */
+        for (pline = _K_plineShellHisc; pline != LW_NULL; pline = _list_line_get_next(pline)) {
+             psihc = _LIST_ENTRY(pline, __SHELL_HISTORY_CTX, SIHC_lineManage);
+             if (psihc->SIHC_ulId == ptcbCur->TCB_ulId) {
+                 _List_Line_Del(&psihc->SIHC_lineManage, &_K_plineShellHisc);
+                 break;
+             }
         }
-        lib_bzero(psihc, sizeof(__SHELL_HISTORY_CTX));
+        __KERNEL_EXIT();                                                /*  退出内核                    */
+
+        if (pline) {
+            psihc->SIHC_bNeedBackup = LW_FALSE;
+
+        } else {
+            psihc = (__PSHELL_HISTORY_CTX)__SHEAP_ALLOC(sizeof(__SHELL_HISTORY_CTX));
+            if (psihc == LW_NULL) {
+                fprintf(stderr, "read line tool no memory!\n");
+                return  (PX_ERROR);
+            }
+            lib_bzero(psihc, sizeof(__SHELL_HISTORY_CTX));
+            psihc->SIHC_ulId = ptcbCur->TCB_ulId;
+        }
+
         __TTINY_SHELL_SET_HIS(ptcbCur, psihc);
     }
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellHistoryBackup
+** 功能描述: shell 退出时需要备份历史记录
+** 输　入  : ptcbDel                       删除的 TCB
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  __tshellHistoryBackup (PLW_CLASS_TCB  ptcbDel)
+{
+    __PSHELL_HISTORY_CTX    psihc = __TTINY_SHELL_GET_HIS(ptcbDel);
+
+    psihc->SIHC_bNeedBackup = LW_TRUE;
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellTtyInputHistorySave

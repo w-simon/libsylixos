@@ -206,8 +206,8 @@ VOID  archFpuCtxShow (INT  iFd, PVOID  pvFpuCtx)
 *********************************************************************************************************/
 INT  archFpuUndHandle (PLW_CLASS_TCB  ptcbCur)
 {
-    if (PPC_VFP_ISENABLE(_G_pfpuop)) {                                  /*  如果当前上下文 FPU 使能     */
-        return  (PX_ERROR);                                             /*  此未定义指令与 FPU 无关     */
+    if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
+        return  (PX_ERROR);
     }
 
     PPC_VFP_ENABLE_TASK(_G_pfpuop, ptcbCur);                            /*  任务使能 FPU                */

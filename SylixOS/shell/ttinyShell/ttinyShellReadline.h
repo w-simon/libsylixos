@@ -29,6 +29,7 @@
 
 ssize_t  __tshellReadline(INT  iFd, PVOID  pcBuffer, size_t  stSize);
 VOID     __tshellReadlineClean(LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal, PLW_CLASS_TCB  ptcbDel);
+VOID     __tshellHistoryBackup(PLW_CLASS_TCB  ptcbDel);
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 #endif                                                                  /*  __TTINYSHELLREADLINE_H      */

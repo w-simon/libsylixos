@@ -79,7 +79,8 @@ typedef struct __lw_cpu {
     BOOL                     CPU_bOnlyAffinity;                         /*  是否仅运行亲和线程          */
     
 #if LW_CFG_CACHE_EN > 0
-    volatile BOOL            CPU_bCacheBarrier;                         /*  CACHE 同步点                */
+    volatile BOOL            CPU_bCacheBarStart;                        /*  CACHE 起始同步点            */
+    volatile BOOL            CPU_bCacheBarEnd;                          /*  CACHE 结束同步点            */
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
     
     /*

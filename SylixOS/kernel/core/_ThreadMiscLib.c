@@ -372,7 +372,7 @@ VOID  _ThreadTraversal (VOIDFUNCPTR    pfunc,
 }
 /*********************************************************************************************************
 ** 函数名称: _ThreadRestartProcHook
-** 功能描述: 线程 Rstart 时对 hook 的处理
+** 功能描述: 线程 Restart 时对 hook 的处理
 ** 输　入  : ptcb      任务控制块
 ** 输　出  : NONE
 ** 全局变量: 
