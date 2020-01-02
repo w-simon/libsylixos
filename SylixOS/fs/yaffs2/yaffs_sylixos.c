@@ -310,11 +310,15 @@ static INT  __tshellYaffsCmd (INT  iArgC, PCHAR  ppcArgV[])
         }
     
     } else if (lib_strcmp("erase", ppcArgV[2]) == 0) {                  /*  擦除芯片 (符合驱动的规则)   */
+        printf("Erasing...\n");
+
         for (i = pyaffsDev->param.start_block; i <= pyaffsDev->param.end_block; i++) {
+            printf("\r%4d / %4d", i, pyaffsDev->param.end_block);
+            fflush(stdout);
             yaffs_erase_block(pyaffsDev, i);
         }
         
-        printf("yaffs volume erase ok\n");
+        printf("\nyaffs volume erase ok\n");
 
     } else if (lib_strcmp("format", ppcArgV[2]) == 0) {                 /*  格式化芯片                  */
         if (yaffs_format_reldev(pyaffsDev, 1, 0, 1) == 0) {

@@ -4728,6 +4728,15 @@ int yaffs_guts_ll_init(struct yaffs_dev *dev)
 	return YAFFS_OK;
 }
 
+#ifdef SYLIXOS
+#define __YAFFS_PRINT_FORMAT_START()                printf("Formating...\n")
+#define __YAFFS_PRINT_FORMAT_END()                  printf("\nFormat completed.\n")
+#define __YAFFS_PRINT_FORMAT_PROGRESS(cur, total)   printf("\r%4d / %4d", cur, total); fflush(stdout)
+#else
+#define __YAFFS_PRINT_FORMAT_START()
+#define __YAFFS_PRINT_FORMAT_END()
+#define __YAFFS_PRINT_FORMAT_PROGRESS(cur, total)
+#endif
 
 int yaffs_guts_format_dev(struct yaffs_dev *dev)
 {
@@ -4741,11 +4750,16 @@ int yaffs_guts_format_dev(struct yaffs_dev *dev)
 	if(dev->is_mounted)
 		return YAFFS_FAIL;
 
+	__YAFFS_PRINT_FORMAT_START();
+
 	for (i = dev->internal_start_block; i <= dev->internal_end_block; i++) {
+	    __YAFFS_PRINT_FORMAT_PROGRESS(i, dev->internal_end_block);
 		yaffs_query_init_block_state(dev, i, &state, &dummy);
 		if (state != YAFFS_BLOCK_STATE_DEAD)
 			yaffs_erase_block(dev, i);
 	}
+
+	__YAFFS_PRINT_FORMAT_END();
 
 	return YAFFS_OK;
 }

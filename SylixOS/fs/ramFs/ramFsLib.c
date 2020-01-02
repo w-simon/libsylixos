@@ -335,10 +335,11 @@ VOID  __ram_truncate (PRAM_NODE  pramn, size_t  stOft)
             pramn->RAMN_ulCnt--;
         } while (plineTemp);
         
-        pramn->RAMN_stSize      = stOft;                                /*  记录新的文件大小            */
-        pramn->RAMN_stVSize     = stOft;
         pramn->RAMN_prambCookie = LW_NULL;                              /*  cookie 未知                 */
     }
+
+    pramn->RAMN_stSize  = stOft;                                        /*  记录新的文件大小            */
+    pramn->RAMN_stVSize = stOft;
 }
 /*********************************************************************************************************
 ** 函数名称: __ram_automem

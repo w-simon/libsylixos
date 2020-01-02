@@ -1766,9 +1766,8 @@ static INT  __tpsFsTruncate (PLW_FD_ENTRY  pfdentry, off_t  oftSize)
     errno_t             iErr     = ERROR_NONE;
 
     if (oftSize < 0) {                                                  /*  TPS 文件必须在 4GB 内       */
-        _ErrorHandle(EOVERFLOW);
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
-
     }
 
     if (__TPS_FILE_LOCK(ptpsfile) != ERROR_NONE) {
@@ -1816,9 +1815,10 @@ static INT  __tpsFsTruncate (PLW_FD_ENTRY  pfdentry, off_t  oftSize)
         iErr = tpsFsTrunc(ptpsfile->TPSFIL_pinode, oftSize);
         pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
         iError = (iErr == ERROR_NONE ? ERROR_NONE : PX_ERROR);
+
     } else {
-        iErr    = EISDIR;
-        iError  = PX_ERROR;
+        iErr   = EISDIR;
+        iError = PX_ERROR;
     }
     
     __TPS_FILE_UNLOCK(ptpsfile);

@@ -1181,6 +1181,11 @@ static INT  __ramFsTruncate (PLW_FD_ENTRY  pfdentry, off_t  oftSize)
         return  (PX_ERROR);
     }
     
+    if (oftSize < 0) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     if (oftSize > (size_t)~0) {
         _ErrorHandle(ENOSPC);
         return  (PX_ERROR);
