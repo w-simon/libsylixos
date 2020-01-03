@@ -70,6 +70,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
     UINT8            *pucPartEntry;
     BOOL              bMaster = LW_FALSE;
     ULONG             ulLeftSec;
+    ULONG             ulNSecPerMB = LW_CFG_MB_SIZE / ulSecSize;
     UINT64            u64Temp;
     UINT32            uiPSecNext;
     UINT32            uiPStartSec[4], uiPNSec[4];
@@ -102,15 +103,18 @@ static INT  __oemFdisk (INT                     iBlkFd,
             uiPNSec[i] = (UINT32)ulLeftSec;
             break;
             
+        } else if (fdpPart[i].FDP_ucSzPct > 100) {                      /*  按容量信息分配              */
+            uiPNSec[i] = fdpPart[i].FDP_ulMBytes * ulNSecPerMB;
+
         } else {                                                        /*  按百分比分配                */
             u64Temp    = (UINT64)ulTotalSec;
             u64Temp    = (u64Temp * fdpPart[i].FDP_ucSzPct) / 100;
             uiPNSec[i] = (UINT32)u64Temp;
-            uiPNSec[i] = ROUND_DOWN(uiPNSec[i], (stAlign / ulSecSize)); /*  对齐的扇区个数              */
-            
-            ulLeftSec  -= uiPNSec[i];
-            uiPSecNext += uiPNSec[i];
         }
+
+        uiPNSec[i]  = ROUND_DOWN(uiPNSec[i], (stAlign / ulSecSize));    /*  对齐的扇区个数              */
+        ulLeftSec  -= uiPNSec[i];
+        uiPSecNext += uiPNSec[i];
     }
     
     if (pread(iBlkFd, pucSecBuf, (size_t)ulSecSize, 0) != (ssize_t)ulSecSize) {
@@ -243,13 +247,35 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
 
     if (ioctl(iBlkFd, LW_BLKD_GET_SECSIZE, &ulSecSize)) {
         ulSecSize = 512;
+
+    } else if ((ulSecSize < 512) || !ALIGNED(ulSecSize, ulSecSize - 1)) {
+        close(iBlkFd);
+        _ErrorHandle(ENXIO);
+        return  (PX_ERROR);
     }
 
     for (i = 0; i < uiNPart; i++) {
-        ucTotalPct += fdpPart[i].FDP_ucSzPct;
-        if (!fdpPart[i].FDP_ucSzPct) {
-            i++;
-            break;
+        if (fdpPart[i].FDP_ucSzPct > 100) {                             /*  容量分配                    */
+            ULONG   ulNSecPerMB = LW_CFG_MB_SIZE / ulSecSize;
+            ULONG   ulPartNSec;
+            UINT8   ucSzPct;
+
+            if (!fdpPart[i].FDP_ulMBytes) {                             /*  容量信息错误                */
+                close(iBlkFd);
+                _ErrorHandle(EINVAL);
+                return  (PX_ERROR);
+            }
+
+            ulPartNSec  = fdpPart[i].FDP_ulMBytes * ulNSecPerMB;
+            ucSzPct     = ulPartNSec / (ulTotalSec / 100);
+            ucTotalPct += ucSzPct;
+
+        } else {                                                        /*  比例分配                    */
+            ucTotalPct += fdpPart[i].FDP_ucSzPct;
+            if (!fdpPart[i].FDP_ucSzPct) {
+                i++;
+                break;
+            }
         }
     }
 

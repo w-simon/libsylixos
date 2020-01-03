@@ -32,7 +32,8 @@ typedef struct {
     UINT8       FDP_ucSzPct;                                            /*  分区大小百分比              */
     BOOL        FDP_bIsActive;                                          /*  是否为活动分区              */
     UINT8       FDP_ucPartType;                                         /*  分区格式                    */
-    ULONG       FDP_ulReserve[8];                                       /*  保留                        */
+    ULONG       FDP_ulMBytes;                                           /*  ucSzPct > 100 使用此参数    */
+    ULONG       FDP_ulReserve[7];                                       /*  保留                        */
 } LW_OEMFDISK_PART;
 typedef LW_OEMFDISK_PART    *PLW_OEMFDISK_PART;
 

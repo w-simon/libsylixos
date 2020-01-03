@@ -1987,13 +1987,14 @@ static INT  __tshellFsCmdDosfslabel (INT  iArgC, PCHAR  ppcArgV[])
 
 static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 {
+    CHAR              cInput[512];
     LW_OEMFDISK_PART  fdpInfo[4];
     UINT              uiNPart;
-    size_t            stAlign;
+    size_t            stAlign, stNum;
     struct stat       statGet;
     PCHAR             pcBlkFile;
-    INT               i, iPct, iTotalPct = 0;
-    CHAR              cActive;
+    UINT              i, uiPct, uiTotalPct = 0;
+    CHAR              cActive, cChar, *pcStr;
     INT               iCnt, iType;
 
     if (iArgC < 2) {
@@ -2052,30 +2053,50 @@ __input_align:
 
     for (i = 0; i < uiNPart; i++) {
 __input_size:
-        printf("please input the partition %d size percentage(%%) 0 means all left space : ", i);
+        printf("please input the partition %d size percentage(%%) or capacity(M) 0 means all left space : ", i);
         fflush(stdout);
         fpurge(stdin);
-        if (scanf("%d", &iPct) != 1) {
+        for (pcStr = cInput, stNum = 0;
+             ((cChar = getchar()) != '\n') || stNum >= sizeof(cInput) - 1;
+             stNum++) {                                                 /*  获得输入字符串              */
+            if (cChar == EOF) {
+                break;
+            } else {
+                *pcStr++ = cChar;
+            }
+        }
+        if ((stNum <= 0) || (stNum >= sizeof(cInput))) {
+            goto    __input_size;                                       /*  输入错误                    */
+        }
+        *pcStr = PX_EOS;
+
+        if (sscanf(cInput, "%u", &uiPct) != 1) {                        /*  获取数字                    */
             goto    __input_size;
         }
 
-        if ((iPct < 0) || (iPct > 100)) {
-            printf("the partition size percentage(%%) must be 1 ~ 100\n");
-            goto    __input_size;
-        }
+        if (lib_strchr(cInput, 'M') || lib_strchr(cInput, 'm')) {       /*  容量分配                    */
+            fdpInfo[i].FDP_ucSzPct  = 101;                              /*  使用容量分配                */
+            fdpInfo[i].FDP_ulMBytes = uiPct;                            /*  TODO: 判断容量越界          */
 
-        if (iPct == 0) {
-            iTotalPct  = 100;
-        } else {
-            iTotalPct += iPct;
-        }
+        } else {                                                        /*  比例分配                    */
+            if ((uiPct < 0) || (uiPct > 100)) {
+                printf("the partition size percentage(%%) must be 1 ~ 100\n");
+                goto    __input_size;
+            }
 
-        if (iTotalPct > 100) {
-            printf("the partition size percentage seriously error (bigger than 100%%)!\n");
-            return  (-ERROR_TSHELL_EPARAM);
-        }
+            if (uiPct == 0) {
+                uiTotalPct  = 100;
+            } else {
+                uiTotalPct += uiPct;
+            }
 
-        fdpInfo[i].FDP_ucSzPct = (UINT8)iPct;
+            if (uiTotalPct > 100) {
+                printf("the partition size percentage seriously error (bigger than 100%%)!\n");
+                return  (-ERROR_TSHELL_EPARAM);
+            }
+
+            fdpInfo[i].FDP_ucSzPct = (UINT8)uiPct;
+        }
 
 __input_active:
         printf("is this partition active(y/n) : ");
