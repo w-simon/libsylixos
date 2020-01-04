@@ -496,7 +496,7 @@ INT  API_PciDrvUnregister (PCI_DRV_HANDLE  hDrvHandle)
     PLW_LIST_LINE           plineTemp     = LW_NULL;
     PCI_DRV_DEV_HANDLE      hDrvDevHandle = LW_NULL;
 
-    __PCI_DRV_UNLOCK();
+    __PCI_DRV_LOCK();
     if (hDrvHandle->PCIDRV_uiDrvDevNum) {
         _GuiPciDrvActiveNum -= 1;
     }
