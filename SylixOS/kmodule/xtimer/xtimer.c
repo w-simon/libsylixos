@@ -241,6 +241,8 @@ static void xtimer_start_internal (xtimer_t *timer)
 
     } else {
         _List_Line_Add_Ahead(&timer->pline, &xtimer_list);
+
+        xtimer_last_tick = API_TimeGet64();
     }
 }
 

@@ -41,6 +41,7 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
     PLW_CLASS_WAKEUP_NODE   pwunTemp  = LW_NULL;
     INT64                   i64CurTime;
     ULONG                   ulCounter;
+    BOOL                    bSaveTime = LW_FALSE;
 
     if (bProcTime && plineTemp && pwu->WU_pfuncWakeup) {                /*  非周期任务时间预处理        */
         __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);
@@ -75,6 +76,7 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
     if (plineTemp == LW_NULL) {
         if (pwu->WU_plineHeader == LW_NULL) {
             _List_Line_Add_Ahead(&pwun->WUN_lineManage, &pwu->WU_plineHeader);
+            bSaveTime = LW_TRUE;
         } else {
             _List_Line_Add_Right(&pwun->WUN_lineManage, &pwunTemp->WUN_lineManage);
         }
@@ -83,6 +85,9 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
     pwun->WUN_bInQ = LW_TRUE;
 
     if (bProcTime && pwu->WU_pfuncWakeup) {
+        if (bSaveTime) {
+            __KERNEL_TIME_GET_NO_SPINLOCK(pwu->WU_i64LastTime, INT64);
+        }
         pwu->WU_pfuncWakeup(pwu->WU_pvWakeupArg);                       /*  唤醒                        */
     }
 }

@@ -876,7 +876,6 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
     LW_LD_EXEC_MODULE *pmodVProc = LW_NULL;
     LW_LD_VPROC       *pvproc;
     BOOL               bIsGlobal;
-    PCHAR              pcFileName;
 
     if (LW_NULL == pcFile) {
         _ErrorHandle(ERROR_LOADER_PARAM_NULL);
@@ -904,8 +903,7 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
     }
 
     if (pmodVProc) {
-        _PathLastName(pcFile, &pcFileName);                             /*  取出文件名                  */
-        pmodule = moduleLoadSub(pmodVProc, pcFileName, LW_FALSE);       /*  查找进程已装载模块链表      */
+        pmodule = moduleLoadSub(pmodVProc, pcFile, LW_FALSE);           /*  查找进程已装载模块链表      */
     }
 
     if (LW_NULL == pmodule) {                                           /*  获取动态链接库位置          */
