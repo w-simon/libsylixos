@@ -626,16 +626,11 @@ static INT  _gpiofdSelect (PLW_GPIOFD_FILE  pgpiofdfil, PLW_SEL_WAKEUPNODE   pse
     
     switch (pselwunNode->SELWUN_seltypType) {
     
-    case SELREAD:
-        if (!(pgpiofdfil->GF_iGpioFlags & GPIO_FLAG_IRQ)) {
-            SEL_WAKE_UP(pselwunNode);
-        }
-        break;
-        
     case SELWRITE:
         SEL_WAKE_UP(pselwunNode);
         break;
-        
+
+    case SELREAD:
     case SELEXCEPT:
         break;
     }
