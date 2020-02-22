@@ -263,6 +263,8 @@ static INT  __ifArpLst (struct arpreq_list *parplst)
 {
     UINT  uiTotal = 0;
 
+    parplst->arpl_num = 0;
+
     netifapi_arp_traversal(LW_NULL, __ifArpCount, &uiTotal,
                            LW_NULL, LW_NULL, LW_NULL, LW_NULL, LW_NULL);
     parplst->arpl_total = uiTotal;

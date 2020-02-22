@@ -899,8 +899,35 @@ VOID  API_VmmPhysicalKernelDesc (PLW_MMU_PHYSICAL_DESC  pphydescText,
     __vmmPhysicalGetKernelDesc(pphydescText, pphydescData);
 }
 /*********************************************************************************************************
+** 函数名称: API_VmmPageFaultLimit
+** 功能描述: 设置缺页中断物理内存限制
+** 输　入  : pvpflNew          新的设置
+**           pvpflOld          之前的设置
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_VmmPageFaultLimit (PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
+                            PLW_VMM_PAGE_FAULT_LIMIT  pvpflOld)
+{
+    INT  iRet;
+
+    if (pvpflNew && geteuid()) {
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+
+    __VMM_LOCK();
+    iRet = __vmmPhysicalPageFaultLimit(pvpflNew, pvpflOld);
+    __VMM_UNLOCK();
+
+    return  (iRet);
+}
+/*********************************************************************************************************
 ** 函数名称: getpagesize
-** 功能描述: 获得 pagesize 
+** 功能描述: 获得 pagesize
 ** 输　入  : NONE
 ** 输　出  : pagesize
 ** 全局变量: 

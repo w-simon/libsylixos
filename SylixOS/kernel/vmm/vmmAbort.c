@@ -183,8 +183,10 @@ static PLW_VMM_PAGE  __vmmAbortPageGet (addr_t  ulAbortAddr)
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortCopyOnWrite
 ** 功能描述: 共享区域发上改变时, 需要将改变的页面变为 private, 不再被共享.
-** 输　入  : pvmpageVirtual        虚拟空间
+** 输　入  : pabtctx               page fail 上下文
+**           pvmpageVirtual        虚拟空间
 **           ulAbortAddrAlign      异常的地址
+**           ptcbCur               当前任务控制块
 ** 输　出  : 是否成功
 ** 全局变量: 
 ** 调用模块: 
@@ -193,7 +195,10 @@ static PLW_VMM_PAGE  __vmmAbortPageGet (addr_t  ulAbortAddr)
              2: __vmmPhysicalPageClone() 参数一定为 pvmpagePhysical, 因为 pvmpagePhysical 对应的虚拟地址
                 就是我们需要 copy 的数据源, 因为 pvmpageReal 对应的虚拟地址可能已经不存在或者被改写了.
 *********************************************************************************************************/
-static INT  __vmmAbortCopyOnWrite (PLW_VMM_PAGE  pvmpageVirtual, addr_t  ulAbortAddrAlign)
+static INT  __vmmAbortCopyOnWrite (PLW_VMM_ABORT_CTX  pabtctx,
+                                   PLW_VMM_PAGE       pvmpageVirtual,
+                                   addr_t             ulAbortAddrAlign,
+                                   PLW_CLASS_TCB      ptcbCur)
 {
     PLW_VMM_PAGE            pvmpagePhysical = __pageFindLink(pvmpageVirtual, ulAbortAddrAlign);
     PLW_VMM_PAGE            pvmpageReal;
@@ -228,6 +233,11 @@ static INT  __vmmAbortCopyOnWrite (PLW_VMM_PAGE  pvmpageVirtual, addr_t  ulAbort
         return  (ERROR_NONE);                                           /*  更改属性即可                */
     
     } else {                                                            /*  有其他的共享存在            */
+        if (!__vmmPhysicalPageFaultCheck(1, ptcbCur)) {                 /*  检查物理内存是否超限        */
+            __ABTCTX_ABORT_TYPE(pabtctx) = LW_VMM_ABORT_TYPE_NOINFO;    /*  缺少物理页面                */
+            printk(KERN_CRIT "kernel no more physical page.\n");        /*  系统无法分配物理页面        */
+            return  (PX_ERROR);
+        }
                                                                         /*  执行 copy-on-write 操作     */
         pvmpageNew = __vmmPhysicalPageClone(pvmpagePhysical);
         if (pvmpageNew == LW_NULL) {
@@ -262,19 +272,19 @@ static INT  __vmmAbortCopyOnWrite (PLW_VMM_PAGE  pvmpageVirtual, addr_t  ulAbort
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortWriteProtect
 ** 功能描述: 发生写保护中止
-** 输　入  : pvmpageVirtual        虚拟空间
+** 输　入  : pabtctx               page fail 上下文
+**           pvmpageVirtual        虚拟空间
 **           ulAbortAddr           异常的地址
-**           ulFlag                页面属性
 **           ptcbCur               当前任务控制块
 ** 输　出  : 是否成功
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : 
 *********************************************************************************************************/
-static INT  __vmmAbortWriteProtect (PLW_VMM_PAGE   pvmpageVirtual,
-                                    addr_t         ulAbortAddr,
-                                    ULONG          ulFlag,
-                                    PLW_CLASS_TCB  ptcbCur)
+static INT  __vmmAbortWriteProtect (PLW_VMM_ABORT_CTX  pabtctx,
+                                    PLW_VMM_PAGE       pvmpageVirtual,
+                                    addr_t             ulAbortAddr,
+                                    PLW_CLASS_TCB      ptcbCur)
 {
     addr_t  ulAbortAddrAlign = ulAbortAddr & LW_CFG_VMM_PAGE_MASK;
 
@@ -282,10 +292,6 @@ static INT  __vmmAbortWriteProtect (PLW_VMM_PAGE   pvmpageVirtual,
     PLW_VMM_PAGE_PRIVATE   pvmpagep;
 #endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
 
-    if (ulFlag & LW_VMM_FLAG_WRITABLE) {
-        return  (ERROR_NONE);                                           /*  可能其他任务同时访问此地址  */
-    }
-    
     if (pvmpageVirtual->PAGE_ulFlags & LW_VMM_FLAG_WRITABLE) {          /*  虚拟空间允许写操作          */
 #if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
         pvmpagep = (PLW_VMM_PAGE_PRIVATE)pvmpageVirtual->PAGE_pvAreaCb;
@@ -304,8 +310,10 @@ static INT  __vmmAbortWriteProtect (PLW_VMM_PAGE   pvmpageVirtual,
         }
 #endif                                                                  /*  LW_CFG_MODULELOADER_TEXT... */
 
-        return  (__vmmAbortCopyOnWrite(pvmpageVirtual, 
-                                       ulAbortAddrAlign));              /*  copy-on-write               */
+        return  (__vmmAbortCopyOnWrite(pabtctx,
+                                       pvmpageVirtual,
+                                       ulAbortAddrAlign,
+                                       ptcbCur));                       /*  copy-on-write               */
     }
     
     return  (PX_ERROR);                                                 /*  杀死任务, 内存不可写        */
@@ -362,6 +370,7 @@ static INT  __vmmAbortNoPage (PLW_VMM_PAGE           pvmpagePhysical,
 ** 输　入  : pvmpagePhysical       物理页面
 **           ulVirtualPageAlign    虚拟地址
 **           ulAllocPageNum        页面个数
+**           ptcbCur               当前任务控制块
 ** 输　出  : 是否成功
 ** 全局变量: 
 ** 调用模块: 
@@ -372,13 +381,11 @@ static INT  __vmmAbortNoPage (PLW_VMM_PAGE           pvmpagePhysical,
 *********************************************************************************************************/
 static INT  __vmmAbortSwapPage (PLW_VMM_PAGE  pvmpagePhysical, 
                                 addr_t        ulVirtualPageAlign, 
-                                ULONG         ulAllocPageNum)
+                                ULONG         ulAllocPageNum,
+                                PLW_CLASS_TCB ptcbCur)
 {
     addr_t          ulSwitchAddr = __vmmVirtualSwitch();
-    PLW_CLASS_TCB   ptcbCur;                                            /*  当前任务控制块              */
     ULONG           ulError;
-
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
 
     ulError = __vmmLibPageMap(pvmpagePhysical->PAGE_ulPageAddr,         /*  使用 CACHE 操作             */
                               ulSwitchAddr,                             /*  缓冲区虚拟地址              */
@@ -411,18 +418,20 @@ static INT  __vmmAbortSwapPage (PLW_VMM_PAGE  pvmpagePhysical,
 ** 函数名称: __vmmAbortNewPage
 ** 功能描述: 分配一个新的页面, 如果缺少物理页面则交换一个老旧的物理页面
 ** 输　入  : ulAllocPageNum        需要的内存页面个数
+**           ptcbCur               当前任务控制块
 ** 输　出  : 物理页面
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : 
 *********************************************************************************************************/
-static PLW_VMM_PAGE  __vmmAbortNewPage (ULONG  ulAllocPageNum)
+static PLW_VMM_PAGE  __vmmAbortNewPage (ULONG  ulAllocPageNum, PLW_CLASS_TCB   ptcbCur)
 {
     PLW_VMM_PAGE    pvmpagePhysical;
     ULONG           ulZoneIndex;
-    PLW_CLASS_TCB   ptcbCur;                                            /*  当前任务控制块              */
     
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
+    if (!__vmmPhysicalPageFaultCheck(1, ptcbCur)) {                     /*  检查物理内存是否超限        */
+        return  (LW_NULL);
+    }
     
     pvmpagePhysical = __vmmPhysicalPageAlloc(ulAllocPageNum, 
                                              LW_ZONE_ATTR_NONE,
@@ -645,9 +654,15 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
         }
                                                                         /*  写入异常                    */
         if (__ABTCTX_ABORT_METHOD(pabtctx) == LW_VMM_ABORT_METHOD_WRITE) {
-            if (__vmmAbortWriteProtect(pvmpageVirtual,                  /*  尝试 copy-on-write 处理     */
+            if (ulFlag & LW_VMM_FLAG_WRITABLE) {                        /*  可能其他任务同时访问此地址  */
+                __VMM_UNLOCK();
+                goto    __abort_return;
+            }
+                                                                        /*  进入写保护处理              */
+            if (__vmmAbortWriteProtect(pabtctx,
+                                       pvmpageVirtual,                  /*  并尝试 copy-on-write 处理   */
                                        ulAbortAddr,
-                                       ulFlag, ptcbCur) == ERROR_NONE) {/*  进入写保护处理              */
+                                       ptcbCur) == ERROR_NONE) {
                 __VMM_UNLOCK();
                 goto    __abort_return;
             }
@@ -669,10 +684,10 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
         
         ulAllocPageNum  = __PAGEFAIL_ALLOC_PAGE_NUM;                    /*  缺页中断分配的内存页面个数  */
         
-        pvmpagePhysical = __vmmAbortNewPage(ulAllocPageNum);            /*  分配物理页面                */
+        pvmpagePhysical = __vmmAbortNewPage(ulAllocPageNum, ptcbCur);   /*  分配物理页面                */
         if (pvmpagePhysical == LW_NULL) {
             __VMM_UNLOCK();
-            
+
             __ABTCTX_ABORT_TYPE(pabtctx) = LW_VMM_ABORT_TYPE_NOINFO;    /*  缺少物理页面                */
             printk(KERN_CRIT "kernel no more physical page.\n");        /*  系统无法分配物理页面        */
             __vmmAbortKill(pabtctx);
@@ -684,7 +699,8 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
         if (bSwapNeedLoad) {
             iRet = __vmmAbortSwapPage(pvmpagePhysical, 
                                       ulVirtualPageAlign,
-                                      ulAllocPageNum);                  /*  进行页面交换处理            */
+                                      ulAllocPageNum,
+                                      ptcbCur);                         /*  进行页面交换处理            */
         
         } else {
             iRet = __vmmAbortNoPage(pvmpagePhysical, 

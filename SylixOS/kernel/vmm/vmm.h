@@ -85,6 +85,17 @@ typedef LW_MMU_VIRTUAL_DESC *PLW_MMU_VIRTUAL_DESC;
 
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
+  vmm 缺页中断物理内存限制
+*********************************************************************************************************/
+
+typedef struct __lw_vmm_page_fault_limit {
+    ULONG                    VPFL_ulRootMinPages;                       /*  特权用户缺页最小保护内存    */
+    ULONG                    VPFL_ulUserMinPages;                       /*  普通用户缺页最小保护内存    */
+    ULONG                    VPFL_ulReserve[8];
+} LW_VMM_PAGE_FAULT_LIMIT;
+typedef LW_VMM_PAGE_FAULT_LIMIT *PLW_VMM_PAGE_FAULT_LIMIT;
+
+/*********************************************************************************************************
   vmm 当前状态
 *********************************************************************************************************/
 
@@ -379,6 +390,13 @@ LW_API VOID         API_VmmAbortReturn(PLW_VMM_ABORT_CTX  pabtctx);
 
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 /*********************************************************************************************************
+  vmm 缺页中断物理内存限制
+*********************************************************************************************************/
+
+LW_API INT          API_VmmPageFaultLimit(PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
+                                          PLW_VMM_PAGE_FAULT_LIMIT  pvpflOld);
+
+/*********************************************************************************************************
   vmm api macro
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
@@ -425,6 +443,8 @@ LW_API VOID         API_VmmAbortReturn(PLW_VMM_ABORT_CTX  pabtctx);
 #define vmmVirtualStatus            API_VmmVirtualStatus
 #define vmmPhysicalKernelDesc       API_VmmPhysicalKernelDesc
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
+
+#define vmmPageFaultLimit           API_VmmPageFaultLimit
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 #endif                                                                  /*  __VMM_H                     */

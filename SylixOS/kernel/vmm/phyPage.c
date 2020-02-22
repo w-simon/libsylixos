@@ -29,6 +29,7 @@
 2013.05.30  加入物理页面引用功能.
 2014.07.27  加入物理页面 CACHE 操作功能.
 2016.08.19  __vmmPhysicalCreate() 支持多次调用添加物理内存.
+2020.02.22  增加缺页中断内存最小限制.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -46,11 +47,15 @@ extern BOOL     __vmmLibVirtualOverlap(addr_t  ulAddr, size_t  stSize);
 /*********************************************************************************************************
   物理 zone 控制块数组
 *********************************************************************************************************/
-LW_VMM_ZONE                 _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM];     /*  物理区域                    */
+LW_VMM_ZONE                     _G_vmzonePhysical[LW_CFG_VMM_ZONE_NUM]; /*  物理区域                    */
 /*********************************************************************************************************
   物理内存 text data 段大小
 *********************************************************************************************************/
-static LW_MMU_PHYSICAL_DESC _G_vmphydescKernel[2];                      /*  内核内存信息                */
+static LW_MMU_PHYSICAL_DESC     _G_vmphydescKernel[2];                  /*  内核内存信息                */
+/*********************************************************************************************************
+  物理内存配额
+*********************************************************************************************************/
+static LW_VMM_PAGE_FAULT_LIMIT  _G_vmpflPhysical;                       /*  缺页中断物理内存限制        */
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalCreate
 ** 功能描述: 创建一个物理分页区域.
@@ -625,6 +630,72 @@ ULONG  __vmmPhysicalPageGetMinContinue (ULONG  *pulZoneIndex, UINT  uiAttr)
     }
     
     return  (ulMin);
+}
+/*********************************************************************************************************
+** 函数名称: __vmmPhysicalCreate
+** 功能描述: 设置缺页中断物理内存限制.
+** 输　入  : pvpflNew          新的设置
+**           pvpflOld          之前的设置
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __vmmPhysicalPageFaultLimit (PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
+                                  PLW_VMM_PAGE_FAULT_LIMIT  pvpflOld)
+{
+    if (pvpflOld) {
+        *pvpflOld = _G_vmpflPhysical;
+    }
+    if (pvpflNew) {
+        _G_vmpflPhysical = *pvpflNew;
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __vmmPhysicalPageFaultCheck
+** 功能描述: 检查缺页中断物理内存限制.
+** 输　入  : ulPageNum         需要分配的物理页面个数
+**           ptcbCur           当前任务控制块
+** 输　出  : TRUE: 允许分配, FALSE 不允许
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  __vmmPhysicalPageFaultCheck (ULONG  ulPageNum, PLW_CLASS_TCB  ptcbCur)
+{
+#define __VMM_PAGE_FAULT_CHECK(minpages) \
+        ulFreePage = 0; \
+        for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) { \
+            pvmzone = &_G_vmzonePhysical[i]; \
+            if (!pvmzone->ZONE_stSize) { \
+                return  (LW_FALSE); \
+            } \
+            ulFreePage += pvmzone->ZONE_ulFreePage; \
+            if (ulFreePage > (minpages)) { \
+                return  (LW_TRUE); \
+            } \
+        }
+
+             INT            i;
+    REGISTER PLW_VMM_ZONE   pvmzone;
+    REGISTER ULONG          ulFreePage;
+
+    if (ptcbCur->TCB_euid == 0) {
+        if (_G_vmpflPhysical.VPFL_ulRootMinPages == 0) {
+            return  (LW_TRUE);
+        } else {
+            __VMM_PAGE_FAULT_CHECK(_G_vmpflPhysical.VPFL_ulRootMinPages);
+        }
+
+    } else {
+        if (_G_vmpflPhysical.VPFL_ulUserMinPages == 0) {
+            return  (LW_TRUE);
+        } else {
+            __VMM_PAGE_FAULT_CHECK(_G_vmpflPhysical.VPFL_ulUserMinPages);
+        }
+    }
+
+    return  (LW_FALSE);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalGetKernelDesc

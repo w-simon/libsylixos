@@ -64,6 +64,7 @@
             free 命令为显示当前内存使用情况.
 2014.11.11  加入 CPU 亲和度设置.
 2017.12.02  加入 cdump 命令.
+2020.02.22  加入 pagefaultlimit 命令.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -1520,6 +1521,56 @@ static INT  __tshellSysCmdAborts (INT  iArgC, PCHAR  ppcArgV[])
     return  (ERROR_NONE);
 }
 
+/*********************************************************************************************************
+** 函数名称: __tshellSysCmdPageFaultLimit
+** 功能描述: 系统命令 "pagefaultlimit"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellSysCmdPageFaultLimit (INT  iArgC, PCHAR  ppcArgV[])
+{
+    LW_VMM_PAGE_FAULT_LIMIT  vpfl;
+    size_t stRoot, stUser;
+
+    lib_bzero(&vpfl, sizeof(LW_VMM_PAGE_FAULT_LIMIT));
+
+    if (iArgC != 3) {
+        API_VmmPageFaultLimit(LW_NULL, &vpfl);
+        stRoot = vpfl.VPFL_ulRootMinPages * LW_CFG_VMM_PAGE_SIZE;
+        stUser = vpfl.VPFL_ulUserMinPages * LW_CFG_VMM_PAGE_SIZE;
+        printf("Page fault limit: %zu MB (root) %zu MB (user)\n",
+               stRoot / LW_CFG_MB_SIZE, stUser / LW_CFG_MB_SIZE);
+
+    } else {
+        if (sscanf(ppcArgV[1], "%zu", &stRoot) != 1) {
+            goto    __error;
+        }
+        if (sscanf(ppcArgV[2], "%zu", &stUser) != 1) {
+            goto    __error;
+        }
+
+        vpfl.VPFL_ulRootMinPages = (stRoot * LW_CFG_MB_SIZE) / LW_CFG_VMM_PAGE_SIZE;
+        vpfl.VPFL_ulUserMinPages = (stUser * LW_CFG_MB_SIZE) / LW_CFG_VMM_PAGE_SIZE;
+        if (API_VmmPageFaultLimit(&vpfl, LW_NULL)) {
+            if (errno == EACCES) {
+                fprintf(stderr, "insufficient permissions.\n");
+            } else {
+                fprintf(stderr, "Page fault limit set error: %s\n", lib_strerror(errno));
+            }
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (ERROR_NONE);
+
+__error:
+    fprintf(stderr, "argument error.\n");
+    return  (PX_ERROR);
+}
+
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: __tshellSysCmdRestart
@@ -2841,6 +2892,10 @@ VOID  __tshellSysCmdInit (VOID)
     
     API_TShellKeywordAdd("aborts", __tshellSysCmdAborts);
     API_TShellHelpAdd("aborts", "show system vmm abort statistics information.\n");
+
+    API_TShellKeywordAdd("pagefaultlimit", __tshellSysCmdPageFaultLimit);
+    API_TShellFormatAdd("pagefaultlimit", " [root limit] [user limit]");
+    API_TShellHelpAdd("pagefaultlimit", "set or show system vmm page fault limit.\n");
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
 #if LW_CFG_THREAD_RESTART_EN > 0

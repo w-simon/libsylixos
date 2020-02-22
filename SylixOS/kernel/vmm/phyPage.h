@@ -62,6 +62,10 @@ VOID            __vmmPhysicalPageClearAll(PLW_VMM_PAGE  pvmpageVirtual);
 
 ULONG           __vmmPhysicalGetZone(addr_t  ulAddr);
 ULONG           __vmmPhysicalPageGetMinContinue(ULONG  *pulZoneIndex, UINT  uiAttr);
+
+INT             __vmmPhysicalPageFaultLimit(PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
+                                            PLW_VMM_PAGE_FAULT_LIMIT  pvpflOld);
+BOOL            __vmmPhysicalPageFaultCheck(ULONG  ulPageNum, PLW_CLASS_TCB  ptcbCur);
 VOID            __vmmPhysicalGetKernelDesc(PLW_MMU_PHYSICAL_DESC  pphydescText, 
                                            PLW_MMU_PHYSICAL_DESC  pphydescData);
 
