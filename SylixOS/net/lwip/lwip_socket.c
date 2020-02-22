@@ -572,6 +572,7 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSARP:
             case SIOCGARP:
             case SIOCDARP:
+            case SIOCLSTARP:
                 iRet = __ifIoctlArp(iCmd, pvArg);
                 break;
                 
@@ -684,6 +685,7 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSARP:
             case SIOCGARP:
             case SIOCDARP:
+            case SIOCLSTARP:
                 iRet = __ifIoctlArp(iCmd, pvArg);
                 break;
                 

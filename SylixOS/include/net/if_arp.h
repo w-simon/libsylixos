@@ -113,6 +113,19 @@ struct arpreq {
 #define SIOCGARP            _IOWR('i',38, struct arpreq)    /* get arp entry                            */
 #define SIOCDARP            _IOW('i', 32, struct arpreq)    /* delete arp entry                         */
 
+/*********************************************************************************************************
+ * This structure gets passed by the SIOCLSTARP calls.
+*********************************************************************************************************/
+
+struct arpreq_list {
+    u_long          arpl_bcnt;                              /* struct arpreq buffer count               */
+    u_long          arpl_num;                               /* system return how many entry in buffer   */
+    u_long          arpl_total;                             /* system return total number entry         */
+    struct arpreq  *arpl_buf;                               /* arp entry list buffer                    */
+};
+
+#define SIOCLSTARP          _IOWR('i', 39, struct arpreq_list)
+
 #ifdef __cplusplus
 }
 #endif                                                      /*  __cplusplus                             */

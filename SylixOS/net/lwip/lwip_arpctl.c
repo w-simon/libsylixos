@@ -41,7 +41,7 @@
 #endif
 /*********************************************************************************************************
 ** 函数名称: __ifArpSearch
-** 功能描述: arp 遍历
+** 功能描述: arp 遍历查找
 ** 输　入  : netif      网络接口
 **           ipaddr     ip
 **           ethaddr    以太网地址
@@ -75,6 +75,66 @@ static INT  __ifArpSearch (struct netif    *netif,
     }
     
     return  (0);
+}
+/*********************************************************************************************************
+** 函数名称: __ifArpCount
+** 功能描述: arp 遍历计算数量
+** 输　入  : netif      网络接口
+**           ipaddr     ip
+**           ethaddr    以太网地址
+**           iStatic    静态 ?
+**           puiCount   累加变量
+** 输　出  : 0: 继续遍历 1: 退出遍历
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __ifArpCount (struct netif    *netif,
+                          ip4_addr_t      *ipaddr,
+                          struct eth_addr *ethaddr,
+                          INT              iStatic,
+                          UINT            *puiCount)
+{
+    (*puiCount)++;
+    return  (0);
+}
+/*********************************************************************************************************
+** 函数名称: __ifArpWalk
+** 功能描述: arp 遍历获取所有 arp 信息.
+** 输　入  : netif      网络接口
+**           ipaddr     ip
+**           ethaddr    以太网地址
+**           iStatic    静态 ?
+**           parplst    缓冲列表
+** 输　出  : 0: 继续遍历 1: 退出遍历
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __ifArpWalk (struct netif       *netif,
+                         ip4_addr_t         *ipaddr,
+                         struct eth_addr    *ethaddr,
+                         INT                 iStatic,
+                         struct arpreq_list *parplst)
+{
+    if (parplst->arpl_num < parplst->arpl_bcnt) {
+        struct arpreq  *parpreq = &parplst->arpl_buf[parplst->arpl_num];
+        parpreq->arp_pa.sa_family = AF_INET;
+        parpreq->arp_pa.sa_len    = sizeof(struct sockaddr_in);
+        ((struct sockaddr_in *)&parpreq->arp_pa)->sin_addr.s_addr = ipaddr->addr;
+        parpreq->arp_ha.sa_len    = sizeof(struct sockaddr);
+        parpreq->arp_ha.sa_family = AF_UNSPEC;
+        MEMCPY(parpreq->arp_ha.sa_data, ethaddr->addr, ETH_ALEN);
+        netif_get_name(netif, parpreq->arp_dev);
+        if (iStatic) {
+            parpreq->arp_flags = ATF_INUSE | ATF_COM | ATF_PERM;
+        } else {
+            parpreq->arp_flags = ATF_INUSE | ATF_COM;
+        }
+        parplst->arpl_num++;
+        return  (0);
+
+    } else {
+        return  (1);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __ifArpSet
@@ -156,6 +216,7 @@ static INT  __ifArpGet (struct arpreq  *parpreq)
         return  (PX_ERROR);
     }
     
+    parpreq->arp_flags        = arp_flags;
     parpreq->arp_ha.sa_len    = sizeof(struct sockaddr);
     parpreq->arp_ha.sa_family = AF_UNSPEC;
     MEMCPY(parpreq->arp_ha.sa_data, ethaddr.addr, ETH_ALEN);
@@ -188,6 +249,29 @@ static INT  __ifArpDel (const struct arpreq  *parpreq)
         return  (PX_ERROR);
     }
     
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __ifArpLst
+** 功能描述: 获取 ARP 列表
+** 输　入  : parplst    参数
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __ifArpLst (struct arpreq_list *parplst)
+{
+    UINT  uiTotal = 0;
+
+    netifapi_arp_traversal(LW_NULL, __ifArpCount, &uiTotal,
+                           LW_NULL, LW_NULL, LW_NULL, LW_NULL, LW_NULL);
+    parplst->arpl_total = uiTotal;
+    if (!parplst->arpl_bcnt || !parplst->arpl_buf) {
+        return  (ERROR_NONE);
+    }
+    netifapi_arp_traversal(LW_NULL, __ifArpWalk, parplst,
+                           LW_NULL, LW_NULL, LW_NULL, LW_NULL, LW_NULL);
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -229,6 +313,12 @@ INT  __ifIoctlArp (INT  iCmd, PVOID  pvArg)
         LWIP_IF_LIST_UNLOCK();
         break;
         
+    case SIOCLSTARP:
+        LWIP_IF_LIST_LOCK(LW_FALSE);
+        iRet = __ifArpLst((struct arpreq_list *)pvArg);
+        LWIP_IF_LIST_UNLOCK();
+        break;
+
     default:
         _ErrorHandle(ENOSYS);
         break;
