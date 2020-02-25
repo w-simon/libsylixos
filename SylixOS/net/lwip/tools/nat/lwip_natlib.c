@@ -40,6 +40,7 @@
 2019.02.15  本地 TCP SYN, CLOSING 仅保持 1 分钟.
 2019.04.09  NAT AP 端口支持主机安全隔离.
 2019.05.20  MAP 0.0.0.0 作为本机映射.
+2020.02.25  三大协议皆使用 Hash 表, 提高转发查找速度.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -75,6 +76,17 @@
 #define __NAT_LOCK()        LOCK_TCPIP_CORE()
 #define __NAT_UNLOCK()      UNLOCK_TCPIP_CORE()
 /*********************************************************************************************************
+  NAT 节点 Hash 配置
+*********************************************************************************************************/
+#define __NAT_HASH_SIZE     128
+#define __NAT_HASH_MASK     (__NAT_HASH_SIZE - 1)
+#define __NAT_HASH(port)    ((port) & __NAT_HASH_MASK)
+/*********************************************************************************************************
+  NAT 节点 Hash 遍历
+*********************************************************************************************************/
+#define __NAT_HASH_FOR_EACH(i) \
+        for (i = 0; i < __NAT_HASH_SIZE; i++)
+/*********************************************************************************************************
   NAT 接口类型
 *********************************************************************************************************/
 typedef struct {
@@ -98,9 +110,15 @@ static LW_OBJECT_HANDLE      _G_ulNatcbTimer   = LW_OBJECT_HANDLE_INVALID;
 /*********************************************************************************************************
   NAT 控制块链表
 *********************************************************************************************************/
-static LW_LIST_LINE_HEADER  _G_plineNatcbTcp  = LW_NULL;
-static LW_LIST_LINE_HEADER  _G_plineNatcbUdp  = LW_NULL;
-static LW_LIST_LINE_HEADER  _G_plineNatcbIcmp = LW_NULL;
+static LW_LIST_LINE_HEADER  _G_plineNatcbTcp[__NAT_HASH_SIZE];
+static LW_LIST_LINE_HEADER  _G_plineNatcbUdp[__NAT_HASH_SIZE];
+static LW_LIST_LINE_HEADER  _G_plineNatcbIcmp[__NAT_HASH_SIZE];
+/*********************************************************************************************************
+  NAT ASS Hash table
+*********************************************************************************************************/
+static LW_LIST_LINE_HEADER  _G_plineAssHashTcp[__NAT_HASH_SIZE];
+static LW_LIST_LINE_HEADER  _G_plineAssHashUdp[__NAT_HASH_SIZE];
+static LW_LIST_LINE_HEADER  _G_plineAssHashIcmp[__NAT_HASH_SIZE];
 /*********************************************************************************************************
   NAT 分片使能
 *********************************************************************************************************/
@@ -237,15 +255,16 @@ static __PNAT_CB  __natPoolAlloc (VOID)
     LW_SPIN_UNLOCK_QUICK(&_G_slcaNat.SLCA_sl, iregInterLevel);
     
     if (pnatcb) {
-        pnatcb->NAT_ucProto            = 0;
-        pnatcb->NAT_usSrcHash          = 0;
-        pnatcb->NAT_ipaddrLocalIp.addr = IPADDR_ANY;
-        pnatcb->NAT_usAssPortSave      = 0;
-        pnatcb->NAT_usLocalPort        = 0;
-        pnatcb->NAT_uiLocalSequence    = 0;
-        pnatcb->NAT_uiLocalRcvNext     = 0;
-        pnatcb->NAT_ulIdleTimer        = 0ul;
-        pnatcb->NAT_iStatus            = __NAT_STATUS_OPEN;
+        pnatcb->NAT_ucInAssHash      = 0;
+        pnatcb->NAT_ucProto          = 0;
+        pnatcb->NAT_usMapHash        = 0;
+        pnatcb->NAT_ipaddrLocal.addr = IPADDR_ANY;
+        pnatcb->NAT_usAssPortSave    = 0;
+        pnatcb->NAT_usLocalPort      = 0;
+        pnatcb->NAT_uiLocalSequence  = 0;
+        pnatcb->NAT_uiLocalRcvNext   = 0;
+        pnatcb->NAT_ulIdleTimer      = 0ul;
+        pnatcb->NAT_iStatus          = __NAT_STATUS_OPEN;
     }
 
     return  (pnatcb);
@@ -428,6 +447,108 @@ INT  __natAliasDelete (const ip4_addr_t  *pipaddrAlias)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __natAssHashAdd
+** 功能描述: NAT 控制块添加到 Ass Hash 表.
+** 输　入  : pnatcb   NAT 控制块
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __natAssHashAdd (__PNAT_CB  pnatcb)
+{
+    INT    iAssHash;
+
+    if (pnatcb->NAT_ucInAssHash) {
+        return;
+    }
+
+    iAssHash = __NAT_HASH(pnatcb->NAT_usAssPort);
+
+    switch (pnatcb->NAT_ucProto) {
+
+    case IP_PROTO_TCP:                                                  /*  TCP                         */
+        _List_Line_Add_Ahead(&pnatcb->NAT_lineAssHash, &_G_plineAssHashTcp[iAssHash]);
+        break;
+
+    case IP_PROTO_UDP:                                                  /*  UDP                         */
+        _List_Line_Add_Ahead(&pnatcb->NAT_lineAssHash, &_G_plineAssHashUdp[iAssHash]);
+        break;
+
+    case IP_PROTO_ICMP:                                                 /*  ICMP                        */
+        _List_Line_Add_Ahead(&pnatcb->NAT_lineAssHash, &_G_plineAssHashIcmp[iAssHash]);
+        break;
+
+    default:                                                            /*  不应该运行到这里            */
+        _BugHandle(LW_TRUE, LW_TRUE, "NAT Protocol error!\r\n");
+        break;
+    }
+
+    pnatcb->NAT_ucInAssHash = 1;
+}
+/*********************************************************************************************************
+** 函数名称: __natAssHashDelete
+** 功能描述: NAT 控制块添加到 Ass Hash 表.
+** 输　入  : pnatcb   NAT 控制块
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __natAssHashDelete (__PNAT_CB  pnatcb)
+{
+    INT    iAssHash;
+
+    if (pnatcb->NAT_ucInAssHash == 0) {
+        return;
+    }
+
+    iAssHash = __NAT_HASH(pnatcb->NAT_usAssPort);
+
+    switch (pnatcb->NAT_ucProto) {
+
+    case IP_PROTO_TCP:                                                  /*  TCP                         */
+        _List_Line_Del(&pnatcb->NAT_lineAssHash, &_G_plineAssHashTcp[iAssHash]);
+        break;
+
+    case IP_PROTO_UDP:                                                  /*  UDP                         */
+        _List_Line_Del(&pnatcb->NAT_lineAssHash, &_G_plineAssHashUdp[iAssHash]);
+        break;
+
+    case IP_PROTO_ICMP:                                                 /*  ICMP                        */
+        _List_Line_Del(&pnatcb->NAT_lineAssHash, &_G_plineAssHashIcmp[iAssHash]);
+        break;
+
+    default:                                                            /*  不应该运行到这里            */
+        _BugHandle(LW_TRUE, LW_TRUE, "NAT Protocol error!\r\n");
+        break;
+    }
+
+    pnatcb->NAT_ucInAssHash = 0;
+}
+/*********************************************************************************************************
+** 函数名称: __natFirst
+** 功能描述: 如果 hash 表中存在控制块, 则返回一个控制块.
+** 输　入  : pplineHeader[]   节点 Hash 表
+** 输　出  : NAT 控制块
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static __PNAT_CB  __natFirst (LW_LIST_LINE_HEADER pplineHeader[])
+{
+    INT                 i;
+    LW_LIST_LINE_HEADER plineHeader;
+    __PNAT_CB           pnatcb = LW_NULL;
+
+    __NAT_HASH_FOR_EACH(i) {
+        plineHeader = pplineHeader[i];
+        if (plineHeader) {
+            pnatcb = _LIST_ENTRY(plineHeader, __NAT_CB, NAT_lineManage);
+            break;
+        }
+    }
+
+    return  (pnatcb);
+}
+/*********************************************************************************************************
 ** 函数名称: __natNew
 ** 功能描述: 创建一个 NAT 对象.
 ** 输　入  : pipaddr       本地机器 IP
@@ -439,65 +560,67 @@ INT  __natAliasDelete (const ip4_addr_t  *pipaddrAlias)
 *********************************************************************************************************/
 static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto)
 {
+    INT             i, iHash;
     PLW_LIST_LINE   plineTemp;
     __PNAT_CB       pnatcb;
-    __PNAT_CB       pnatcbOldest  = LW_NULL;
+    __PNAT_CB       pnatcbOldest;
     __PNAT_CB       pnatcbSyn     = LW_NULL;
     __PNAT_CB       pnatcbClosing = LW_NULL;
     
     pnatcb = __natPoolAlloc();
     if (pnatcb == LW_NULL) {                                            /*  需要删除最古老的            */
-        if (_G_plineNatcbIcmp) {                                        /*  优先淘汰 ICMP               */
-            pnatcbOldest = _LIST_ENTRY(_G_plineNatcbIcmp, __NAT_CB, NAT_lineManage);
-            
-            for (plineTemp  = _G_plineNatcbIcmp;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {
-                
-                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
-                    pnatcbOldest = pnatcb;
+        pnatcbOldest = __natFirst(_G_plineNatcbIcmp);                   /*  优先淘汰 ICMP               */
+        if (pnatcbOldest) {
+            __NAT_HASH_FOR_EACH(i) {
+                for (plineTemp  = _G_plineNatcbIcmp[i];
+                     plineTemp != LW_NULL;
+                     plineTemp  = _list_line_get_next(plineTemp)) {
+
+                    pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                    if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
+                        pnatcbOldest = pnatcb;
+                    }
                 }
             }
             
         } else {                                                        /*  淘汰 TCP UDP 时间最久的节点 */
-            if (_G_plineNatcbTcp) {
-                pnatcbOldest = _LIST_ENTRY(_G_plineNatcbTcp, __NAT_CB, NAT_lineManage);
-            } else {
-                pnatcbOldest = _LIST_ENTRY(_G_plineNatcbUdp, __NAT_CB, NAT_lineManage);
+            pnatcbOldest = __natFirst(_G_plineNatcbTcp);
+            if (pnatcbOldest == LW_NULL) {
+                pnatcbOldest = __natFirst(_G_plineNatcbUdp);
             }
             
-            for (plineTemp  = _G_plineNatcbTcp;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {
-                
-                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if ((pnatcb->NAT_iStatus == __NAT_STATUS_SYN) &&
-                    (pnatcb->NAT_ulIdleTimer > 40)) {                   /*  空闲 40s 以上的 SYN TCP     */
-                    if (pnatcbSyn) {
-                        if (pnatcb->NAT_ulIdleTimer > pnatcbSyn->NAT_ulIdleTimer) {
+            __NAT_HASH_FOR_EACH(i) {
+                for (plineTemp  = _G_plineNatcbTcp[i];
+                     plineTemp != LW_NULL;
+                     plineTemp  = _list_line_get_next(plineTemp)) {
+
+                    pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                    if ((pnatcb->NAT_iStatus == __NAT_STATUS_SYN) &&
+                        (pnatcb->NAT_ulIdleTimer > 40)) {               /*  空闲 40s 以上的 SYN TCP     */
+                        if (pnatcbSyn) {
+                            if (pnatcb->NAT_ulIdleTimer > pnatcbSyn->NAT_ulIdleTimer) {
+                                pnatcbSyn = pnatcb;
+                            }
+
+                        } else {
                             pnatcbSyn = pnatcb;
                         }
 
-                    } else {
-                        pnatcbSyn = pnatcb;
-                    }
+                    } else if ((pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING) &&
+                               (pnatcb->NAT_ulIdleTimer > 30)) {        /*  空闲 30s 以上的 CLOSING TCP */
+                        if (pnatcbClosing) {
+                            if (pnatcb->NAT_ulIdleTimer > pnatcbClosing->NAT_ulIdleTimer) {
+                                pnatcbClosing = pnatcb;
+                            }
 
-                } else if ((pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING) &&
-                           (pnatcb->NAT_ulIdleTimer > 30)) {            /*  空闲 30s 以上的 CLOSING TCP */
-                    if (pnatcbClosing) {
-                        if (pnatcb->NAT_ulIdleTimer > pnatcbClosing->NAT_ulIdleTimer) {
+                        } else {
                             pnatcbClosing = pnatcb;
                         }
-
-                    } else {
-                        pnatcbClosing = pnatcb;
                     }
 
-                }
-
-                if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
-                    pnatcbOldest = pnatcb;
+                    if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
+                        pnatcbOldest = pnatcb;
+                    }
                 }
             }
 
@@ -508,31 +631,37 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
                 pnatcbOldest = pnatcbSyn;                               /*  其次淘汰 SYN                */
 
             } else {
-                for (plineTemp  = _G_plineNatcbUdp;
-                     plineTemp != LW_NULL;
-                     plineTemp  = _list_line_get_next(plineTemp)) {
+                __NAT_HASH_FOR_EACH(i) {                                /*  尝试与 UDP 进行比较         */
+                    for (plineTemp  = _G_plineNatcbUdp[i];
+                         plineTemp != LW_NULL;
+                         plineTemp  = _list_line_get_next(plineTemp)) {
 
-                    pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                    if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
-                        pnatcbOldest = pnatcb;
+                        pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                        if (pnatcb->NAT_ulIdleTimer >= pnatcbOldest->NAT_ulIdleTimer) {
+                            pnatcbOldest = pnatcb;
+                        }
                     }
                 }
             }
         }
         
         pnatcb = pnatcbOldest;                                          /*  使用最老的                  */
+        __natAssHashDelete(pnatcb);
+
+        iHash = __NAT_HASH(pnatcb->NAT_usLocalPort);                    /*  计算 Hash 入口              */
+
         switch (pnatcb->NAT_ucProto) {
         
         case IP_PROTO_TCP:                                              /*  TCP 链表                    */
-            _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbTcp);
+            _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbTcp[iHash]);
             break;
             
         case IP_PROTO_UDP:                                              /*  UDP 链表                    */
-            _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbUdp);
+            _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbUdp[iHash]);
             break;
             
         case IP_PROTO_ICMP:                                             /*  ICMP 链表                   */
-            _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp);
+            _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp[iHash]);
             break;
             
         default:                                                        /*  不应该运行到这里            */
@@ -540,30 +669,32 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
             break;
         }
     }
-        
-    pnatcb->NAT_ucProto            = ucProto;
-    pnatcb->NAT_usSrcHash          = 0;
-    pnatcb->NAT_ipaddrLocalIp.addr = pipaddr->addr;
-    pnatcb->NAT_usLocalPort        = usPort;
+
+    pnatcb->NAT_ucProto          = ucProto;
+    pnatcb->NAT_usMapHash        = 0;
+    pnatcb->NAT_ipaddrLocal.addr = pipaddr->addr;
+    pnatcb->NAT_usLocalPort      = usPort;
     
     pnatcb->NAT_uiLocalSequence = 0;
     pnatcb->NAT_uiLocalRcvNext  = 0;
     
     pnatcb->NAT_ulIdleTimer = 0;
     pnatcb->NAT_iStatus     = __NAT_STATUS_OPEN;
-    
+
+    iHash = __NAT_HASH(pnatcb->NAT_usLocalPort);                        /*  计算新的 Hash 入口          */
+
     switch (ucProto) {
         
     case IP_PROTO_TCP:                                                  /*  TCP 链表                    */
-        _List_Line_Add_Ahead(&pnatcb->NAT_lineManage, &_G_plineNatcbTcp);
+        _List_Line_Add_Ahead(&pnatcb->NAT_lineManage, &_G_plineNatcbTcp[iHash]);
         break;
         
     case IP_PROTO_UDP:                                                  /*  UDP 链表                    */
-        _List_Line_Add_Ahead(&pnatcb->NAT_lineManage, &_G_plineNatcbUdp);
+        _List_Line_Add_Ahead(&pnatcb->NAT_lineManage, &_G_plineNatcbUdp[iHash]);
         break;
         
     case IP_PROTO_ICMP:                                                 /*  ICMP 链表                   */
-        _List_Line_Add_Ahead(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp);
+        _List_Line_Add_Ahead(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp[iHash]);
         break;
         
     default:                                                            /*  不应该运行到这里            */
@@ -583,22 +714,28 @@ static __PNAT_CB  __natNew (ip4_addr_p_t  *pipaddr, u16_t  usPort, u8_t  ucProto
 *********************************************************************************************************/
 static VOID  __natClose (__PNAT_CB  pnatcb)
 {
+    INT  iHash;
+
     if (pnatcb == LW_NULL) {
         return;
     }
     
+    __natAssHashDelete(pnatcb);
+
+    iHash = __NAT_HASH(pnatcb->NAT_usLocalPort);                        /*  计算 Hash 入口              */
+
     switch (pnatcb->NAT_ucProto) {
     
     case IP_PROTO_TCP:                                                  /*  TCP 链表                    */
-        _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbTcp);
+        _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbTcp[iHash]);
         break;
         
     case IP_PROTO_UDP:                                                  /*  UDP 链表                    */
-        _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbUdp);
+        _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbUdp[iHash]);
         break;
         
     case IP_PROTO_ICMP:                                                 /*  ICMP 链表                   */
-        _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp);
+        _List_Line_Del(&pnatcb->NAT_lineManage, &_G_plineNatcbIcmp[iHash]);
         break;
         
     default:                                                            /*  不应该运行到这里            */
@@ -619,48 +756,55 @@ static VOID  __natClose (__PNAT_CB  pnatcb)
 static VOID  __natTimer (ULONG  ulPeriod)
 {
     static ULONG    ulIdlTo = (LW_CFG_NET_NAT_IDLE_TIMEOUT * 60);
+    INT             i;
     __PNAT_CB       pnatcb;
     PLW_LIST_LINE   plineTemp;
     
     __NAT_LOCK();
-    plineTemp = _G_plineNatcbTcp;
-    while (plineTemp) {
-        pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-        plineTemp = _list_line_get_next(plineTemp);                     /*  指向下一个节点              */
-        
-        pnatcb->NAT_ulIdleTimer += ulPeriod;
-        if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                       /*  空闲时间过长关闭            */
-            __natClose(pnatcb);
-        
-        } else {
-            if ((pnatcb->NAT_iStatus == __NAT_STATUS_SYN) ||
-                (pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING)) {        /*  SYN 或者 CLOSING            */
-                if (pnatcb->NAT_ulIdleTimer >= 60) {                    /*  断链超时                    */
-                    __natClose(pnatcb);
+    __NAT_HASH_FOR_EACH(i) {
+        plineTemp = _G_plineNatcbTcp[i];
+        while (plineTemp) {
+            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+            plineTemp = _list_line_get_next(plineTemp);                 /*  指向下一个节点              */
+
+            pnatcb->NAT_ulIdleTimer += ulPeriod;
+            if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                   /*  空闲时间过长关闭            */
+                __natClose(pnatcb);
+
+            } else {
+                if ((pnatcb->NAT_iStatus == __NAT_STATUS_SYN) ||
+                    (pnatcb->NAT_iStatus == __NAT_STATUS_CLOSING)) {    /*  SYN 或者 CLOSING            */
+                    if (pnatcb->NAT_ulIdleTimer >= 60) {                /*  断链超时                    */
+                        __natClose(pnatcb);
+                    }
                 }
             }
         }
     }
     
-    plineTemp = _G_plineNatcbUdp;
-    while (plineTemp) {
-        pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-        plineTemp = _list_line_get_next(plineTemp);                     /*  指向下一个节点              */
-        
-        pnatcb->NAT_ulIdleTimer += ulPeriod;
-        if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                       /*  空闲时间过长关闭            */
-            __natClose(pnatcb);
+    __NAT_HASH_FOR_EACH(i) {
+        plineTemp = _G_plineNatcbUdp[i];
+        while (plineTemp) {
+            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+            plineTemp = _list_line_get_next(plineTemp);                 /*  指向下一个节点              */
+
+            pnatcb->NAT_ulIdleTimer += ulPeriod;
+            if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                   /*  空闲时间过长关闭            */
+                __natClose(pnatcb);
+            }
         }
     }
     
-    plineTemp = _G_plineNatcbIcmp;
-    while (plineTemp) {
-        pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-        plineTemp = _list_line_get_next(plineTemp);                     /*  指向下一个节点              */
-        
-        pnatcb->NAT_ulIdleTimer += ulPeriod;
-        if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                       /*  空闲时间过长关闭            */
-            __natClose(pnatcb);
+    __NAT_HASH_FOR_EACH(i) {
+        plineTemp = _G_plineNatcbIcmp[i];
+        while (plineTemp) {
+            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+            plineTemp = _list_line_get_next(plineTemp);                 /*  指向下一个节点              */
+
+            pnatcb->NAT_ulIdleTimer += ulPeriod;
+            if (pnatcb->NAT_ulIdleTimer >= ulIdlTo) {                   /*  空闲时间过长关闭            */
+                __natClose(pnatcb);
+            }
         }
     }
     __NAT_UNLOCK();
@@ -676,6 +820,8 @@ static VOID  __natTimer (ULONG  ulPeriod)
 *********************************************************************************************************/
 static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
 {
+    static u16_t             iphdrlen;
+
     struct ip_hdr           *iphdr   = (struct ip_hdr *)p->payload;
     struct tcp_hdr          *tcphdr  = LW_NULL;
     struct udp_hdr          *udphdr  = LW_NULL;
@@ -685,8 +831,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
     u16_t                    usDestPort;
     u8_t                     ucProto;
     
-    static u16_t             iphdrlen;
-    
+    INT                      iAssHash;
     __PNAT_CB                pnatcb  = LW_NULL;
     __PNAT_MAP               pnatmap = LW_NULL;
     PLW_LIST_LINE            plineTemp;
@@ -711,7 +856,8 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         }
         tcphdr = (struct tcp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = tcphdr->dest;
-        plineHeader = _G_plineNatcbTcp;
+        iAssHash    = __NAT_HASH(usDestPort);
+        plineHeader = _G_plineAssHashTcp[iAssHash];
         break;
         
     case IP_PROTO_UDP:                                                  /*  UDP 数据报                  */
@@ -720,7 +866,8 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         }
         udphdr = (struct udp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = udphdr->dest;
-        plineHeader = _G_plineNatcbUdp;
+        iAssHash    = __NAT_HASH(usDestPort);
+        plineHeader = _G_plineAssHashUdp[iAssHash];
         break;
         
     case IP_PROTO_ICMP:
@@ -729,7 +876,8 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         }
         icmphdr = (struct icmp_echo_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = icmphdr->id;
-        plineHeader = _G_plineNatcbIcmp;
+        iAssHash    = __NAT_HASH(usDestPort);
+        plineHeader = _G_plineAssHashIcmp[iAssHash];
         break;
     
     default:
@@ -755,14 +903,14 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         
         if (pnatmap) {
             ip4_addr_p_t  ipaddr;                                       /*  内网映射服务器 IP           */
-            u16_t         usSrcHash = iphdr->src.addr % pnatmap->NATM_usLocalCnt;
+            u16_t         usMapHash = iphdr->src.addr % pnatmap->NATM_usLocalCnt;
                                                                         /*  外网 hash                   */
             for (plineTemp  = plineHeader;                              /*  内网主机映射                */
                  plineTemp != LW_NULL;
                  plineTemp  = _list_line_get_next(plineTemp)) {
 
-                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-                if ((usSrcHash  == pnatcb->NAT_usSrcHash) &&
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineAssHash);
+                if ((usMapHash  == pnatcb->NAT_usMapHash) &&
                     (usDestPort == pnatcb->NAT_usAssPort) &&
                     (ucProto    == pnatcb->NAT_ucProto)) {
                     break;                                              /*  找到了 NAT 控制块           */
@@ -776,19 +924,21 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                     u32_t   uiHost;
 
                     uiHost  = (u32_t)PP_NTOHL(pnatmap->NATM_ipaddrLocalIp.addr);
-                    uiHost += usSrcHash;                                /*  根据源地址散列做均衡        */
+                    uiHost += usMapHash;                                /*  根据源地址散列做均衡        */
                     ipaddr.addr = (u32_t)PP_HTONL(uiHost);
                 }
 
                 pnatcb = __natNew(&ipaddr,                              /*  新建控制块                  */
                                   pnatmap->NATM_usLocalPort, ucProto);
 
-                pnatcb->NAT_usSrcHash     = usSrcHash;
+                pnatcb->NAT_usMapHash     = usMapHash;
                 pnatcb->NAT_usAssPortSave = pnatcb->NAT_usAssPort;      /*  保存端口资源                */
                 pnatcb->NAT_usAssPort     = pnatmap->NATM_usAssPort;
 
+                __natAssHashAdd(pnatcb);                                /*  添加到 Ass Hash 表          */
+
             } else {
-                ipaddr.addr = pnatcb->NAT_ipaddrLocalIp.addr;
+                ipaddr.addr = pnatcb->NAT_ipaddrLocal.addr;
 
                 pnatcb->NAT_ulIdleTimer = 0;                            /*  刷新空闲时间                */
             }
@@ -830,7 +980,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
              plineTemp != LW_NULL;
              plineTemp  = _list_line_get_next(plineTemp)) {
             
-            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineAssHash);
             if ((usDestPort == pnatcb->NAT_usAssPort) &&
                 (ucProto    == pnatcb->NAT_ucProto)) {
                 break;                                                  /*  找到了 NAT 控制块           */
@@ -847,7 +997,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
              *  将数据包目标转为本地内网目标地址
              */
             u32OldAddr = iphdr->dest.addr;
-            ((ip4_addr_t *)&(iphdr->dest))->addr = pnatcb->NAT_ipaddrLocalIp.addr;
+            ((ip4_addr_t *)&(iphdr->dest))->addr = pnatcb->NAT_ipaddrLocal.addr;
             inet_chksum_adjust((u8_t *)&IPH_CHKSUM(iphdr), (u8_t *)&u32OldAddr, 4, (u8_t *)&iphdr->dest.addr, 4);
             
             /*
@@ -920,6 +1070,7 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
 *********************************************************************************************************/
 static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif *netifOut)
 {
+    static u16_t             iphdrlen;
     struct ip_hdr           *iphdr   = (struct ip_hdr *)p->payload;
     struct tcp_hdr          *tcphdr  = LW_NULL;
     struct udp_hdr          *udphdr  = LW_NULL;
@@ -929,8 +1080,7 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
     u16_t                    usDestPort, usSrcPort;
     u8_t                     ucProto;
     
-    static u16_t             iphdrlen;
-    
+    INT                      iHash;
     __PNAT_CB                pnatcb    = LW_NULL;
     __PNAT_ALIAS             pnatalias = LW_NULL;
     PLW_LIST_LINE            plineTemp;
@@ -956,7 +1106,8 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         tcphdr = (struct tcp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = tcphdr->dest;
         usSrcPort   = tcphdr->src;
-        plineHeader = _G_plineNatcbTcp;
+        iHash       = __NAT_HASH(usSrcPort);
+        plineHeader = _G_plineNatcbTcp[iHash];
         break;
         
     case IP_PROTO_UDP:                                                  /*  UDP 数据报                  */
@@ -966,7 +1117,8 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         udphdr = (struct udp_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usDestPort  = udphdr->dest;
         usSrcPort   = udphdr->src;
-        plineHeader = _G_plineNatcbUdp;
+        iHash       = __NAT_HASH(usSrcPort);
+        plineHeader = _G_plineNatcbUdp[iHash];
         break;
         
     case IP_PROTO_ICMP:
@@ -975,7 +1127,8 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         }
         icmphdr = (struct icmp_echo_hdr *)(((u8_t *)p->payload) + iphdrlen);
         usSrcPort   = usDestPort = icmphdr->id;
-        plineHeader = _G_plineNatcbIcmp;
+        iHash       = __NAT_HASH(usSrcPort);
+        plineHeader = _G_plineNatcbIcmp[iHash];
         break;
     
     default:
@@ -991,7 +1144,7 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         /*
          *  控制块内的源端 IP 与 源端 PORT 使用协议完全一致.
          */
-        if ((ip4_addr_cmp(&iphdr->src, &pnatcb->NAT_ipaddrLocalIp)) &&
+        if ((ip4_addr_cmp(&iphdr->src, &pnatcb->NAT_ipaddrLocal)) &&
             (usSrcPort == pnatcb->NAT_usLocalPort) &&
             (ucProto   == pnatcb->NAT_ucProto)) {
             break;                                                      /*  找到了 NAT 控制块           */
@@ -999,6 +1152,8 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
     }
     if (plineTemp == LW_NULL) {
         pnatcb = __natNew(&iphdr->src, usSrcPort, ucProto);             /*  新建控制块                  */
+
+        __natAssHashAdd(pnatcb);
     }
     
     if (pnatcb) {
@@ -1573,11 +1728,12 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
         size_t          stNeedBufferSize;
         UINT            i;
         UINT            uiAssNum = 0;
+        
         PLW_LIST_LINE   plineTemp;
         PCHAR           pcProto;
         __PNAT_ALIAS    pnatalias;
         __PNAT_MAP      pnatmap;
-        
+
         stNeedBufferSize = 512;                                         /*  初始大小                    */
         
         __NAT_LOCK();
@@ -1662,20 +1818,26 @@ static ssize_t  __procFsNatSummaryRead (PLW_PROCFS_NODE  p_pfsn,
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
                                   "    NAT networking off!\n");
         } else {
-            for (plineTemp  = _G_plineNatcbTcp;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {
-                uiAssNum++;
+            __NAT_HASH_FOR_EACH(i) {
+                for (plineTemp  = _G_plineNatcbTcp[i];
+                     plineTemp != LW_NULL;
+                     plineTemp  = _list_line_get_next(plineTemp)) {
+                    uiAssNum++;
+                }
             }
-            for (plineTemp  = _G_plineNatcbUdp;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {
-                uiAssNum++;
+            __NAT_HASH_FOR_EACH(i) {
+                for (plineTemp  = _G_plineNatcbUdp[i];
+                     plineTemp != LW_NULL;
+                     plineTemp  = _list_line_get_next(plineTemp)) {
+                    uiAssNum++;
+                }
             }
-            for (plineTemp  = _G_plineNatcbIcmp;
-                 plineTemp != LW_NULL;
-                 plineTemp  = _list_line_get_next(plineTemp)) {
-                uiAssNum++;
+            __NAT_HASH_FOR_EACH(i) {
+                for (plineTemp  = _G_plineNatcbIcmp[i];
+                     plineTemp != LW_NULL;
+                     plineTemp  = _list_line_get_next(plineTemp)) {
+                    uiAssNum++;
+                }
             }
             
             stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
@@ -1757,26 +1919,34 @@ static ssize_t  __procFsNatAssNodeRead (PLW_PROCFS_NODE  p_pfsn,
         size_t          stNeedBufferSize;
         PCHAR           pcProto;
         PCHAR           pcStatus;
+        INT             i;
+        
         __PNAT_CB       pnatcb = LW_NULL;
         PLW_LIST_LINE   plineTemp;
-        
+
         stNeedBufferSize = 256;                                         /*  初始大小                    */
         
         __NAT_LOCK();
-        for (plineTemp  = _G_plineNatcbTcp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-            stNeedBufferSize += 64;
+        __NAT_HASH_FOR_EACH(i) {
+            for (plineTemp  = _G_plineNatcbTcp[i];
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                stNeedBufferSize += 64;
+            }
         }
-        for (plineTemp  = _G_plineNatcbUdp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-            stNeedBufferSize += 64;
+        __NAT_HASH_FOR_EACH(i) {
+            for (plineTemp  = _G_plineNatcbUdp[i];
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                stNeedBufferSize += 64;
+            }
         }
-        for (plineTemp  = _G_plineNatcbIcmp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-            stNeedBufferSize += 64;
+        __NAT_HASH_FOR_EACH(i) {
+            for (plineTemp  = _G_plineNatcbIcmp[i];
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+                stNeedBufferSize += 64;
+            }
         }
         __NAT_UNLOCK();
     
@@ -1789,103 +1959,109 @@ static ssize_t  __procFsNatAssNodeRead (PLW_PROCFS_NODE  p_pfsn,
         stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cNatInfoHeader); 
                                                                         /*  打印头信息                  */
         __NAT_LOCK();
-        for (plineTemp  = _G_plineNatcbTcp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-            
-            struct in_addr  inaddr;
-            CHAR            cIpBuffer[INET_ADDRSTRLEN];
-            
-            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-            inaddr.s_addr = pnatcb->NAT_ipaddrLocalIp.addr;
+        __NAT_HASH_FOR_EACH(i) {
+            for (plineTemp  = _G_plineNatcbTcp[i];
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
 
-            switch (pnatcb->NAT_iStatus) {
+                struct in_addr  inaddr;
+                CHAR            cIpBuffer[INET_ADDRSTRLEN];
 
-            case __NAT_STATUS_OPEN:
-                pcStatus = "OPEN";
-                break;
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                inaddr.s_addr = pnatcb->NAT_ipaddrLocal.addr;
 
-            case __NAT_STATUS_SYN:
-                pcStatus = "SYN";
-                break;
+                switch (pnatcb->NAT_iStatus) {
 
-            case __NAT_STATUS_FIN:
-                pcStatus = "FIN";
-                break;
+                case __NAT_STATUS_OPEN:
+                    pcStatus = "OPEN";
+                    break;
 
-            case __NAT_STATUS_CLOSING:
-                pcStatus = "CLOSING";
-                break;
+                case __NAT_STATUS_SYN:
+                    pcStatus = "SYN";
+                    break;
 
-            default:
-                pcStatus = "?";
-                break;
+                case __NAT_STATUS_FIN:
+                    pcStatus = "FIN";
+                    break;
+
+                case __NAT_STATUS_CLOSING:
+                    pcStatus = "CLOSING";
+                    break;
+
+                default:
+                    pcStatus = "?";
+                    break;
+                }
+
+                inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
+                stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize,
+                                      "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
+                                      PP_NTOHS(pnatcb->NAT_usLocalPort),
+                                      PP_NTOHS(pnatcb->NAT_usAssPort),
+                                      "TCP",
+                                      pnatcb->NAT_ulIdleTimer,
+                                      pcStatus);
             }
-            
-            inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
-                                  PP_NTOHS(pnatcb->NAT_usLocalPort),
-                                  PP_NTOHS(pnatcb->NAT_usAssPort),
-                                  "TCP",
-                                  pnatcb->NAT_ulIdleTimer,
-                                  pcStatus);
         }
         
-        for (plineTemp  = _G_plineNatcbUdp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-            
-            struct in_addr  inaddr;
-            CHAR            cIpBuffer[INET_ADDRSTRLEN];
+        __NAT_HASH_FOR_EACH(i) {
+            for (plineTemp  = _G_plineNatcbUdp[i];
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
 
-            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-            inaddr.s_addr = pnatcb->NAT_ipaddrLocalIp.addr;
-            if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
-                pcStatus = "OPEN";
-            } else {
-                pcStatus = "?";
+                struct in_addr  inaddr;
+                CHAR            cIpBuffer[INET_ADDRSTRLEN];
+
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                inaddr.s_addr = pnatcb->NAT_ipaddrLocal.addr;
+                if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
+                    pcStatus = "OPEN";
+                } else {
+                    pcStatus = "?";
+                }
+
+                inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
+                stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize,
+                                      "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
+                                      PP_NTOHS(pnatcb->NAT_usLocalPort),
+                                      PP_NTOHS(pnatcb->NAT_usAssPort),
+                                      "UDP",
+                                      pnatcb->NAT_ulIdleTimer,
+                                      pcStatus);
             }
-            
-            inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
-                                  PP_NTOHS(pnatcb->NAT_usLocalPort),
-                                  PP_NTOHS(pnatcb->NAT_usAssPort),
-                                  "UDP",
-                                  pnatcb->NAT_ulIdleTimer,
-                                  pcStatus);
         }
         
-        for (plineTemp  = _G_plineNatcbIcmp;
-             plineTemp != LW_NULL;
-             plineTemp  = _list_line_get_next(plineTemp)) {
-            
-            struct in_addr  inaddr;
-            CHAR            cIpBuffer[INET_ADDRSTRLEN];
-            
-            pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
-            inaddr.s_addr = pnatcb->NAT_ipaddrLocalIp.addr;
-            if (pnatcb->NAT_ucProto == IP_PROTO_ICMP) {
-                pcProto = "ICMP";
-            } else {
-                pcProto = "?";
+        __NAT_HASH_FOR_EACH(i) {
+            for (plineTemp  = _G_plineNatcbIcmp[i];
+                 plineTemp != LW_NULL;
+                 plineTemp  = _list_line_get_next(plineTemp)) {
+
+                struct in_addr  inaddr;
+                CHAR            cIpBuffer[INET_ADDRSTRLEN];
+
+                pnatcb = _LIST_ENTRY(plineTemp, __NAT_CB, NAT_lineManage);
+                inaddr.s_addr = pnatcb->NAT_ipaddrLocal.addr;
+                if (pnatcb->NAT_ucProto == IP_PROTO_ICMP) {
+                    pcProto = "ICMP";
+                } else {
+                    pcProto = "?";
+                }
+
+                if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
+                    pcStatus = "OPEN";
+                } else {
+                    pcStatus = "?";
+                }
+
+                inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
+                stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize,
+                                      "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
+                                      PP_NTOHS(pnatcb->NAT_usLocalPort),
+                                      PP_NTOHS(pnatcb->NAT_usAssPort),
+                                      pcProto,
+                                      pnatcb->NAT_ulIdleTimer,
+                                      pcStatus);
             }
-            
-            if (pnatcb->NAT_iStatus == __NAT_STATUS_OPEN) {
-                pcStatus = "OPEN";
-            } else {
-                pcStatus = "?";
-            }
-            
-            inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
-            stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize, 
-                                  "%-15s %10d %8d %-5s %9ld %-8s\n", cIpBuffer,
-                                  PP_NTOHS(pnatcb->NAT_usLocalPort),
-                                  PP_NTOHS(pnatcb->NAT_usAssPort),
-                                  pcProto,
-                                  pnatcb->NAT_ulIdleTimer,
-                                  pcStatus);
         }
         __NAT_UNLOCK();
         

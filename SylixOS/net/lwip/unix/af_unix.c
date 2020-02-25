@@ -1277,7 +1277,9 @@ AF_UNIX_T  *unix_accept (AF_UNIX_T  *pafunix, struct sockaddr *addr, socklen_t *
                 
                 __unixUpdateConnecter(pafunixConn, ERROR_NONE);         /*  激活请求连接的线程          */
                 
-                __AF_UNIX_CCONN(pafunixConn);                           /*  清除信号量, 开始当做其他用途*/
+                if (__AF_UNIX_IS_NBIO(pafunixConn, 0)) {                /*  连接者为负阻塞方式          */
+                    __AF_UNIX_CCONN(pafunixConn);                       /*  清除信号量, 开始当做其他用途*/
+                }
                 break;
             
             } else {                                                    /*  没有取得远程连接            */

@@ -31,15 +31,17 @@
 *********************************************************************************************************/
 typedef struct {
     union {
-        LW_LIST_MONO    NATL_monoFree;                                  /*  NAT 空闲链                  */
-        LW_LIST_LINE    NATL_lineManage;                                /*  NAT 控制块链表              */
+        LW_LIST_MONO    NATL_monoFree;                                  /*  空闲链                      */
+        LW_LIST_LINE    NATL_lineManage;                                /*  控制块链表 (源端口 hash)    */
     } l;
 #define NAT_monoFree    l.NATL_monoFree
 #define NAT_lineManage  l.NATL_lineManage
-    
+
+    LW_LIST_LINE        NAT_lineAssHash;                                /*  AssPort hash                */
+    u8_t                NAT_ucInAssHash;                                /*  是否在 AssPort hash         */
     u8_t                NAT_ucProto;                                    /*  协议                        */
-    u16_t               NAT_usSrcHash;                                  /*  负载均衡源地址 hash         */
-    ip4_addr_t          NAT_ipaddrLocalIp;                              /*  本地 IP 地址                */
+    u16_t               NAT_usMapHash;                                  /*  负载均衡源地址 hash         */
+    ip4_addr_t          NAT_ipaddrLocal;                                /*  本地 IP 地址                */
     u16_t               NAT_usLocalPort;                                /*  本地端口号                  */
     u16_t               NAT_usAssPort;                                  /*  映射端口号 (唯一的)         */
     u16_t               NAT_usAssPortSave;                              /*  MAP 映射的端口需要保存      */
