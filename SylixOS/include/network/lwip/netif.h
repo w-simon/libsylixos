@@ -432,7 +432,9 @@ struct netif {
   u8_t nat_mode;
   /* ARPHRD_xxx */
   u16_t ar_hrd;
-  void *reserve[6];
+#if LW_CFG_LWIP_DNS_SWITCH > 0
+  ip_addr_t dns_save[DNS_MAX_SERVERS];
+#endif /* LW_CFG_LWIP_DNS_SWITCH */
 #endif /* SYLIXOS */
 };
 

@@ -673,7 +673,14 @@ dhcp_handle_ack(struct netif *netif, struct dhcp_msg *msg_in)
   for (n = 0; (n < LWIP_DHCP_PROVIDE_DNS_SERVERS) && dhcp_option_given(dhcp, DHCP_OPTION_IDX_DNS_SERVER + n); n++) {
     ip_addr_t dns_addr;
     ip_addr_set_ip4_u32_val(dns_addr, lwip_htonl(dhcp_get_option_value(dhcp, DHCP_OPTION_IDX_DNS_SERVER + n)));
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+    netif->dns_save[n] = dns_addr;
+    if (netif == netif_default) {
+      dns_setserver(n, &dns_addr);
+    }
+#else
     dns_setserver(n, &dns_addr);
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
   }
 #endif /* LWIP_DHCP_PROVIDE_DNS_SERVERS */
 }
@@ -1372,6 +1379,9 @@ dhcp_release_and_stop(struct netif *netif)
 
   /* remove IP address from interface (prevents routing from selecting this interface) */
   netif_set_addr(netif, IP4_ADDR_ANY4, IP4_ADDR_ANY4, IP4_ADDR_ANY4);
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+  lib_bzero(netif->dns_save, sizeof(netif->dns_save));
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
 
 #if LWIP_DHCP_AUTOIP_COOP
   if (dhcp->autoip_coop_state == DHCP_AUTOIP_COOP_STATE_ON) {

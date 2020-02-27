@@ -361,6 +361,9 @@ dhcp6_disable(struct netif *netif)
       }
     }
   }
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+  lib_bzero(netif->dns_save, sizeof(netif->dns_save));
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
 }
 
 /**
@@ -552,7 +555,14 @@ dhcp6_handle_config_reply(struct netif *netif, struct pbuf *p_msg_in)
       }
       ip6_addr_assign_zone(dns_addr6, IP6_UNKNOWN, netif);
       /* @todo: do we need a different offset than DHCP(v4)? */
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+      netif->dns_save[n] = dns_addr;
+      if (netif == netif_default) {
+        dns_setserver(n, &dns_addr);
+      }
+#else
       dns_setserver(n, &dns_addr);
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
     }
   }
   /* @ todo: parse and set Domain Search List */

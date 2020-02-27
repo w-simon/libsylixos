@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2020-02-27: han.hui
+    动态获取 DNS 的网络接口切换路由时，动态更新 DNS 设置.
+
     2019-09-27: han.hui
     加入 PowerPC 460 处理器支持.
 

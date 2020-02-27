@@ -1109,9 +1109,27 @@ int sdns(ppp_pcb *pcb, u32_t ns1, u32_t ns2) {
   LWIP_UNUSED_ARG(pcb);
 
   ip_addr_set_ip4_u32_val(ns, ns1);
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+  if (pcb->netif) {
+    pcb->netif->dns_save[0] = ns;
+    if (pcb->netif == netif_default) {
+      dns_setserver(0, &ns);
+    }
+  }
+#else
   dns_setserver(0, &ns);
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
   ip_addr_set_ip4_u32_val(ns, ns2);
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+  if (pcb->netif) {
+    pcb->netif->dns_save[1] = ns;
+    if (pcb->netif == netif_default) {
+      dns_setserver(1, &ns);
+    }
+  }
+#else
   dns_setserver(1, &ns);
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
   return 1;
 }
 
@@ -1129,11 +1147,22 @@ int cdns(ppp_pcb *pcb, u32_t ns1, u32_t ns2) {
   if (ip_addr_cmp(nsa, &nsb)) {
     dns_setserver(0, IP_ADDR_ANY);
   }
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+  if (pcb->netif) {
+    pcb->netif->dns_save[0] = ip_addr_any;
+  }
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
+
   nsa = dns_getserver(1);
   ip_addr_set_ip4_u32_val(nsb, ns2);
   if (ip_addr_cmp(nsa, &nsb)) {
     dns_setserver(1, IP_ADDR_ANY);
   }
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+  if (pcb->netif) {
+    pcb->netif->dns_save[1] = ip_addr_any;
+  }
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
   return 1;
 }
 #endif /* LWIP_DNS */

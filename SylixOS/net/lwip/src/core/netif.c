@@ -90,6 +90,10 @@
 #include "lwip/nd6.h"
 #endif
 
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+#include "lwip/dns.h"
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
+
 #if LWIP_NETIF_STATUS_CALLBACK
 #define NETIF_STATUS_CALLBACK(n) do{ if (n->status_callback) { (n->status_callback)(n); }}while(0)
 #else
@@ -394,7 +398,9 @@ netif_add(struct netif *netif,
   netif->masterif = NULL;
   netif->nat_mode = NETIF_NAT_NONE;
   netif->ar_hrd = 0xffff;
-  lib_bzero(netif->reserve, sizeof(void *[6]));
+#if LW_CFG_LWIP_DNS_SWITCH > 0
+  lib_bzero(netif->dns_save, sizeof(netif->dns_save));
+#endif /* LW_CFG_LWIP_DNS_SWITCH */
 #endif /* SYLIXOS */
 
   /* call user specified initialization function for netif */
@@ -875,6 +881,18 @@ netif_set_default(struct netif *netif)
     mib2_add_route_ip4(1, netif);
   }
   netif_default = netif;
+
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
+  {
+    int i;
+    for (i = 0; i < DNS_MAX_SERVERS; i++) {
+      if (!ip_addr_isany_val(netif->dns_save[i])) {
+        dns_setserver(i, &netif->dns_save[i]);
+      }
+    }
+  }
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
+
   LWIP_DEBUGF(NETIF_DEBUG, ("netif: setting default interface %c%c\n",
                             netif ? netif->name[0] : '\'', netif ? netif->name[1] : '\''));
 }
