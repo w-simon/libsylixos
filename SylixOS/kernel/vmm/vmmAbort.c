@@ -84,6 +84,7 @@ static LW_VMM_STATUS      _K_vmmStatus;
 /*********************************************************************************************************
   内部函数声明
 *********************************************************************************************************/
+static VOID   __vmmWarnGuarder(LW_OBJECT_HANDLE  ulGuarder);
 static VOID   __vmmAbortKill(PLW_VMM_ABORT_CTX  pabtctx);
 static VOID   __vmmAbortAccess(PLW_VMM_ABORT_CTX  pabtctx);
 static PCHAR  __vmmAbortTypeStr(PLW_VMM_ABORT  pabtInfo);
@@ -187,6 +188,7 @@ static PLW_VMM_PAGE  __vmmAbortPageGet (addr_t  ulAbortAddr)
 **           pvmpageVirtual        虚拟空间
 **           ulAbortAddrAlign      异常的地址
 **           ptcbCur               当前任务控制块
+**           pulGuarder            是否需要向此守护者产生 SIGLOWMEM WARNING 信息
 ** 输　出  : 是否成功
 ** 全局变量: 
 ** 调用模块: 
@@ -198,13 +200,15 @@ static PLW_VMM_PAGE  __vmmAbortPageGet (addr_t  ulAbortAddr)
 static INT  __vmmAbortCopyOnWrite (PLW_VMM_ABORT_CTX  pabtctx,
                                    PLW_VMM_PAGE       pvmpageVirtual,
                                    addr_t             ulAbortAddrAlign,
-                                   PLW_CLASS_TCB      ptcbCur)
+                                   PLW_CLASS_TCB      ptcbCur,
+                                   LW_OBJECT_HANDLE  *pulGuarder)
 {
     PLW_VMM_PAGE            pvmpagePhysical = __pageFindLink(pvmpageVirtual, ulAbortAddrAlign);
     PLW_VMM_PAGE            pvmpageReal;
     PLW_VMM_PAGE            pvmpageNew;
     PLW_VMM_PAGE_PRIVATE    pvmpagep;
 
+    BOOL                    bNoLimit;
     ULONG                   ulError;
     
     if (pvmpagePhysical == LW_NULL) {
@@ -233,7 +237,8 @@ static INT  __vmmAbortCopyOnWrite (PLW_VMM_ABORT_CTX  pabtctx,
         return  (ERROR_NONE);                                           /*  更改属性即可                */
     
     } else {                                                            /*  有其他的共享存在            */
-        if (!__vmmPhysicalPageFaultCheck(1, ptcbCur)) {                 /*  检查物理内存是否超限        */
+        bNoLimit = __vmmPhysicalPageFaultCheck(1, ptcbCur, pulGuarder); /*  检查物理内存是否超限        */
+        if (!bNoLimit) {
             __ABTCTX_ABORT_TYPE(pabtctx) = LW_VMM_ABORT_TYPE_NOINFO;    /*  缺少物理页面                */
             printk(KERN_CRIT "kernel no more physical page.\n");        /*  系统无法分配物理页面        */
             return  (PX_ERROR);
@@ -268,7 +273,6 @@ static INT  __vmmAbortCopyOnWrite (PLW_VMM_ABORT_CTX  pabtctx,
 
     return  (ERROR_NONE);
 }
-
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortWriteProtect
 ** 功能描述: 发生写保护中止
@@ -276,6 +280,7 @@ static INT  __vmmAbortCopyOnWrite (PLW_VMM_ABORT_CTX  pabtctx,
 **           pvmpageVirtual        虚拟空间
 **           ulAbortAddr           异常的地址
 **           ptcbCur               当前任务控制块
+**           pulGuarder            是否需要向此守护者产生 SIGLOWMEM WARNING 信息
 ** 输　出  : 是否成功
 ** 全局变量: 
 ** 调用模块: 
@@ -284,7 +289,8 @@ static INT  __vmmAbortCopyOnWrite (PLW_VMM_ABORT_CTX  pabtctx,
 static INT  __vmmAbortWriteProtect (PLW_VMM_ABORT_CTX  pabtctx,
                                     PLW_VMM_PAGE       pvmpageVirtual,
                                     addr_t             ulAbortAddr,
-                                    PLW_CLASS_TCB      ptcbCur)
+                                    PLW_CLASS_TCB      ptcbCur,
+                                    LW_OBJECT_HANDLE  *pulGuarder)
 {
     addr_t  ulAbortAddrAlign = ulAbortAddr & LW_CFG_VMM_PAGE_MASK;
 
@@ -313,7 +319,7 @@ static INT  __vmmAbortWriteProtect (PLW_VMM_ABORT_CTX  pabtctx,
         return  (__vmmAbortCopyOnWrite(pabtctx,
                                        pvmpageVirtual,
                                        ulAbortAddrAlign,
-                                       ptcbCur));                       /*  copy-on-write               */
+                                       ptcbCur, pulGuarder));           /*  copy-on-write               */
     }
     
     return  (PX_ERROR);                                                 /*  杀死任务, 内存不可写        */
@@ -419,17 +425,22 @@ static INT  __vmmAbortSwapPage (PLW_VMM_PAGE  pvmpagePhysical,
 ** 功能描述: 分配一个新的页面, 如果缺少物理页面则交换一个老旧的物理页面
 ** 输　入  : ulAllocPageNum        需要的内存页面个数
 **           ptcbCur               当前任务控制块
+**           pulGuarder            是否需要向此守护者产生 SIGLOWMEM WARNING 信息
 ** 输　出  : 物理页面
 ** 全局变量: 
 ** 调用模块: 
 ** 注  意  : 
 *********************************************************************************************************/
-static PLW_VMM_PAGE  __vmmAbortNewPage (ULONG  ulAllocPageNum, PLW_CLASS_TCB   ptcbCur)
+static PLW_VMM_PAGE  __vmmAbortNewPage (ULONG              ulAllocPageNum,
+                                        PLW_CLASS_TCB      ptcbCur,
+                                        LW_OBJECT_HANDLE  *pulGuarder)
 {
     PLW_VMM_PAGE    pvmpagePhysical;
     ULONG           ulZoneIndex;
+    BOOL            bNoLimit;
     
-    if (!__vmmPhysicalPageFaultCheck(1, ptcbCur)) {                     /*  检查物理内存是否超限        */
+    bNoLimit = __vmmPhysicalPageFaultCheck(1, ptcbCur, pulGuarder);     /*  检查物理内存是否超限        */
+    if (!bNoLimit) {
         return  (LW_NULL);
     }
     
@@ -608,6 +619,7 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
              
              ULONG                  ulAllocPageNum;
              BOOL                   bSwapNeedLoad;
+             LW_OBJECT_HANDLE       ulGuarder = LW_OBJECT_HANDLE_INVALID;
              
              addr_t                 ulVirtualPageAlign;
              ULONG                  ulError;
@@ -660,9 +672,10 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
             }
                                                                         /*  进入写保护处理              */
             if (__vmmAbortWriteProtect(pabtctx,
-                                       pvmpageVirtual,                  /*  并尝试 copy-on-write 处理   */
+                                       pvmpageVirtual,
                                        ulAbortAddr,
-                                       ptcbCur) == ERROR_NONE) {
+                                       ptcbCur,
+                                       &ulGuarder) == ERROR_NONE) {     /*  并尝试 copy-on-write 处理   */
                 __VMM_UNLOCK();
                 goto    __abort_return;
             }
@@ -684,7 +697,8 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
         
         ulAllocPageNum  = __PAGEFAIL_ALLOC_PAGE_NUM;                    /*  缺页中断分配的内存页面个数  */
         
-        pvmpagePhysical = __vmmAbortNewPage(ulAllocPageNum, ptcbCur);   /*  分配物理页面                */
+        pvmpagePhysical = __vmmAbortNewPage(ulAllocPageNum,
+                                            ptcbCur, &ulGuarder);       /*  分配物理页面                */
         if (pvmpagePhysical == LW_NULL) {
             __VMM_UNLOCK();
 
@@ -738,6 +752,9 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
     __VMM_UNLOCK();
     
 __abort_return:
+    if (ulGuarder) {
+        __vmmWarnGuarder(ulGuarder);                                    /*  发送警告通知                */
+    }
     __KERNEL_SPACE_SET(pabtctx->ABTCTX_iKernelSpace);                   /*  恢复成进入之前的状态        */
     errno = pabtctx->ABTCTX_iLastErrno;                                 /*  恢复之前的 errno            */
     
@@ -809,6 +826,26 @@ static PCHAR  __vmmAbortTypeStr (PLW_VMM_ABORT  pabtInfo)
     default:
         return  ("unknown");
     }
+}
+/*********************************************************************************************************
+** 函数名称: __vmmWarnGuarder
+** 功能描述: 向内存守护线程发送一个警告信息
+** 输　入  : pabtctx    page fail 上下文
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __vmmWarnGuarder (LW_OBJECT_HANDLE  ulGuarder)
+{
+#if LW_CFG_SIGNAL_EN > 0
+    struct sigevent  sigeventWarn;
+
+    sigeventWarn.sigev_signo  = SIGLOWMEM;
+    sigeventWarn.sigev_notify = SIGEV_SIGNAL;
+    sigeventWarn.sigev_value.sival_ptr = LW_NULL;
+
+    _doSigEvent(ulGuarder, &sigeventWarn, SI_KILL);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortKill

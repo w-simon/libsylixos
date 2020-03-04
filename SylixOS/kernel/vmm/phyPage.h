@@ -63,11 +63,22 @@ VOID            __vmmPhysicalPageClearAll(PLW_VMM_PAGE  pvmpageVirtual);
 ULONG           __vmmPhysicalGetZone(addr_t  ulAddr);
 ULONG           __vmmPhysicalPageGetMinContinue(ULONG  *pulZoneIndex, UINT  uiAttr);
 
+VOID            __vmmPhysicalGetKernelDesc(PLW_MMU_PHYSICAL_DESC  pphydescText,
+                                           PLW_MMU_PHYSICAL_DESC  pphydescData);
+
+/*********************************************************************************************************
+  物理内存缺页限制检测
+*********************************************************************************************************/
+
+#if LW_CFG_THREAD_DEL_EN > 0
+VOID            __vmmPhysicalPageFaultClear(LW_OBJECT_HANDLE  ulId);
+#endif                                                                  /*  LW_CFG_THREAD_DEL_EN > 0    */
+
 INT             __vmmPhysicalPageFaultLimit(PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
                                             PLW_VMM_PAGE_FAULT_LIMIT  pvpflOld);
-BOOL            __vmmPhysicalPageFaultCheck(ULONG  ulPageNum, PLW_CLASS_TCB  ptcbCur);
-VOID            __vmmPhysicalGetKernelDesc(PLW_MMU_PHYSICAL_DESC  pphydescText, 
-                                           PLW_MMU_PHYSICAL_DESC  pphydescData);
+BOOL            __vmmPhysicalPageFaultCheck(ULONG  ulPageNum,
+                                            PLW_CLASS_TCB  ptcbCur, LW_OBJECT_HANDLE  *pulWarn);
+INT             __vmmPhysicalPageFaultGuarder(LW_OBJECT_HANDLE  ulGuarder);
 
 #endif                                                                  /*  __PHYPAGE_H                 */
 /*********************************************************************************************************

@@ -926,6 +926,26 @@ INT  API_VmmPageFaultLimit (PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
     return  (iRet);
 }
 /*********************************************************************************************************
+** 函数名称: API_VmmPageFaultGuarder
+** 功能描述: 设置缺页中断物理内存限制警卫线程
+** 输　入  : ulGuarder     缺页中断警卫 (单次有效)
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+** 注  意  : 频繁操作, 无锁.
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_VmmPageFaultGuarder (LW_OBJECT_HANDLE  ulGuarder)
+{
+    if (geteuid()) {
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+
+    return  (__vmmPhysicalPageFaultGuarder(ulGuarder));
+}
+/*********************************************************************************************************
 ** 函数名称: getpagesize
 ** 功能描述: 获得 pagesize
 ** 输　入  : NONE

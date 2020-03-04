@@ -59,6 +59,12 @@
 #include "../SylixOS/loader/include/loader_vppatch.h"
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
+  VMM 缺页中断警卫清除
+*********************************************************************************************************/
+#if LW_CFG_VMM_EN > 0
+extern VOID __vmmPhysicalPageFaultClear(LW_OBJECT_HANDLE  ulId);
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+/*********************************************************************************************************
 ** 函数名称: __threadDelete
 ** 功能描述: 线程删除内部函数。
 ** 输　入  : 
@@ -91,9 +97,13 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     REGISTER PLW_EVENTSETNODE      pesnPtr;
 #endif
 
-    ulId    = ptcbDel->TCB_ulId;
+    ulId = ptcbDel->TCB_ulId;
+
+#if LW_CFG_VMM_EN > 0
+    __vmmPhysicalPageFaultClear(ulId);                                  /*  如果此任务为警卫，清除      */
+#endif
+
     usIndex = _ObjectGetIndex(ulId);
-    
     if (bIsAlreadyWaitDeath == LW_FALSE) {
         _ThreadDeleteWaitDeath(ptcbDel);                                /*  将要删除的线程进入僵死状态  */
     }

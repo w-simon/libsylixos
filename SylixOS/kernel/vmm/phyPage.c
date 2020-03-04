@@ -56,6 +56,7 @@ static LW_MMU_PHYSICAL_DESC     _G_vmphydescKernel[2];                  /*  内核
   物理内存配额
 *********************************************************************************************************/
 static LW_VMM_PAGE_FAULT_LIMIT  _G_vmpflPhysical;                       /*  缺页中断物理内存限制        */
+static LW_OBJECT_HANDLE         _G_ulPageFaultGuarder = LW_OBJECT_HANDLE_INVALID;
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalCreate
 ** 功能描述: 创建一个物理分页区域.
@@ -646,8 +647,16 @@ INT  __vmmPhysicalPageFaultLimit (PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
     if (pvpflOld) {
         *pvpflOld = _G_vmpflPhysical;
     }
+
     if (pvpflNew) {
-        _G_vmpflPhysical = *pvpflNew;
+        if ((pvpflNew->VPFL_ulRootWarnPages < pvpflNew->VPFL_ulRootMinPages) ||
+            (pvpflNew->VPFL_ulUserWarnPages < pvpflNew->VPFL_ulUserMinPages)) {
+            _ErrorHandle(EINVAL);
+            return  (PX_ERROR);
+
+        } else {
+            _G_vmpflPhysical = *pvpflNew;
+        }
     }
 
     return  (ERROR_NONE);
@@ -657,23 +666,31 @@ INT  __vmmPhysicalPageFaultLimit (PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
 ** 功能描述: 检查缺页中断物理内存限制.
 ** 输　入  : ulPageNum         需要分配的物理页面个数
 **           ptcbCur           当前任务控制块
-** 输　出  : TRUE: 允许分配, FALSE 不允许
+**           pulWarn           需要警告时, 通知的守卫线程.
+** 输　出  : TRUE: 允许分配, FALSE 拒绝分配
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-BOOL  __vmmPhysicalPageFaultCheck (ULONG  ulPageNum, PLW_CLASS_TCB  ptcbCur)
+BOOL  __vmmPhysicalPageFaultCheck (ULONG  ulPageNum, PLW_CLASS_TCB  ptcbCur, LW_OBJECT_HANDLE  *pulWarn)
 {
-#define __VMM_PAGE_FAULT_CHECK(minpages) \
+#define __VMM_PAGE_FAULT_CHECK(warnpages, minpages) \
         ulFreePage = 0; \
         for (i = 0; i < LW_CFG_VMM_ZONE_NUM; i++) { \
             pvmzone = &_G_vmzonePhysical[i]; \
             if (!pvmzone->ZONE_stSize) { \
-                return  (LW_FALSE); \
+                break; \
             } \
             ulFreePage += pvmzone->ZONE_ulFreePage; \
-            if (ulFreePage > (minpages)) { \
+            if (ulFreePage > (warnpages)) { \
                 return  (LW_TRUE); \
             } \
+        } \
+        if (ulFreePage > (minpages)) { \
+            if (_G_ulPageFaultGuarder) { \
+                *pulWarn = _G_ulPageFaultGuarder; \
+                _G_ulPageFaultGuarder = LW_OBJECT_HANDLE_INVALID; \
+            } \
+            return  (LW_TRUE); \
         }
 
              INT            i;
@@ -681,21 +698,57 @@ BOOL  __vmmPhysicalPageFaultCheck (ULONG  ulPageNum, PLW_CLASS_TCB  ptcbCur)
     REGISTER ULONG          ulFreePage;
 
     if (ptcbCur->TCB_euid == 0) {
-        if (_G_vmpflPhysical.VPFL_ulRootMinPages == 0) {
+        if (_G_vmpflPhysical.VPFL_ulRootWarnPages == 0) {
             return  (LW_TRUE);
         } else {
-            __VMM_PAGE_FAULT_CHECK(_G_vmpflPhysical.VPFL_ulRootMinPages);
+            __VMM_PAGE_FAULT_CHECK(_G_vmpflPhysical.VPFL_ulRootWarnPages,
+                                   _G_vmpflPhysical.VPFL_ulRootMinPages);
         }
 
     } else {
-        if (_G_vmpflPhysical.VPFL_ulUserMinPages == 0) {
+        if (_G_vmpflPhysical.VPFL_ulUserWarnPages == 0) {
             return  (LW_TRUE);
         } else {
-            __VMM_PAGE_FAULT_CHECK(_G_vmpflPhysical.VPFL_ulUserMinPages);
+            __VMM_PAGE_FAULT_CHECK(_G_vmpflPhysical.VPFL_ulUserWarnPages,
+                                   _G_vmpflPhysical.VPFL_ulUserMinPages);
         }
     }
 
     return  (LW_FALSE);
+}
+/*********************************************************************************************************
+** 函数名称: __vmmPhysicalPageFaultClear
+** 功能描述: 缺页中断警戒管理任务删除
+** 输　入  : ulId      被删除的任务
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_THREAD_DEL_EN > 0
+
+VOID  __vmmPhysicalPageFaultClear (LW_OBJECT_HANDLE  ulId)
+{
+    if (_G_ulPageFaultGuarder == ulId) {
+        _G_ulPageFaultGuarder =  LW_OBJECT_HANDLE_INVALID;
+        KN_SMP_WMB();
+    }
+}
+
+#endif                                                                  /*  LW_CFG_THREAD_DEL_EN > 0    */
+/*********************************************************************************************************
+** 函数名称: __vmmPhysicalPageFaultGuarder
+** 功能描述: 设置缺页中断警卫线程
+** 输　入  : ulGuarder      新的警卫线程 ID (单次生效)
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __vmmPhysicalPageFaultGuarder (LW_OBJECT_HANDLE  ulGuarder)
+{
+    _G_ulPageFaultGuarder = ulGuarder;
+    KN_SMP_WMB();
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalGetKernelDesc

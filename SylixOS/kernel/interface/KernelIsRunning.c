@@ -24,7 +24,7 @@
 ** 函数名称: API_KernelIsRunning
 ** 功能描述: 检测实时内核是否已经运行。
 ** 输　入  : NONE
-** 输　出  : LW_TRUE 系统已经运行，LW_FASLE 系统没有启动
+** 输　出  : LW_TRUE 系统已经运行，LW_FALSE 系统没有启动
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数

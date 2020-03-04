@@ -1533,27 +1533,39 @@ static INT  __tshellSysCmdAborts (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellSysCmdPageFaultLimit (INT  iArgC, PCHAR  ppcArgV[])
 {
     LW_VMM_PAGE_FAULT_LIMIT  vpfl;
-    size_t stRoot, stUser;
+    size_t stRootWarn, stRootMin, stUserWarn, stUserMin;
 
     lib_bzero(&vpfl, sizeof(LW_VMM_PAGE_FAULT_LIMIT));
 
-    if (iArgC != 3) {
+    if (iArgC != 5) {
         API_VmmPageFaultLimit(LW_NULL, &vpfl);
-        stRoot = vpfl.VPFL_ulRootMinPages * LW_CFG_VMM_PAGE_SIZE;
-        stUser = vpfl.VPFL_ulUserMinPages * LW_CFG_VMM_PAGE_SIZE;
-        printf("Page fault limit: %zu MB (root) %zu MB (user)\n",
-               stRoot / LW_CFG_MB_SIZE, stUser / LW_CFG_MB_SIZE);
+        stRootWarn = vpfl.VPFL_ulRootWarnPages * LW_CFG_VMM_PAGE_SIZE;
+        stRootMin  = vpfl.VPFL_ulRootMinPages  * LW_CFG_VMM_PAGE_SIZE;
+        stUserWarn = vpfl.VPFL_ulUserWarnPages * LW_CFG_VMM_PAGE_SIZE;
+        stUserMin  = vpfl.VPFL_ulUserMinPages  * LW_CFG_VMM_PAGE_SIZE;
+        printf("Page fault Warning: %zu MB (root) %zu MB (user)\n",
+               stRootWarn / LW_CFG_MB_SIZE, stUserWarn / LW_CFG_MB_SIZE);
+        printf("Page fault limit  : %zu MB (root) %zu MB (user)\n",
+               stRootMin / LW_CFG_MB_SIZE, stUserMin / LW_CFG_MB_SIZE);
 
     } else {
-        if (sscanf(ppcArgV[1], "%zu", &stRoot) != 1) {
+        if (sscanf(ppcArgV[1], "%zu", &stRootWarn) != 1) {
             goto    __error;
         }
-        if (sscanf(ppcArgV[2], "%zu", &stUser) != 1) {
+        if (sscanf(ppcArgV[2], "%zu", &stRootMin) != 1) {
+            goto    __error;
+        }
+        if (sscanf(ppcArgV[3], "%zu", &stUserWarn) != 1) {
+            goto    __error;
+        }
+        if (sscanf(ppcArgV[4], "%zu", &stUserMin) != 1) {
             goto    __error;
         }
 
-        vpfl.VPFL_ulRootMinPages = (stRoot * LW_CFG_MB_SIZE) / LW_CFG_VMM_PAGE_SIZE;
-        vpfl.VPFL_ulUserMinPages = (stUser * LW_CFG_MB_SIZE) / LW_CFG_VMM_PAGE_SIZE;
+        vpfl.VPFL_ulRootWarnPages = (stRootWarn * LW_CFG_MB_SIZE) / LW_CFG_VMM_PAGE_SIZE;
+        vpfl.VPFL_ulRootMinPages  = (stRootMin  * LW_CFG_MB_SIZE) / LW_CFG_VMM_PAGE_SIZE;
+        vpfl.VPFL_ulUserWarnPages = (stUserWarn * LW_CFG_MB_SIZE) / LW_CFG_VMM_PAGE_SIZE;
+        vpfl.VPFL_ulUserMinPages  = (stUserMin  * LW_CFG_MB_SIZE) / LW_CFG_VMM_PAGE_SIZE;
         if (API_VmmPageFaultLimit(&vpfl, LW_NULL)) {
             if (errno == EACCES) {
                 fprintf(stderr, "insufficient permissions.\n");
@@ -2894,8 +2906,8 @@ VOID  __tshellSysCmdInit (VOID)
     API_TShellHelpAdd("aborts", "show system vmm abort statistics information.\n");
 
     API_TShellKeywordAdd("pagefaultlimit", __tshellSysCmdPageFaultLimit);
-    API_TShellFormatAdd("pagefaultlimit", " [root limit] [user limit]");
-    API_TShellHelpAdd("pagefaultlimit", "set or show system vmm page fault limit.\n");
+    API_TShellFormatAdd("pagefaultlimit", " [root warning] [root limit] [user warning] [user limit]");
+    API_TShellHelpAdd("pagefaultlimit", "set (MByts) or show system vmm page fault limit.\n");
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
 #if LW_CFG_THREAD_RESTART_EN > 0

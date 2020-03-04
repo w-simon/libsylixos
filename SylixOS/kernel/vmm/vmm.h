@@ -89,7 +89,9 @@ typedef LW_MMU_VIRTUAL_DESC *PLW_MMU_VIRTUAL_DESC;
 *********************************************************************************************************/
 
 typedef struct __lw_vmm_page_fault_limit {
+    ULONG                    VPFL_ulRootWarnPages;                      /*  特权用户缺页警戒保护内存    */
     ULONG                    VPFL_ulRootMinPages;                       /*  特权用户缺页最小保护内存    */
+    ULONG                    VPFL_ulUserWarnPages;                      /*  普通用户缺页警戒保护内存    */
     ULONG                    VPFL_ulUserMinPages;                       /*  普通用户缺页最小保护内存    */
     ULONG                    VPFL_ulReserve[8];
 } LW_VMM_PAGE_FAULT_LIMIT;
@@ -395,6 +397,7 @@ LW_API VOID         API_VmmAbortReturn(PLW_VMM_ABORT_CTX  pabtctx);
 
 LW_API INT          API_VmmPageFaultLimit(PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
                                           PLW_VMM_PAGE_FAULT_LIMIT  pvpflOld);
+LW_API INT          API_VmmPageFaultGuarder(LW_OBJECT_HANDLE  ulGuarder);
 
 /*********************************************************************************************************
   vmm api macro
@@ -445,6 +448,7 @@ LW_API INT          API_VmmPageFaultLimit(PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #define vmmPageFaultLimit           API_VmmPageFaultLimit
+#define vmmPageFaultGuarder         API_VmmPageFaultGuarder
 
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 #endif                                                                  /*  __VMM_H                     */
