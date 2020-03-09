@@ -17,6 +17,9 @@
 ** 文件创建日期: 2013 年 11 月 21 日
 **
 ** 描        述: Linux 兼容 signalfd 实现.
+**
+** BUG
+2020.03.08  修正同时 select 多个不同掩码 signalfd 是对等待掩码的处理.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -429,7 +432,7 @@ static VOID  _sigfdSelect (PLW_SIGFD_FILE  psigfdfil, PLW_SEL_WAKEUPNODE   pselw
     switch (pselwunNode->SELWUN_seltypType) {
     
     case SELREAD:
-        psigctx->SIGCTX_sigsetFdw = psigfdfil->SF_sigsetMask;           /*  设置唤醒条件                */
+        psigctx->SIGCTX_sigsetFdw |= psigfdfil->SF_sigsetMask;          /*  设置唤醒条件                */
         __KERNEL_ENTER();                                               /*  进入内核                    */
         if (psigctx->SIGCTX_sigsetPending & psigfdfil->SF_sigsetMask) {
             bHaveSigPend = LW_TRUE;

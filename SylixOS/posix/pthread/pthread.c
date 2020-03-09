@@ -46,6 +46,12 @@
 #endif
 #include "../include/posixLib.h"                                        /*  posix 内部公共库            */
 /*********************************************************************************************************
+  进程支持
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+#include "../SylixOS/loader/include/loader_vppatch.h"
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_POSIX_EN > 0
@@ -797,6 +803,27 @@ LW_API int  pthread_null_attr_method_np (int  method, int *old_method)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: pthread_verify_np
+** 功能描述: 检查指定线程是否存在
+** 输　入  : pthread       线程句柄
+** 输　出  : 0: 任务存在 -1: 任务不存在
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  pthread_verify_np (pthread_t thread)
+{
+    PX_ID_VERIFY(thread, pthread_t);
+
+    if (API_ThreadVerify(thread)) {
+        return  (0);
+
+    } else {
+        return  (-1);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: pthread_setname_np
 ** 功能描述: 设置线程名字
 ** 输　入  : thread    线程句柄
@@ -884,6 +911,81 @@ int  pthread_wakeup_np (pthread_t  thread, int  timeout_only)
 
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: pthread_list_callback
+** 功能描述: 获取当前进程线程列表回调
+** 输　入  : ptcb          任务控制块
+**           list          线程列表
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+
+static void  pthread_list_callback (PLW_CLASS_TCB  ptcb, struct pthread_list *list)
+{
+    struct pthread_info *info;
+
+    list->total++;
+    if (list->get_cnt < list->pool_cnt) {
+        info = &list->pool[list->get_cnt];
+        info->tid = ptcb->TCB_ulId;
+        if (info->name && info->size) {
+            lib_strlcpy(info->name, ptcb->TCB_cThreadName, info->size);
+        }
+        list->get_cnt++;
+    }
+}
+/*********************************************************************************************************
+** 函数名称: pthread_list_np
+** 功能描述: 获取当前进程线程列表
+** 输　入  : list          线程列表
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+int  pthread_list_np (struct pthread_list *list)
+{
+    struct pthread_info *info;
+    volatile char        byte;
+
+    UINT   i;
+    pid_t  pid = getpid();
+
+    (void)byte;
+
+    if (!list) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
+    if (pid <= 0) {
+        errno = ESRCH;
+        return  (ESRCH);
+    }
+
+    if (list->pool && list->pool_cnt) {
+        for (i = 0; i < list->pool_cnt; i++) {
+            info = &list->pool[i];
+            if (info->name && info->size) {
+                byte = info->name[0];                                   /*  通过此循环判断内存有效性    */
+            }
+        }
+    }
+
+    list->total   = 0;
+    list->get_cnt = 0;
+
+    vprocThreadTraversal(pid, pthread_list_callback, list,
+                         LW_NULL, LW_NULL, LW_NULL, LW_NULL, LW_NULL);
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
 ** 函数名称: pthread_safe_np
 ** 功能描述: 线程进入安全模式, 任何对本线程的删除操作都会推迟到线程退出安全模式时进行.

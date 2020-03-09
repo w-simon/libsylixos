@@ -42,6 +42,7 @@ extern "C" {
 #define PTHREAD_NULL_ATTR_METHOD_USE_DEFSETTING     1                   /*  use default attr            */
 
 LW_API int  pthread_null_attr_method_np(int  method, int *old_method);
+LW_API int  pthread_verify_np(pthread_t thread);
 
 LW_API int  pthread_start_np(pthread_t  thread);
 LW_API int  pthread_wakeup_np(pthread_t  thread, int  timeout_only);
@@ -54,6 +55,26 @@ LW_API int  pthread_getname_np(pthread_t  thread, char  *name, size_t len);
 
 LW_API int  pthread_setaffinity_np(pthread_t  thread, size_t setsize, const cpu_set_t *set);
 LW_API int  pthread_getaffinity_np(pthread_t  thread, size_t setsize, cpu_set_t *set);
+
+/*********************************************************************************************************
+  获得线程列表
+*********************************************************************************************************/
+struct pthread_info {
+    pthread_t  tid;
+    char      *name;
+    size_t     size;
+};
+
+struct pthread_list {
+    unsigned int         total;                                         /*  进程中线程的总数            */
+    unsigned int         get_cnt;                                       /*  本次获取的线程句柄数        */
+    unsigned int         pool_cnt;                                      /*  缓冲区中可保存的线程 ID 个数*/
+    struct pthread_info *pool;                                          /*  线程句柄缓冲区              */
+};
+
+#if LW_CFG_MODULELOADER_EN > 0
+LW_API int  pthread_list_np(struct pthread_list *list);
+#endif
 
 #ifdef __cplusplus
 }

@@ -213,6 +213,8 @@ INT  lib_clock_settime (clockid_t  clockid, const struct timespec  *tv)
     
     LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
     _K_tvTODCurrent = *tv;
+    _K_iTODDelta    = 0;                                                /*  清除之前的微调时间          */
+    _K_iTODDeltaNs  = 0;
     LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
     
     return  (ERROR_NONE);
