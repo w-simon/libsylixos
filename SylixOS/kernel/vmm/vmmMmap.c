@@ -811,6 +811,7 @@ PVOID  API_VmmMremap (PVOID  pvAddr, size_t stOldSize, size_t stNewSize, INT  iM
     }
     
     if (pmapn->MAPN_iFlags & LW_VMM_PHY_PREALLOC) {                     /*  预分配型内存不允许更改      */
+        __VMM_MMAP_UNLOCK();
         _ErrorHandle(ENOTSUP);
         return  (LW_VMM_MAP_FAILED);
     }
