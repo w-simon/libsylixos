@@ -984,7 +984,7 @@ sio_fd_t  sio_open (u8_t  port)
     ioctl(iFd, FIORTIMEOUT, LW_NULL);                                   /*  无限长等待时间              */
     __KERNEL_SPACE_EXIT();
     
-    return  ((sio_fd_t)iFd);
+    return  ((sio_fd_t)(long)iFd);
 }
 /*********************************************************************************************************
 ** 函数名称: sio_send
@@ -998,7 +998,7 @@ sio_fd_t  sio_open (u8_t  port)
 void  sio_send (u8_t  data, sio_fd_t  fd)
 {
     __KERNEL_SPACE_ENTER();                                             /*  内核文件描述符              */
-    write((int)fd, (const void *)&data, 1);
+    write((int)(long)fd, (const void *)&data, 1);
     __KERNEL_SPACE_EXIT();
 }
 /*********************************************************************************************************
@@ -1011,10 +1011,10 @@ void  sio_send (u8_t  data, sio_fd_t  fd)
 *********************************************************************************************************/
 u8_t  sio_recv (sio_fd_t  fd)
 {
-    char    data;
+    char  data;
     
     __KERNEL_SPACE_ENTER();                                             /*  内核文件描述符              */
-    read((int)fd, (void *)&data, 1);
+    read((int)(long)fd, (void *)&data, 1);
     __KERNEL_SPACE_EXIT();
     
     return  ((u8_t)data);
@@ -1031,10 +1031,10 @@ u8_t  sio_recv (sio_fd_t  fd)
 *********************************************************************************************************/
 u32_t  sio_read (sio_fd_t  fd, u8_t *buffer, u32_t  num)
 {
-    ssize_t     sstReadNum;
+    ssize_t  sstReadNum;
     
     __KERNEL_SPACE_ENTER();
-    sstReadNum = read((int)fd, (void *)buffer, (size_t)num);
+    sstReadNum = read((int)(long)fd, (void *)buffer, (size_t)num);
     __KERNEL_SPACE_EXIT();
 
     if (sstReadNum < 0) {
@@ -1060,13 +1060,13 @@ u32_t  sio_tryread (sio_fd_t  fd, u8_t *buffer, u32_t  num)
     u32_t  uiRead = 0;
 
     __KERNEL_SPACE_ENTER();
-    if (ioctl((int)fd, FIONREAD, &iNRead)) {
+    if (ioctl((int)(long)fd, FIONREAD, &iNRead)) {
         __KERNEL_SPACE_EXIT();
         return  (0);
     }
     
     if (iNRead > 0) {
-        uiRead = (u32_t)read((int)fd, (void *)buffer, num);
+        uiRead = (u32_t)read((int)(long)fd, (void *)buffer, num);
     }
     __KERNEL_SPACE_EXIT();
     
@@ -1084,10 +1084,10 @@ u32_t  sio_tryread (sio_fd_t  fd, u8_t *buffer, u32_t  num)
 *********************************************************************************************************/
 u32_t  sio_write (sio_fd_t  fd, u8_t *buffer, u32_t  num)
 {
-    ssize_t     ssWriteNum;
+    ssize_t  ssWriteNum;
     
     __KERNEL_SPACE_ENTER();
-    ssWriteNum = write((int)fd, (const void *)buffer, (size_t)num);
+    ssWriteNum = write((int)(long)fd, (const void *)buffer, (size_t)num);
     __KERNEL_SPACE_EXIT();
     
     if (ssWriteNum < 0) {
@@ -1108,7 +1108,7 @@ u32_t  sio_write (sio_fd_t  fd, u8_t *buffer, u32_t  num)
 void  sio_read_abort (sio_fd_t  fd)
 {
     __KERNEL_SPACE_ENTER();
-    ioctl((int)fd, FIOWAITABORT, OPT_RABORT);                           /*  解除一个读阻塞              */
+    ioctl((int)(long)fd, FIOWAITABORT, OPT_RABORT);                     /*  解除一个读阻塞              */
     __KERNEL_SPACE_EXIT();
 }
 /*********************************************************************************************************

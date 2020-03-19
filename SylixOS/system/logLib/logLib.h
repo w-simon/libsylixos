@@ -80,9 +80,6 @@ LW_API INT    API_LogMsg(CPCHAR       pcFormat,
 #define logFdAdd         API_LogFdAdd
 #define logFdDelete      API_LogFdDelete
 
-#define logPrintk        API_LogPrintk
-#define logMsg           API_LogMsg
-
 #ifndef printk
 #define printk           API_LogPrintk
 #endif                                                                  /*  printk                      */

@@ -1950,7 +1950,7 @@ INT  packet_ioctl (AF_PACKET_T *pafpacket, INT  iCmd, PVOID  pvArg)
         break;
         
     case FIOSETFL:
-        if ((INT)pvArg & O_NONBLOCK) {
+        if ((INT)(LONG)pvArg & O_NONBLOCK) {
             pafpacket->PACKET_iFlag |= O_NONBLOCK;
         } else {
             pafpacket->PACKET_iFlag &= ~O_NONBLOCK;

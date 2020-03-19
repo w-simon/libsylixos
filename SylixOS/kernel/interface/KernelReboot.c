@@ -196,8 +196,8 @@ VOID   API_KernelRebootEx (INT  iRebootType, addr_t  ulStartAddress)
     }
 
     if (LW_CPU_GET_CUR_NESTING() || (API_ThreadIdSelf() != API_KernelGetExc())) {
-        _excJobAdd(API_KernelRebootEx, (PVOID)iRebootType, (PVOID)ulStartAddress, 0, 0, 0, 0);
-        return;
+        _excJobAdd(API_KernelRebootEx, (PVOID)(LONG)iRebootType, (PVOID)ulStartAddress, 0, 0, 0, 0);
+        return;                                                         /*  (pvoid)(long) no 64bit warn */
     }
 
     _DebugHandle(__PRINTMESSAGE_LEVEL, "kernel rebooting...\r\n");

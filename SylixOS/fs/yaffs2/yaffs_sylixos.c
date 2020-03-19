@@ -622,7 +622,7 @@ static LONG  __yaffsOpen (PYAFFS_FSLIB    pyaffs,
         
         if (iError < ERROR_NONE) {                                      /*  产生错误                    */
             if (__STR_IS_ROOT(pyaffile->YAFFIL_cName)) {                /*  是否为 yaffs 文件系统设备   */
-                yafstat.st_dev  = (int)pyaffile->YAFFIL_pyaffs;
+                yafstat.st_dev  = (int)(long)pyaffile->YAFFIL_pyaffs;   /*  Fixed warning in 64bits     */
                 yafstat.st_ino  = (int)0;                               /*  绝不与普通文件重复(根目录)  */
                 yafstat.st_mode = YAFFS_ROOT_MODE | S_IFDIR;
                 yafstat.st_uid  = 0;

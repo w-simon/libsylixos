@@ -876,7 +876,7 @@ INT  kill (LW_OBJECT_HANDLE  ulId, INT  iSigNo)
     }
     
     if (LW_CPU_GET_CUR_NESTING() || (ulId == API_ThreadIdSelf())) {
-        _excJobAdd((VOIDFUNCPTR)kill, (PVOID)ulId, (PVOID)iSigNo, 0, 0, 0, 0);
+        _excJobAdd((VOIDFUNCPTR)kill, (PVOID)ulId, (PVOID)(LONG)iSigNo, 0, 0, 0, 0);
         return  (ERROR_NONE);
     }
 
@@ -1090,7 +1090,7 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
     }
 
     if (LW_CPU_GET_CUR_NESTING() || (ulId == API_ThreadIdSelf())) {
-        _excJobAdd((VOIDFUNCPTR)__sigqueue, (PVOID)ulId, (PVOID)iSigNo, sigvalue.sival_ptr, 0, 0, 0);
+        _excJobAdd((VOIDFUNCPTR)__sigqueue, (PVOID)ulId, (PVOID)(LONG)iSigNo, sigvalue.sival_ptr, 0, 0, 0);
         return  (ERROR_NONE);
     }
     

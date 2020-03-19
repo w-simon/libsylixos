@@ -2317,7 +2317,7 @@ INT  unix_ioctl (AF_UNIX_T  *pafunix, INT  iCmd, PVOID  pvArg)
         break;
         
     case FIOSETFL:
-        if ((INT)pvArg & O_NONBLOCK) {
+        if ((INT)(LONG)pvArg & O_NONBLOCK) {
             pafunix->UNIX_iFlag |= O_NONBLOCK;
         } else {
             pafunix->UNIX_iFlag &= ~O_NONBLOCK;

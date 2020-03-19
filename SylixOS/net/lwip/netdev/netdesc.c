@@ -450,7 +450,7 @@ int netdev_desc_helper_delete (struct netdev_desc_helper *helper)
     /* recycle all pbuf */
     for (i = 0; i < helper->rx_zc_cnt; i++) {
       do {
-        p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, LW_OPTION_WAIT_INFINITE);
+        p = netdev_zc_pbuf_alloc(helper->rx_hzcpool, -1);
       } while (!p);
     }
 

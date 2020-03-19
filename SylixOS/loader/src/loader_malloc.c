@@ -151,7 +151,7 @@ typedef struct {
 *********************************************************************************************************/
 static LW_LD_EXEC_SHARE *__ldExecShareFindByBase (PVOID  pvBase)
 {
-    INT                  iHash = EXEC_SHARE_HASH((INT)pvBase);
+    INT                  iHash = EXEC_SHARE_HASH((LONG)pvBase);
     PLW_LIST_LINE        plineTemp;
     LW_LD_EXEC_SHARE    *pexecshare;
     
@@ -220,7 +220,7 @@ static LW_LD_EXEC_SHARE *__ldExecShareFindByFile (dev_t  dev, ino64_t  ino64)
 static LW_LD_EXEC_SHARE *__ldExecShareCreate (PVOID  pvBase, size_t  stSize, 
                                               dev_t  dev,    ino64_t ino64)
 {
-    INT                  iHash = EXEC_SHARE_HASH((INT)pvBase);
+    INT                  iHash = EXEC_SHARE_HASH((LONG)pvBase);
     LW_LD_EXEC_SHARE    *pexecshare;
     
     pexecshare = (LW_LD_EXEC_SHARE *)__SHEAP_ALLOC(sizeof(LW_LD_EXEC_SHARE));
@@ -248,7 +248,7 @@ static LW_LD_EXEC_SHARE *__ldExecShareCreate (PVOID  pvBase, size_t  stSize,
 *********************************************************************************************************/
 static VOID __ldExecShareDelete (LW_LD_EXEC_SHARE *pexecshare)
 {
-    INT     iHash = EXEC_SHARE_HASH((INT)pexecshare->ESHM_pvBase);
+    INT     iHash = EXEC_SHARE_HASH((LONG)pexecshare->ESHM_pvBase);
     
     _List_Line_Del(&pexecshare->ESHM_lineManage, &_G_plineExecShare[iHash]);
     

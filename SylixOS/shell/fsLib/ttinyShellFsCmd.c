@@ -444,7 +444,7 @@ static INT  __tshellFsCmdCat (INT  iArgC, PCHAR  ppcArgV[])
         return  (-ERROR_TSHELL_EPARAM);
     }
     
-    API_ThreadCleanupPush((VOIDFUNCPTR)close, (PVOID)iFd);
+    API_ThreadCleanupPush((VOIDFUNCPTR)close, (PVOID)(LONG)iFd);
     
     do {
         sstNum = read(iFd, cBuffer, MAX_FILENAME_LENGTH);

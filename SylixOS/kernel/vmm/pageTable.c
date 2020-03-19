@@ -338,32 +338,39 @@ static VOID  __vmmLibFlushTlbIpi (LW_VMM_FTLB_ARG  *pftlb)
 *********************************************************************************************************/
 VOID  __vmmLibFlushTlb (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG  ulPageNum)
 {
-    INTREG           iregInterLevel;
-#if LW_CFG_SMP_EN > 0
-    LW_VMM_FTLB_ARG  ftlb;
-    BOOL             bLock;
-#endif                                                                  /*  LW_CFG_SMP_EN               */
+    INTREG  iregInterLevel;
     
     ulPageAddr &= LW_CFG_VMM_PAGE_MASK;                                 /*  地址对齐                    */
     
-    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
-    __VMM_MMU_INV_TLB(pmmuctx, ulPageAddr, ulPageNum);                  /*  无效快表                    */
-    KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
-
 #if LW_CFG_SMP_EN > 0
     if (LW_SYS_STATUS_IS_RUNNING() && 
         (__VMM_MMU_OPTION() & LW_VMM_MMU_FLUSH_TLB_MP) &&
         (LW_NCPUS > 1)) {                                               /*  需要通知其他 CPU            */
+        LW_VMM_FTLB_ARG  ftlb;
+        BOOL             bLock;
+
         ftlb.FTLB_pmmuctx    = pmmuctx;
         ftlb.FTLB_ulPageAddr = ulPageAddr;
         ftlb.FTLB_ulPageNum  = ulPageNum;
         
         bLock = __SMP_CPU_LOCK();                                       /*  锁定当前 CPU 执行           */
+
+        iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
+        __VMM_MMU_INV_TLB(pmmuctx, ulPageAddr, ulPageNum);              /*  无效快表                    */
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
+
         _SmpCallFuncAllOther((FUNCPTR)__vmmLibFlushTlbIpi, &ftlb,
                              LW_NULL, LW_NULL, IPIM_OPT_NORMAL);        /*  通知其他的 CPU              */
+
         __SMP_CPU_UNLOCK(bLock);                                        /*  解锁当前 CPU 执行           */
-    }
+
+    } else
 #endif                                                                  /*  LW_CFG_SMP_EN               */
+    {
+        iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
+        __VMM_MMU_INV_TLB(pmmuctx, ulPageAddr, ulPageNum);              /*  无效快表                    */
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
+    }
 }
 
 #endif                                                                  /* !LW_CFG_VMM_L4_HYPERVISOR_EN */

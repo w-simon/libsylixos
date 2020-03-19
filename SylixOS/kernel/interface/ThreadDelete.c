@@ -358,7 +358,7 @@ ULONG  API_ThreadDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
     if (pvprocDel && (pvprocDel->VP_ulMainThread == ulId)) {            /*  主线程自己删除自己          */
         if (pvprocDel->VP_iStatus != __LW_VP_EXIT) {
             __KERNEL_EXIT();                                            /*  退出内核                    */
-            vprocExit(pvprocDel, ulId, (INT)pvRetVal);                  /*  进程结束                    */
+            vprocExit(pvprocDel, ulId, (INT)(LONG)pvRetVal);            /*  进程结束                    */
             return  (ERROR_NONE);                                       /*  不会运行到这里              */
         }
     }
@@ -458,7 +458,7 @@ void  exit (int  iCode)
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
-    API_ThreadForceDelete(&ulId, (PVOID)iCode);
+    API_ThreadForceDelete(&ulId, (PVOID)(LONG)iCode);
     
     for (;;) {
         API_TimeSleep(__ARCH_ULONG_MAX);
@@ -499,7 +499,7 @@ void  _exit (int  iCode)
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
-    API_ThreadForceDelete(&ulId, (PVOID)iCode);
+    API_ThreadForceDelete(&ulId, (PVOID)(LONG)iCode);
     
     for (;;) {
         API_TimeSleep(__ARCH_ULONG_MAX);

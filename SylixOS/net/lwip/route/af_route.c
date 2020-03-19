@@ -1996,7 +1996,7 @@ INT  route_ioctl (AF_ROUTE_T  *pafroute, INT  iCmd, PVOID  pvArg)
         break;
         
     case FIOSETFL:
-        if ((INT)pvArg & O_NONBLOCK) {
+        if ((INT)(LONG)pvArg & O_NONBLOCK) {
             pafroute->ROUTE_iFlag |= O_NONBLOCK;
         } else {
             pafroute->ROUTE_iFlag &= ~O_NONBLOCK;

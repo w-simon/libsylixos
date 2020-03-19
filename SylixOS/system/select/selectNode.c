@@ -288,7 +288,7 @@ VOID    API_SelWakeupAllByFlags (PLW_SEL_WAKEUPLIST  pselwulList, UINT  uiFlags)
     }
     
     if (LW_CPU_GET_CUR_NESTING()) {                                     /*  在中断中                    */
-        _excJobAdd((VOIDFUNCPTR)API_SelWakeupAllByFlags, (PVOID)pselwulList, (PVOID)uiFlags, 
+        _excJobAdd((VOIDFUNCPTR)API_SelWakeupAllByFlags, (PVOID)pselwulList, (PVOID)(LONG)uiFlags,
                    0, 0, 0, 0);                                         /*  底半中断处理                */
         return;
     }

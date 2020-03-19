@@ -1777,7 +1777,11 @@ static int yaffsfs_DoStat(struct yaffs_obj *obj, struct yaffs_stat *buf)
 	obj = yaffs_get_equivalent_obj(obj);
 
 	if (obj && buf) {
+#if LW_CFG_CPU_WORD_LENGHT == 64 /* SylixOS Fixed warning in 64bits machine */
+	    buf->st_dev = (int)(long)obj->my_dev->os_context;
+#else
 		buf->st_dev = (int)obj->my_dev->os_context;
+#endif
 		buf->st_ino = obj->obj_id;
 		buf->st_mode = obj->yst_mode & ~S_IFMT;
 
@@ -3563,7 +3567,11 @@ struct yaffs_dirent *yaffsfs_readdir_no_lock(yaffs_DIR * dirp)
 		if (dsc->nextReturn) {
 			dsc->de.d_ino =
 			    yaffs_get_equivalent_obj(dsc->nextReturn)->obj_id;
+#if LW_CFG_CPU_WORD_LENGHT == 64 /* SylixOS Fixed warning in 64bits machine */
+			dsc->de.d_dont_use = (unsigned)(long)dsc->nextReturn;
+#else
 			dsc->de.d_dont_use = (unsigned)dsc->nextReturn;
+#endif
 			dsc->de.d_off = dsc->offset++;
 			dsc->de.d_type = yaffs_get_obj_type(dsc->nextReturn);
 			yaffs_get_obj_name(dsc->nextReturn,

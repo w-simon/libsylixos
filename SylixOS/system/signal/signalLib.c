@@ -179,7 +179,7 @@ static VOID  __signalExitHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct sig
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     }
                                                                         /*  删除自己                    */
-    API_ThreadDelete(&ulId, (PVOID)psiginfo->si_int);                   /*  如果在安全模式, 则退出安全  */
+    API_ThreadDelete(&ulId, (PVOID)(LONG)psiginfo->si_int);             /*  如果在安全模式, 则退出安全  */
 }                                                                       /*  模式后, 自动被删除          */
 /*********************************************************************************************************
 ** 函数名称: __signalKillHandle
@@ -203,7 +203,7 @@ static VOID  __signalKillHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct sig
         vprocSetImmediatelyTerm(pid);                                   /*  立即退出模式                */
     }
 
-    API_ThreadDelete(&ulId, (PVOID)psiginfo->si_int);                   /*  删除自己                    */
+    API_ThreadDelete(&ulId, (PVOID)(LONG)psiginfo->si_int);             /*  删除自己                    */
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

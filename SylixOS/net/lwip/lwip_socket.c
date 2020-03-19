@@ -613,7 +613,7 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
                 
             case FIOSETFL:
                 {
-                    INT iIsNonBlk = (INT)((INT)pvArg & O_NONBLOCK);     /*  其他位不能存在              */
+                    INT iIsNonBlk = ((INT)(LONG)pvArg & O_NONBLOCK);    /*  其他位不能存在              */
                     iRet = lwip_fcntl(psock->SOCK_iLwipFd, F_SETFL, iIsNonBlk);
                 }
                 break;

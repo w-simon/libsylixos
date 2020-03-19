@@ -131,7 +131,7 @@ static INT  __tshellFsCmdXmodems (INT  iArgC, PCHAR  ppcArgV[])
         return  (-ERROR_TSHELL_EPARAM);
     }
     
-    API_ThreadCleanupPush(__tshellXmodemCleanup, (PVOID)iFile);         /*  加入清除函数                */
+    API_ThreadCleanupPush(__tshellXmodemCleanup, (PVOID)(LONG)iFile);   /*  加入清除函数                */
     
     ioctl(STD_IN, FIOSETOPTIONS, OPT_RAW);                              /*  将标准文件改为 raw 模式     */
     ioctl(STD_OUT, FIOSETOPTIONS, OPT_RAW);                             /*  将标准文件改为 raw 模式     */
@@ -296,7 +296,7 @@ __re_select:
         return  (-ERROR_TSHELL_EPARAM);
     }
     
-    API_ThreadCleanupPush(__tshellXmodemCleanup, (PVOID)iFile);         /*  加入清除函数                */
+    API_ThreadCleanupPush(__tshellXmodemCleanup, (PVOID)(LONG)iFile);   /*  加入清除函数                */
     
     ioctl(STD_IN, FIOSETOPTIONS, OPT_RAW);                              /*  将标准文件改为 raw 模式     */
     ioctl(STD_OUT, FIOSETOPTIONS, OPT_RAW);                             /*  将标准文件改为 raw 模式     */

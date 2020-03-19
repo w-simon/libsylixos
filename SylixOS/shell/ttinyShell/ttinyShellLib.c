@@ -359,7 +359,7 @@ static INT  __tshellRedir (PCHAR  pcString, PCHAR  pcRedir, LW_OBJECT_HANDLE ulM
                 return  (PX_ERROR);
             }
             
-            API_ThreadCleanupPush(__tshellCloseRedir, (PVOID)iFd);
+            API_ThreadCleanupPush(__tshellCloseRedir, (PVOID)(LONG)iFd);
             (*piPopCnt)++;
             
             if (iOutOpt & STD_OUT) {
@@ -376,7 +376,7 @@ static INT  __tshellRedir (PCHAR  pcString, PCHAR  pcRedir, LW_OBJECT_HANDLE ulM
             return  (PX_ERROR);
         }
         
-        API_ThreadCleanupPush(__tshellCloseRedir, (PVOID)iFd);
+        API_ThreadCleanupPush(__tshellCloseRedir, (PVOID)(LONG)iFd);
         (*piPopCnt)++;
         
         API_IoTaskStdSet(ulMe, STD_IN, iFd);
@@ -836,7 +836,7 @@ INT  __tshellRestartEx (LW_OBJECT_HANDLE  ulThread, BOOL  bNeedAuthen)
 #endif
     {
         return  (_excJobAdd((VOIDFUNCPTR)__tshellRestartEx, 
-                            (PVOID)ulThread, (PVOID)bNeedAuthen, 0, 0, 0, 0));
+                            (PVOID)ulThread, (PVOID)(LONG)bNeedAuthen, 0, 0, 0, 0));
     }
     
     usIndex = _ObjectGetIndex(ulThread);
@@ -895,7 +895,7 @@ INT  __tshellRestartEx (LW_OBJECT_HANDLE  ulThread, BOOL  bNeedAuthen)
     } else {                                                            /*  重启线程                    */
         __tshellHistoryBackup(ptcbShell);
 
-        API_ThreadRestart(ulThread, (PVOID)__TTINY_SHELL_GET_STDFILE(ptcbShell));
+        API_ThreadRestart(ulThread, (PVOID)(LONG)__TTINY_SHELL_GET_STDFILE(ptcbShell));
     }
     
     return  (ERROR_NONE);
@@ -1025,7 +1025,7 @@ static PVOID  __tshellBackground (PVOID  pvArg)
     
     API_ThreadCleanupPop(LW_TRUE);                                      /*  运行清除函数                */
     
-    return  ((PVOID)iRetValue);                                         /*  返回命令执行结果            */
+    return  ((PVOID)(LONG)iRetValue);                                   /*  返回命令执行结果            */
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellBgCreateEx
@@ -1217,7 +1217,7 @@ PVOID   __tshellThread (PVOID  pcArg)
 {
              FUNCPTR        pfuncRunCallback = LW_NULL;
              PLW_CLASS_TCB  ptcbCur;
-    REGISTER INT            iTtyFd = (INT)pcArg;
+    REGISTER INT            iTtyFd = (INT)(LONG)pcArg;
              INT            iRetValue;
              CHAR           cRecvBuffer[LW_CFG_SHELL_MAX_COMMANDLEN + 1];
              CHAR           cCtrl[NCCS];

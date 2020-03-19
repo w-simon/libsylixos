@@ -393,7 +393,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption,
                         _G_stShellStackSize,                            /*  shell 堆栈大小              */
                         LW_PRIO_T_SHELL,
                         ulTaskOpt,
-                        (PVOID)iKernelFile);                            /*  构建属性块                  */
+                        (PVOID)(LONG)iKernelFile);                      /*  构建属性块                  */
     
     hTShellHandle = API_ThreadInit("t_tshell", __tshellThread,
                                    &threadattrTShell, LW_NULL);         /*  创建 tshell 线程            */

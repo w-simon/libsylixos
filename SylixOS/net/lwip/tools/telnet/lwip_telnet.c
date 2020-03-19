@@ -447,7 +447,7 @@ static VOID  __telnetServer (INT  iSock)
                             LW_OPTION_THREAD_STK_CHK |
                             LW_OPTION_OBJECT_GLOBAL |
                             LW_OPTION_THREAD_DETACHED,
-                            (PVOID)iDevFd);
+                            (PVOID)(LONG)iDevFd);
                                                                         /*  与 shell 优先级相同         */
         threadattr.THREADATTR_ucPriority = LW_PRIO_T_SHELL;
         ulCommunicatThread = API_ThreadInit("t_ptyproc", 
@@ -475,7 +475,8 @@ static VOID  __telnetServer (INT  iSock)
 #endif                                                                  /*  LW_CFG_NET_TELNET_LOGIN_EN  */
 
     ulTShell = API_TShellCreateEx(iHostFd, ulShellOption,
-                                  __telnetShellCallback, (PVOID)iSock); /*  创建 Shell                  */
+                                  __telnetShellCallback,
+                                  (PVOID)(LONG)iSock);                  /*  创建 Shell                  */
     if (ulTShell == LW_OBJECT_HANDLE_INVALID) {
         iErrLevel = 5;
         goto    __error_handle;
@@ -502,7 +503,7 @@ static VOID  __telnetServer (INT  iSock)
 #endif                                                                  /*  LW_CFG_NET_TELNET_LOGFD_EN  */
 
 #if LW_CFG_NET_LOGINBL_EN > 0
-    if ((INT)pvRetValue == -ERROR_TSHELL_EUSER) {                       /*  用户登录错误                */
+    if ((INT)(LONG)pvRetValue == -ERROR_TSHELL_EUSER) {                 /*  用户登录错误                */
         if (bBlAdd) {
             API_LoginBlAdd(&addr, _G_uiLoginFailBlRep, _G_uiLoginFailBlSec);
         }
@@ -642,7 +643,7 @@ static VOID  __telnetListener (VOID)
                                 LW_CFG_NET_TELNET_STK_SIZE,
                                 LW_PRIO_T_SERVICE,
                                 LW_OPTION_THREAD_STK_CHK | LW_OPTION_OBJECT_GLOBAL,
-                                (PVOID)iSockNew);
+                                (PVOID)(LONG)iSockNew);
             if (API_ThreadCreate("t_ptyserver", 
                                  (PTHREAD_START_ROUTINE)__telnetServer, 
                                  &threadattr, 

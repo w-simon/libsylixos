@@ -1067,7 +1067,7 @@ VOID  vprocExit (LW_LD_VPROC *pvproc, LW_OBJECT_HANDLE  ulId, INT  iCode)
     pvproc->VP_iExitCode |= SET_EXITSTATUS(iCode);                      /*  保存结束代码                */
     
     if (pvproc->VP_ulMainThread != ulId) {                              /*  不是主线程                  */
-        API_ThreadDelete(&ulId, (PVOID)iCode);
+        API_ThreadDelete(&ulId, (PVOID)(LONG)iCode);
         return;
     }
     
@@ -1120,7 +1120,7 @@ __recheck:
         __resReclaimReq((PVOID)pvproc);                                 /*  请求释放进程资源            */
     }
 
-    API_ThreadForceDelete(&ulId, (PVOID)pvproc->VP_iExitCode);          /*  这个线程彻底删除时, 才会回收*/
+    API_ThreadForceDelete(&ulId, (PVOID)(LONG)pvproc->VP_iExitCode);    /*  这个线程彻底删除时, 才会回收*/
 }
 /*********************************************************************************************************
 ** 函数名称: vprocExitNotDestroy

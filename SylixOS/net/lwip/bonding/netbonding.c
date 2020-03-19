@@ -1152,6 +1152,7 @@ int  netbd_delete (const char *bddev, int bdindex)
   if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
     netbd = (netbd_t *)netdev_bd->priv;
     if (netbd && netbd->magic_no == NETBONDING_MAGIC) {
+      netbd->magic_no = 0;
       found = 1;
     }
   }

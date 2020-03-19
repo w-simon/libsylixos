@@ -237,7 +237,7 @@ INT  API_INetPing (struct in_addr  *pinaddr, INT  iTimes, INT  iDataSize, INT  i
     if (iSock < 0) {
         return  (PX_ERROR);
     }
-    API_ThreadCleanupPush(__inetPingCleanup, (PVOID)iSock);             /*  加入清除函数                */
+    API_ThreadCleanupPush(__inetPingCleanup, (PVOID)(LONG)iSock);       /*  加入清除函数                */
     
     setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &iTimeout, sizeof(INT));
     setsockopt(iSock, IPPROTO_IP, IP_TTL, &iTTL, sizeof(INT));

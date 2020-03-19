@@ -241,7 +241,7 @@ int  getpriority (int which, id_t who)
     
     __KERNEL_ENTER();
     _ThreadTraversal(__gprio_hook, 
-                     (PVOID)&iRet, (PVOID)which, (PVOID)who, (PVOID)&ucPriority, 
+                     (PVOID)&iRet, (PVOID)(LONG)which, (PVOID)(LONG)who, (PVOID)&ucPriority,
                      LW_NULL, LW_NULL);
     __KERNEL_EXIT();
     
@@ -305,7 +305,7 @@ int  setpriority (int which, id_t who, int value)
     
     __KERNEL_ENTER();
     _ThreadTraversal(__sprio_hook, 
-                     (PVOID)&iRet, (PVOID)which, (PVOID)who, (PVOID)&ucPriority, 
+                     (PVOID)&iRet, (PVOID)(LONG)which, (PVOID)(LONG)who, (PVOID)&ucPriority,
                      LW_NULL, LW_NULL);
     __KERNEL_EXIT();
 

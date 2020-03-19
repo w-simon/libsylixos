@@ -135,7 +135,7 @@ INT  fcntl (INT  iFd, INT  iCmd, ...)
             iNbioStat = 0;
             iRetVal = ioctl(iFd, FIONBIO, &iNbioStat);
             if (iRetVal < ERROR_NONE) {
-                iRetVal = ioctl(iFd, FIOSETFL, (void *)(pfdentry->FDENTRY_iFlag & ~O_NONBLOCK));
+                iRetVal = ioctl(iFd, FIOSETFL, (long)(pfdentry->FDENTRY_iFlag & ~O_NONBLOCK));
             }
             if (iRetVal >= ERROR_NONE) {
                 pfdentry->FDENTRY_iFlag &= ~O_NONBLOCK;
@@ -154,7 +154,7 @@ INT  fcntl (INT  iFd, INT  iCmd, ...)
     case F_SETOWN:                                                      /* Set owner - for ASYNC        */
         va_start(varlist, iCmd);
         pidOwn = va_arg(varlist, pid_t);
-        iRetVal = ioctl(iFd, FIOSETOWN, (void *)pidOwn);
+        iRetVal = ioctl(iFd, FIOSETOWN, (long)pidOwn);
         va_end(varlist);
         break;
         
@@ -189,7 +189,7 @@ INT  fcntl (INT  iFd, INT  iCmd, ...)
     case F_SETSIG:                                                      /* Set device notify signo      */
         va_start(varlist, iCmd);
         iSigno = va_arg(varlist, INT);
-        iRetVal = ioctl(iFd, FIOSETSIG, (void *)iSigno);
+        iRetVal = ioctl(iFd, FIOSETSIG, (long)iSigno);
         va_end(varlist);
         break;
     

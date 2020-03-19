@@ -168,7 +168,7 @@ ULONG  API_ThreadForceDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
     if (pvprocDel && (pvprocDel->VP_ulMainThread == ulId)) {            /*  主线程自己删除自己          */
         if (pvprocDel->VP_iStatus != __LW_VP_EXIT) {
             __KERNEL_EXIT();                                            /*  退出内核                    */
-            vprocExit(pvprocDel, ulId, (INT)pvRetVal);                  /*  进程退出, 此函数不返回      */
+            vprocExit(pvprocDel, ulId, (INT)(LONG)pvRetVal);            /*  进程退出, 此函数不返回      */
             return  (ERROR_NONE);                                       /*  不会运行到这里              */
         }
     }
@@ -191,7 +191,7 @@ ULONG  API_ThreadForceDelete (LW_OBJECT_HANDLE  *pulId, PVOID  pvRetVal)
         ptcbCur->TCB_ulThreadSafeCounter--;                             /*  LW_THREAD_UNSAFE();         */
         
         _excJobAdd((VOIDFUNCPTR)__threadDelete,
-                   ptcbDel, (PVOID)bIsInSafeMode, pvRetVal, 
+                   ptcbDel, (PVOID)(LONG)bIsInSafeMode, pvRetVal,
                    (PVOID)LW_FALSE, 0, 0);                              /*  使用信号系统的异常处理      */
         for (;;) {
             API_TimeSleep(__ARCH_ULONG_MAX);                            /*  等待被删除                  */

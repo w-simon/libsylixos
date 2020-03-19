@@ -684,7 +684,7 @@ LW_STATIC PLW_DISKCACHE_NODE  __diskCacheNodeAlloc (PLW_DISKCACHE_CB   pdiskcDis
                                                     INT                iExpectation)
 {
     REGISTER PLW_LIST_RING          pringTemp;
-    REGISTER PLW_DISKCACHE_NODE     pdiskn;
+    REGISTER PLW_DISKCACHE_NODE     pdiskn = LW_NULL;                   /*  For no warning              */
     
     if (pdiskcDiskCache->DISKC_ulNCacheNode == 
         pdiskcDiskCache->DISKC_ulDirtyCounter) {                        /*  所有 CACHE 全部是为脏       */

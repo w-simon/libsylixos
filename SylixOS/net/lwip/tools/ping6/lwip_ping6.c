@@ -286,7 +286,7 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
     if (iSock < 0) {
         return  (PX_ERROR);
     }
-    API_ThreadCleanupPush(__inetPing6Cleanup, (PVOID)iSock);            /*  加入清除函数                */
+    API_ThreadCleanupPush(__inetPing6Cleanup, (PVOID)(LONG)iSock);      /*  加入清除函数                */
     
     setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &iTimeout, sizeof(INT));
     setsockopt(iSock, IPPROTO_RAW, IPV6_CHECKSUM, &On, sizeof(INT));    /*  自动计算 checksum           */

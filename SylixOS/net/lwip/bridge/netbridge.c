@@ -677,6 +677,7 @@ int  netbr_delete (const char *brdev, int brindex)
   if (netdev_br && (netdev_br->drv->transmit == netbr_transmit)) {
     netbr = (netbr_t *)netdev_br->priv;
     if (netbr && netbr->magic_no == NETBRIDGE_MAGIC) {
+      netbr->magic_no = 0;
       found = 1;
     }
   }

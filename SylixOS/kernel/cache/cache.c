@@ -752,36 +752,42 @@ INT    API_CacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
     INTREG          iregInterLevel;
     INT             iError;
-#if (LW_CFG_SMP_EN > 0) && (LW_CFG_VMM_L4_HYPERVISOR_EN == 0)
-    ULONG           ulNesting;
-    LW_CACHE_TU_ARG tuarg;
-    BOOL            bLock;
-#endif                                                                  /*  LW_CFG_SMP_EN               */
-                                                                        /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
-    
-    __CACHE_OP_ENTER(iregInterLevel);                                   /*  开始操作 cache              */
-    iError = ((_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
-              (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(pvAdrs, stBytes));
-    __CACHE_OP_EXIT(iregInterLevel);                                    /*  结束操作 cache              */
 
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_VMM_L4_HYPERVISOR_EN == 0)
-    ulNesting = LW_CPU_GET_CUR_NESTING();
-    
     if ((_G_cacheopLib.CACHEOP_ulOption & CACHE_TEXT_UPDATE_MP) && 
         (LW_NCPUS > 1)) {                                               /*  需要通知其他 CPU            */
+        ULONG           ulNesting;
+        LW_CACHE_TU_ARG tuarg;
+        BOOL            bLock = LW_FALSE;                               /*  For no warning              */
+
         tuarg.TUA_pvAddr = pvAdrs;
         tuarg.TUA_stSize = stBytes;
         
+        ulNesting = LW_CPU_GET_CUR_NESTING();
         if (!ulNesting) {
             bLock = __SMP_CPU_LOCK();                                   /*  锁定当前 CPU 执行           */
         }
+
+        __CACHE_OP_ENTER(iregInterLevel);                               /*  开始操作 cache              */
+        iError = ((_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
+                  (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(pvAdrs, stBytes));
+        __CACHE_OP_EXIT(iregInterLevel);                                /*  结束操作 cache              */
+
         _SmpCallFuncAllOther(__cacheTextUpdate, &tuarg,
                              LW_NULL, LW_NULL, IPIM_OPT_NORMAL);        /*  通知其他的 CPU              */
+
         if (!ulNesting) {
             __SMP_CPU_UNLOCK(bLock);                                    /*  解锁当前 CPU 执行           */
         }
-    }
+
+    } else
 #endif                                                                  /*  LW_CFG_SMP_EN               */
+    {
+        __CACHE_OP_ENTER(iregInterLevel);                               /*  开始操作 cache              */
+        iError = ((_G_cacheopLib.CACHEOP_pfuncTextUpdate == LW_NULL) ? ERROR_NONE :
+                  (_G_cacheopLib.CACHEOP_pfuncTextUpdate)(pvAdrs, stBytes));
+        __CACHE_OP_EXIT(iregInterLevel);                                /*  结束操作 cache              */
+    }
                                                                         /* !LW_CFG_VMM_L4_HYPERVISOR_EN */
     return  (iError);
 }

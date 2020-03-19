@@ -156,7 +156,7 @@ void  backtrace_symbols_fd (void *const *array, int size, int fd)
         iov[last].iov_len = 3;
         ++last;
 
-        iov[last].iov_base = itoa((int)array[cnt], buf, 16);
+        iov[last].iov_base = itoa((int)(long)array[cnt], buf, 16);
         iov[last].iov_len = &buf[WORD_WIDTH] - (char *) iov[last].iov_base;
         ++last;
 

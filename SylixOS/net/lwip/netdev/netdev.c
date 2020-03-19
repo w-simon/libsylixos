@@ -1422,7 +1422,7 @@ int  netdev_set_linkup (netdev_t *netdev, int linkup, UINT64 speed)
   UINT32 speed_low = (UINT32)(speed & 0xffffffff);
 
   return (netJobAdd(netdev_netif_set_linkup, netdev,
-                    (void *)linkup, (void *)speed_high, (void *)speed_low, 0, 0));
+                    (void *)(long)linkup, (void *)(long)speed_high, (void *)(long)speed_low, 0, 0));
 }
 
 int  netdev_get_linkup (netdev_t *netdev, int *linkup)

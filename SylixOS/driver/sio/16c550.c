@@ -607,6 +607,7 @@ static INT sio16c550Hup (SIO16C550_CHAN *psiochan)
     psiochan->mcr &= (~(MCR_RTS | MCR_DTR));
     SET_REG(psiochan, MCR, psiochan->mcr);
     SET_REG(psiochan, FCR, (RxCLEAR | TxCLEAR));
+    SET_REG(psiochan, IER, 0);
 
     LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
 
