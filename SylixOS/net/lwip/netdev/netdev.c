@@ -643,7 +643,11 @@ static err_t  netdev_netif_init (struct netif *netif)
     break;
   
   default:
-    MIB2_INIT_NETIF(netif, snmp_ifType_other, (u32_t)netdev->speed);
+    if (netdev->hwaddr_len) {
+      MIB2_INIT_NETIF(netif, snmp_ifType_other, (u32_t)netdev->speed);
+    } else {
+      MIB2_INIT_NETIF(netif, snmp_ifType_tunnel, (u32_t)netdev->speed);
+    }
     netif->flags = 0;
     netif->output = netdev_netif_rawoutput4;
 #if LWIP_IPV6
@@ -838,7 +842,9 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
   }
   
   if ((netdev->hwaddr_len != 6) && (netdev->hwaddr_len != 8)) {
-    return (-1);
+    if ((netdev->hwaddr_len == 0) && (netdev->net_type != NETDEV_TYPE_RAW)) {
+      return (-1);
+    }
   }
   
   drv = netdev->drv;
@@ -901,7 +907,7 @@ int  netdev_add (netdev_t *netdev, const char *ip, const char *netmask, const ch
               netdev->hwaddr[i] = (UINT8)mac[i];
             }
           }
-        } else {
+        } else if (netdev->hwaddr_len == 8) {
           if (sscanf(macstr, "%x:%x:%x:%x:%x:%x:%x:%x", 
                      &mac[0], &mac[1], &mac[2], &mac[3], 
                      &mac[4], &mac[5], &mac[6], &mac[7]) == 8) {

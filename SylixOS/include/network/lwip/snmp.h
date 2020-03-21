@@ -94,6 +94,7 @@ enum snmp_ifType {
 #ifdef SYLIXOS /* SYLIXOS Add some ifType */
   ,
   snmp_ifType_ieee80211 = 71,
+  snmp_ifType_tunnel = 131,
   snmp_ifType_ieee802154 = 259
 #endif /* SYLIXOS */
 };

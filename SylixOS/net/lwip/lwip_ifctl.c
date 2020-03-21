@@ -398,7 +398,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         
     case SIOCGIFDSTADDR:                                                /*  获取网卡目标地址            */
         if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
-            psockaddrin->sin_addr.s_addr = INADDR_ANY;
+            psockaddrin->sin_addr.s_addr = netif_ip4_gw(pnetif)->addr;
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EINVAL);
@@ -443,6 +443,11 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         
     case SIOCSIFDSTADDR:                                                /*  设置网卡目标地址            */
         if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
+            ip4_addr_t ipaddr;
+            ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            LOCK_TCPIP_CORE();                                          /*  必须 lock 协议栈            */
+            netif_set_gw(pnetif, &ipaddr);
+            UNLOCK_TCPIP_CORE();
             iRet = ERROR_NONE;
         } else {
             _ErrorHandle(EINVAL);

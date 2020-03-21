@@ -406,8 +406,14 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {               /*  点对点网络接口              */
             if (netif->link_type == snmp_ifType_softwareLoopback) {
                 printf("Link encap: Local Loopback\n");
+            } else if (netif->link_type == snmp_ifType_ppp) {
+                printf("Link encap: PPP Link\n");
+            } else if (netif->link_type == snmp_ifType_slip) {
+                printf("Link encap: SLIP Link\n");
+            } else if (netif->link_type == snmp_ifType_tunnel) {
+                printf("Link encap: Tunnel Link\n");
             } else {
-                printf("Link encap: WAN(PPP/SLIP)\n");
+                printf("Link encap: General\n");
             }
             
         } else {                                                        /*  通用网络接口                */

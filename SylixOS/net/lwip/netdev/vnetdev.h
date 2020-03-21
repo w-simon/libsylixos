@@ -47,7 +47,7 @@
 
 #include "lwip/pbuf.h"
 
-#define VNETDEV_MTU_MAX   8192
+#define VNETDEV_MTU_MAX   65536
 #define VNETDEV_MTU_MIN   1280
 #define VNETDEV_MTU_DEF   ETH_DATA_LEN
 

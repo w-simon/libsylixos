@@ -85,14 +85,17 @@ static struct vnd_q *vnetdev_pbuf_alloc (struct pbuf *p)
 /* virtual netdev functions: ioctl */
 static int vnetdev_ioctl (struct netdev *netdev, int cmd, void *arg)
 {
+  struct vnetdev *vnetdev = (struct vnetdev *)netdev;
   struct ifreq *pifreq = (struct ifreq *)arg;
 
   if (cmd == SIOCSIFMTU) {
     if (pifreq && 
         (pifreq->ifr_mtu >= VNETDEV_MTU_MIN) &&
         (pifreq->ifr_mtu <= VNETDEV_MTU_MAX)) {
-      netdev->mtu = pifreq->ifr_mtu;
-      return (0);
+      if (pifreq->ifr_mtu < vnetdev->buf_size) {
+        netdev->mtu = pifreq->ifr_mtu;
+        return (0);
+      }
     }
   }
   
@@ -193,22 +196,25 @@ int vnetdev_add (struct vnetdev *vnetdev, vndnotify notify, size_t bsize, int id
   
   netdev->speed = 0;
   netdev->mtu = VNETDEV_MTU_DEF;
-  netdev->hwaddr_len = ETH_ALEN;
   netdev->priv = priv;
   netdev->drv = &vnetdev_funcs;
   
-  if ((netdev->net_type == NETDEV_TYPE_ETHERNET) && 
-      !lib_memcmp(emty_mac, netdev->hwaddr, ETH_ALEN)) {
-    lib_time(&tm);
-    lib_srand((uint_t)tm);
-    rd = lib_rand();
-    netdev->hwaddr[0] = (UINT8)((rd >> 24) & 0xfe);
-    netdev->hwaddr[1] = (UINT8)(rd >> 16);
-    netdev->hwaddr[2] = (UINT8)(rd >> 8);
-    netdev->hwaddr[3] = (UINT8)(rd);
-    rd = lib_rand();
-    netdev->hwaddr[4] = (UINT8)(rd >> 8);
-    netdev->hwaddr[5] = (UINT8)(rd);
+  if (netdev->net_type == NETDEV_TYPE_ETHERNET) {
+    netdev->hwaddr_len = ETH_ALEN;
+    if (!lib_memcmp(emty_mac, netdev->hwaddr, ETH_ALEN)) {
+      lib_time(&tm);
+      lib_srand((uint_t)tm);
+      rd = lib_rand();
+      netdev->hwaddr[0] = (UINT8)((rd >> 24) & 0xfe);
+      netdev->hwaddr[1] = (UINT8)(rd >> 16);
+      netdev->hwaddr[2] = (UINT8)(rd >> 8);
+      netdev->hwaddr[3] = (UINT8)(rd);
+      rd = lib_rand();
+      netdev->hwaddr[4] = (UINT8)(rd >> 8);
+      netdev->hwaddr[5] = (UINT8)(rd);
+    }
+  } else {
+    netdev->hwaddr_len = 0;
   }
   
   return (netdev_add(netdev, NULL, NULL, NULL, if_flags));
