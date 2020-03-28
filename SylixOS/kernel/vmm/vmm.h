@@ -394,6 +394,7 @@ LW_API VOID         API_VmmAbortReturn(PLW_VMM_ABORT_CTX  pabtctx);
 /*********************************************************************************************************
   vmm 缺页中断物理内存限制
 *********************************************************************************************************/
+#if LW_CFG_VMM_EN > 0
 
 LW_API INT          API_VmmPageFaultLimit(PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
                                           PLW_VMM_PAGE_FAULT_LIMIT  pvpflOld);
@@ -402,7 +403,6 @@ LW_API INT          API_VmmPageFaultGuarder(LW_OBJECT_HANDLE  ulGuarder);
 /*********************************************************************************************************
   vmm api macro
 *********************************************************************************************************/
-#if LW_CFG_VMM_EN > 0
 
 #ifdef __SYLIXOS_KERNEL
 #define vmmMalloc                   API_VmmMalloc
