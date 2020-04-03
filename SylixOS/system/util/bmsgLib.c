@@ -17,6 +17,9 @@
 ** 文件创建日期: 2013 年 10 月 02 日
 **
 ** 描        述: 成块消息缓冲区.
+**
+** BUG:
+2020.04.03  修正长度字段处于边界时的判断错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -107,7 +110,6 @@ INT  _bmsgPut (PLW_BMSG  pbmsg, CPVOID  pvMsg, size_t  stSize)
     stLen = (pbmsg->BM_pucBuffer + pbmsg->BM_stSize) - pbmsg->BM_pucPut;
     if (stLen >= stSize) {
         lib_memcpy(pbmsg->BM_pucPut, pvMsg, stSize);
-        
         if (stLen > stSize) {
             pbmsg->BM_pucPut += stSize;
         
@@ -155,14 +157,13 @@ INT  _bmsgGet (PLW_BMSG  pbmsg, PVOID  pvMsg, size_t  stBufferSize)
     }
     
     ucHigh = pbmsg->BM_pucGet[0];
-    if ((pbmsg->BM_pucGet - pbmsg->BM_pucBuffer) >= pbmsg->BM_stSize) {
+    if ((pbmsg->BM_pucGet - pbmsg->BM_pucBuffer + 1) >= pbmsg->BM_stSize) {
         ucLow = pbmsg->BM_pucBuffer[0];
     } else {
         ucLow = pbmsg->BM_pucGet[1];
     }
     
     stSize = (size_t)((ucHigh << 8) + ucLow);
-    
     if (stSize > stBufferSize) {
         return  (PX_ERROR);                                             /*  缓冲区太小                  */
     }
@@ -175,7 +176,6 @@ INT  _bmsgGet (PLW_BMSG  pbmsg, PVOID  pvMsg, size_t  stBufferSize)
     stLen = (pbmsg->BM_pucBuffer + pbmsg->BM_stSize) - pbmsg->BM_pucGet;
     if (stLen >= stSize) {
         lib_memcpy(pvMsg, pbmsg->BM_pucGet, stSize);
-        
         if (stLen > stSize) {
             pbmsg->BM_pucGet += stSize;
         
@@ -231,7 +231,7 @@ INT  _bmsgIsEmpty (PLW_BMSG  pbmsg)
 *********************************************************************************************************/
 INT  _bmsgIsFull (PLW_BMSG  pbmsg)
 {
-    return  (pbmsg->BM_stLeft < (LW_BMSG_PREFIX_LEN + 1));
+    return  (pbmsg->BM_stLeft <= LW_BMSG_PREFIX_LEN);
 }
 /*********************************************************************************************************
 ** 函数名称: _bmsgSizeGet
@@ -255,10 +255,10 @@ size_t  _bmsgSizeGet (PLW_BMSG  pbmsg)
 *********************************************************************************************************/
 INT  _bmsgFreeByte (PLW_BMSG  pbmsg)
 {
-    if (pbmsg->BM_stLeft < (LW_BMSG_PREFIX_LEN + 1)) {
+    if (pbmsg->BM_stLeft <= LW_BMSG_PREFIX_LEN) {
         return  (0);
     } else {
-        return  ((INT)(pbmsg->BM_stLeft - (LW_BMSG_PREFIX_LEN + 1)));
+        return  ((INT)(pbmsg->BM_stLeft - LW_BMSG_PREFIX_LEN));
     }
 }
 /*********************************************************************************************************
@@ -292,7 +292,7 @@ INT  _bmsgNBytesNext (PLW_BMSG  pbmsg)
     }
     
     ucHigh = pbmsg->BM_pucGet[0];
-    if ((pbmsg->BM_pucGet - pbmsg->BM_pucBuffer) >= pbmsg->BM_stSize) {
+    if ((pbmsg->BM_pucGet - pbmsg->BM_pucBuffer + 1) >= pbmsg->BM_stSize) {
         ucLow = pbmsg->BM_pucBuffer[0];
     } else {
         ucLow = pbmsg->BM_pucGet[1];
