@@ -46,6 +46,7 @@
 
 #include "lwip/ip_addr.h"
 #include "lwip/def.h"
+#include "net/if.h" /* SylixOS Remove netif.h */
 
 #include <string.h>
 
@@ -185,6 +186,18 @@ fix_byte_order_and_return:
     }
 
     ip6_addr_clear_zone(addr);
+#if LWIP_IPV6_SCOPES
+    if (*s == '%') {
+      const char *scopestr = s + 1;
+      if (*scopestr) {
+        /* SylixOS Use if API instead netif */
+        unsigned index = if_nametoindex(scopestr);
+        if (index) {
+          ip6_addr_set_zone(addr, ip6_addr_has_scope(addr, IP6_UNKNOWN) ? (u8_t)index : 0);
+        }
+      }
+    }
+#endif
   }
 
   if (current_block_index != 7) {
@@ -230,7 +243,7 @@ ip6addr_ntoa_r(const ip6_addr_t *addr, char *buf, int buflen)
     /* This is an IPv4 mapped address */
     ip4_addr_t addr4;
     char *ret;
-#define IP4MAPPED_HEADER "::ffff:"
+#define IP4MAPPED_HEADER "::ffff:" /* SylixOS use lower case */
     char *buf_ip4 = buf + sizeof(IP4MAPPED_HEADER) - 1;
     int buflen_ip4 = buflen - sizeof(IP4MAPPED_HEADER) + 1;
     if (buflen < (int)sizeof(IP4MAPPED_HEADER)) {

@@ -345,9 +345,10 @@ static INT gdbSerialInit (LW_GDB_PARAM *pparam, CPCHAR pcSerial)
     
     if (lib_strcmp(pcSerial, "terminal") == 0) {                        /*  使用当前终端串口调试        */
         INT  iFdIn, iFdOut;
+        LW_OBJECT_HANDLE  ulSelf = API_ThreadIdSelf();
         
-        iFdIn  = API_IoTaskStdGet(API_ThreadIdSelf(), STD_IN);
-        iFdOut = API_IoTaskStdGet(API_ThreadIdSelf(), STD_OUT);
+        iFdIn  = API_IoTaskStdGet(ulSelf, STD_IN);
+        iFdOut = API_IoTaskStdGet(ulSelf, STD_OUT);
         if (iFdIn != iFdOut) {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "Standard 'IN' 'OUT' device not same.\r\n");
             return  (PX_ERROR);
@@ -2400,8 +2401,7 @@ static VOID gdbExit (INT iSigNo)
     cpu_set_t           cpuset;
 #endif                                                                  /* LW_CFG_SMP_EN > 0            */
 
-    pparam = (LW_GDB_PARAM*)API_ThreadGetNotePad(API_ThreadIdSelf(), 0);
-                                                                        /* 获取调试器对象               */
+    pparam = (LW_GDB_PARAM*)API_ThreadGetNotePad(API_ThreadIdSelf(), 0);/* 获取调试器对象               */
     if (LW_NULL == pparam) {
         return;
     }
@@ -2503,6 +2503,7 @@ static INT gdbMain (INT argc, CHAR **argv)
     posix_spawnattr_t   spawnattr;
     posix_spawnopt_t    spawnopt  = {0};
     PCHAR               pcSerial  = LW_NULL;
+    LW_OBJECT_HANDLE    ulSelf    = API_ThreadIdSelf();
     
 #if LW_CFG_SMP_EN > 0
     CHAR                cValue[10];
@@ -2570,8 +2571,8 @@ static INT gdbMain (INT argc, CHAR **argv)
         return  (PX_ERROR);
     }
 
-    pparam->GDB_pvDtrace = API_DtraceCreate(LW_DTRACE_PROCESS, LW_DTRACE_F_DEF,
-                                            API_ThreadIdSelf());        /*  创建dtrace对象              */
+    pparam->GDB_pvDtrace = API_DtraceCreate(LW_DTRACE_PROCESS,
+                                            LW_DTRACE_F_DEF, ulSelf);   /*  创建dtrace对象              */
     if (pparam->GDB_pvDtrace == NULL) {
         gdbRelease(pparam);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "Create dtrace object error.\r\n");
@@ -2616,7 +2617,7 @@ static INT gdbMain (INT argc, CHAR **argv)
         posix_spawnattr_init(&spawnattr);
         
         spawnopt.SPO_iSigNo       = SIGUSR1;
-        spawnopt.SPO_ulId         = API_ThreadIdSelf();
+        spawnopt.SPO_ulId         = ulSelf;
         spawnopt.SPO_ulMainOption = LW_OPTION_DEFAULT;
         spawnopt.SPO_stStackSize  = 0;
         posix_spawnattr_setopt(&spawnattr, &spawnopt);
@@ -2655,7 +2656,7 @@ static INT gdbMain (INT argc, CHAR **argv)
 #if LW_CFG_SMP_EN > 0
     if (pparam->GDB_bLockCpu) {
         sched_setaffinity(pparam->GDB_iPid, sizeof(cpu_set_t), &cpuset);
-        API_ThreadSetAffinity(API_ThreadIdSelf(), sizeof(cpu_set_t), &cpuset);
+        API_ThreadSetAffinity(ulSelf, sizeof(cpu_set_t), &cpuset);
     }
 #endif                                                                  /* LW_CFG_SMP_EN > 0            */
 
@@ -2667,7 +2668,7 @@ static INT gdbMain (INT argc, CHAR **argv)
         return  (PX_ERROR);
     }
 
-    if (API_ThreadSetNotePad(API_ThreadIdSelf(), 0, (ULONG)pparam) != ERROR_NONE) {
+    if (API_ThreadSetNotePad(ulSelf, 0, (ULONG)pparam) != ERROR_NONE) {
                                                                         /* 保存调试器对象到线程上下文   */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "Set thread notepad failed.\r\n");
         gdbRelease(pparam);

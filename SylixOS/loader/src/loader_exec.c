@@ -336,7 +336,8 @@ static INT  __execShell (PVOID  pvArg)
 *********************************************************************************************************/
 static INT  __processShell (PVOID  pvArg)
 {
-    __PSPAWN_ARG        psarg = (__PSPAWN_ARG)pvArg;
+    __PSPAWN_ARG        psarg  = (__PSPAWN_ARG)pvArg;
+    LW_OBJECT_HANDLE    ulSelf = API_ThreadIdSelf();
     LW_LD_VPROC_STOP    vpstop;
     LW_LD_VPROC_STOP   *pvpstop;
     INT                 iError;
@@ -355,7 +356,7 @@ static INT  __processShell (PVOID  pvArg)
     
     lib_strlcpy(cName, _PathLastNamePtr(psarg->SA_pcPath), LW_CFG_OBJECT_NAME_SIZE);
     
-    API_ThreadSetName(API_ThreadIdSelf(), cName);                       /*  设置新名字                  */
+    API_ThreadSetName(ulSelf, cName);                                   /*  设置新名字                  */
     
     pvpstop = __spawnStopGet(psarg, &vpstop);                           /*  获得停止属性                */
     
@@ -368,7 +369,7 @@ static INT  __processShell (PVOID  pvArg)
         iRet = iError;                                                  /*  加载失败                    */
     }
     
-    vprocExit(psarg->SA_pvproc, API_ThreadIdSelf(), iRet);              /*  进程退出, 本线程就是主线程  */
+    vprocExit(psarg->SA_pvproc, ulSelf, iRet);                          /*  进程退出, 本线程就是主线程  */
     
     return  (iRet);
 }

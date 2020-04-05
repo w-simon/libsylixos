@@ -625,21 +625,21 @@ int __lwip_have_event (int s, int type, int *pso_error)
   switch (type) {
   
   case SELREAD:
-    if (sock && (sock->lastdata.netbuf || (sock->rcvevent > 0))) {
+    if (sock->lastdata.netbuf || (sock->rcvevent > 0)) {
       *pso_error = err;
       event = 1;
     }
     break;
     
   case SELWRITE:
-    if (sock && sock->sendevent) {
+    if (sock->sendevent) {
       *pso_error = err;
       event = 1;
     }
     break;
   
   case SELEXCEPT:
-    if (sock && sock->errevent) {
+    if (sock->errevent) {
       *pso_error = err;
       event = 1;
     }
@@ -4777,7 +4777,13 @@ lwip_ioctl(int s, long cmd, void *argp)
         return -1;
       }
       if (sock->sendevent) {
-        *((int *)argp) = 32768; /* TODO: Real free size */
+        if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_TCP) {
+          *((int *)argp) = tcp_sndbuf(sock->conn->pcb.tcp);
+        } else if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
+          *((int *)argp) = 0xffff - UDP_HLEN;
+        } else {
+          *((int *)argp) = 0xffff;
+        }
       } else {
         *((int *)argp) = 0;
       }

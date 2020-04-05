@@ -103,7 +103,7 @@ INT     waitread (INT  iFd, struct timeval   *ptmvalTO)
 
     API_SemaphoreBClear(pselctx->SELCTX_hSembWakeup);                   /*  清除信号量                  */
     
-    selwunNode.SELWUN_hThreadId  = API_ThreadIdSelf();
+    selwunNode.SELWUN_hThreadId  = ptcbCur->TCB_ulId;
     selwunNode.SELWUN_seltypType = SELREAD;
     selwunNode.SELWUN_iFd        = iFd;
     LW_SELWUN_CLEAR_READY(&selwunNode);
@@ -227,7 +227,7 @@ INT     waitwrite (INT  iFd, struct timeval   *ptmvalTO)
     
     API_SemaphoreBClear(pselctx->SELCTX_hSembWakeup);                   /*  清除信号量                  */
     
-    selwunNode.SELWUN_hThreadId  = API_ThreadIdSelf();
+    selwunNode.SELWUN_hThreadId  = ptcbCur->TCB_ulId;
     selwunNode.SELWUN_seltypType = SELWRITE;
     selwunNode.SELWUN_iFd        = iFd;
     LW_SELWUN_CLEAR_READY(&selwunNode);
@@ -351,7 +351,7 @@ INT     waitexcept (INT  iFd, struct timeval   *ptmvalTO)
     
     API_SemaphoreBClear(pselctx->SELCTX_hSembWakeup);                   /*  清除信号量                  */
     
-    selwunNode.SELWUN_hThreadId  = API_ThreadIdSelf();
+    selwunNode.SELWUN_hThreadId  = ptcbCur->TCB_ulId;
     selwunNode.SELWUN_seltypType = SELEXCEPT;
     selwunNode.SELWUN_iFd        = iFd;
     LW_SELWUN_CLEAR_READY(&selwunNode);

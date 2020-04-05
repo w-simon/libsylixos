@@ -288,7 +288,7 @@ INT     pselect (INT                     iWidth,
     
     API_SemaphoreBClear(pselctx->SELCTX_hSembWakeup);                   /*  清除信号量                  */
     
-    selwunNode.SELWUN_hThreadId = API_ThreadIdSelf();
+    selwunNode.SELWUN_hThreadId = ptcbCur->TCB_ulId;
     
     LW_THREAD_SAFE();                                                   /*  进入安全模式                */
     
