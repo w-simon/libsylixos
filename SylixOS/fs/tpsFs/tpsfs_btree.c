@@ -565,7 +565,8 @@ static TPS_RESULT  __tpsFsBtrPutNode (PTPS_TRANS       ptrans,
     }
 
     if ((uiOffEnd & psb->SB_uiSectorMask) != 0) {
-        uiOffEnd = ((uiOffEnd >> psb->SB_uiSectorShift) << psb->SB_uiSectorShift) + psb->SB_uiSectorSize;
+        uiOffEnd = ((uiOffEnd >> psb->SB_uiSectorShift) << psb->SB_uiSectorShift)
+                   + min(psb->SB_uiSectorSize, uiLen);
     }
 
     if (bWriteHead) {
@@ -573,7 +574,7 @@ static TPS_RESULT  __tpsFsBtrPutNode (PTPS_TRANS       ptrans,
             uiOffStart = 0;
         } else {
             if (tpsFsTransWrite(ptrans, psb, blkPtr, uiOff,
-                                pucBuff, psb->SB_uiSectorSize) != TPS_ERR_NONE) {
+                                pucBuff, min(psb->SB_uiSectorSize, uiLen)) != TPS_ERR_NONE) {
                 return  (TPS_ERR_BUF_READ);
             }
         }
