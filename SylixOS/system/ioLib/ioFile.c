@@ -781,12 +781,11 @@ LONG  API_IosFdValue (INT  iFd)
     REGISTER PLW_FD_ENTRY   pfdentry;
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
-    
     if (pfdentry) {                                                     /*  文件有效                    */
         return  (pfdentry->FDENTRY_lValue);
     
     } else {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);                /*  文件描述符出错              */
         return  (PX_ERROR);
     }
@@ -807,7 +806,6 @@ LONG  API_IosFdValueType (INT  iFd, INT  *piType)
     REGISTER PLW_FD_ENTRY   pfdentry;
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
-    
     if (pfdentry) {                                                     /*  文件有效                    */
         if (piType) {
             *piType = pfdentry->FDENTRY_iType;
@@ -815,7 +813,7 @@ LONG  API_IosFdValueType (INT  iFd, INT  *piType)
         return  (pfdentry->FDENTRY_lValue);
     
     } else {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);                /*  文件描述符出错              */
         return  (PX_ERROR);
     }
@@ -837,7 +835,6 @@ VOID  API_IosFdFree (INT  iFd)
     REGISTER PLW_FD_ENTRY   pfdentry;
     
     pfdentry = _IosFileGet(iFd, LW_TRUE);                               /*  可以获取异常文件            */
-    
     if (pfdentry != LW_NULL) {
         _IosLock();                                                     /*  进入 IO 临界区              */
         iRef = _IosFileRefGet(iFd);
@@ -849,7 +846,7 @@ VOID  API_IosFdFree (INT  iFd)
         _IosFileDelete(pfdentry);
         
     } else {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
     }
 }
@@ -1054,12 +1051,11 @@ PLW_DEV_HDR  API_IosFdDevFind (INT  iFd)
     REGISTER PLW_FD_ENTRY   pfdentry;
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
-    
     if (pfdentry) {                                                     /*  文件有效                    */
         return  (pfdentry->FDENTRY_pdevhdrHdr);
     
     } else {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);                /*  文件描述符出错              */
         return  (LW_NULL);
     }
@@ -1255,7 +1251,7 @@ INT  API_IosFdRefInc (INT  iFd)
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
     if (pfdentry == LW_NULL) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }
@@ -1263,13 +1259,13 @@ INT  API_IosFdRefInc (INT  iFd)
     _IosLock();                                                         /*  进入 IO 临界区              */
     if (pfdentry->FDENTRY_ulCounter == 0) {                             /*  文件正在被关闭的过程中      */
         _IosUnlock();                                                   /*  退出 IO 临界区              */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }
     if (_IosFileRefInc(iFd) < 0) {
         _IosUnlock();                                                   /*  退出 IO 临界区              */
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }
@@ -1297,7 +1293,7 @@ INT  API_IosFdRefDec (INT  iFd)
     if (pfdentry == LW_NULL) {
         pfdentry =  _IosFileGet(iFd, LW_TRUE);                          /*  忽略异常文件                */
         if (pfdentry == LW_NULL) {
-            _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+            _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
             _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
             return  (PX_ERROR);
         }

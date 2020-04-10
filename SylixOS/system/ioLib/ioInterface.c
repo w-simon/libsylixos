@@ -1307,9 +1307,8 @@ INT  fchdir (INT  iFd)
              struct stat   statGet;
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
-    
     if (pfdentry == LW_NULL) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }
@@ -1722,9 +1721,8 @@ INT  dup2kernel (INT  iFd)
              INT           iFdNew;
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
-    
     if ((pfdentry == LW_NULL) || (pfdentry->FDENTRY_ulCounter == 0)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }
@@ -1764,9 +1762,8 @@ INT  dupminfd (INT  iFd, INT  iMinFd)
              INT           iFdNew;
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
-    
     if ((pfdentry == LW_NULL) || (pfdentry->FDENTRY_ulCounter == 0)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }
@@ -1830,9 +1827,8 @@ INT  dup2 (INT  iFd1, INT  iFd2)
     
     pfdentry1 = _IosFileGet(iFd1, LW_FALSE);
     pfdentry2 = _IosFileGet(iFd2, LW_FALSE);
-    
     if ((pfdentry1 == LW_NULL) || (pfdentry1->FDENTRY_ulCounter == 0)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd1);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }
@@ -1976,9 +1972,8 @@ INT  flock (INT iFd, INT iOperation)
     REGISTER PLW_FD_ENTRY  pfdentry;
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
-    
     if ((pfdentry == LW_NULL) || (pfdentry->FDENTRY_ulCounter == 0)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }
@@ -2009,9 +2004,8 @@ INT  lockf (INT iFd, INT iCmd, off_t oftLen)
     REGISTER PLW_FD_ENTRY  pfdentry;
     
     pfdentry = _IosFileGet(iFd, LW_FALSE);
-    
     if ((pfdentry == LW_NULL) || (pfdentry->FDENTRY_ulCounter == 0)) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "file descriptor invalidate.\r\n");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
         _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         return  (PX_ERROR);
     }

@@ -4778,7 +4778,16 @@ lwip_ioctl(int s, long cmd, void *argp)
       }
       if (sock->sendevent) {
         if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_TCP) {
-          *((int *)argp) = tcp_sndbuf(sock->conn->pcb.tcp);
+          if (sock->conn->pcb.tcp) {
+            enum tcp_state state = sock->conn->pcb.tcp->state;
+            if (state == ESTABLISHED || state == CLOSE_WAIT || state == SYN_SENT || state == SYN_RCVD) {
+              *((int *)argp) = tcp_sndbuf(sock->conn->pcb.tcp);
+            } else {
+              *((int *)argp) = 0;
+            }
+          } else {
+            *((int *)argp) = 0;
+          }
         } else if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_UDP) {
           *((int *)argp) = 0xffff - UDP_HLEN;
         } else {
