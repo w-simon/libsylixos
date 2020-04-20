@@ -125,6 +125,9 @@ static sys_mutex_t netdb_list_lock;
 #define NETBD_LIST_LOCK()   sys_mutex_lock(&netdb_list_lock)
 #define NETBD_LIST_UNLOCK() sys_mutex_unlock(&netdb_list_lock)
 
+/* ethernet zero address */
+static UINT8 netbd_zeroaddr[ETH_ALEN] = { 0, 0, 0, 0, 0, 0 };
+
 /* net bonding select device */
 static void netbd_select_working (netbd_t *netbd)
 {
@@ -623,11 +626,12 @@ int  netbd_add_dev (const char *bddev, int bdindex, const char *sub, int sub_is_
   if (!netbd->eth_ring) {
     netifapi_netif_set_down(netif_bd); /* make bonding down */
     need_up = 1;
-    
-    MEMCPY(netdev_bd->hwaddr, netdev->hwaddr, ETH_ALEN); /* use first port mac address */
-    MEMCPY(netif_bd->hwaddr, netdev->hwaddr, ETH_ALEN);
-
     netbd->working = netbd_eth; /* first working net device */
+  }
+
+  if (memcmp(netdev_bd->hwaddr, netbd_zeroaddr, ETH_ALEN) == 0) {
+    MEMCPY(netdev_bd->hwaddr, netdev->hwaddr, ETH_ALEN); /* use this port mac address */
+    MEMCPY(netif_bd->hwaddr, netdev->hwaddr, ETH_ALEN);
   }
   
   MEMCPY(netbd_eth->old_hwaddr, netdev->hwaddr, ETH_ALEN); /* save old hwaddr */

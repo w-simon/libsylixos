@@ -158,7 +158,7 @@ int ethernet_vlan_check_hook (struct netif *netif, const struct eth_hdr *ethhdr,
                               const struct eth_vlan_hdr *vlanhdr)
 {
   if (VLAN_ID_VALID(netif->vlanid)) {
-    if (VLAN_TAG_GET(netif->vlanid) != VLAN_TAG_GET(vlanhdr->prio_vid)) {
+    if (VLAN_TAG_GET(netif->vlanid) != VLAN_TAG_GET(PP_NTOHS(vlanhdr->prio_vid))) {
       return (0); /* not allow */
     } else {
       return (1); /* allow */

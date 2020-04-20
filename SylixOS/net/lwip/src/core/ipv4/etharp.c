@@ -700,7 +700,8 @@ etharp_input(struct pbuf *p, struct netif *netif)
   }
 
 #ifdef SYLIXOS /* SylixOS Add Check mac conflict */
-  if (netif_ip4_addr_cmp(netif, &sipaddr) &&
+  if (!ip4_addr_isany_val(sipaddr) &&
+      netif_ip4_addr_cmp(netif, &sipaddr) &&
       ((hdr->shwaddr.addr[0] != netif->hwaddr[0]) ||
        (hdr->shwaddr.addr[1] != netif->hwaddr[1]) ||
        (hdr->shwaddr.addr[2] != netif->hwaddr[2]) ||
@@ -716,7 +717,7 @@ etharp_input(struct pbuf *p, struct netif *netif)
     confhw[5] = hdr->shwaddr.addr[5];
     netEventIfAddrConflict(netif, confhw, ETH_HWADDR_LEN);
   }
-#endif
+#endif /* SYLIXOS */
 
   /* ARP message directed to us?
       -> add IP address in ARP cache; assume requester wants to talk to us,

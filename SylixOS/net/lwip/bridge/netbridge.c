@@ -83,6 +83,9 @@ typedef struct netbr {
   LW_LIST_LINE_HEADER eth_list; /* sub ethernet device list */
 } netbr_t;
 
+/* ethernet zero address */
+static UINT8 netbr_zeroaddr[ETH_ALEN] = { 0, 0, 0, 0, 0, 0 };
+
 /* net bridge device lock */
 #define NETBR_LOCK(netbr)   sys_mutex_lock(&((netbr)->lock))
 #define NETBR_UNLOCK(netbr) sys_mutex_unlock(&((netbr)->lock))
@@ -424,8 +427,10 @@ int  netbr_add_dev (const char *brdev, int brindex, const char *sub, int sub_is_
   if (!netbr->eth_list) {
     netifapi_netif_set_down(netif_br); /* make bridge down */
     need_up = 1;
-    
-    MEMCPY(netdev_br->hwaddr, netdev->hwaddr, ETH_ALEN); /* use first port mac address */
+  }
+
+  if (memcmp(netdev_br->hwaddr, netbr_zeroaddr, ETH_ALEN) == 0) {
+    MEMCPY(netdev_br->hwaddr, netdev->hwaddr, ETH_ALEN); /* use this port mac address */
     MEMCPY(netif_br->hwaddr, netdev->hwaddr, ETH_ALEN);
   }
   
