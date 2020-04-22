@@ -48,6 +48,7 @@ fclose(fp)
 	register FILE *fp;
 {
 	register int r;
+	FILE *std[3];
 
 	if (fp->_flags == 0) {	/* not open! */
 		errno = EBADF;
@@ -65,6 +66,12 @@ fclose(fp)
 	fp->_flags = 0;		/* Release this FILE for reuse. */
 	fp->_r = fp->_w = 0;	/* Mess up if reaccessed. */
 	
+	if (lib_nlreent_static(std) == ERROR_NONE) {
+	    if (fp == std[0] || fp == std[1] || fp == std[2]) {
+	        return (r);
+	    }
+	}
+
     __lib_delfile(fp);
 	
 	return (r);

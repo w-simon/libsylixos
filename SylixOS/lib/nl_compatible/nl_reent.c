@@ -189,7 +189,7 @@ VOID  lib_nlreent_init (LW_OBJECT_HANDLE  ulThread)
 }
 /*********************************************************************************************************
 ** 函数名称: lib_nlreent_stdfile
-** 功能描述: 获取指定线程的 stdfile 结构 
+** 功能描述: 获取当前线程的 stdfile 结构
 ** 输　入  : FileNo        文件号, 0, 1, 2
 ** 输　出  : stdfile 指针地址
 ** 全局变量: 
@@ -225,6 +225,38 @@ FILE **lib_nlreent_stdfile (INT  FileNo)
     default:
         return  (LW_NULL);
     }
+}
+/*********************************************************************************************************
+** 函数名称: lib_nlreent_static
+** 功能描述: 获取当前线程内置的静态 stdfile 结构
+** 输　入  : files[] 三个标准文件指针
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  lib_nlreent_static (FILE *files[])
+{
+    REGISTER __LW_REENT    *plwreent;
+    REGISTER PLW_CLASS_TCB  ptcbCur;
+
+    if (!files) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (LW_CPU_GET_CUR_NESTING()) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
+        return  (PX_ERROR);
+    }
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    plwreent = &_G_lwreentTbl[_ObjectGetIndex(ptcbCur->TCB_ulId)];
+    files[0] = &plwreent->_file[0];
+    files[1] = &plwreent->_file[1];
+    files[2] = &plwreent->_file[2];
+
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */

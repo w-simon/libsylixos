@@ -31,6 +31,7 @@
 
 VOID   lib_nlreent_init(LW_OBJECT_HANDLE  ulThread);
 FILE **lib_nlreent_stdfile(INT  FileNo);
+INT    lib_nlreent_static(FILE *files[]);
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
                                                                         /*  LW_CFG_FIO_LIB_EN > 0       */
