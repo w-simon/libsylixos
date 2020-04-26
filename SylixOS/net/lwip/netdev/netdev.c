@@ -1911,11 +1911,11 @@ void netdev_pbuf_free (struct pbuf *p)
   pbuf_free(p);
 }
 
-struct pbuf *netdev_pbuf_alloc_ram (UINT16 len, UINT16 res)
+struct pbuf *netdev_pbuf_alloc_raw (UINT16 len, UINT16 res)
 {
   struct pbuf *p = pbuf_alloc(PBUF_RAW, (u16_t)(len + res), PBUF_POOL);
   
-  if (p) {
+  if (p && res) {
     pbuf_header(p, (u16_t)-res);
   }
   

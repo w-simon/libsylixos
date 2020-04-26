@@ -57,13 +57,22 @@ static void vnetdev_pbuf_free (struct pbuf *p)
 }
 
 /* virtual netdev pbuf alloc */
-static struct vnd_q *vnetdev_pbuf_alloc (struct pbuf *p)
+static struct vnd_q *vnetdev_pbuf_alloc (struct vnetdev *vnetdev, struct pbuf *p)
 {
   struct vnd_q *vndq;
   struct pbuf *ret;
-  u16_t reserve = ETH_PAD_SIZE + SIZEOF_VLAN_HDR;
-  u16_t tot_len = (u16_t)(reserve + p->tot_len);
+  u16_t reserve;
+  u16_t tot_len;
   
+  if (vnetdev->type == IF_VND_TYPE_ETHERNET) {
+    reserve = ETH_PAD_SIZE + SIZEOF_VLAN_HDR;
+    tot_len = (u16_t)(reserve + p->tot_len);
+
+  } else {
+    reserve = 0;
+    tot_len = p->tot_len;
+  }
+
   vndq = (struct vnd_q *)mem_malloc(ROUND_UP(sizeof(struct vnd_q), MEM_ALIGNMENT) + tot_len);
   if (vndq == NULL) {
     return (NULL);
@@ -75,7 +84,9 @@ static struct vnd_q *vnetdev_pbuf_alloc (struct pbuf *p)
                             (char *)vndq + ROUND_UP(sizeof(struct vnd_q), MEM_ALIGNMENT), 
                             tot_len);
   if (ret) {
-    pbuf_header(ret, (u16_t)-reserve);
+    if (reserve) {
+      pbuf_header(ret, (u16_t)-reserve);
+    }
     pbuf_copy(ret, p);
   }
   
@@ -120,7 +131,7 @@ error:
     return (-1);
   }
   
-  vndq = vnetdev_pbuf_alloc(p);
+  vndq = vnetdev_pbuf_alloc(vnetdev, p);
   if (vndq == NULL) {
     goto error;
   }

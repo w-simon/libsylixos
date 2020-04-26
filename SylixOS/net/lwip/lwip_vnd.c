@@ -324,7 +324,11 @@ static ssize_t  _vndWrite (PLW_VND_FILE  pvndfil, PCHAR  pcBuffer, size_t  stNBy
         return  (PX_ERROR);
     }
     
-    p = netdev_pbuf_alloc((u16_t)stNBytes);
+    if (pvnd->VND_vnetdev.type == IF_VND_TYPE_ETHERNET) {
+        p = netdev_pbuf_alloc((u16_t)stNBytes);
+    } else {
+        p = netdev_pbuf_alloc_raw((u16_t)stNBytes, 0);                  /*  ²»ÐèÒªÆ«ÒÆ                  */
+    }
     if (!p) {
         _ErrorHandle(ENOMEM);
         return  (PX_ERROR);

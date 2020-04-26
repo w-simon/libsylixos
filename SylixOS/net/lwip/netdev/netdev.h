@@ -425,7 +425,7 @@ void netdev_linkinfo_xmit_inc(netdev_t *netdev);
 /* netdev input buffer get 
  * netdev_pbuf_alloc auto reserve ETH_PAD_SIZE + SIZEOF_VLAN_HDR size. */
 struct pbuf *netdev_pbuf_alloc(UINT16 len);
-struct pbuf *netdev_pbuf_alloc_ram(UINT16 len, UINT16 res);
+struct pbuf *netdev_pbuf_alloc_raw(UINT16 len, UINT16 res);
 void netdev_pbuf_free(struct pbuf *p);
 
 /* pbuf stat and data */
