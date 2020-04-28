@@ -111,15 +111,16 @@ ULONG  API_FsUniqueAlloc (PLW_UNIQUE_POOL  punip)
     BOOL    bGet = LW_FALSE;
     PCHAR   pcNewArray;
     size_t  stNewSize;
+    size_t  stBitSize = punip->UNIP_stSize << 3;
     
     while (!bGet) {
-        for (i = 0; i < punip->UNIP_stSize; i++) {
+        for (i = 0; i < stBitSize; i++) {
             if (!UNIQ_INO_IS_BUSY(punip->UNIP_ulIndex, punip->UNIP_pcArray)) {
                 SET_UNIQ_INO_BUSY(punip->UNIP_ulIndex, punip->UNIP_pcArray);
                 return (punip->UNIP_ulResvNo + punip->UNIP_ulIndex);
             }
             punip->UNIP_ulIndex++;
-            if (punip->UNIP_ulIndex >= punip->UNIP_stSize) {
+            if (punip->UNIP_ulIndex >= stBitSize) {
                 punip->UNIP_ulIndex = 0;
             }
         }
@@ -135,6 +136,7 @@ ULONG  API_FsUniqueAlloc (PLW_UNIQUE_POOL  punip)
                 __SHEAP_FREE(punip->UNIP_pcArray);
                 punip->UNIP_pcArray = pcNewArray;
                 punip->UNIP_stSize  = stNewSize;
+                stBitSize = stNewSize << 3;
             }
         } else {
             bGet = LW_TRUE;

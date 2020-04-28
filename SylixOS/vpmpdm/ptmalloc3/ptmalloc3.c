@@ -47,6 +47,7 @@ PERFORMANCE OF THIS SOFTWARE.
  * Thread flags.
  */
 #define USE_TSD_DATA_HACK
+#define USE_NO_SPINLOCKS
 #define _REENTRANT
 
 #define _LIBC
@@ -56,9 +57,9 @@ PERFORMANCE OF THIS SOFTWARE.
 #ifdef __GNUC__
 #if __GNUC__ <= 4
 #pragma GCC diagnostic warning "-w"
-#endif
-#endif
-#endif
+#endif /* __GNUC__ <= 4 */
+#endif /* __GNUC__ */
+#endif /* SYLIXOS */
 
 #include <sys/types.h>   /* For size_t */
 #include <sys/mman.h>    /* for mmap */

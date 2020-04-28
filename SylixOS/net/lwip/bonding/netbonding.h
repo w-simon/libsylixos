@@ -52,6 +52,11 @@ int  netbd_add(const char *bddev, const char *ip,
                int alive, int *index);
 int  netbd_delete(const char *bddev, int bdindex);
 
+/* change net bonding virtual device */
+int  netbd_change(const char *bddev, int mode,
+                  int mon_mode, int interval,
+                  int alive);
+
 /* add or delete a net device to net bonding virtual device */
 int  netbd_add_dev(const char *bddev, int bdindex, const char *sub, int sub_is_ifname);
 int  netbd_delete_dev(const char *bddev, int bdindex, const char *sub, int sub_is_ifname);

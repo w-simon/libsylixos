@@ -1310,7 +1310,7 @@ PVOID  API_PciDevIoRemapEx2 (phys_addr_t  paPhysicalAddr, size_t  stSize, ULONG 
 {
 #if LW_CFG_VMM_EN > 0
     size_t       stSizeAlign = ROUND_UP(stSize, LW_CFG_VMM_PAGE_SIZE);
-    phys_addr_t  paBaseAlign = ROUND_DOWN(paPhysicalAddr, LW_CFG_VMM_PAGE_SIZE);
+    phys_addr_t  paBaseAlign = PHY_ROUND_DOWN(paPhysicalAddr, LW_CFG_VMM_PAGE_SIZE);
     addr_t       ulOffset    = (addr_t)(paPhysicalAddr - paBaseAlign);
     PVOID        pvRet;
     

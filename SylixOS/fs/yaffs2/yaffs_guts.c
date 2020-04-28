@@ -4740,28 +4740,57 @@ int yaffs_guts_ll_init(struct yaffs_dev *dev)
 
 int yaffs_guts_format_dev(struct yaffs_dev *dev)
 {
-	int i;
-	enum yaffs_block_state state;
-	u32 dummy;
+    int i;
+    enum yaffs_block_state state;
+    u32 dummy;
+#ifdef SYLIXOS
+    BOOL reinit = LW_FALSE;
+#endif
 
-	if(yaffs_guts_ll_init(dev) != YAFFS_OK)
-		return YAFFS_FAIL;
+    if(yaffs_guts_ll_init(dev) != YAFFS_OK)
+        return YAFFS_FAIL;
 
-	if(dev->is_mounted)
-		return YAFFS_FAIL;
+    if(dev->is_mounted)
+        return YAFFS_FAIL;
 
-	__YAFFS_PRINT_FORMAT_START();
+#ifdef SYLIXOS
+    /*
+     *  SylixOS fix bug : temp_buffer may be null!
+     *  Reinitialise temporary buffers.
+     */
+    if (!yaffs_get_temp_buffer(dev)) {
+        if (!yaffs_init_tmp_buffers(dev)) {
+            return YAFFS_FAIL;
+        } else {
+            reinit = LW_TRUE;
+        }
+    }
+#endif
 
-	for (i = dev->internal_start_block; i <= dev->internal_end_block; i++) {
-	    __YAFFS_PRINT_FORMAT_PROGRESS(i, dev->internal_end_block);
-		yaffs_query_init_block_state(dev, i, &state, &dummy);
-		if (state != YAFFS_BLOCK_STATE_DEAD)
-			yaffs_erase_block(dev, i);
-	}
+    __YAFFS_PRINT_FORMAT_START();
 
-	__YAFFS_PRINT_FORMAT_END();
+    for (i = dev->internal_start_block; i <= dev->internal_end_block; i++) {
+        __YAFFS_PRINT_FORMAT_PROGRESS(i, dev->internal_end_block);
+        yaffs_query_init_block_state(dev, i, &state, &dummy);
+        if (state != YAFFS_BLOCK_STATE_DEAD)
+            yaffs_erase_block(dev, i);
+    }
 
-	return YAFFS_OK;
+    __YAFFS_PRINT_FORMAT_END();
+
+#ifdef SYLIXOS
+    /*
+     *  SylixOS fix bug : remove temp_buffer
+     */
+    if (reinit) {
+        for (i = 0; i < YAFFS_N_TEMP_BUFFERS; i++) {
+            kfree(dev->temp_buffer[i].buffer);
+            dev->temp_buffer[i].buffer = NULL;
+        }
+    }
+#endif
+
+    return YAFFS_OK;
 }
 
 

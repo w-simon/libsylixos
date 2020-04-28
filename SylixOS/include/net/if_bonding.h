@@ -67,6 +67,7 @@ struct net_bonding_ctl {
 #define NETBD_CTL_DELETE_DEV    _IOW( 'b', 3, struct net_bonding_ctl)
 #define NETBD_CTL_ADD_IF        _IOW( 'b', 4, struct net_bonding_ctl)
 #define NETBD_CTL_DELETE_IF     _IOW( 'b', 5, struct net_bonding_ctl)
+#define NETBD_CTL_CHANGE        _IOW( 'b', 6, struct net_bonding_ctl)
 
 /*********************************************************************************************************
   Bonding Õ¯¬Á…Ë÷√ MASTER Õ¯ø®. (NETBD_MODE_ACTIVE_BACKUP mode only!)

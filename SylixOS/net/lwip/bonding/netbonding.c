@@ -107,7 +107,8 @@ typedef struct netbd {
   netdev_t netdev_bd;  /* net bonding net device */
   netbd_eth_t *master; /* master device */
   netbd_eth_t *working; /* current device */
-  
+  int working_change; /* current device change */
+
   LW_LIST_RING_HEADER eth_ring; /* sub ethernet device ring */
   LW_LIST_LINE_HEADER arp_list; /* arp detect list */
 } netbd_t;
@@ -128,6 +129,36 @@ static sys_mutex_t netdb_list_lock;
 /* ethernet zero address */
 static UINT8 netbd_zeroaddr[ETH_ALEN] = { 0, 0, 0, 0, 0, 0 };
 
+/* net bonding link check */
+static void netbd_link_check (netbd_t *netbd)
+{
+  int i;
+  int netbd_link_ok = 0;
+  int link_status;
+  netbd_eth_t *netbd_eth;
+  netdev_t *netdev_bd = &netbd->netdev_bd;
+
+  for (i = 0; i < netbd->eth_cnt; i++) {
+    netbd_eth = (netbd_eth_t *)netbd->eth_ring;
+    if (netbd_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+      netbd_link_ok = 1;
+      break;
+    }
+    netbd->eth_ring = _list_ring_get_next(&netbd_eth->ring); /* next sub net device (Rotation) */
+  }
+
+  netdev_get_linkup(netdev_bd, &link_status);
+  if (netbd_link_ok) {
+    if (!link_status) {
+      netdev_set_linkup(netdev_bd, 1, 0);
+    }
+  } else {
+    if (link_status) {
+      netdev_set_linkup(netdev_bd, 0, 0);
+    }
+  }
+}
+
 /* net bonding select device */
 static void netbd_select_working (netbd_t *netbd)
 {
@@ -143,15 +174,17 @@ static void netbd_select_working (netbd_t *netbd)
   }
 
   if (!ok) {
-    for (i = 0; i < netbd->eth_cnt; i++) {
-      netbd_eth = (netbd_eth_t *)netbd->eth_ring;
-      if (netbd->master != netbd_eth) { /* not master */
-        if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
-          netbd->working = netbd_eth;
-          break;
+    if (!netbd->working->alive || !(netbd->working->netdev->if_flags & IFF_RUNNING)) {
+      for (i = 0; i < netbd->eth_cnt; i++) {
+        netbd_eth = (netbd_eth_t *)netbd->eth_ring;
+        if (netbd->master != netbd_eth) { /* not master */
+          if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
+            netbd->working = netbd_eth;
+            break;
+          }
         }
+        netbd->eth_ring = _list_ring_get_next(&netbd_eth->ring); /* next sub net device (Rotation) */
       }
-      netbd->eth_ring = _list_ring_get_next(&netbd_eth->ring); /* next sub net device (Rotation) */
     }
   }
 }
@@ -161,20 +194,48 @@ static void netbd_traffic_detect (netbd_t *netbd)
 {
   int i;
   netbd_eth_t *netbd_eth;
+  struct netif *netdbif;
+  struct netif *sendif;
+  struct eth_addr macsrc;
+  ip4_addr_t ipaddr;
+  netbd_eth_t *curent_working = netbd->working;
   
   NETBD_LOCK(netbd);
   netbd_eth = (netbd_eth_t *)netbd->eth_ring;
   for (i = 0; i < netbd->eth_cnt; i++) {
-    if (netbd_eth->alive > NETBONDING_POLL_INTERVAL) {
+    if ((netbd_eth->netdev->if_flags & IFF_RUNNING) && (netbd_eth->alive > NETBONDING_POLL_INTERVAL)) {
       netbd_eth->alive -= NETBONDING_POLL_INTERVAL;
 
-    } else if (netbd_eth->alive) {
-      netbd_eth->alive = 0; /* dead! not use this device transmit */
-      if (netbd->working == netbd_eth) {
-        netbd_select_working(netbd);
+    } else {
+      if (netbd_eth->alive <= NETBONDING_POLL_INTERVAL) {
+        netbd_eth->alive = 0; /* dead! not use this device transmit */
       }
     }
     netbd_eth = (netbd_eth_t *)_list_ring_get_next(&netbd_eth->ring);
+  }
+
+  if (!netbd->eth_cnt) { /* no sub device */
+    NETBD_UNLOCK(netbd);
+    return;
+  }
+  netbd_select_working(netbd);
+
+  if (curent_working != netbd->working) { /* woking change */
+    netbd->working_change = 1;
+  }
+
+  /*
+   * When a working link change is detected, a broadcast arp is actively sent to
+   * let the corresponding port learn the MAC address of the netbd.
+   */
+  if (netbd->working_change) {
+    ipaddr.addr = 0x5A01A8C0; /* any ip */
+    netdbif = (struct netif *)(netbd->netdev_bd.sys);
+    MEMCPY(&macsrc.addr, netdbif->hwaddr, ETH_ALEN);
+    sendif = (struct netif *)(netbd->working->netdev->sys);
+    etharp_raw(sendif, &macsrc, &ethbroadcast, &macsrc, netif_ip4_addr(netdbif),
+               &ethzero, &ipaddr, ARP_REQUEST); /* send ARP request */
+    netbd->working_change = 0;
   }
   NETBD_UNLOCK(netbd);
 }
@@ -228,9 +289,7 @@ static void netbd_arp_detect (netbd_t *netbd)
     netdbif = (struct netif *)(netbd->netdev_bd.sys);
     MEMCPY(&macsrc.addr, netdbif->hwaddr, ETH_ALEN);
 
-    if (!netbd->working->alive || !(netbd->working->netdev->if_flags & IFF_RUNNING)) {
-      netbd_select_working(netbd);
-    }
+    netbd_select_working(netbd);
   
     if (netbd->working->netdev->if_flags & IFF_RUNNING) {
       for (pline = netbd->arp_list; pline != NULL; pline = _list_line_get_next(pline)) {
@@ -287,6 +346,7 @@ static int  netbd_transmit (struct netdev *netdev, struct pbuf *p)
   netbd_t *netbd = (netbd_t *)netdev->priv;
   netbd_eth_t *netbd_eth;
   struct ethhdr *eh = (struct ethhdr *)p->payload;
+  netbd_eth_t *curent_working = netbd->working;
   
   if (!netbd->eth_cnt) { /* no sub device */
     netdev_linkinfo_err_inc(netdev);
@@ -307,17 +367,17 @@ static int  netbd_transmit (struct netdev *netdev, struct pbuf *p)
     }
     
   } else if (netbd->mode == NETBD_MODE_ACTIVE_BACKUP) { /* 'active-backup' */
-    if (!netbd->working->alive || !(netbd->working->netdev->if_flags & IFF_RUNNING)) { /* working dead ? */
-      if (netbd->master) {
-        netbd_eth = netbd->master; /* first check master device */
-        if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
-          netbd->working = netbd_eth;
-          netbd_eth->netdev->drv->transmit(netbd_eth->netdev, p); /* transmit */
-          ok = 1;
-        }
+    if (netbd->master) {
+      netbd_eth = netbd->master; /* first check master device */
+      if (netbd_eth->alive && (netbd_eth->netdev->if_flags & IFF_RUNNING)) { /* is alive and linkup ? */
+        netbd->working = netbd_eth;
+        netbd_eth->netdev->drv->transmit(netbd_eth->netdev, p); /* transmit */
+        ok = 1;
       }
+    }
 
-      if (!ok) {
+    if (!ok) {
+      if (!netbd->working->alive || !(netbd->working->netdev->if_flags & IFF_RUNNING)) { /* working dead ? */
         for (i = 0; i < netbd->eth_cnt; i++) {
           netbd_eth = (netbd_eth_t *)netbd->eth_ring;
           if (netbd->master != netbd_eth) { /* not master */
@@ -330,11 +390,10 @@ static int  netbd_transmit (struct netdev *netdev, struct pbuf *p)
           }
           netbd->eth_ring = _list_ring_get_next(&netbd_eth->ring); /* next sub net device (Rotation) */
         }
+      } else {
+        netbd->working->netdev->drv->transmit(netbd->working->netdev, p); /* transmit */
+        ok = 1;
       }
-
-    } else { /* use working transmit */
-      netbd->working->netdev->drv->transmit(netbd->working->netdev, p); /* transmit */
-      ok = 1;
     }
     
   } else { /* broadcast */
@@ -347,6 +406,11 @@ static int  netbd_transmit (struct netdev *netdev, struct pbuf *p)
       netbd_eth = (netbd_eth_t *)_list_ring_get_next(&netbd_eth->ring);
     }
   }
+
+  if (curent_working != netbd->working) { /* woking change */
+    netbd->working_change = 1;
+  }
+
   NETBD_UNLOCK(netbd);
   
   if (!ok) {
@@ -404,6 +468,7 @@ static err_t  netbd_input (struct pbuf *p, struct netif *netif)
   struct netif *netif_bd = (struct netif *)netdev_bd->sys;
   struct eth_hdr *eh = (struct eth_hdr *)p->payload;
   int mcast = eh->dest.addr[0] & 1;
+  netbd_eth_t *curent_working = netbd->working;
   
   if (netdev->init_flags & NETDEV_INIT_TIGHT) {
     u16_t type;
@@ -461,7 +526,7 @@ to_bd:
   
   if (netbd->mode == NETBD_MODE_ACTIVE_BACKUP) { /* active backup */
     if (netbd->mon_mode == NETBD_MON_MODE_TRAFFIC) {
-      if (!netbd->working->alive) {
+      if (!(netbd->working->netdev->if_flags & IFF_RUNNING) || !(netbd->working->alive)) {
         netbd->working = netbd_eth; /* use this net device as working */
       }
       netbd_eth->alive = netbd->alive; /* refresh time alive counter */
@@ -488,6 +553,9 @@ to_bd:
         netbd_arp_process(netbd, netbd_eth, hdr); /* process arp packet */
       }
     }
+  }
+  if (curent_working != netbd->working) {   /* woking change */
+    netbd->working_change = 1;
   }
   
 input: /* TODO: this function may be parallelization, and statistical variables should be locked */
@@ -534,6 +602,7 @@ static void  netbd_proc (void *arg)
           netbd_arp_detect(netbd);
         }
       }
+      netbd_link_check(netbd);
     }
     NETBD_LIST_UNLOCK();
   }
@@ -1243,6 +1312,76 @@ int  netbd_delete (const char *bddev, int bdindex)
   sys_mutex_free(&netbd->lock);
   mem_free(netbd);
   
+  return (0);
+}
+
+/* change net bonding
+   'bddev' bonding device name (not ifname) */
+int  netbd_change (const char *bddev, int mode,
+                   int mon_mode, int interval,
+                   int alive)
+{
+  int found;
+  netdev_t *netdev_bd;
+  netbd_t *netbd;
+
+  if (!bddev) {
+    errno = EINVAL;
+    return (-1);
+  }
+
+  if ((mode != NETBD_MODE_BALANCE_RR) &&
+      (mode != NETBD_MODE_ACTIVE_BACKUP) &&
+      (mode != NETBD_MODE_BROADCAST)) {
+    errno = EINVAL;
+    return (-1);
+  }
+
+  if (mode == NETBD_MODE_ACTIVE_BACKUP) {
+    if ((mon_mode != NETBD_MON_MODE_TRAFFIC) && (mon_mode != NETBD_MON_MODE_ARP)) {
+      errno = EINVAL;
+      return (-1);
+    }
+
+    if (alive < 0) {
+      errno = EINVAL;
+      return (-1);
+    }
+
+    if (mon_mode == NETBD_MON_MODE_ARP) {
+      if ((interval < 0) || (interval > alive)) {
+        errno = EINVAL;
+        return (-1);
+      }
+    }
+  }
+
+  LWIP_IF_LIST_LOCK(FALSE);
+  found = 0;
+  netdev_bd = netdev_find_by_devname(bddev);
+  if (netdev_bd && (netdev_bd->drv->transmit == netbd_transmit)) {
+    netbd = (netbd_t *)netdev_bd->priv;
+    if (netbd && netbd->magic_no == NETBONDING_MAGIC) {
+      found = 1;
+    }
+  }
+
+  if (!found) {
+    LWIP_IF_LIST_UNLOCK();
+    errno = ENXIO;
+    return (-1);
+  }
+
+  NETBD_LOCK(netbd);
+  netbd->mode = mode;
+  netbd->mon_mode = mon_mode;
+  netbd->timer = interval;
+  netbd->interval = interval;
+  netbd->alive = alive;
+  NETBD_UNLOCK(netbd);
+
+  LWIP_IF_LIST_UNLOCK();
+
   return (0);
 }
 

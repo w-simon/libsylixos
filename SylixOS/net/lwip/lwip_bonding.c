@@ -113,7 +113,16 @@ static INT  _netbdIoctl (PLW_DEV_HDR   pdevhdr,
             iRet = netbd_delete(pnetbdcrl->bd_dev, pnetbdcrl->bd_index);
         }
         return  (iRet);
-    
+
+    case NETBD_CTL_CHANGE:
+        pnetbdcrl = (struct net_bonding_ctl *)lArg;
+        if (pnetbdcrl) {
+            iRet = netbd_change(pnetbdcrl->bd_dev, pnetbdcrl->bd_mode,
+                                pnetbdcrl->bd_mon_mode, pnetbdcrl->bd_interval,
+                                pnetbdcrl->bd_alive);
+        }
+        return  (iRet);
+
     case NETBD_CTL_ADD_DEV:
         pnetbdcrl = (struct net_bonding_ctl *)lArg;
         if (pnetbdcrl) {
@@ -265,7 +274,8 @@ static INT  __tshellNetbd (INT  iArgC, PCHAR  *ppcArgV)
         goto    __arg_error;
     }
     
-    if (lib_strcmp(ppcArgV[1], "addbd") == 0) {
+    if ((lib_strcmp(ppcArgV[1], "addbd")    == 0) ||
+        (lib_strcmp(ppcArgV[1], "changebd") == 0)) {
         if (iArgC < 7) {
             goto    __arg_error;
         }
@@ -294,13 +304,23 @@ static INT  __tshellNetbd (INT  iArgC, PCHAR  *ppcArgV)
         if (sscanf(ppcArgV[6], "%d", &iAlive) != 1) {
             goto    __arg_error;
         }
-        
-        iRet = netbd_add(ppcArgV[2], LW_NULL, LW_NULL, LW_NULL, 
-                         iMode, iMonMode, iInterval, iAlive, &iIndex);
-        if (iRet) {
-            fprintf(stderr, "can not add net bonding device: %s!\n", lib_strerror(errno));
+
+        if (lib_strcmp(ppcArgV[1], "addbd") == 0) {
+            iRet = netbd_add(ppcArgV[2], LW_NULL, LW_NULL, LW_NULL,
+                             iMode, iMonMode, iInterval, iAlive, &iIndex);
+            if (iRet) {
+                fprintf(stderr, "can not add net bonding device: %s!\n", lib_strerror(errno));
+            } else {
+                printf("net bonding device add ok, if index: %d.\n", iIndex);
+            }
+
         } else {
-            printf("net bonding device add ok, if index: %d.\n", iIndex);
+            iRet = netbd_change(ppcArgV[2], iMode, iMonMode, iInterval, iAlive);
+            if (iRet) {
+                fprintf(stderr, "can not change net bonding device: %s!\n", lib_strerror(errno));
+            } else {
+                printf("net bonding device change ok.\n");
+            }
         }
     
     } else {
@@ -412,7 +432,8 @@ INT  _netBondingInit (VOID)
     API_TShellFormatAdd("netbonding", " [...]");
     API_TShellHelpAdd("netbonding",   "add / delete / control net bonding.\n"
                       "eg. netbonding show bond0              (Show all net device in 'bond0' net bonding)\n"
-                      "    netbonding addbd bond0 [...]       (Add a net bonding named 'bond0')\n\n"
+                      "    netbonding addbd bond0 [...]       (Add a net bonding named 'bond0')\n"
+                      "    netbonding changebd bond0 [...]    (Change a net bonding named 'bond0')\n\n"
                       "    [...]: [ab|bl|bc] [-t|-a] [interval] [time to alive]\n\n"
                       "    ab           : Active Backup mode\n"
                       "    bl           : Balance RR mode\n"
