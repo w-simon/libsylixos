@@ -743,6 +743,12 @@ LW_STATIC INT  __diskCacheNodeRead (PLW_DISKCACHE_CB  pdiskcDiskCache, PLW_DISKC
              PCHAR      pcData;
              PVOID      pvBuffer;
              
+    if (__diskCacheWpSteal(pdiskcDiskCache,
+                           pdiskn->DISKN_pcData,
+                           pdiskn->DISKN_ulSectorNo)) {                 /*  尝试获取待写数据            */
+        return  (ERROR_NONE);
+    }
+
     iNSector = (INT)__MIN((ULONG)pdiskcDiskCache->DISKC_iMaxRBurstSector, 
                           (ULONG)((pdiskcDiskCache->DISKC_ulNCacheNode - 
                           pdiskcDiskCache->DISKC_ulDirtyCounter)));     /*  获得读扇区的个数            */
@@ -765,34 +771,39 @@ LW_STATIC INT  __diskCacheNodeRead (PLW_DISKCACHE_CB  pdiskcDiskCache, PLW_DISKC
         return  (iRetVal);
     }
     
-    i      = 0;
-    pcData = (PCHAR)pvBuffer;
-    do {
-        __diskCacheMemcpy(pdiskn->DISKN_pcData, pcData, 
-                       (UINT)pdiskcDiskCache->DISKC_ulBytesPerSector);  /*  拷贝数据                    */
-        
-        _List_Ring_Del(&pdiskn->DISKN_ringLru, 
-                       &pdiskcDiskCache->DISKC_pringLruHeader);         /*  重新确定 LRU 表位置         */
-        _List_Ring_Add_Ahead(&pdiskn->DISKN_ringLru, 
-                       &pdiskcDiskCache->DISKC_pringLruHeader);
-    
-        i++;
-        pcData += pdiskcDiskCache->DISKC_ulBytesPerSector;
-        
-        if (i < iNSector) {                                             /*  还需要复制数据              */
-            pdiskn = __diskCacheNodeFind(pdiskcDiskCache, (ulStartSector + i));
-            if (pdiskn) {                                               /*  下一个扇区数据有效          */
-                break;
-            }
-            
-            pdiskn = __diskCacheNodeAlloc(pdiskcDiskCache, 
-                                          (ulStartSector + i), 
+    __diskCacheMemcpy(pdiskn->DISKN_pcData, pvBuffer,
+                      (UINT)pdiskcDiskCache->DISKC_ulBytesPerSector);   /*  拷贝数据                    */
+
+    _List_Ring_Del(&pdiskn->DISKN_ringLru,
+                   &pdiskcDiskCache->DISKC_pringLruHeader);             /*  重新确定 LRU 表位置         */
+    _List_Ring_Add_Ahead(&pdiskn->DISKN_ringLru,
+                   &pdiskcDiskCache->DISKC_pringLruHeader);
+
+    i = 1;
+    pcData = (PCHAR)pvBuffer + pdiskcDiskCache->DISKC_ulBytesPerSector;
+
+    while (i < iNSector) {
+        pdiskn = __diskCacheNodeFind(pdiskcDiskCache, (ulStartSector + i));
+        if (pdiskn == LW_NULL) {                                        /*  下一个扇区数据无效          */
+            pdiskn = __diskCacheNodeAlloc(pdiskcDiskCache,
+                                          (ulStartSector + i),
                                           (iNSector - i));              /*  重新开辟一个空的节点        */
             if (pdiskn == LW_NULL) {
                 break;
             }
+
+            __diskCacheMemcpy(pdiskn->DISKN_pcData, pcData,             /*  拷贝数据                    */
+                              (UINT)pdiskcDiskCache->DISKC_ulBytesPerSector);
+
+            _List_Ring_Del(&pdiskn->DISKN_ringLru,
+                           &pdiskcDiskCache->DISKC_pringLruHeader);     /*  重新确定 LRU 表位置         */
+            _List_Ring_Add_Ahead(&pdiskn->DISKN_ringLru,
+                           &pdiskcDiskCache->DISKC_pringLruHeader);
         }
-    } while (i < iNSector);
+
+        i++;
+        pcData += pdiskcDiskCache->DISKC_ulBytesPerSector;
+    }
     
     __diskCacheWpPutBuffer(&pdiskcDiskCache->DISKC_wpWrite, pvBuffer);  /*  read 需要释放缓存           */
     
@@ -1009,7 +1020,7 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
         bMutex = LW_TRUE;
         __diskCacheFlushInvRange(pdiskcDiskCache,
                                  0, (ULONG)PX_ERROR, LW_TRUE, LW_FALSE);
-        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite);             /*  等待写结束                  */
+        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite, 0);          /*  等待写结束                  */
         break;
     
     case FIOTRIM:
@@ -1021,7 +1032,7 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
                                 pblkrange->BLKR_ulStartSector, 
                                 pblkrange->BLKR_ulEndSector,
                                 LW_TRUE, LW_FALSE);                     /*  回写指定范围的数据          */
-        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite);             /*  等待写结束                  */
+        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite, 0);          /*  等待写结束                  */
         break;
         
     case FIODISKCHANGE:                                                 /*  磁盘发生改变                */
@@ -1029,7 +1040,7 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
     case FIOUNMOUNT:                                                    /*  卸载卷                      */
         iError = ERROR_NONE;
         bMutex = LW_FALSE;
-        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite);             /*  等待写结束                  */
+        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite, 0);          /*  等待写结束                  */
         __diskCacheMemReset(pdiskcDiskCache);                           /*  重新初始化 CACHE 内存       */
         break;
 

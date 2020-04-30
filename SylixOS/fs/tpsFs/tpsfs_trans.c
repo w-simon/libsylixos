@@ -85,6 +85,7 @@ TPS_RESULT  tpsFsBtreeTransInit (PTPS_SUPER_BLOCK psb)
         TPS_FREE(ptranssb);
         return  (TPS_ERR_ALLOC);
     }
+    lib_bzero(ptranssb->TSB_pucSecBuff, psb->SB_uiSectorSize);
 
     ptrans = (PTPS_TRANS)TPS_ALLOC(sizeof(TPS_TRANS));
     if (LW_NULL == ptrans) {
@@ -739,6 +740,8 @@ TPS_RESULT  tspFsCheckTrans (PTPS_SUPER_BLOCK psb)
                 ptranssb->TSB_ui64TransSecCnt)) {
                 ptranssb->TSB_ui64TransCurSec = ptranssb->TSB_ui64TransSecStart;
             }
+
+            lib_bzero(ptranssb->TSB_pucSecBuff, psb->SB_uiSectorSize);
         }
 
         ptranssb->TSP_ui64DataCurSec = transMid.TRANS_uiDataSecNum + transMid.TRANS_uiDataSecCnt;

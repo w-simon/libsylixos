@@ -72,12 +72,16 @@ typedef LW_DISKCACHE_NODE  *PLW_DISKCACHE_NODE;
   DISK CACHE 并发写管线
 *********************************************************************************************************/
 typedef struct {
+    LW_LIST_LINE            DISKCWPM_lineLink;                          /*  消息链表                    */
+    BOOL                    DISKCWPM_bWriting;                          /*  正在操作                    */
     ULONG                   DISKCWPM_ulStartSector;                     /*  起始扇区                    */
     ULONG                   DISKCWPM_ulNSector;                         /*  扇区数量                    */
     PVOID                   DISKCWPM_pvBuffer;                          /*  扇区缓冲                    */
 } LW_DISKCACHE_WPMSG;
 typedef LW_DISKCACHE_WPMSG *PLW_DISKCACHE_WPMSG;
-
+/*********************************************************************************************************
+  DISK CACHE 并发写管线
+*********************************************************************************************************/
 typedef struct {
     BOOL                    DISKCWP_bExit;                              /*  是否需要退出                */
     BOOL                    DISKCWP_bParallel;                          /*  并行化读写支持              */
@@ -88,12 +92,17 @@ typedef struct {
     
     PVOID                   DISKCWP_pvRBurstBuffer;                     /*  管线缓存                    */
     PVOID                   DISKCWP_pvWBurstBuffer;                     /*  管线缓存                    */
+    PVOID                   DISKCWP_pvMsgBuffer;                        /*  管线消息缓存                */
     
-    LW_OBJECT_HANDLE        DISKCWP_hMsgQueue;                          /*  管线刷新队列                */
+    LW_LIST_LINE_HEADER     DISKCWP_plineFree;                          /*  空闲消息头                  */
+    LW_LIST_LINE_HEADER     DISKCWP_plineHead;                          /*  消息队列头                  */
+    LW_LIST_LINE_HEADER     DISKCWP_plineTail;                          /*  消息队列尾                  */
+
+    LW_OBJECT_HANDLE        DISKCWP_hQueue;                             /*  管线刷新队列                */
     LW_OBJECT_HANDLE        DISKCWP_hCounter;                           /*  计数信号量                  */
     LW_OBJECT_HANDLE        DISKCWP_hPart;                              /*  管线缓存管理                */
     LW_OBJECT_HANDLE        DISKCWP_hSync;                              /*  排空信号                    */
-    LW_OBJECT_HANDLE        DISKCWP_hDev;                               /*  非并发设备锁                */
+    LW_OBJECT_HANDLE        DISKCWP_hLock;                              /*  消息队列锁                  */
     LW_OBJECT_HANDLE        DISKCWP_hWThread[LW_CFG_DISKCACHE_MAX_PIPELINE];
                                                                         /*  管线写任务表                */
 } LW_DISKCACHE_WP;

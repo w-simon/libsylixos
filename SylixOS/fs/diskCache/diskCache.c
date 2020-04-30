@@ -477,7 +477,7 @@ INT  API_DiskCacheDelete (PLW_BLK_DEV   pblkdDiskCache)
         __diskCacheListDel(pdiskcDiskCache);                            /*  退出背景线程                */
 
         __LW_DISKCACHE_LOCK(pdiskcDiskCache);                           /*  等待使用权                  */
-        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite);
+        __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite, 0);
         __diskCacheWpDelete(&pdiskcDiskCache->DISKC_wpWrite);
         
         API_SemaphoreMDelete(&pdiskcDiskCache->DISKC_hDiskCacheLock);

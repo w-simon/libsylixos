@@ -42,17 +42,20 @@ INT   __diskCacheWpCreate(PLW_DISKCACHE_CB  pdiskc,
 INT   __diskCacheWpDelete(PLW_DISKCACHE_WP  pwp);
 PVOID __diskCacheWpGetBuffer(PLW_DISKCACHE_WP  pwp, BOOL bRead);
 VOID  __diskCacheWpPutBuffer(PLW_DISKCACHE_WP  pwp, PVOID  pvBuffer);
+BOOL  __diskCacheWpSteal(PLW_DISKCACHE_CB  pdiskc,
+                         PVOID             pvBuffer,
+                         ULONG             ulSectorNo);
 INT   __diskCacheWpRead(PLW_DISKCACHE_CB  pdiskc,
                         PLW_BLK_DEV       pblkd,
                         PVOID             pvBuffer,
                         ULONG             ulStartSector,
                         ULONG             ulNSector);
 INT   __diskCacheWpWrite(PLW_DISKCACHE_CB  pdiskc,
-                         PLW_BLK_DEV       pblkdDisk,
+                         PLW_BLK_DEV       pblkd,
                          PVOID             pvBuffer,
                          ULONG             ulStartSector,
                          ULONG             ulNSector);
-VOID  __diskCacheWpSync(PLW_DISKCACHE_WP  pwp);
+VOID  __diskCacheWpSync(PLW_DISKCACHE_WP  pwp, ULONG  ulGetCnt);
 
 #endif                                                                  /*  LW_CFG_MAX_VOLUMES > 0      */
                                                                         /*  LW_CFG_DISKCACHE_EN > 0     */

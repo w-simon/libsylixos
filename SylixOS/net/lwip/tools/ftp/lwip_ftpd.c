@@ -819,19 +819,21 @@ static INT  __ftpdCmdRnfr (__PFTPD_SESSION  pftpds, CPCHAR  pcFileName)
     if (1 == waitread(pftpds->FTPDS_iSockCtrl, &tmvalTO)) {             /*  µÈ´ý RNTO ÃüÁî              */
         PCHAR   pcCmd;
         PCHAR   pcOpts;
-        PCHAR   pcArgs;
+        PCHAR   pcArgs = LW_NULL;
         
         if (fgets(cBuffer, (__LWIP_FTPD_PATH_SIZE + 32), 
                   pftpds->FTPDS_pfileCtrl) != LW_NULL) {                /*  ½ÓÊÕ¿ØÖÆ×Ö·û´®              */
             
             __ftpdCommandAnalyse(cBuffer, &pcCmd, &pcOpts, &pcArgs);    /*  ·ÖÎöÃüÁî                    */
             if (!lib_strcmp(pcCmd, "RNTO")) {
-                if (rename(pcFileName, pcArgs) == 0) {
-                    __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_FILE_OP_OK, "RNTO complete.");
-                } else {
-                    __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_FILE_NAME_ERROR, "File name error.");
+                if (pcArgs) {
+                    if (rename(pcFileName, pcArgs) == 0) {
+                        __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_FILE_OP_OK, "RNTO complete.");
+                    } else {
+                        __ftpdSendReply(pftpds, __FTPD_RETCODE_SERVER_FILE_NAME_ERROR, "File name error.");
+                    }
+                    return  (ERROR_NONE);
                 }
-                return  (ERROR_NONE);
             }
         }
     }
