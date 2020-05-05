@@ -200,15 +200,7 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
         break;
         
     case SIOCGIFTYPE:                                                   /*  获得网卡类型                */
-        if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
-            pifreq->ifr_type = IFT_PPP;
-        } else if (pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) {
-            pifreq->ifr_type = IFT_ETHER;
-        } else if (ip4_addr_isloopback(netif_ip4_addr(pnetif))) {
-            pifreq->ifr_type = IFT_LOOP;
-        } else {
-            pifreq->ifr_type = IFT_OTHER;
-        }
+        pifreq->ifr_type = pnetif->link_type;                           /*  与 SNMP 类型相同            */
         iRet = ERROR_NONE;
         break;
         

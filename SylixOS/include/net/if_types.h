@@ -240,6 +240,8 @@
 #define IFT_CARP                    0xf8            /* Common Address Redundancy Protocol               */
 #define IFT_IPXIP                   0xf9            /* IPX over IP tunneling; no longer used.           */
 
+#define IFT_IEEE802154              0x103           /* IEEE802154                                       */
+
 #endif                                              /*  __IF_TYPES_H                                    */
 /*********************************************************************************************************
   END

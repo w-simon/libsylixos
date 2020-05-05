@@ -663,22 +663,6 @@ VOID  netEventIfAuthFail (struct netif *pnetif)
     _netEventDevPutMsg(ucBuffer, sizeof(ucBuffer));
 }
 /*********************************************************************************************************
-** 函数名称: netEventIfAuthFail
-** 功能描述: 网卡认证超时
-** 输　入  : pnetif           网卡
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-VOID  netEventIfAuthTo (struct netif *pnetif)
-{
-    UCHAR   ucBuffer[NET_EVENT_DEV_MAX_MSGSIZE];
-    
-    NEVT_MAKE_EVENT(pnetif, ucBuffer, NET_EVENT_AUTH_TO);
-    
-    _netEventDevPutMsg(ucBuffer, sizeof(ucBuffer));
-}
-/*********************************************************************************************************
 ** 函数名称: netEventIfPppExt
 ** 功能描述: PPP 连接状态转变
 ** 输　入  : pnetif           网卡

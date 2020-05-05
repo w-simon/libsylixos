@@ -294,6 +294,8 @@ static VOID  netif_set_addr_hook (struct netif *pnetif, const ip4_addr_t *pipadd
         break;
     }
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+
+    netEventIfAddr(pnetif);
 }
 /*********************************************************************************************************
 ** 函数名称: netif_set_addr6_hook
@@ -323,6 +325,8 @@ static VOID netif_set_addr6_hook (struct netif *pnetif, const ip6_addr_t *pip6ad
         }
     }
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+
+    netEventIfAddr(pnetif);
 }
 /*********************************************************************************************************
 ** 函数名称: netif_set_stat6_hook
