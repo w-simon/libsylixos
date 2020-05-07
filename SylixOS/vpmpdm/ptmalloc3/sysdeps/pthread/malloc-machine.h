@@ -83,6 +83,8 @@ static inline int mutex_unlock(mutex_t *m) {
 
 #else
 
+#if LW_CFG_VP_PTMALLOC_LOCK_TYPE == 0
+
 /* Normal pthread mutex.  */
 typedef pthread_mutex_t mutex_t;
 
@@ -91,6 +93,19 @@ typedef pthread_mutex_t mutex_t;
 #define mutex_lock(m)              pthread_mutex_lock(m)
 #define mutex_trylock(m)           pthread_mutex_trylock(m)
 #define mutex_unlock(m)            pthread_mutex_unlock(m)
+
+#else /* LW_CFG_VP_PTMALLOC_LOCK_TYPE == 1 */
+
+/* pthread spinlock.  */
+typedef pthread_spinlock_t mutex_t;
+
+#define MUTEX_INITIALIZER
+#define mutex_init(m)              pthread_spin_init(m, 0)
+#define mutex_lock(m)              pthread_spin_lock(m)
+#define mutex_trylock(m)           pthread_spin_trylock(m)
+#define mutex_unlock(m)            pthread_spin_unlock(m)
+
+#endif /* LW_CFG_VP_PTMALLOC_LOCK_TYPE == 0 */
 
 #endif /* (__i386__ || __x86_64__) && __GNUC__ && !USE_NO_SPINLOCKS */
 

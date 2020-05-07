@@ -103,6 +103,12 @@ INT  vprocProcAdd(LW_LD_VPROC *pvproc);
 INT  vprocProcDelete(LW_LD_VPROC *pvproc);
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */
 /*********************************************************************************************************
+  POSIX
+*********************************************************************************************************/
+#if LW_CFG_POSIX_EN > 0
+VOID _PthreadKeyCleanup(PLW_CLASS_TCB  ptcbDel, BOOL  bDestroy);
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+/*********************************************************************************************************
 ** 函数名称: __moduleVpPatchVersion
 ** 功能描述: vp 补丁版本
 ** 输　入  : pmodule       进程主模块句柄
@@ -1052,6 +1058,7 @@ static BOOL vprocAtExit (LW_LD_VPROC *pvproc)
 *********************************************************************************************************/
 VOID  vprocExit (LW_LD_VPROC *pvproc, LW_OBJECT_HANDLE  ulId, INT  iCode)
 {
+    BOOL            bForce;
     BOOL            bIsRunAtExit = LW_FALSE;
     PLW_LIST_LINE   plineList;
     INT             iError;
@@ -1071,6 +1078,8 @@ VOID  vprocExit (LW_LD_VPROC *pvproc, LW_OBJECT_HANDLE  ulId, INT  iCode)
         return;
     }
     
+    bForce = (pvproc->VP_iExitMode == LW_VPROC_EXIT_FORCE);
+
     LW_TCB_GET_CUR_SAFE(ptcbCur);
 
     __KERNEL_SPACE_SET2(ptcbCur, 0);                                    /*  当前任务退出内核环境        */
@@ -1080,7 +1089,11 @@ __recheck:
     _TCBCleanupPopExt(ptcbCur);                                         /*  提前执行 cleanup pop 操作   */
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
 
-    if (pvproc->VP_iExitMode == LW_VPROC_EXIT_FORCE) {                  /*  强制退出删除除主线程外的线程*/
+#if LW_CFG_POSIX_EN > 0
+    _PthreadKeyCleanup(ptcbCur, !bForce);                               /*  提前执行 key cleanup 操作   */
+#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
+
+    if (bForce) {                                                       /*  强制退出删除除主线程外的线程*/
         vprocThreadKill(pvproc, ptcbCur);
         vprocKillRelease(ptcbCur);
     }

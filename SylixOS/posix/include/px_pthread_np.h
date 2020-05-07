@@ -56,6 +56,8 @@ LW_API int  pthread_getname_np(pthread_t  thread, char  *name, size_t len);
 LW_API int  pthread_setaffinity_np(pthread_t  thread, size_t setsize, const cpu_set_t *set);
 LW_API int  pthread_getaffinity_np(pthread_t  thread, size_t setsize, cpu_set_t *set);
 
+LW_API void pthread_key_cleanup_np(int destroy);
+
 /*********************************************************************************************************
   获得线程列表
 *********************************************************************************************************/

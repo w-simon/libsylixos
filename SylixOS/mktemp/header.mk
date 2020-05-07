@@ -61,9 +61,16 @@ else
 OUTDIR = Release
 endif
 
-OUTPATH = ./$(OUTDIR)
-OBJPATH = $(OUTPATH)/obj
-DEPPATH = $(OUTPATH)/dep
+ifeq ($(CUSTOM_OUT_BASE),)
+CUSTOM_OUT_BASE = 
+TARGET_WORD_POS = 3
+else
+TARGET_WORD_POS = 4
+endif
+
+OUTPATH = $(OUTDIR)
+OBJPATH = $(CUSTOM_OUT_BASE)$(OUTPATH)/obj
+DEPPATH = $(CUSTOM_OUT_BASE)$(OUTPATH)/dep
 
 #*********************************************************************************************************
 # Define some useful variables
@@ -74,7 +81,7 @@ SPACE = $(EMPTY) $(EMPTY)
 
 SYLIXOS_BASE_PATH := $(subst \,/,$(subst $(SPACE),\ ,$(SYLIXOS_BASE_PATH)))
 
-__TARGET    = $(word 3,$(subst $(BIAS),$(SPACE),$(@)))
+__TARGET    = $(word $(TARGET_WORD_POS),$(subst $(BIAS),$(SPACE),$(@)))
 __DEP       = $(addprefix $(DEPPATH)/$(__TARGET)/, $(addsuffix .d, $(basename $(<))))
 ifneq (,$(findstring cl6x,$(TOOLCHAIN_PREFIX)))
 __PP        = $(addprefix $(DEPPATH)/$(__TARGET)/, $(addsuffix .pp, $(basename $(<))))

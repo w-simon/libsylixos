@@ -64,12 +64,6 @@
 #include "../elf/elf_arch.h"
 #endif                                                                  /*  defined(LW_CFG_CPU_ARCH_C6X)*/
 /*********************************************************************************************************
-  POSIX
-*********************************************************************************************************/
-#if LW_CFG_POSIX_EN > 0
-VOID _PthreadKeyCleanup(PLW_CLASS_TCB  ptcbDel);
-#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
-/*********************************************************************************************************
   模块进程模型
   
   SylixOS 使用一个虚拟地址空间映射关系, 所以这里面的进程只能称为一个没有独立寻址空间的进程框架, 主要是为了
@@ -1045,9 +1039,6 @@ INT API_ModuleFinish (PVOID pvVProc)
 {
     LW_LD_VPROC       *pvproc = (LW_LD_VPROC *)pvVProc;
     LW_LD_EXEC_MODULE *pmodule;
-#if LW_CFG_POSIX_EN > 0
-    PLW_CLASS_TCB      ptcbCur;
-#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 
     if (pvproc == LW_NULL) {
         _ErrorHandle(ERROR_LOADER_PARAM_NULL);
@@ -1057,11 +1048,6 @@ INT API_ModuleFinish (PVOID pvVProc)
     if (pvproc->VP_ringModules == LW_NULL) {                            /*  是否已经进行了回收          */
         return  (ERROR_NONE);
     }
-
-#if LW_CFG_POSIX_EN > 0
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
-    _PthreadKeyCleanup(ptcbCur);                                        /*  提前执行 key cleanup 操作   */
-#endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 
     pmodule = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
 

@@ -24,12 +24,18 @@
 #*********************************************************************************************************
 ifeq ($(BSP_SYMBOL_PATH),)
 BSP_SYMBOL_PATH = SylixOS/bsp
+endif
 
 $(BSP_SYMBOL_PATH)/symbol.c: $(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.c $(BSP_SYMBOL_PATH)/symbol.h
 		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.c" $(BSP_SYMBOL_PATH)/symbol.c
 
 $(BSP_SYMBOL_PATH)/symbol.h: $(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.h
 		cp "$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.h" $(BSP_SYMBOL_PATH)/symbol.h
+
+ifeq (,$(findstring SylixOS, $(BSP_SYMBOL_PATH)))
+BSP_OUT_BASE = ../
+else
+BSP_OUT_BASE = 
 endif
 
 #*********************************************************************************************************
@@ -104,15 +110,15 @@ $(target)_DEPEND_TARGET += $(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/libsylixos.
 #*********************************************************************************************************
 # Targets
 #*********************************************************************************************************
-$(target)_IMG       := $(OUTPATH)/$(LOCAL_TARGET_NAME)
-$(target)_STRIP_IMG := $(OUTPATH)/strip/$(LOCAL_TARGET_NAME)
+$(target)_IMG       := $(BSP_OUT_BASE)$(OUTPATH)/$(LOCAL_TARGET_NAME)
+$(target)_STRIP_IMG := $(BSP_OUT_BASE)$(OUTPATH)/strip/$(LOCAL_TARGET_NAME)
 ifeq ($(ARCH), c6x)
-$(target)_BIN       := $(OUTPATH)/$(addsuffix .hex, $(basename $(LOCAL_TARGET_NAME)))
+$(target)_BIN       := $(BSP_OUT_BASE)$(OUTPATH)/$(addsuffix .hex, $(basename $(LOCAL_TARGET_NAME)))
 else
-$(target)_BIN       := $(OUTPATH)/$(addsuffix .bin, $(basename $(LOCAL_TARGET_NAME)))
+$(target)_BIN       := $(BSP_OUT_BASE)$(OUTPATH)/$(addsuffix .bin, $(basename $(LOCAL_TARGET_NAME)))
 endif
-$(target)_SIZ       := $(OUTPATH)/$(addsuffix .siz, $(basename $(LOCAL_TARGET_NAME)))
-$(target)_LZO       := $(OUTPATH)/$(addsuffix .lzo, $(basename $(LOCAL_TARGET_NAME)))
+$(target)_SIZ       := $(BSP_OUT_BASE)$(OUTPATH)/$(addsuffix .siz, $(basename $(LOCAL_TARGET_NAME)))
+$(target)_LZO       := $(BSP_OUT_BASE)$(OUTPATH)/$(addsuffix .lzo, $(basename $(LOCAL_TARGET_NAME)))
 
 #*********************************************************************************************************
 # Link script files
