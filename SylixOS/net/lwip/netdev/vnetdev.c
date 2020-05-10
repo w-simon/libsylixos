@@ -141,10 +141,15 @@ error:
   
   netdev_linkinfo_xmit_inc(netdev);
   netdev_statinfo_total_add(netdev, LINK_OUTPUT, p->tot_len);
-  if (((UINT8 *)p->payload)[0] & 1) {
-    netdev_statinfo_mcasts_inc(netdev, LINK_OUTPUT);
-  } else {
+
+  if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
     netdev_statinfo_ucasts_inc(netdev, LINK_OUTPUT);
+  } else {
+    if (((UINT8 *)p->payload)[0] & 1) {
+      netdev_statinfo_mcasts_inc(netdev, LINK_OUTPUT);
+    } else {
+      netdev_statinfo_ucasts_inc(netdev, LINK_OUTPUT);
+    }
   }
   
   vnetdev->notify(vnetdev);
@@ -300,7 +305,7 @@ int vnetdev_put (struct vnetdev *vnetdev, struct pbuf *p)
   
   netdev_linkinfo_recv_inc(netdev);
   netdev_statinfo_total_add(netdev, LINK_INPUT, p->tot_len);
-  if (mcast) {
+  if (mcast && (netdev->net_type == NETDEV_TYPE_ETHERNET)) {
     netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
   } else {
     netdev_statinfo_ucasts_inc(netdev, LINK_INPUT);

@@ -367,6 +367,10 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     __ARCH_DSP_CTX_INIT(ptcb->TCB_pvStackDSP);                          /*  初始化当前任务 DSP 上下文   */
 #endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 
+#if LW_CFG_NET_EN > 0 && LW_CFG_NET_SAFE > 0
+    ptcb->TCB_ulNetSem = LW_OBJECT_HANDLE_INVALID;
+#endif                                                                  /*  LW_CFG_NET_SAFE > 0         */
+
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     _K_ptcbTCBIdTable[_ObjectGetIndex(ulId)] = ptcb;                    /*  保存TCB控制块               */
     _List_Line_Add_Ahead(&ptcb->TCB_lineManage, 

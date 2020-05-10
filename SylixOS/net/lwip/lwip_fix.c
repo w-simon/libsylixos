@@ -47,6 +47,7 @@
 2013.09.04  优化代码顺序并加入 lwip 断言专用的输出函数.
 2014.07.01  SIO 驱动所有的文件描述符为内核文件描述符操作.
 2016.07.21  使用支持带发送阻塞的消息队列, 不再需要发送同步信号量.
+2020.05.10  支持 SEM_PER_THREAD 配置模式.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_PANIC
@@ -97,6 +98,16 @@ static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(_G_slcaLwip);                  /*  多核
 static LW_OBJECT_HANDLE                  _G_hTcpipMbox;
 static UINT32                            _G_uiAppTryLost;
 /*********************************************************************************************************
+  net safe
+*********************************************************************************************************/
+#if LW_CFG_NET_SAFE > 0
+#define LW_CFG_NET_SAFE_LAZY  1                                         /*  Lazy create test            */
+#if LW_CFG_NET_SAFE_LAZY == 0
+static void sys_thread_sem_init(LW_OBJECT_HANDLE  id);
+#endif                                                                  /*  LW_CFG_NET_SAFE_LAZY == 0   */
+static void sys_thread_sem_fini(LW_OBJECT_HANDLE  id);
+#endif                                                                  /*  LW_CFG_NET_SAFE > 0         */
+/*********************************************************************************************************
 ** 函数名称: sys_init
 ** 功能描述: 系统接口初始化
 ** 输　入  : NONE
@@ -107,6 +118,13 @@ static UINT32                            _G_uiAppTryLost;
 void  sys_init (void)
 {
     LW_SPIN_INIT(&_G_slcaLwip.SLCA_sl);                                 /*  初始化网络关键区域自旋锁    */
+
+#if LW_CFG_NET_SAFE > 0
+#if LW_CFG_NET_SAFE_LAZY == 0
+    API_SystemHookAdd(sys_thread_sem_init, LW_OPTION_THREAD_CREATE_HOOK);
+#endif                                                                  /*  LW_CFG_NET_SAFE_LAZY == 0   */
+    API_SystemHookAdd(sys_thread_sem_fini, LW_OPTION_THREAD_DELETE_HOOK);
+#endif                                                                  /*  LW_CFG_NET_SAFE > 0         */
 }
 /*********************************************************************************************************
 ** 函数名称: sys_arch_protect
@@ -911,6 +929,80 @@ sys_thread_t  sys_thread_new (const char *name, lwip_thread_fn thread,
 
     return  (hThread);
 }
+/*********************************************************************************************************
+  net safe
+*********************************************************************************************************/
+#if LW_CFG_NET_SAFE > 0
+/*********************************************************************************************************
+** 函数名称: sys_thread_sem_get
+** 功能描述: 获取当前任务 sem
+** 输　入  : NONE
+** 输　出  : 信号量
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+sys_sem_t *sys_thread_sem_get (void)
+{
+    PLW_CLASS_TCB   ptcbCur;
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+#if LW_CFG_NET_SAFE_LAZY > 0
+    if (ptcbCur->TCB_ulNetSem == LW_OBJECT_HANDLE_INVALID) {
+        ptcbCur->TCB_ulNetSem = API_SemaphoreCCreate("net_tsem", 0, 1,
+                                                     LW_OPTION_WAIT_FIFO |
+                                                     LW_OPTION_OBJECT_GLOBAL, LW_NULL);
+        if (ptcbCur->TCB_ulNetSem == LW_OBJECT_HANDLE_INVALID) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create net tsem.\r\n");
+        }
+    }
+#endif
+
+    return  (&ptcbCur->TCB_ulNetSem);
+}
+/*********************************************************************************************************
+** 函数名称: sys_thread_sem_init
+** 功能描述: 创建任务 sem
+** 输　入  : NONE
+** 输　出  : 系统时钟
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_NET_SAFE_LAZY == 0
+
+static void sys_thread_sem_init (LW_OBJECT_HANDLE  id)
+{
+    PLW_CLASS_TCB   ptcb = __GET_TCB_FROM_INDEX(_ObjectGetIndex(id));
+
+    if (ptcb->TCB_ulNetSem == LW_OBJECT_HANDLE_INVALID) {
+        ptcb->TCB_ulNetSem = API_SemaphoreCCreate("net_tsem", 0, 1,
+                                                  LW_OPTION_WAIT_FIFO |
+                                                  LW_OPTION_OBJECT_GLOBAL, LW_NULL);
+        if (ptcb->TCB_ulNetSem == LW_OBJECT_HANDLE_INVALID) {
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "can not create net tsem.\r\n");
+        }
+    }
+}
+
+#endif                                                                  /*  LW_CFG_NET_SAFE_LAZY == 0   */
+/*********************************************************************************************************
+** 函数名称: sys_thread_sem_fini
+** 功能描述: 释放任务 sem
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static void sys_thread_sem_fini (LW_OBJECT_HANDLE  id)
+{
+    PLW_CLASS_TCB   ptcb = __GET_TCB_FROM_INDEX(_ObjectGetIndex(id));
+
+    if (ptcb->TCB_ulNetSem) {
+        API_SemaphoreCDelete(&ptcb->TCB_ulNetSem);
+    }
+}
+
+#endif                                                                  /*  LW_CFG_NET_SAFE             */
 /*********************************************************************************************************
   time
 *********************************************************************************************************/

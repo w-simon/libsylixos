@@ -395,6 +395,12 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define LWIP_NETCONN_FULLDUPLEX         1
 #define LWIP_NETBUF_RECVINFO            1
 
+#if LW_CFG_NET_SAFE > 0
+#define LWIP_NETCONN_SEM_PER_THREAD     1
+#else
+#define LWIP_NETCONN_SEM_PER_THREAD     0
+#endif
+
 #define LWIP_SO_LINGER                  1
 #define LWIP_SO_SNDTIMEO                1
 #define LWIP_SO_RCVTIMEO                1

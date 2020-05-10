@@ -179,6 +179,18 @@ typedef LW_OBJECT_HANDLE            sys_thread_t;
 struct hostent  *sys_thread_hostent(struct hostent  *phostent);
 
 /*********************************************************************************************************
+  net safe (操作系统自动 alloc & free 不需要协议栈操作)
+*********************************************************************************************************/
+#if LW_CFG_NET_SAFE > 0
+
+sys_sem_t *sys_thread_sem_get(void);
+
+#define LWIP_NETCONN_THREAD_SEM_GET()   sys_thread_sem_get()
+#define LWIP_NETCONN_THREAD_SEM_ALLOC()
+#define LWIP_NETCONN_THREAD_SEM_FREE()
+
+#endif                                                                  /*  LW_CFG_NET_SAFE             */
+/*********************************************************************************************************
   fast OS function
 *********************************************************************************************************/
 
