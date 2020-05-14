@@ -358,6 +358,7 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define LWIP_TCP                        0
 #endif
 
+#define TCP_LISTEN_MULTI                LW_CFG_LWIP_TCP_MULTI_PORTS     /*  SylixOS Add Listen mports   */
 #define TCP_LISTEN_BACKLOG              1
 #define LWIP_TCP_TIMESTAMPS             1
 

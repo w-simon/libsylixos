@@ -4328,6 +4328,21 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
       }
 #endif /* SYLIXOS && (LW_CFG_LWIP_TCP_SIG_EN > 0) */
       if (sock->conn->pcb.tcp->state == LISTEN) {
+#if TCP_LISTEN_MULTI /* SylixOS Add Listen multi-ports */
+        if (optname == TCP_MPORTS) {
+          err_t ret;
+          u16_t mports = *(const int *)optval;
+          if (mports > 4096) {
+            done_socket(sock);
+            return EINVAL;
+          }
+          /* Change TCP listen ports in locking mode */
+          ret = tcp_multi_ports(sock->conn->pcb.tcp, mports);
+          err = err_to_errno(ret);
+          done_socket(sock);
+          return err;
+        }
+#endif /* TCP_LISTEN_MULTI */
         done_socket(sock);
         return EINVAL;
       }

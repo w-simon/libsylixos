@@ -99,7 +99,7 @@ typedef pthread_mutex_t mutex_t;
 /* pthread spinlock.  */
 typedef pthread_spinlock_t mutex_t;
 
-#define MUTEX_INITIALIZER
+#define MUTEX_INITIALIZER          { .SL_uiLock = 0, .SL_ulCounter = 0 }
 #define mutex_init(m)              pthread_spin_init(m, 0)
 #define mutex_lock(m)              pthread_spin_lock(m)
 #define mutex_trylock(m)           pthread_spin_trylock(m)

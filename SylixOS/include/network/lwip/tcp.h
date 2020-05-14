@@ -234,6 +234,10 @@ struct tcp_pcb_listen {
 /** Protocol specific PCB members */
   TCP_PCB_COMMON(struct tcp_pcb_listen);
 
+#if TCP_LISTEN_MULTI /* SylixOS Add Listen multi-ports */
+  u16_t multi_ports;
+#endif /* TCP_LISTEN_MULTI */
+
 #if LWIP_CALLBACK_API
   /* Function to call when a listener has been connected. */
   tcp_accept_fn accept;
@@ -245,6 +249,14 @@ struct tcp_pcb_listen {
 #endif /* TCP_LISTEN_BACKLOG */
 };
 
+#if TCP_LISTEN_MULTI /* SylixOS Add Listen multi-ports */
+#define TCP_LISTEN_CONFLICT(lpcb, port) \
+  ((lpcb)->local_port <= (port) && \
+  ((lpcb)->local_port + ((struct tcp_pcb_listen *)(lpcb))->multi_ports) >= (port))
+#else /* TCP_LISTEN_MULTI */
+#define TCP_LISTEN_CONFLICT(lpcb, port) \
+  ((lpcb)->local_port == (port))
+#endif /* !TCP_LISTEN_MULTI */
 
 /** the TCP protocol control block */
 struct tcp_pcb {
@@ -496,6 +508,10 @@ err_t            tcp_tcp_get_tcp_addrinfo(struct tcp_pcb *pcb, int local, ip_add
 
 /* for compatibility with older implementation */
 #define tcp_new_ip6() tcp_new_ip_type(IPADDR_TYPE_V6)
+
+#if TCP_LISTEN_MULTI /* SylixOS Add multi-ports server */
+err_t tcp_multi_ports(struct tcp_pcb *pcb, u16_t multi_ports);
+#endif
 
 #if LWIP_TCP_PCB_NUM_EXT_ARGS
 u8_t tcp_ext_arg_alloc_id(void);

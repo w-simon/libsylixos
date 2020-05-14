@@ -339,7 +339,7 @@ tcp_input(struct pbuf *p, struct netif *inp)
         continue;
       }
 
-      if (lpcb->local_port == tcphdr->dest) {
+      if (TCP_LISTEN_CONFLICT(lpcb, tcphdr->dest)) { /* SylixOS Add Listen multi-ports */
         if (IP_IS_ANY_TYPE_VAL(lpcb->local_ip)) {
           /* found an ANY TYPE (IPv4/IPv6) match */
 #if SO_REUSE
@@ -695,7 +695,11 @@ tcp_listen_input(struct tcp_pcb_listen *pcb)
     /* Set up the new PCB. */
     ip_addr_copy(npcb->local_ip, *ip_current_dest_addr());
     ip_addr_copy(npcb->remote_ip, *ip_current_src_addr());
+#if TCP_LISTEN_MULTI /* SylixOS Add multi-ports server */
+    npcb->local_port = tcphdr->dest;
+#else /* TCP_LISTEN_MULTI */
     npcb->local_port = pcb->local_port;
+#endif /* !TCP_LISTEN_MULTI */
     npcb->remote_port = tcphdr->src;
     npcb->state = SYN_RCVD;
     npcb->rcv_nxt = seqno + 1;

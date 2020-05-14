@@ -178,6 +178,9 @@ struct tcp_pcb *tcp_active_pcbs;
 /** List of all TCP PCBs in TIME-WAIT state */
 struct tcp_pcb *tcp_tw_pcbs;
 
+/** SylixOS Add LISTEN pcb list index */
+#define TCB_LIST_LISTEN_INDEX  0
+
 /** An array with all (non-temporary) PCB lists, mainly used for smaller code size */
 struct tcp_pcb **const tcp_pcb_lists[] = {&tcp_listen_pcbs.pcbs, &tcp_bound_pcbs,
          &tcp_active_pcbs, &tcp_tw_pcbs
@@ -641,6 +644,69 @@ tcp_abort(struct tcp_pcb *pcb)
   tcp_abandon(pcb, 1);
 }
 
+#if TCP_LISTEN_MULTI /* SylixOS Add multi-ports server */
+/**
+ * @ingroup tcp_raw
+ * Binds the listen server to multi-ports
+ * If another connection is bound to the same port, the function will
+ * return ERR_USE, otherwise ERR_OK is returned.
+ * @see MEMP_NUM_TCP_PCB_LISTEN and MEMP_NUM_TCP_PCB
+ *
+ * @param pcb the tcp_pcb_listen to bind multi-ports.
+ * @param multi_ports how many ports we needed.
+ * @return ERR_USE if the port is already in use
+ *         ERR_OK if bound
+ */
+err_t
+tcp_multi_ports(struct tcp_pcb *pcb, u16_t multi_ports)
+{
+  u8_t i;
+  u16_t j, port;
+  struct tcp_pcb_listen *lpcb;
+
+  if (pcb->state != LISTEN) {
+    return ERR_ARG;
+  }
+
+  lpcb = (struct tcp_pcb_listen *)pcb;
+  if (lpcb->multi_ports >= multi_ports) {
+    /* Reduce the number of listening ports */
+    lpcb->multi_ports = multi_ports;
+    return ERR_OK;
+  }
+
+  port = lpcb->local_port;
+  for (j = 0; j < multi_ports; j++) {
+    if (port == TCP_LOCAL_PORT_RANGE_END) {
+      /* No ports available */
+      return ERR_USE;
+    }
+
+    /* Check all LISTEN PCB lists. */
+    for (pcb = *tcp_pcb_lists[TCB_LIST_LISTEN_INDEX]; pcb != NULL; pcb = pcb->next) {
+      if (lpcb != (struct tcp_pcb_listen *)pcb) {
+        if (TCP_LISTEN_CONFLICT(pcb, port)) {
+          return ERR_USE;
+        }
+      }
+    }
+
+    /* Check all PCB lists. */
+    for (i = 1; i < NUM_TCP_PCB_LISTS; i++) {
+      for (pcb = *tcp_pcb_lists[i]; pcb != NULL; pcb = pcb->next) {
+        if (pcb->local_port == port) {
+          return ERR_USE;
+        }
+      }
+    }
+    port++;
+  }
+
+  lpcb->multi_ports = multi_ports;
+  return ERR_OK;
+}
+#endif /* TCP_LISTEN_MULTI */
+
 /**
  * @ingroup tcp_raw
  * Binds the connection to a local port number and IP address. If the
@@ -724,7 +790,13 @@ tcp_bind(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port)
     /* Check if the address already is in use (on all lists) */
     for (i = 0; i < max_pcb_list; i++) {
       for (cpcb = *tcp_pcb_lists[i]; cpcb != NULL; cpcb = cpcb->next) {
-        if (cpcb->local_port == port) {
+#if TCP_LISTEN_MULTI /* SylixOS Add multi-ports server */
+        if ((cpcb->local_port == port) ||
+            ((i == TCB_LIST_LISTEN_INDEX) && TCP_LISTEN_CONFLICT(cpcb, port)))
+#else /* TCP_LISTEN_MULTI */
+        if (cpcb->local_port == port)
+#endif /* !TCP_LISTEN_MULTI */
+        {
 #if SO_REUSE
           /* Omit checking for the same port if both pcbs have REUSEADDR set.
              For SO_REUSEADDR, the duplicate-check for a 5-tuple is done in
@@ -879,7 +951,7 @@ tcp_listen_with_backlog_and_err(struct tcp_pcb *pcb, u8_t backlog, err_t *err)
        is declared (listen-/connection-pcb), we have to make sure now that
        this port is only used once for every local IP. */
     for (lpcb = tcp_listen_pcbs.listen_pcbs; lpcb != NULL; lpcb = lpcb->next) {
-      if ((lpcb->local_port == pcb->local_port) &&
+      if (TCP_LISTEN_CONFLICT(lpcb, pcb->local_port) && /* SylixOS Add conflict macro */
           ip_addr_cmp(&lpcb->local_ip, &pcb->local_ip)) {
         /* this address/port is already used */
         lpcb = NULL;
@@ -896,6 +968,9 @@ tcp_listen_with_backlog_and_err(struct tcp_pcb *pcb, u8_t backlog, err_t *err)
   }
   lpcb->callback_arg = pcb->callback_arg;
   lpcb->local_port = pcb->local_port;
+#if TCP_LISTEN_MULTI /* SylixOS Add Listen multi-ports */
+  lpcb->multi_ports = 0;
+#endif /* TCP_LISTEN_MULTI */
   lpcb->state = LISTEN;
   lpcb->prio = pcb->prio;
   lpcb->so_options = pcb->so_options;
@@ -1032,7 +1107,13 @@ again:
   /* Check all PCB lists. */
   for (i = 0; i < NUM_TCP_PCB_LISTS; i++) {
     for (pcb = *tcp_pcb_lists[i]; pcb != NULL; pcb = pcb->next) {
-      if (pcb->local_port == tcp_port) {
+#if TCP_LISTEN_MULTI /* SylixOS Add multi-ports server */
+      if ((pcb->local_port == tcp_port) ||
+          ((i == TCB_LIST_LISTEN_INDEX) && TCP_LISTEN_CONFLICT(pcb, tcp_port)))
+#else /* TCP_LISTEN_MULTI */
+      if (pcb->local_port == tcp_port)
+#endif /* !TCP_LISTEN_MULTI */
+      {
         n++;
         if (n > (TCP_LOCAL_PORT_RANGE_END - TCP_LOCAL_PORT_RANGE_START)) {
           return 0;

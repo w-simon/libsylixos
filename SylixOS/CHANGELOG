@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2020-05-14: han.hui
+    支持多端口侦听 TCP socket (实验性质).
+
     2020-02-27: han.hui
     动态获取 DNS 的网络接口切换路由时，动态更新 DNS 设置.
 
