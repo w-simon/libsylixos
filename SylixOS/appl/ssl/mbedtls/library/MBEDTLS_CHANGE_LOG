@@ -8,3 +8,7 @@
 
 3: ecp.c -> ecp_mbed.c
 
+4: Add LW_CFG_LWIP_TLS_SNI_DEF configure in ssl_srv.c file.
+
+5: Add mbedtls_ssl_get_bio() function ssl_tls.c, ssl.h files.
+

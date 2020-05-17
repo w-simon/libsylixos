@@ -1620,6 +1620,11 @@ read_record_header:
     if( ( ssl->major_ver != 3 ) || ( ssl->minor_ver != 0 ) )
     {
 #endif
+
+        /* SylixOS Add SNI call default domain callback for EdgerOS */
+#if LW_CFG_LWIP_TLS_SNI_DEF
+        int has_server_name = 0;
+#endif
         /*
          * Check the extension length
          */
@@ -1674,6 +1679,9 @@ read_record_header:
                 if( ssl->conf->f_sni == NULL )
                     break;
 
+#if LW_CFG_LWIP_TLS_SNI_DEF /* SylixOS Add This */
+                has_server_name = 1;
+#endif
                 ret = ssl_parse_servername_ext( ssl, ext + 4, ext_size );
                 if( ret != 0 )
                     return( ret );
@@ -1812,6 +1820,16 @@ read_record_header:
                 return( MBEDTLS_ERR_SSL_BAD_HS_CLIENT_HELLO );
             }
         }
+
+#if LW_CFG_LWIP_TLS_SNI_DEF /* SylixOS Add This */
+        if( !has_server_name && ssl->conf->f_sni ) {
+            ret = ssl->conf->f_sni( ssl->conf->p_sni,
+                                    ssl, (const unsigned char *)"", 0 );
+            if( ret != 0 )
+                return( ret );
+        }
+#endif
+
 #if defined(MBEDTLS_SSL_PROTO_SSL3)
     }
 #endif

@@ -5860,6 +5860,13 @@ void mbedtls_ssl_set_bio( mbedtls_ssl_context *ssl,
     ssl->f_recv_timeout = f_recv_timeout;
 }
 
+#ifdef SYLIXOS /* SylixOS Can get bio information */
+void *mbedtls_ssl_get_bio( mbedtls_ssl_context *ssl )
+{
+    return( ssl->p_bio );
+}
+#endif
+
 void mbedtls_ssl_conf_read_timeout( mbedtls_ssl_config *conf, uint32_t timeout )
 {
     conf->read_timeout   = timeout;
