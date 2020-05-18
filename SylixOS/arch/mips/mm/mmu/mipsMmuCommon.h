@@ -47,8 +47,10 @@ extern UINT32               _G_uiMmuEntryLoCache;                       /*  Ò»ÖÂ
 #define MIPS_MMU_PAGE_MASK              PM_16K
 #elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
 #define MIPS_MMU_PAGE_MASK              PM_64K
+#elif LW_CFG_VMM_PAGE_SIZE == (256 * LW_CFG_KB_SIZE)
+#define MIPS_MMU_PAGE_MASK              PM_256K
 #else
-#error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K)!
+#error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K, 256K)!
 #endif                                                                  /*  LW_CFG_VMM_PAGE_SIZE        */
 /*********************************************************************************************************
   TLB ²Ù×÷

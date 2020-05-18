@@ -84,6 +84,7 @@
         12 :  4K Bytes per page.
         14 : 16K Bytes per page.
         16 : 64K Bytes per page.
+        18 : 256K Bytes per page.
 *********************************************************************************************************/
 
 #define LW_CFG_MIPS_PAGE_SHIFT          14                              /*  MMU “≥√Ê¥Û–°                */

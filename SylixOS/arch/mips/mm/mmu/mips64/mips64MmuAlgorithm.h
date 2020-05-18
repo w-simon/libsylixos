@@ -39,8 +39,10 @@
 #define MIPS64_BADVPN2_SHIFT            2
 #elif LW_CFG_VMM_PAGE_SIZE == (64 * LW_CFG_KB_SIZE)
 #define MIPS64_BADVPN2_SHIFT            4
+#elif LW_CFG_VMM_PAGE_SIZE == (256 * LW_CFG_KB_SIZE)
+#define MIPS64_BADVPN2_SHIFT            6
 #else
-#error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K)!
+#error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K, 256K)!
 #endif
 
 /*********************************************************************************************************

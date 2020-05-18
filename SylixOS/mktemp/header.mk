@@ -62,15 +62,16 @@ OUTDIR = Release
 endif
 
 ifeq ($(CUSTOM_OUT_BASE),)
-CUSTOM_OUT_BASE = 
 TARGET_WORD_POS = 3
+OUTPATH = ./$(OUTDIR)
+OBJPATH = $(OUTPATH)/obj
+DEPPATH = $(OUTPATH)/dep
 else
 TARGET_WORD_POS = 4
-endif
-
 OUTPATH = $(OUTDIR)
 OBJPATH = $(CUSTOM_OUT_BASE)$(OUTPATH)/obj
 DEPPATH = $(CUSTOM_OUT_BASE)$(OUTPATH)/dep
+endif
 
 #*********************************************************************************************************
 # Define some useful variables

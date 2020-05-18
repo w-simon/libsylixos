@@ -44,13 +44,8 @@
 
 #define LW_CFG_VMM_PTE_SHIFT                  LW_CFG_VMM_PAGE_SHIFT
 #define LW_CFG_VMM_PTE_SIZE                   LW_CFG_VMM_PAGE_SIZE
-#define LW_CFG_VMM_PTE_BLKSIZE                LW_CFG_VMM_PAGE_SIZE
 
 /*********************************************************************************************************
- * 2^9 = 512 , PTE BLOCK SIZE = 512 * sizeof(PTE) = 512 * 8 = 4096 = PAGE SIZE
- *
- * PTE BLOCK SIZE = PAGE SIZE, 方便将虚拟页表页面映射到 PTE BLOCK
- *
  * +------------+------------+------------+------------+------------+
  * |6          4|4          3|3          2|2          1|1          0|
  * |3    15b   9|8    14b   5|4   14b    1|0    9b    2|1    12b   0|
@@ -61,6 +56,7 @@
 #if LW_CFG_MIPS_PAGE_SHIFT == 12
 
 #define LW_CFG_VMM_PTE_MASK                   (__CONST64(0x1ff) << LW_CFG_VMM_PAGE_SHIFT)
+#define LW_CFG_VMM_PTE_BLKSIZE                (4 * LW_CFG_KB_SIZE)
 
 #define LW_CFG_VMM_PTS_SHIFT                  21
 #define LW_CFG_VMM_PTS_SIZE                   (__CONST64(1) << LW_CFG_VMM_PTS_SHIFT)
@@ -78,8 +74,6 @@
 #define LW_CFG_VMM_PGD_BLKSIZE                (256 * LW_CFG_KB_SIZE)
 
 /*********************************************************************************************************
- * 2^11 = 2048 , PTE BLOCK SIZE = 2048 * sizeof(PTE) = 2048 * 8 = 16384 = PAGE SIZE
- *
  * +------------+------------+------------+------------+------------+
  * |6          5|5          3|3          2|2          1|1          0|
  * |3    13b   1|0    13b   8|7   13b    5|4    11b   4|3    14b   0|
@@ -90,6 +84,7 @@
 #elif LW_CFG_MIPS_PAGE_SHIFT == 14
 
 #define LW_CFG_VMM_PTE_MASK                   (__CONST64(0x7ff) << LW_CFG_VMM_PAGE_SHIFT)
+#define LW_CFG_VMM_PTE_BLKSIZE                (16 * LW_CFG_KB_SIZE)
 
 #define LW_CFG_VMM_PTS_SHIFT                  25
 #define LW_CFG_VMM_PTS_SIZE                   (__CONST64(1) << LW_CFG_VMM_PTS_SHIFT)
@@ -107,8 +102,6 @@
 #define LW_CFG_VMM_PGD_BLKSIZE                (64 * LW_CFG_KB_SIZE)
 
 /*********************************************************************************************************
- * 2^13 = 8192 , PTE BLOCK SIZE = 8192 * sizeof(PTE) = 8192 * 8 = 65536 = PAGE SIZE
- *
  * +------------+------------+------------+------------+------------+
  * |6          5|5          4|3          2|2          1|1          0|
  * |3    12b   2|1    12b   0|9   11b    9|8    13b   6|5    16b   0|
@@ -119,6 +112,35 @@
 #elif LW_CFG_MIPS_PAGE_SHIFT == 16
 
 #define LW_CFG_VMM_PTE_MASK                   (__CONST64(0x1fff) << LW_CFG_VMM_PAGE_SHIFT)
+#define LW_CFG_VMM_PTE_BLKSIZE                (64 * LW_CFG_KB_SIZE)
+
+#define LW_CFG_VMM_PTS_SHIFT                  29
+#define LW_CFG_VMM_PTS_SIZE                   (__CONST64(1) << LW_CFG_VMM_PTS_SHIFT)
+#define LW_CFG_VMM_PTS_MASK                   (__CONST64(0x7ff) << LW_CFG_VMM_PTS_SHIFT)
+#define LW_CFG_VMM_PTS_BLKSIZE                (16 * LW_CFG_KB_SIZE)
+
+#define LW_CFG_VMM_PMD_SHIFT                  40
+#define LW_CFG_VMM_PMD_SIZE                   (__CONST64(1) << LW_CFG_VMM_PMD_SHIFT)
+#define LW_CFG_VMM_PMD_MASK                   (__CONST64(0xfff) << LW_CFG_VMM_PMD_SHIFT)
+#define LW_CFG_VMM_PMD_BLKSIZE                (32 * LW_CFG_KB_SIZE)
+
+#define LW_CFG_VMM_PGD_SHIFT                  52
+#define LW_CFG_VMM_PGD_SIZE                   (__CONST64(1) << LW_CFG_VMM_PGD_SHIFT)
+#define LW_CFG_VMM_PGD_MASK                   (__CONST64(0xfff) << LW_CFG_VMM_PGD_SHIFT)
+#define LW_CFG_VMM_PGD_BLKSIZE                (32 * LW_CFG_KB_SIZE)
+
+/*********************************************************************************************************
+ * +------------+------------+------------+------------+------------+
+ * |6          5|5          4|3          2|2          1|1          0|
+ * |3    12b   2|1    12b   0|9   11b    9|8    11b   8|7    18b   0|
+ * +----------------------------------------------------------------+
+ * |   PGD      |    PMD     |    PTS     |    PTE     |   OFFSET   |
+ * +------------+------------+------------+------------+------------+
+*********************************************************************************************************/
+#elif LW_CFG_MIPS_PAGE_SHIFT == 18
+
+#define LW_CFG_VMM_PTE_MASK                   (__CONST64(0x7ff) << LW_CFG_VMM_PAGE_SHIFT)
+#define LW_CFG_VMM_PTE_BLKSIZE                (16 * LW_CFG_KB_SIZE)
 
 #define LW_CFG_VMM_PTS_SHIFT                  29
 #define LW_CFG_VMM_PTS_SIZE                   (__CONST64(1) << LW_CFG_VMM_PTS_SHIFT)
@@ -136,7 +158,7 @@
 #define LW_CFG_VMM_PGD_BLKSIZE                (32 * LW_CFG_KB_SIZE)
 
 #else
-#error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K)!
+#error  LW_CFG_VMM_PAGE_SIZE must be (4K, 16K, 64K, 256K)!
 #endif
 
 /*********************************************************************************************************

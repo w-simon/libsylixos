@@ -21,6 +21,7 @@
 
 #*********************************************************************************************************
 # x86 (Need frame pointer code to debug)
+# The page size of x86 in SylixOS is fixed at 4KB.
 #*********************************************************************************************************
 ifneq (,$(findstring i386,$(TOOLCHAIN_PREFIX)))
 ARCH             = x86
@@ -51,6 +52,7 @@ endif
 
 #*********************************************************************************************************
 # x86-64 (Need frame pointer code to debug)
+# The page size of x86-64 in SylixOS is fixed at 4KB.
 #*********************************************************************************************************
 ifneq (,$(findstring x86_64,$(TOOLCHAIN_PREFIX)))
 ARCH             = x64
@@ -81,6 +83,7 @@ endif
 
 #*********************************************************************************************************
 # ARM
+# The page size of ARM in SylixOS is fixed at 4KB.
 #*********************************************************************************************************
 ifneq (,$(findstring arm,$(TOOLCHAIN_PREFIX)))
 ARCH             = arm
@@ -124,6 +127,8 @@ endif
 
 #*********************************************************************************************************
 # ARM64
+# aarch64-sylixos-elf-ld default max page size is 64KB.
+# The max page size of ARM64 in SylixOS is 64KB.
 #*********************************************************************************************************
 ifneq (,$(findstring aarch64,$(TOOLCHAIN_PREFIX)))
 ARCH             = arm64
@@ -150,22 +155,30 @@ endif
 
 #*********************************************************************************************************
 # MIPS (SylixOS toolchain 4.9.3 has loongson3x '-mhard-float' patch)
+# mips-sylixos-elf-ld default max page size is 64KB.
+# The max page size of MIPS in SylixOS is 256KB.
 #*********************************************************************************************************
 ifneq (,$(findstring mips-sylixos,$(TOOLCHAIN_PREFIX)))
 ARCH             = mips
 ARCH_COMMONFLAGS = 
 
+ifneq ($(MAX_PAGE_SIZE),)
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
+else
+ARCH_MAX_PAGE_SIZE = 
+endif
+
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC -mabicalls
-ARCH_PIC_LDFLAGS = -mabicalls -Wl,-shared -fPIC -shared
+ARCH_PIC_LDFLAGS = -mabicalls -Wl,-shared -fPIC -shared $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_KO_CFLAGS   = -mlong-calls
-ARCH_KO_LDFLAGS  = -nostdlib -r
+ARCH_KO_LDFLAGS  = -nostdlib -r $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_KLIB_CFLAGS = -mlong-calls
 
 ARCH_KERNEL_CFLAGS  =
-ARCH_KERNEL_LDFLAGS =
+ARCH_KERNEL_LDFLAGS = $(ARCH_MAX_PAGE_SIZE)
 
 ifneq (,$(findstring ls3x-float,$(FPU_TYPE)))
 LS3X_NEED_NO_ODD_SPREG := $(shell expr `echo $(TOOLCHAIN_VERSION_MAJOR)` \>= 5)
@@ -188,22 +201,30 @@ endif
 
 #*********************************************************************************************************
 # MIPS64 (SylixOS toolchain 4.9.3 has loongson3x '-mhard-float' patch)
+# mips64-sylixos-elf-ld default max page size is 64KB.
+# The max page size of MIPS64 in SylixOS is 256KB.
 #*********************************************************************************************************
 ifneq (,$(findstring mips64,$(TOOLCHAIN_PREFIX)))
 ARCH             = mips64
 ARCH_COMMONFLAGS = 
 
+ifneq ($(MAX_PAGE_SIZE),)
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
+else
+ARCH_MAX_PAGE_SIZE = 
+endif
+
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC -mabicalls
-ARCH_PIC_LDFLAGS = -mabicalls -Wl,-shared -fPIC -shared
+ARCH_PIC_LDFLAGS = -mabicalls -Wl,-shared -fPIC -shared $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_KO_CFLAGS   = -mlong-calls
-ARCH_KO_LDFLAGS  = -nostdlib -r
+ARCH_KO_LDFLAGS  = -nostdlib -r $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_KLIB_CFLAGS = -mlong-calls
 
 ARCH_KERNEL_CFLAGS  =
-ARCH_KERNEL_LDFLAGS =
+ARCH_KERNEL_LDFLAGS = $(ARCH_MAX_PAGE_SIZE)
 
 ifneq (,$(findstring ls3x-float,$(FPU_TYPE)))
 LS3X_NEED_NO_ODD_SPREG := $(shell expr `echo $(TOOLCHAIN_VERSION_MAJOR)` \>= 5)
@@ -229,22 +250,30 @@ endif
 
 #*********************************************************************************************************
 # PowerPC
+# ppc-sylixos-eabi-ld default max page size is 64KB.
+# The max page size of PowerPC in SylixOS is 64KB.
 #*********************************************************************************************************
 ifneq (,$(findstring ppc,$(TOOLCHAIN_PREFIX)))
 ARCH             = ppc
 ARCH_COMMONFLAGS = -G 0 -mstrict-align
 
+ifneq ($(MAX_PAGE_SIZE),)
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
+else
+ARCH_MAX_PAGE_SIZE = 
+endif
+
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
-ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_KO_CFLAGS   =
-ARCH_KO_LDFLAGS  = -nostdlib -r
+ARCH_KO_LDFLAGS  = -nostdlib -r $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_KLIB_CFLAGS =
 
 ARCH_KERNEL_CFLAGS  =
-ARCH_KERNEL_LDFLAGS =
+ARCH_KERNEL_LDFLAGS = $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_FPUFLAGS = -m$(FPU_TYPE)
 
@@ -295,6 +324,7 @@ endif
 
 #*********************************************************************************************************
 # SPARC (Need frame pointer code to debug)
+# The page size of SPARC in SylixOS is fixed at 4KB.
 #*********************************************************************************************************
 ifneq (,$(findstring sparc,$(TOOLCHAIN_PREFIX)))
 ARCH             = sparc
@@ -321,6 +351,7 @@ endif
 
 #*********************************************************************************************************
 # RISC-V (Need frame pointer code to debug)
+# The page size of RISC-V in SylixOS is fixed at 4KB.
 #*********************************************************************************************************
 ifneq (,$(findstring riscv,$(TOOLCHAIN_PREFIX)))
 ARCH             = riscv
@@ -349,22 +380,30 @@ endif
 
 #*********************************************************************************************************
 # C-SKY 
+# csky-sylixos-elfabiv2-ld default max page size is 4KB.
+# The max page size of C-SKY in SylixOS is 64KB.
 #*********************************************************************************************************
 ifneq (,$(findstring csky,$(TOOLCHAIN_PREFIX)))
 ARCH             = csky
 ARCH_COMMONFLAGS = -fno-omit-frame-pointer
 
+ifneq ($(MAX_PAGE_SIZE),)
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
+else
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=65536
+endif
+
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC 
-ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_KO_CFLAGS   = -Wa,-mno-force2bsr
-ARCH_KO_LDFLAGS  = -nostdlib -r
+ARCH_KO_LDFLAGS  = -nostdlib -r $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_KLIB_CFLAGS = -Wa,-mno-force2bsr
 
 ARCH_KERNEL_CFLAGS  =
-ARCH_KERNEL_LDFLAGS =
+ARCH_KERNEL_LDFLAGS = $(ARCH_MAX_PAGE_SIZE)
 
 ARCH_FPUFLAGS = -m$(FPU_TYPE)
 
