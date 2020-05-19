@@ -55,7 +55,7 @@ u_long    ipc_cnt[3];
 /*
  * ipc private lock and ipc id
  */
-static LW_LIST_LINE_HEADER ipc_id_hash_header[IPC_HASH_MASK]; /* ipc key hash table */
+static LW_LIST_LINE_HEADER ipc_id_hash_header[IPC_HASH_SIZE]; /* ipc key hash table */
 
 /*
  * ipc exit hook

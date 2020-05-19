@@ -1375,6 +1375,14 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
             continue;
         }
 
+#if LW_CFG_VMM_EN > 0
+        if (pphdr->p_align < LW_CFG_VMM_PAGE_SIZE) {                    /*  避免代码与数据在同一页面    */
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "alignment < page size!\r\n");
+            _ErrorHandle(ERROR_LOADER_FORMAT);
+            goto    __out0;
+        }
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+
         if (pphdr->p_vaddr < addrMin) {
             addrMin = pphdr->p_vaddr;
         }
