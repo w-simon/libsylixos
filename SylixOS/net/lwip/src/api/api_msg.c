@@ -85,6 +85,11 @@ static err_t lwip_netconn_do_writemore(struct netconn *conn  WRITE_DELAYED_PARAM
 static err_t lwip_netconn_do_close_internal(struct netconn *conn  WRITE_DELAYED_PARAM);
 #endif
 
+/* SylixOS Fixed here */
+#if defined(SYLIXOS) && LWIP_NETCONN_FULLDUPLEX
+static void netconn_mark_mbox_invalid(struct netconn *conn);
+#endif /* SYLIXOS && LWIP_NETCONN_FULLDUPLEX */
+
 static void netconn_drain(struct netconn *conn);
 
 #if LWIP_TCPIP_CORE_LOCKING
@@ -916,6 +921,10 @@ netconn_drain(struct netconn *conn)
           /* Only tcp pcbs have an acceptmbox, so no need to check conn->type */
           /* pcb might be set to NULL already by err_tcp() */
           /* drain recvmbox */
+#if defined(SYLIXOS) && LWIP_NETCONN_FULLDUPLEX /* SylixOS Fixed here */
+          /* Only listen no accept connect socket error */
+          netconn_mark_mbox_invalid(newconn);
+#endif
           netconn_drain(newconn);
           if (newconn->pcb.tcp != NULL) {
             tcp_abort(newconn->pcb.tcp);

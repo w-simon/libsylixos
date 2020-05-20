@@ -157,16 +157,21 @@ static INT  __inetPingRecv (INT  iSock, UINT16  usSeqRecv, INT  *piTTL)
             
             iphdrFrom   = (struct ip_hdr *)cBuffer;
             icmphdrFrom = (struct icmp_echo_hdr *)(cBuffer + (IPH_HL(iphdrFrom) * 4));
-            
-            if ((icmphdrFrom->id == 0xAFAF) && (icmphdrFrom->seqno == htons(usSeqRecv))) {
-                *piTTL = 0;
-                *piTTL = (u8_t)IPH_TTL(iphdrFrom);
-                return  (ERROR_NONE);
+            if (ICMPH_TYPE(icmphdrFrom) == ICMP_ER) {
+                if ((icmphdrFrom->id == 0xAFAF) && (icmphdrFrom->seqno == htons(usSeqRecv))) {
+                    *piTTL = 0;
+                    *piTTL = (u8_t)IPH_TTL(iphdrFrom);
+                    return  (ERROR_NONE);
+                } else {
+                    iCnt--;
+                }
             }
+
+        } else {
+            iCnt--;
         }
         
-        iCnt--;                                                         /*  接收到错误的数据包太多      */
-        if (iCnt < 0) {
+        if (iCnt < 0) {                                                 /*  接收到错误的数据包太多      */
             break;                                                      /*  退出                        */
         }
     }

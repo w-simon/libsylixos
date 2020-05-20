@@ -529,7 +529,7 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
     if (IP_IS_V4_VAL(pcb->local_ip)) {
         if (pcb->state == LISTEN) {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                               "%-20s %-20s %-8s %7d %7d %7d\n",
+                               "%-21s %-21s %-8s %7d %7d %7d\n",
                                __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                                 cBuffer1, sizeof(cBuffer1)),
                                "*:*",
@@ -537,12 +537,13 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
                                0, 0, 0);
         } else {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                               "%-20s %-20s %-8s %7d %7d %7d\n",
+                               "%-21s %-21s %-8s %-2s %7d %7d %7d\n",
                                __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                                 cBuffer1, sizeof(cBuffer1)),
                                __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
                                                 cBuffer2, sizeof(cBuffer2)),
                                __TcpGetStat((u8_t)pcb->state),
+                               ip_get_option(pcb, SO_KEEPALIVE) ? "*" : "",
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
         }
     
@@ -559,14 +560,55 @@ static VOID  __TcpPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
                                0, 0, 0);
         } else {
             *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                               "%-44s %-44s %-8s %7d %7d %7d\n",
+                               "%-44s %-44s %-8s %-2s %7d %7d %7d\n",
                                __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                                 cBuffer1, sizeof(cBuffer1)),
                                __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
                                                 cBuffer2, sizeof(cBuffer2)),
                                __TcpGetStat((u8_t)pcb->state),
+                               ip_get_option(pcb, SO_KEEPALIVE) ? "*" : "",
                                (u32_t)pcb->nrtx, (u32_t)pcb->rcv_wnd, (u32_t)pcb->snd_wnd);
         }
+#endif                                                                  /*  LWIP_IPV6                   */
+    }
+}
+/*********************************************************************************************************
+** 函数名称: __TcpKaPrint
+** 功能描述: 打印网络 tcp KEEPALIVE 文件
+** 输　入  : pcb           tcp 控制块
+**           pcBuffer      缓冲
+**           stTotalSize   缓冲区大小
+**           pstOft        当前偏移量
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __TcpKaPrint (struct tcp_pcb *pcb, PCHAR  pcBuffer,
+                           size_t  stTotalSize, size_t *pstOft)
+{
+    CHAR    cBuffer1[INET6_ADDRSTRLEN];
+    CHAR    cBuffer2[INET6_ADDRSTRLEN];
+
+    if (IP_IS_V4_VAL(pcb->local_ip)) {
+        *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                           "%-21s %-21s %-8s %7d %8d %3d\n",
+                           __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
+                                            cBuffer1, sizeof(cBuffer1)),
+                           __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
+                                            cBuffer2, sizeof(cBuffer2)),
+                           __TcpGetStat((u8_t)pcb->state),
+                           (u32_t)pcb->keep_idle, (u32_t)pcb->keep_intvl, (u32_t)pcb->keep_cnt);
+
+#if LWIP_IPV6
+    } else {
+        *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
+                           "%-44s %-44s %-8s %7d %8d %3d\n",
+                           __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
+                                            cBuffer1, sizeof(cBuffer1)),
+                           __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
+                                            cBuffer2, sizeof(cBuffer2)),
+                           __TcpGetStat((u8_t)pcb->state),
+                           (u32_t)pcb->keep_idle, (u32_t)pcb->keep_intvl, (u32_t)pcb->keep_cnt);
 #endif                                                                  /*  LWIP_IPV6                   */
     }
 }
@@ -584,7 +626,7 @@ VOID  __tshellNetstatTcpListen (INT  iNetType)
 {
 #if LWIP_TCP
     const CHAR      cTcpInfoHdr[] = 
-    "LOCAL                REMOTE               STATUS   RETRANS RCV_WND SND_WND\n";
+    "LOCAL                 REMOTE                STATUS   RETRANS RCV_WND SND_WND\n";
     
     const CHAR      cTcp6InfoHdr[] = 
     "\nLOCAL6                                       REMOTE6                                      "
@@ -668,11 +710,11 @@ VOID  __tshellNetstatTcp (INT  iNetType)
 {
 #if LWIP_TCP
     const CHAR      cTcpInfoHdr[] = 
-    "LOCAL                REMOTE               STATUS   RETRANS RCV_WND SND_WND\n";
+    "LOCAL                 REMOTE                STATUS   KA RETRANS RCV_WND SND_WND\n";
     
     const CHAR      cTcp6InfoHdr[] = 
     "\nLOCAL6                                       REMOTE6                                      "
-    "STATUS   RETRANS RCV_WND SND_WND\n";
+    "STATUS   KA RETRANS RCV_WND SND_WND\n";
     
     struct tcp_pcb  *pcb;
     PCHAR            pcPrintBuf;
@@ -765,13 +807,97 @@ VOID  __tshellNetstatTcp (INT  iNetType)
 /*********************************************************************************************************
 ** 函数名称: __UdpPrint
 ** 功能描述: 打印网络 udp 文件
+** 输　入  : iNetType      网络类型
+** 输　出  : ERROR_NONE
+** 全局变量: 
+** 调用模块: 
+*********************************************************************************************************/
+VOID  __tshellNetstatKeepalive (INT  iNetType)
+{
+#if LWIP_TCP
+    const CHAR      cTcpInfoHdr[] =
+    "LOCAL                 REMOTE                STATUS      IDLE INTERVAL CNT\n";
+
+    const CHAR      cTcp6InfoHdr[] =
+    "\nLOCAL6                                       REMOTE6                                      "
+    "STATUS      IDLE INTERVAL CNT\n";
+
+    struct tcp_pcb  *pcb;
+    PCHAR            pcPrintBuf;
+    size_t           stRealSize = 0;
+    size_t           stNeedBufferSize = 0;
+    BOOL             b4 = LW_FALSE, b6 = LW_FALSE;
+
+    LOCK_TCPIP_CORE();
+    if (__NETSTAT_INC_IPV4(iNetType)) {
+        for (pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
+            if (IP_IS_V4_VAL(pcb->local_ip) && ip_get_option(pcb, SO_KEEPALIVE)) {
+                stNeedBufferSize += 128;
+                b4 = LW_TRUE;
+            }
+        }
+    }
+    if (__NETSTAT_INC_IPV6(iNetType)) {
+        for (pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
+            if (!IP_IS_V4_VAL(pcb->local_ip) && ip_get_option(pcb, SO_KEEPALIVE)) {
+                stNeedBufferSize += 128;
+                b6 = LW_TRUE;
+            }
+        }
+    }
+    UNLOCK_TCPIP_CORE();
+
+    if (stNeedBufferSize == 0) {
+        return;
+    }
+
+    stNeedBufferSize += sizeof(cTcpInfoHdr) + sizeof(cTcp6InfoHdr);
+
+    pcPrintBuf = (PCHAR)__SHEAP_ALLOC(stNeedBufferSize);
+    if (!pcPrintBuf) {
+        fprintf(stderr, "no memory!\n");
+        _ErrorHandle(ENOMEM);
+        return;
+    }
+
+    printf("--KEEPALIVE--:\n");
+
+    LOCK_TCPIP_CORE();
+    if (__NETSTAT_INC_IPV4(iNetType) && b4) {
+        stRealSize = bnprintf(pcPrintBuf, stNeedBufferSize, stRealSize,
+                              cTcpInfoHdr);
+        for (pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
+            if (IP_IS_V4_VAL(pcb->local_ip) && ip_get_option(pcb, SO_KEEPALIVE)) {
+                __TcpKaPrint(pcb, pcPrintBuf, stNeedBufferSize, &stRealSize);
+            }
+        }
+    }
+    if (__NETSTAT_INC_IPV6(iNetType) && b6) {
+        stRealSize = bnprintf(pcPrintBuf, stNeedBufferSize, stRealSize,
+                              cTcp6InfoHdr);
+        for (pcb = tcp_active_pcbs; pcb != NULL; pcb = pcb->next) {
+            if (!IP_IS_V4_VAL(pcb->local_ip) && ip_get_option(pcb, SO_KEEPALIVE)) {
+                __TcpKaPrint(pcb, pcPrintBuf, stNeedBufferSize, &stRealSize);
+            }
+        }
+    }
+    UNLOCK_TCPIP_CORE();
+
+    printf("%s\n", pcPrintBuf);
+
+    __SHEAP_FREE(pcPrintBuf);
+#endif                                                                  /*  LWIP_TCP                    */
+}
+/*********************************************************************************************************
+** 函数名称: __UdpPrint
+** 功能描述: 打印网络 udp 文件
 ** 输　入  : pcb           tcp 控制块
 **           pcBuffer      缓冲
 **           stTotalSize   缓冲区大小
 **           pstOft        当前偏移量
 ** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
 #if LWIP_UDP
 
@@ -783,7 +909,7 @@ static VOID  __UdpPrint (struct udp_pcb *pcb, PCHAR  pcBuffer,
 
     if (IP_IS_V4_VAL(pcb->local_ip)) {
         *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                           "%-20s %-20s %s\n",
+                           "%-21s %-21s %s\n",
                            __ProtoAddrBuild(&pcb->local_ip, pcb->netif_idx, pcb->local_port,
                                             cBuffer1, sizeof(cBuffer1)),
                            __ProtoAddrBuild(&pcb->remote_ip, pcb->netif_idx, pcb->remote_port,
@@ -815,7 +941,7 @@ VOID  __tshellNetstatUdp (INT  iNetType)
 {
 #if LWIP_UDP
     const CHAR      cUdpInfoHdr[] = 
-    "LOCAL                REMOTE               UDPLITE\n";
+    "LOCAL                 REMOTE                UDPLITE\n";
     
     const CHAR      cUdp6InfoHdr[] = 
     "\nLOCAL6                                       REMOTE6                                      UDPLITE\n";

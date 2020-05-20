@@ -207,13 +207,19 @@ static INT  __inetPing6Recv (INT  iSock, UINT16  usSeqRecv, INT  *piHL)
             
 __hdrlen_cal_ok:
             icmp6hdrFrom = (struct icmp6_echo_hdr *)(cBuffer + totalhlen);
-            if ((icmp6hdrFrom->id == 0xAFAF) && (icmp6hdrFrom->seqno == htons(usSeqRecv))) {
-                return  (ERROR_NONE);
+            if (icmp6hdrFrom->type == ICMP6_TYPE_EREP) {
+                if ((icmp6hdrFrom->id == 0xAFAF) && (icmp6hdrFrom->seqno == htons(usSeqRecv))) {
+                    return  (ERROR_NONE);
+                } else {
+                    iCnt--;
+                }
             }
+
+        } else {
+            iCnt--;
         }
-        
-        iCnt--;                                                         /*  接收到错误的数据包太多      */
-        if (iCnt < 0) {
+
+        if (iCnt < 0) {                                                 /*  接收到错误的数据包太多      */
             break;                                                      /*  退出                        */
         }
     }

@@ -94,6 +94,7 @@ static const CHAR   _G_cNetstatHelp[] = {
     "-p, --packet           display packet socket information\n"
     "-x, --unix             display unix socket information\n\n"
     "-l, --listening        display listening server sockets\n"
+    "-k, --keepalive        display tcp keepalive information\n"
     "-a, --all              display all sockets\n\n"
     "-A <net type>, --<net type>    select <net type>, <net type>=inet, inet6 or unix\n"
 };
@@ -108,6 +109,7 @@ extern VOID  __tshellNetstatTcpListen(INT  iNetType);
 extern VOID  __tshellNetstatUdp(INT  iNetType);
 extern VOID  __tshellNetstatUnix(INT  iNetType);
 extern VOID  __tshellNetstatPacket(INT  iNetType);
+extern VOID  __tshellNetstatKeepalive(INT  iNetType);
 /*********************************************************************************************************
 ** 函数名称: __tshellNetstat
 ** 功能描述: 系统命令 "netstat"
@@ -120,7 +122,7 @@ extern VOID  __tshellNetstatPacket(INT  iNetType);
 static INT  __tshellNetstat (INT  iArgC, PCHAR  *ppcArgV)
 {
     int             iC;
-    const  char     cShortOpt[] = "hrigswtpuxlaA:";
+    const  char     cShortOpt[] = "hrigswtpuxlakA:";
     struct option   optionNetstat[] = {
         {"help",       0, LW_NULL, 'h'},
         {"route",      0, LW_NULL, 'r'},
@@ -134,6 +136,7 @@ static INT  __tshellNetstat (INT  iArgC, PCHAR  *ppcArgV)
         {"unix",       0, LW_NULL, 'x'},
         {"listening",  0, LW_NULL, 'l'},
         {"all",        0, LW_NULL, 'a'},
+        {"keepalive",  0, LW_NULL, 'k'},
         {"unix",       0, LW_NULL, 1},
         {"inet",       0, LW_NULL, 2},
         {"inet6",      0, LW_NULL, 3},
@@ -173,6 +176,10 @@ static INT  __tshellNetstat (INT  iArgC, PCHAR  *ppcArgV)
 #endif
             return  (ERROR_NONE);
         
+        case 'k':                                                       /*  显示 KEEPALIVE 信息         */
+            __tshellNetstatKeepalive(iNetType);
+            return  (ERROR_NONE);
+
         case 's':                                                       /*  显示统计信息                */
             __tshellNetstatStat();
             return  (ERROR_NONE);

@@ -181,6 +181,11 @@ ULONG  API_TimeSleepUntil (clockid_t  clockid, const struct timespec  *tv, BOOL 
         return  (EINVAL);
     }
     
+    if (!tv || LW_NSEC_INVALD(tv->tv_nsec)) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+
     lib_clock_gettime(clockid, &tvNow);
     if (!__timespecLeftTime(&tvNow, tv)) {
         return  (ERROR_NONE);
