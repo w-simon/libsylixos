@@ -2036,8 +2036,7 @@ static INT  __fatFsReadDir (PLW_FD_ENTRY  pfdentry, DIR  *dir)
         iError  = PX_ERROR;
     
     } else if (fileinfo.fname[0] == PX_EOS) {                           /*  目录结束                    */
-        ulError = ENOENT;
-        iError  = PX_ERROR;
+        iError  = PX_ERROR;                                             /*  不设置 errno                */
     
     } else {
         dir->dir_pos = pfatfile->FATFIL_fftm.FFTM_fatdir.dptr;          /*  记录下次地点                */

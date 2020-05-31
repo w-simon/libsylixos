@@ -284,7 +284,7 @@ VOID    API_IoFdShow (VOID)
     		      i, pcAbnormal,
     		      (pfdentry->FDENTRY_pcName == LW_NULL) ? "(unknown)" : pfdentry->FDENTRY_pcName,
     		      pcType,
-    		      pfdentry->FDENTRY_pdevhdrHdr->DEVHDR_usDrvNum, 
+    		      (pfdentry->FDENTRY_pdevhdrHdr == LW_NULL) ? 0 : pfdentry->FDENTRY_pdevhdrHdr->DEVHDR_usDrvNum,
     		      pcStin, pcStout, pcSterr);
         }
     }
@@ -355,7 +355,7 @@ VOID    API_IoFdentryShow (VOID)
                (pfdentry->FDENTRY_pcName == LW_NULL) ? "(unknown)" : pfdentry->FDENTRY_pcName,
                (pfdentry->FDENTRY_pcRealName == LW_NULL) ? "(unknown)" : pfdentry->FDENTRY_pcRealName,
                pcType,
-               pfdentry->FDENTRY_pdevhdrHdr->DEVHDR_usDrvNum);
+               (pfdentry->FDENTRY_pdevhdrHdr == LW_NULL) ? 0 : pfdentry->FDENTRY_pdevhdrHdr->DEVHDR_usDrvNum);
          
     }
     _IosUnlock();                                                       /*  ÍË³ö IO ÁÙ½çÇø              */

@@ -772,7 +772,11 @@ VOID  sync (VOID)
         pfdentry = _LIST_ENTRY(plineFdEntry, LW_FD_ENTRY, FDENTRY_lineManage);
         pdevhdr = pfdentry->FDENTRY_pdevhdrHdr;
         plineFdEntry = _list_line_get_next(plineFdEntry);
-        
+
+        if (!pdevhdr) {                                                 /*  未设置设备头不操作          */
+            continue;
+        }
+
         if ((pdevhdr->DEVHDR_ucType == DT_CHR)  ||
             (pdevhdr->DEVHDR_ucType == DT_FIFO) ||
             (pdevhdr->DEVHDR_ucType == DT_SOCK)) {                      /*  CHR, FIFO, SOCK 不操作      */

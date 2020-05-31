@@ -359,6 +359,10 @@ ULONG  API_IosDrvRemove (INT  iDrvNum, BOOL  bForceClose)
         pfdentry = _LIST_ENTRY(plineFdEntry, LW_FD_ENTRY, FDENTRY_lineManage);
         plineFdEntry = _list_line_get_next(plineFdEntry);
         
+        if (!pfdentry->FDENTRY_pdevhdrHdr) {
+            continue;
+        }
+
         if (pfdentry->FDENTRY_pdevhdrHdr->DEVHDR_usDrvNum == (UINT16)iDrvNum) {
             if (bForceClose == LW_FALSE) {
                 _IosUnlock();                                           /*  ÍË³ö IO ÁÙ½çÇø              */

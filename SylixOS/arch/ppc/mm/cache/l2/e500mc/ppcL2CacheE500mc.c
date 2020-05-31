@@ -187,6 +187,8 @@ VOID  ppcE500mcL2CacheInit (L2C_DRVIER  *pl2cdrv,
     uil2CacheSize = (ppcE500mcGetL2Cfg0() & L2CFG0_L2CSIZE_MSK) * 0x10000;
 
     PPC_E500_DCACHE_FLUSH_NUM = (uil2CacheSize * 3) / (2 * PPC_E500_DCACHE_ALIGN_SIZE);
+
+    ppcE500mcL2CacheDisable();
 }
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

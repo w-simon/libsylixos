@@ -68,13 +68,16 @@ PLW_FD_NODE  API_IosFdNodeAdd (LW_LIST_LINE_HEADER  *pplineHeader,
         if ((pfdnode->FDNODE_dev     == dev) &&
             (pfdnode->FDNODE_inode64 == inode64)) {                     /*  重复打开                    */
             
-            if (pfdnode->FDNODE_bRemove ||
-                (pfdnode->FDNODE_ulLock && 
-                (iFlags & (O_WRONLY | O_RDWR | O_TRUNC)))) {
-                _ErrorHandle(EBUSY);                                    /*  文件被锁定或者请求删除      */
+            if (pfdnode->FDNODE_ulLock &&
+                (iFlags & (O_WRONLY | O_RDWR | O_TRUNC))) {
+                _ErrorHandle(EBUSY);                                    /*  文件被锁定                  */
                 return  (LW_NULL);
             }
             
+            if (pfdnode->FDNODE_bRemove && (iFlags & O_CREAT)) {        /*  删除后再创建                */
+                pfdnode->FDNODE_bRemove = LW_FALSE;                     /*  清除 Remove 标志            */
+            }
+
             pfdnode->FDNODE_ulRef++;
             if (pbIsNew) {
                 *pbIsNew = LW_FALSE;                                    /*  只增加引用非创建            */
