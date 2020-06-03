@@ -539,7 +539,7 @@ static INT  __tshellFsCmdTouch (INT  iArgC, PCHAR  ppcArgV[])
     (VOID)iAflag;                                                       /*  暂时不使用                  */
     (VOID)iMflag;
     
-    if (iCflag == 0) {
+    if ((iCflag == 0) && (access(ppcArgV[iFileNameIndex], R_OK) < 0)) {
         iFd = open(ppcArgV[iFileNameIndex], O_WRONLY | O_CREAT | O_TRUNC, DEFAULT_FILE_PERM);
         if (iFd < 0) {
             if (errno == EACCES) {

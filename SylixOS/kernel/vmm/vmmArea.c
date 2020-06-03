@@ -196,8 +196,8 @@ ULONG  __areaVirtualSpaceInit (LW_MMU_VIRTUAL_DESC   pvirdes[])
         if (ulAddr > pvirdes[i].VIRD_ulVirAddr) {
             ulAddr = pvirdes[i].VIRD_ulVirAddr;
         }
-        if (ulEnd < (pvirdes[i].VIRD_ulVirAddr + pvirdes[i].VIRD_stSize)) {
-            ulEnd = (pvirdes[i].VIRD_ulVirAddr + pvirdes[i].VIRD_stSize);
+        if (ulEnd < (pvirdes[i].VIRD_ulVirAddr + pvirdes[i].VIRD_stSize - 1)) {
+            ulEnd = (pvirdes[i].VIRD_ulVirAddr + pvirdes[i].VIRD_stSize - 1);
         }
     }
     
@@ -206,7 +206,7 @@ ULONG  __areaVirtualSpaceInit (LW_MMU_VIRTUAL_DESC   pvirdes[])
         return  (ENOSPC);
     }
     
-    return  (__areaSpaceInit(&pmmuctx->MMUCTX_vmareaVirSpace, ulAddr, (size_t)(ulEnd - ulAddr)));
+    return  (__areaSpaceInit(&pmmuctx->MMUCTX_vmareaVirSpace, ulAddr, (size_t)(ulEnd - ulAddr + 1)));
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __areaPhysicalSpaceInit

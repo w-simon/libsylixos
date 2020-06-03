@@ -80,28 +80,33 @@ PLW_MMU_CONTEXT __vmmGetCurCtx (VOID)
 BOOL  __vmmLibVirtualOverlap (addr_t  ulAddr, size_t  stSize)
 {
 #define __ADDR_OVERLAP(pvirdesc, addr)    \
-        if (((addr) >= pvirdesc->VIRD_ulVirAddr) && \
-            ((addr) < (pvirdesc->VIRD_ulVirAddr +   \
-                       pvirdesc->VIRD_stSize))) {   \
+        if (((addr) >=  pvirdesc->VIRD_ulVirAddr) && \
+            ((addr) <= (pvirdesc->VIRD_ulVirAddr +   \
+                        pvirdesc->VIRD_stSize - 1))) {   \
             return  (LW_TRUE);  \
         }
 
     INT                     i;
     PLW_MMU_VIRTUAL_DESC    pvirdescApp;
     PLW_MMU_VIRTUAL_DESC    pvirdescDev;
+    addr_t                  ulEnd = ulAddr + stSize - 1;
+
+    if (ulEnd <= ulAddr) {
+        return  (LW_TRUE);
+    }
 
     for (i = 0; i < LW_CFG_VMM_VIR_NUM; i++) {
         pvirdescApp = __vmmVirtualDesc(LW_VIRTUAL_MEM_APP, i, LW_NULL);
         if (pvirdescApp->VIRD_stSize) {
             __ADDR_OVERLAP(pvirdescApp, ulAddr);
-            __ADDR_OVERLAP(pvirdescApp, ulAddr + stSize - 1);
+            __ADDR_OVERLAP(pvirdescApp, ulEnd);
         }
     }
 
     pvirdescDev = __vmmVirtualDesc(LW_VIRTUAL_MEM_DEV, 0, LW_NULL);
     if (pvirdescDev->VIRD_stSize) {
         __ADDR_OVERLAP(pvirdescDev, ulAddr);
-        __ADDR_OVERLAP(pvirdescDev, ulAddr + stSize - 1);
+        __ADDR_OVERLAP(pvirdescDev, ulEnd);
     }
 
     return  (LW_FALSE);

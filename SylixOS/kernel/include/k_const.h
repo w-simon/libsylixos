@@ -61,22 +61,24 @@
   内核配置
 *********************************************************************************************************/
 
-#define LW_KERN_FLAG_INT_FPU        0x0001                              /*  中断中是否可以使用浮点      */
-#define LW_KERN_FLAG_BUG_REBOOT     0x0002                              /*  内核探测到 BUG 是否需要重启 */
-#define LW_KERN_FLAG_SMP_FSCHED     0x0004                              /*  SMP 是否使能快速调度        */
+#define LW_KERN_FLAG_INT_FPU            0x0001                          /*  中断中是否可以使用浮点      */
+#define LW_KERN_FLAG_BUG_REBOOT         0x0002                          /*  内核探测到 BUG 是否需要重启 */
+#define LW_KERN_FLAG_SMP_FSCHED         0x0004                          /*  SMP 是否使能快速调度        */
                                                                         /*  快速调度将产生大量的核间中断*/
-#define LW_KERN_FLAG_SMT_BSCHED     0x0008                              /*  SMT 均衡调度                */
-#define LW_KERN_FLAG_NO_ITIMER      0x0010                              /*  不支持 ITIMER_REAL          */
+#define LW_KERN_FLAG_SMT_BSCHED         0x0008                          /*  SMT 均衡调度                */
+#define LW_KERN_FLAG_NO_ITIMER          0x0010                          /*  不支持 ITIMER_REAL          */
                                                                         /*         ITIMER_VIRTUAL       */
                                                                         /*         ITIMER_PROF          */
                                                                         /*  提高 tick 中断执行速度      */
-#define LW_KERN_FLAG_TMCVT_SIMPLE   0x0020                              /*  timespec 转换为 tick 方法   */
-#define LW_KERN_FLAG_INT_DSP        0x0040                              /*  中断中是否可以使用 DSP      */
-#define LW_KERN_FLAG_NET_LOCK_FIFO  0x0080                              /*  网络锁 FIFO 等待            */
-#define LW_KERN_FLAG_AUTO_REC_TCB   0x0100                              /*  自动回收 TCB 兼容 1.9.7 之前*/
+#define LW_KERN_FLAG_TMCVT_SIMPLE       0x0020                          /*  timespec 转换为 tick 方法   */
+#define LW_KERN_FLAG_INT_DSP            0x0040                          /*  中断中是否可以使用 DSP      */
+#define LW_KERN_FLAG_NET_LOCK_FIFO      0x0080                          /*  网络锁 FIFO 等待            */
+#define LW_KERN_FLAG_AUTO_REC_TCB       0x0100                          /*  自动回收 TCB 兼容 1.9.7 之前*/
                                                                         /*  版本, 非 detach 线程删除后  */
                                                                         /*  立即释放 TCB                */
-#define LW_KERN_FLAG_TEXT_RO        0x0200                              /*  内核 TEXT 只读              */
+#define LW_KERN_FLAG_TEXT_RO            0x0200                          /*  内核 TEXT 只读              */
+#define LW_KERN_FLAG_REBOOT_VMM_EN      0x0400                          /*  内核重启时保持 VMM 使能     */
+#define LW_KERN_FLAG_REBOOT_CACHE_EN    0x0800                          /*  内核重启时保持 CACHE 使能   */
 
 /*********************************************************************************************************
   内核是否支持浮点状态
@@ -219,6 +221,34 @@
             }                                               \
         } while (0)
 #define LW_KERN_TEXT_RO_GET()   (_K_ulKernFlags & LW_KERN_FLAG_TEXT_RO)
+
+/*********************************************************************************************************
+  内核重启时是否保持 VMM 使能
+*********************************************************************************************************/
+
+#define LW_KERN_REBOOT_VMM_EN_SET(en)                           \
+        do {                                                    \
+            if (en) {                                           \
+                _K_ulKernFlags |= LW_KERN_FLAG_REBOOT_VMM_EN;   \
+            } else {                                            \
+                _K_ulKernFlags &= ~LW_KERN_FLAG_REBOOT_VMM_EN;  \
+            }                                                   \
+        } while (0)
+#define LW_KERN_REBOOT_VMM_EN_GET()     (_K_ulKernFlags & LW_KERN_FLAG_REBOOT_VMM_EN)
+
+/*********************************************************************************************************
+  内核重启时是否保持 CACHE 使能
+*********************************************************************************************************/
+
+#define LW_KERN_REBOOT_CACHE_EN_SET(en)                         \
+        do {                                                    \
+            if (en) {                                           \
+                _K_ulKernFlags |= LW_KERN_FLAG_REBOOT_CACHE_EN; \
+            } else {                                            \
+                _K_ulKernFlags &= ~LW_KERN_FLAG_REBOOT_CACHE_EN;\
+            }                                                   \
+        } while (0)
+#define LW_KERN_REBOOT_CACHE_EN_GET()   (_K_ulKernFlags & LW_KERN_FLAG_REBOOT_CACHE_EN)
 
 /*********************************************************************************************************
   系统状态

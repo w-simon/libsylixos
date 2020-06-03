@@ -262,6 +262,26 @@ ULONG  API_KernelStartParam (CPCHAR  pcParam)
         }
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0)      */
 
+#if LW_CFG_CACHE_EN > 0
+          else if (lib_strncmp(pcTok, "rebootcacheen=", 14) == 0) {     /*  重启时保持 CACHE 使能       */
+              if (pcTok[14] == 'n') {
+                  LW_KERN_REBOOT_CACHE_EN_SET(LW_FALSE);
+              } else {
+                  LW_KERN_REBOOT_CACHE_EN_SET(LW_TRUE);
+              }
+        }
+#endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
+
+#if LW_CFG_VMM_EN > 0
+          else if (lib_strncmp(pcTok, "rebootvmmen=", 12) == 0) {       /*  重启时保持 VMM 使能         */
+              if (pcTok[12] == 'n') {
+                  LW_KERN_REBOOT_VMM_EN_SET(LW_FALSE);
+              } else {
+                  LW_KERN_REBOOT_VMM_EN_SET(LW_TRUE);
+              }
+        }
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+
 #ifdef __ARCH_KERNEL_PARAM
           else {
             __ARCH_KERNEL_PARAM(pcTok);                                 /*  体系结构相关参数            */

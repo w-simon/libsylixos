@@ -575,7 +575,7 @@ ULONG  __vmmPhysicalGetZone (addr_t  ulAddr)
             break;
         }
         if ((ulAddr >= pvmzone->ZONE_ulAddr) &&
-            (ulAddr <  pvmzone->ZONE_ulAddr + pvmzone->ZONE_stSize)) {
+            (ulAddr <= pvmzone->ZONE_ulAddr + pvmzone->ZONE_stSize - 1)) {
             return  ((ULONG)i);
         }
     }

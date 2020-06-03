@@ -229,14 +229,14 @@ VOID   API_KernelRebootEx (INT  iRebootType, addr_t  ulStartAddress)
     iregInterLevel = __KERNEL_ENTER_IRQ();                              /*  进入内核同时关闭中断        */
 
 #if LW_CFG_CACHE_EN > 0
-    if (LW_NCPUS <= 1) {
+    if ((LW_NCPUS <= 1) && !LW_KERN_REBOOT_CACHE_EN_GET()) {
         API_CacheDisable(DATA_CACHE);                                   /*  禁能 CACHE                  */
         API_CacheDisable(INSTRUCTION_CACHE);
     }
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 
 #if LW_CFG_VMM_EN > 0
-    if (LW_NCPUS <= 1) {
+    if ((LW_NCPUS <= 1) && !LW_KERN_REBOOT_VMM_EN_GET()) {
         API_VmmMmuDisable();                                            /*  关闭 MMU                    */
     }
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

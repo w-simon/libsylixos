@@ -211,12 +211,16 @@ static LW_INLINE VOID  _SchedCpuDown (PLW_CLASS_CPU  pcpuCur, BOOL  bIsIntSwitch
     LW_SPIN_KERN_UNLOCK_SCHED(ptcbCur);                                 /*  解锁内核 spinlock           */
 
 #if LW_CFG_CACHE_EN > 0
-    API_CacheDisable(DATA_CACHE);                                       /*  禁能 CACHE                  */
-    API_CacheDisable(INSTRUCTION_CACHE);
+    if (!LW_KERN_REBOOT_CACHE_EN_GET()) {
+        API_CacheDisable(DATA_CACHE);                                   /*  禁能 CACHE                  */
+        API_CacheDisable(INSTRUCTION_CACHE);
+    }
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
 
 #if LW_CFG_VMM_EN > 0
-    API_VmmMmuDisable();                                                /*  关闭 MMU                    */
+    if (!LW_KERN_REBOOT_VMM_EN_GET()) {
+        API_VmmMmuDisable();                                            /*  关闭 MMU                    */
+    }
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     LW_SPINLOCK_NOTIFY();

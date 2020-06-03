@@ -109,7 +109,7 @@ static BOOL  __vmmVirtualGetZone (addr_t  ulAddr)
             break;
         }
         if ((ulAddr >= pvmzone->ZONE_ulAddr) &&
-            (ulAddr <  pvmzone->ZONE_ulAddr + pvmzone->ZONE_stSize)) {
+            (ulAddr <= pvmzone->ZONE_ulAddr + pvmzone->ZONE_stSize - 1)) {
             return  ((ULONG)i);
         }
     }
@@ -147,6 +147,7 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
     REGISTER ULONG  ulError = ERROR_NONE;
              ULONG  ulZone  = 0;
              addr_t ulAddr;
+             size_t stSize;
              INT    i;
     
     for (i = 0; ; i++) {
@@ -173,13 +174,15 @@ ULONG  __vmmVirtualCreate (LW_MMU_VIRTUAL_DESC   pvirdes[])
                 _G_vmvirDescApp[ulZone] = pvirdes[i];
                 if (_G_ulVmmSwitchAddr == PAGE_MAP_ADDR_INV) {
                     _G_ulVmmSwitchAddr =  pvirdes[i].VIRD_ulVirAddr;
-                    ulAddr =  _G_ulVmmSwitchAddr + LW_CFG_VMM_PAGE_SIZE;
-                
+                    ulAddr = _G_ulVmmSwitchAddr + LW_CFG_VMM_PAGE_SIZE;
+                    stSize = pvirdes[i].VIRD_stSize - LW_CFG_VMM_PAGE_SIZE;
+
                 } else {
-                    ulAddr =  pvirdes[i].VIRD_ulVirAddr;
+                    ulAddr = pvirdes[i].VIRD_ulVirAddr;
+                    stSize = pvirdes[i].VIRD_stSize;
                 }
                 ulError = __pageZoneCreate(&_G_vmzoneVirApp[ulZone], 
-                                           ulAddr, pvirdes[i].VIRD_stSize, 
+                                           ulAddr, stSize,
                                            LW_ZONE_ATTR_NONE,
                                            __VMM_PAGE_TYPE_VIRTUAL);
                 if (ulError) {
