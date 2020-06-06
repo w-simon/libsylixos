@@ -193,6 +193,9 @@ INT  fcntl (INT  iFd, INT  iCmd, ...)
         va_end(varlist);
         break;
     
+    case F_VALID:                                                       /* Is the file descriptor valid */
+        break;
+
     default:                                                            /*  其他命令系统目前不支持      */
         errno = ENOSYS;
         return  (PX_ERROR);
