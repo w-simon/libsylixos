@@ -14,6 +14,8 @@
 
 #if LW_CFG_VP_HEAP_ALGORITHM == 3
 
+#include "ptmalloc3_sylixos.h"
+
 /*
  * sbrk lock
  */
@@ -52,7 +54,7 @@ void *ptmalloc_sbrk (int  size)
     if (size == 0) {
         return  (previous_top);
 
-    } else if (size < 0) {
+    } else if ((size < 0) || (size >= DEFAULT_MMAP_THRESHOLD)) {
         return  ((void *)(-1));
     }
 

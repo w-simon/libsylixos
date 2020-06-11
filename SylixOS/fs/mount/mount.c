@@ -78,6 +78,10 @@ static LW_OBJECT_HANDLE     _G_ulMountLock         = 0ul;
 #define __LW_MOUNT_LOCK()   API_SemaphoreMPend(_G_ulMountLock, LW_OPTION_WAIT_INFINITE)
 #define __LW_MOUNT_UNLOCK() API_SemaphoreMPost(_G_ulMountLock)
 /*********************************************************************************************************
+  自动挂载器操作
+*********************************************************************************************************/
+extern VOID  __oemAutoMountDelete(CPCHAR  pcVol);
+/*********************************************************************************************************
 ** 函数名称: __mount
 ** 功能描述: 挂载一个分区(内部函数)
 ** 输　入  : pcDevName         块设备名   例如: /dev/sda1
@@ -229,6 +233,10 @@ static INT  __unmount (CPCHAR  pcVolName)
         if (API_IosDevMatchFull(pcVolName)) {                           /*  如果是设备, 这里就卸载设备  */
             iError = unlink(pcVolName);
             __LW_MOUNT_UNLOCK();
+
+            if (iError == ERROR_NONE) {
+                __oemAutoMountDelete(pcVolName);                        /*  尝试删除自动加载器信息      */
+            }
             return  (iError);
         }
         

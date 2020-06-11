@@ -152,7 +152,7 @@ INT  API_PtyDevCreate (PCHAR   pcName,
         return  (PX_ERROR);
     }
 
-    if (!pcName) {
+    if (!pcName || (lib_strlen(pcName) > (PATH_MAX - 4))) {
         _ErrorHandle(EFAULT);                                           /*  Bad address                 */
         return  (PX_ERROR);
     }

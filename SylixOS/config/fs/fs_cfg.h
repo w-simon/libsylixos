@@ -57,6 +57,9 @@
 #define LW_CFG_DISKCACHE_OPTION             LW_OPTION_THREAD_STK_CHK    /*  磁盘缓冲服务线程选项        */
                                                                         /*  注意: 磁盘缓冲背景线程不使用*/
                                                                         /*  线程硬件浮点堆栈            */
+#define LW_CFG_DISKCACHE_BG_PERIOD          2                           /*  背景线程周期                */
+#define LW_CFG_DISKCACHE_BG_MINSECTOR       128                         /*  单次最小扇区数              */
+
 /*********************************************************************************************************
 *                               磁盘分区管理
 *  依存关系: 1: 互斥信号量

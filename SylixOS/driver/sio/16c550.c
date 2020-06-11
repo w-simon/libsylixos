@@ -652,7 +652,7 @@ static INT sio16c550Open (SIO16C550_CHAN *psiochan)
         LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
     }
 
-    return  (ERROR_NONE);
+    return  (sio16c550SetHwOption(psiochan, psiochan->hw_option));
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: sio16550SetMode

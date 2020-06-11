@@ -124,7 +124,7 @@ static VOID  __oemAutoMountAdd (CPCHAR  pcVol, CPCHAR  pcDevTail, INT  iBlkNo, I
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static VOID  __oemAutoMountDelete (CPCHAR  pcVol)
+VOID  __oemAutoMountDelete (CPCHAR  pcVol)
 {
     PLW_LIST_LINE           plineTemp;
     __PLW_AUTO_MOUNT_NODE   pamnt;
@@ -168,7 +168,7 @@ static VOID  __oemDiskPartFree (PLW_OEMDISK_CB  poemd)
 /*********************************************************************************************************
 ** 函数名称: __oemDiskForceDeleteEn
 ** 功能描述: OEM 磁盘强制删除
-** 输　入  : poemd             磁盘控制块
+** 输　入  : pcVolName          文件系统挂载目录
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -185,7 +185,7 @@ static VOID __oemDiskForceDeleteEn (CPCHAR  pcVolName)
 /*********************************************************************************************************
 ** 函数名称: __oemDiskForceDeleteDis
 ** 功能描述: OEM 磁盘非强制删除
-** 输　入  : poemd             磁盘控制块
+** 输　入  : pcVolName          文件系统挂载目录
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
@@ -902,11 +902,6 @@ INT  API_OemDiskUnmountEx (PLW_OEMDISK_CB  poemd, BOOL  bForce)
     
     API_OemBlkIoDelete(poemd->OEMDISK_pblkdCache);
 
-    if (poemd->OEMDISK_pvCache) {
-        __SHEAP_FREE(poemd->OEMDISK_pvCache);                           /*  释放磁盘缓冲内存            */
-    }
-    __SHEAP_FREE(poemd);                                                /*  释放 OEM 磁盘设备内存       */
-    
     /*
      *  物理磁盘掉电
      */
@@ -915,6 +910,11 @@ INT  API_OemDiskUnmountEx (PLW_OEMDISK_CB  poemd, BOOL  bForce)
         pblkdDisk->BLKD_pfuncBlkIoctl(pblkdDisk, LW_BLKD_CTRL_POWER, LW_BLKD_POWER_OFF);
     }
     
+    if (poemd->OEMDISK_pvCache) {
+        __SHEAP_FREE(poemd->OEMDISK_pvCache);                           /*  释放磁盘缓冲内存            */
+    }
+    __SHEAP_FREE(poemd);                                                /*  释放 OEM 磁盘设备内存       */
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

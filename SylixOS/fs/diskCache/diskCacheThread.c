@@ -31,11 +31,6 @@
 *********************************************************************************************************/
 #if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_DISKCACHE_EN > 0)
 /*********************************************************************************************************
-  经验数据
-*********************************************************************************************************/
-#define __LW_DISKCACHE_BG_SECONDS       2                               /*  回写周期                    */
-#define __LW_DISKCACHE_BG_MINSECTOR     128                             /*  每次回写的扇区数            */
-/*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
 extern INT  __diskCacheIoctl(PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg);
@@ -63,12 +58,12 @@ PVOID  __diskCacheThread (PVOID  pvArg)
 {
     PLW_DISKCACHE_CB   pdiskcDiskCache;
     PLW_LIST_LINE      plineCache;
-    ULONG              ulNSector = __LW_DISKCACHE_BG_MINSECTOR;
+    ULONG              ulNSector = LW_CFG_DISKCACHE_BG_MINSECTOR;
     
     (VOID)pvArg;
     
     for (;;) {
-        API_TimeSSleep(__LW_DISKCACHE_BG_SECONDS);                      /*  近似延时                    */
+        API_TimeSSleep(LW_CFG_DISKCACHE_BG_PERIOD);                     /*  近似延时                    */
         
         __LW_DISKCACHE_LIST_LOCK();
         for (plineCache  = _G_plineDiskCacheHeader;
@@ -78,7 +73,10 @@ PVOID  __diskCacheThread (PVOID  pvArg)
             pdiskcDiskCache = _LIST_ENTRY(plineCache, 
                                           LW_DISKCACHE_CB, 
                                           DISKC_lineManage);            /*  回写磁盘                    */
-            __diskCacheIoctl(pdiskcDiskCache, LW_BLKD_DISKCACHE_RAMFLUSH, ulNSector);
+            if (pdiskcDiskCache->DISKC_ulDirtyCounter) {
+                __diskCacheIoctl(pdiskcDiskCache,
+                                 LW_BLKD_DISKCACHE_RAMFLUSH, ulNSector);
+            }
         }
         __LW_DISKCACHE_LIST_UNLOCK();
     }
