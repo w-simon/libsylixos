@@ -51,10 +51,9 @@
 /*********************************************************************************************************
   文件系统相关
 *********************************************************************************************************/
-#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_DISKCACHE_EN > 0)
+#if LW_CFG_MAX_VOLUMES > 0
 #include "../SylixOS/fs/include/fs_fs.h"
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
-                                                                        /*  (LW_CFG_DISKCACHE_EN > 0)   */
 /*********************************************************************************************************
 ** 函数名称: fstat
 ** 功能描述: 获得文件的相关信息.
@@ -810,10 +809,15 @@ VOID  sync (VOID)
     
     _IosFileListUnlock();                                               /*  结束遍历, 删除请求删除的节点*/
 
-#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_DISKCACHE_EN > 0)
+#if LW_CFG_MAX_VOLUMES > 0
+#if LW_CFG_YAFFS_EN > 0
+    API_YaffsDevSync(NULL);                                             /*  Yaffs 设备数据同步          */
+#endif                                                                  /*  LW_CFG_YAFFS_EN > 0         */
+
+#if LW_CFG_DISKCACHE_EN > 0
     API_DiskCacheSync(LW_NULL);                                         /*  回写所有磁盘缓冲            */
-#endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
-                                                                        /*  (LW_CFG_DISKCACHE_EN > 0)   */
+#endif                                                                  /*  LW_CFG_DISKCACHE_EN > 0     */
+#endif                                                                  /*  LW_CFG_MAX_VOLUMES > 0      */
 }
 /*********************************************************************************************************
 ** 函数名称: access

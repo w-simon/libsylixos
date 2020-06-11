@@ -231,8 +231,14 @@ void  *mmap (void  *pvAddr, size_t  stLen, int  iProt, int  iFlag, int  iFd, off
         return  (MAP_FAILED);
     }
     
-    if ((iFlag & MAP_ANONYMOUS) && (iFlag & MAP_PREALLOC) && (pvAddr == LW_NULL)) {
-        iFlags |= LW_VMM_PHY_PREALLOC;                                  /*  内存管理预分配              */
+    if ((iFlag & MAP_ANONYMOUS) && (pvAddr == LW_NULL)) {
+        if (iFlag & MAP_CONTIG) {
+            iFlags |= LW_VMM_PHY_PREALLOC;
+            ulFlag |= LW_VMM_FLAG_PHY_CONTINUOUS;                           /*  物理内存连续                */
+
+        } else if (iFlag & MAP_PREALLOC) {
+            iFlags |= LW_VMM_PHY_PREALLOC;                                  /*  内存管理预分配              */
+        }
     }
 
     pvRet = API_VmmMmap(pvAddr, stLen, iFlags, ulFlag, iFd, off);

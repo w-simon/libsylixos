@@ -193,7 +193,7 @@ static INT  __diskCacheWpTCreate (PLW_DISKCACHE_CB  pdiskc, PLW_DISKCACHE_WP  pw
     API_ThreadAttrBuild(&threadattr,
                         LW_CFG_THREAD_DISKCACHE_STK_SIZE,
                         LW_PRIO_T_SERVICE,
-                        LW_CFG_DISKCACHE_OPTION | LW_OPTION_OBJECT_GLOBAL,
+                        LW_CFG_TSYNC_OPTION | LW_OPTION_OBJECT_GLOBAL,
                         pdiskc);
     
     for (i = 0; i < pwp->DISKCWP_iPipeline; i++) {

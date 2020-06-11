@@ -54,6 +54,7 @@ extern "C" {
 #define MAP_FIXED                       0x04                            /*  Interpret addr exactly.     */
 #define MAP_ANONYMOUS                   0x08                            /*  no fd rela this memory      */
 #define MAP_NORESERVE                   0x10                            /*  Do not swap                 */
+#define MAP_CONTIG                      0x20                            /*  contiguous physical memory  */
 
 #ifndef MAP_ANON
 #define MAP_ANON                        MAP_ANONYMOUS

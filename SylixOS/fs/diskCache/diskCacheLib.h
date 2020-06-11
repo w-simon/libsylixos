@@ -144,7 +144,7 @@ typedef LW_DISKCACHE_CB    *PLW_DISKCACHE_CB;
 /*********************************************************************************************************
   ÄÚ²¿º¯Êý
 *********************************************************************************************************/
-PVOID   __diskCacheThread(PVOID  pvArg);
+VOID    __diskCacheSync(PVOID  pvArg);
 VOID    __diskCacheListAdd(PLW_DISKCACHE_CB   pdiskcDiskCache);
 VOID    __diskCacheListDel(PLW_DISKCACHE_CB   pdiskcDiskCache);
 

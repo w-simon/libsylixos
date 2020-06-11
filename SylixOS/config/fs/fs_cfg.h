@@ -54,11 +54,15 @@
 
 #define LW_CFG_DISKCACHE_EN                 1                           /*  是否允许磁盘缓冲            */
 #define LW_CFG_DISKCACHE_MAX_PIPELINE       4                           /*  最大并行写管线线程数        */
-#define LW_CFG_DISKCACHE_OPTION             LW_OPTION_THREAD_STK_CHK    /*  磁盘缓冲服务线程选项        */
-                                                                        /*  注意: 磁盘缓冲背景线程不使用*/
-                                                                        /*  线程硬件浮点堆栈            */
-#define LW_CFG_DISKCACHE_BG_PERIOD          2                           /*  背景线程周期                */
-#define LW_CFG_DISKCACHE_BG_MINSECTOR       128                         /*  单次最小扇区数              */
+#define LW_CFG_DISKCACHE_MINSECTOR          128                         /*  背景线程回写单次最小扇区数  */
+
+/*********************************************************************************************************
+*                               文件系统回写任务配置 (背景线程不使用线程硬件浮点堆栈)
+*  依存关系: 1: 互斥信号量
+*********************************************************************************************************/
+
+#define LW_CFG_TSYNC_OPTION                 LW_OPTION_THREAD_STK_CHK    /*  文件系统回写线程选项        */
+#define LW_CFG_TSYNC_PERIOD                 2                           /*  背景线程周期                */
 
 /*********************************************************************************************************
 *                               磁盘分区管理

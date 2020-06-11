@@ -68,6 +68,7 @@
 2013.07.10  升级 yaffs 后, 支持通过 fd 操作目录, 这里不再保留以往目录的处理方式.
 2013.07.12  升级 yaffs 后, 不再使用以前的格式化操作, 转而使用 yaffs 自带的 yaffs_format 函数进行格式化.
 2017.04.27  yaffs 内部使用 O_RDWR 打开, 防止多重打开时内部权限判断错误.
+2020.06.11  加入背景回写处理.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -435,9 +436,12 @@ INT  API_YaffsDevCreate (PCHAR   pcName)
         __SHEAP_FREE(pyaffs);
         return  (PX_ERROR);
     }
+
     _G_bIsCreateDev = LW_TRUE;                                          /*  创建 yaffs 设备成功         */
     _G_pcDevName    = pyaffs->YAFFS_devhdrHdr.DEVHDR_pcName;
     
+    API_TSyncAdd(API_YaffsDevSync, LW_NULL);                            /*  加入背景回写处理            */
+
     _DebugFormat(__LOGMESSAGE_LEVEL, "yaffs \"%s\" has been create.\r\n", pcName);
     
     return  (ERROR_NONE);
@@ -460,6 +464,38 @@ INT  API_YaffsDevDelete (PCHAR   pcName)
     } else {
         _ErrorHandle(ENOENT);
         return  (PX_ERROR);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: API_YaffsDevSync
+** 功能描述: 显示所有 yaffs 挂载设备
+** 输　入  : pcName   子设备名, NULL 表示全部
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_YaffsDevSync (PCHAR  pcName)
+{
+    INT     iIndex = 0;
+    INT     iNext;
+
+    if (_G_pcDevName) {
+        __YAFFS_OPLOCK();
+        if (pcName) {
+            yaffs_sync(pcName);
+
+        } else {
+            do {
+                pcName = yaffs_getdevname(iIndex, &iNext);
+                if (pcName) {
+                    iIndex = iNext;
+                    yaffs_sync(pcName);
+                }
+            } while (pcName);
+        }
+        __YAFFS_OPUNLOCK();
     }
 }
 /*********************************************************************************************************

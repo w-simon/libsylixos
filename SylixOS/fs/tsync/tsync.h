@@ -10,42 +10,31 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: yaffs_sylixosapi.h
+** 文   件   名: tsync.h
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
-** 文件创建日期: 2008 年 12 月 07 日
+** 文件创建日期: 2020 年 06 月 11 日
 **
-** 描        述: yaffs api 函数接口.
+** 描        述: 文件系统背景回写任务.
 *********************************************************************************************************/
 
-#ifndef __YAFFS_SYLIXOSAPI_H
-#define __YAFFS_SYLIXOSAPI_H
+#ifndef __TSYNC_H
+#define __TSYNC_H
 
 /*********************************************************************************************************
   裁剪宏
 *********************************************************************************************************/
-#if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_YAFFS_EN > 0)
+#if (LW_CFG_MAX_VOLUMES > 0) && ((LW_CFG_DISKCACHE_EN > 0) || (LW_CFG_YAFFS_EN > 0))
 
-/*********************************************************************************************************
-  API 函数
-*********************************************************************************************************/
+LW_API INT  API_TSyncAdd(VOIDFUNCPTR  pfuncSync, PVOID  pvArg);
 
-LW_API INT      API_YaffsDrvInstall(VOID);
-LW_API INT      API_YaffsDevCreate(PCHAR   pcName);
-LW_API INT      API_YaffsDevDelete(PCHAR   pcName);
-LW_API VOID     API_YaffsDevSync(PCHAR pcName);
-LW_API VOID     API_YaffsDevMountShow(VOID);
-
-#define yaffsDrv            API_YaffsDrvInstall
-#define yaffsDevCreate      API_YaffsDevCreate
-#define yaffsDevDelete      API_YaffsDevDelete
-#define yaffsDevSync        API_YaffsDevSync
-#define yaffsDevMountShow   API_YaffsDevMountShow
+#define tsyncAdd    API_TSyncAdd
 
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
+                                                                        /*  (LW_CFG_DISKCACHE_EN > 0) ||*/
                                                                         /*  (LW_CFG_YAFFS_EN > 0)       */
-#endif                                                                  /*  __YAFFS_SYLIXOSAPI_H        */
+#endif                                                                  /*  __TSYNC_H                   */
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

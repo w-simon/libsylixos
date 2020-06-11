@@ -33,6 +33,7 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
+#include "../SylixOS/fs/include/fs_fs.h"
 #include "diskCacheLib.h"
 #include "diskCachePipeline.h"
 #include "diskCache.h"
@@ -96,18 +97,6 @@ static const INT    _G_iDiskCacheHashSize[][2] = {
 {          0,         4096,         }
 };
 /*********************************************************************************************************
-  背景线程属性
-*********************************************************************************************************/
-static LW_CLASS_THREADATTR      _G_threadattrDiskCacheAttr = {
-    LW_NULL,
-    LW_CFG_THREAD_DEFAULT_GUARD_SIZE,
-    LW_CFG_THREAD_DISKCACHE_STK_SIZE,
-    LW_PRIO_T_CACHE,
-    LW_CFG_DISKCACHE_OPTION | LW_OPTION_OBJECT_GLOBAL,                  /*  内核全局线程                */
-    LW_NULL,
-    LW_NULL,
-};
-/*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
 INT  __diskCacheMemInit(PLW_DISKCACHE_CB   pdiskcDiskCache,
@@ -159,12 +148,10 @@ ULONG  API_DiskCacheCreateEx2 (PLW_BLK_DEV          pblkdDisk,
              ULONG              ulNSector;
     REGISTER INT                iHashSize;
     
-    static   LW_OBJECT_HANDLE   ulDiskCacheBGThread = 0ul;
-    
     /*
      *  创建回写锁
      */
-    if (!_G_ulDiskCacheListLock) {
+    if (_G_ulDiskCacheListLock == LW_OBJECT_HANDLE_INVALID) {
         _G_ulDiskCacheListLock = API_SemaphoreMCreate("dcachelist_lock", 
                                                       LW_PRIO_DEF_CEILING,
                                                       LW_OPTION_WAIT_PRIORITY | 
@@ -172,22 +159,11 @@ ULONG  API_DiskCacheCreateEx2 (PLW_BLK_DEV          pblkdDisk,
                                                       LW_OPTION_INHERIT_PRIORITY |
                                                       LW_OPTION_OBJECT_GLOBAL,
                                                       LW_NULL);
-        if (!_G_ulDiskCacheListLock) {
+        if (_G_ulDiskCacheListLock == LW_OBJECT_HANDLE_INVALID) {
             return  (API_GetLastError());
         }
-    }
-    
-    /*
-     *  创建背景回写线程, 创建 /proc 中文件节点.
-     */
-    if (!ulDiskCacheBGThread) {
-        ulDiskCacheBGThread = API_ThreadCreate("t_diskcache", 
-                                               __diskCacheThread,
-                                               &_G_threadattrDiskCacheAttr,
-                                               LW_NULL);
-        if (!ulDiskCacheBGThread) {
-            return  (API_GetLastError());
-        }
+
+        API_TSyncAdd(__diskCacheSync, LW_NULL);                         /*  添加背景回写任务            */
 
 #if LW_CFG_PROCFS_EN > 0
         __procFsDiskCacheInit();                                        /*  创建 /proc 文件节点         */

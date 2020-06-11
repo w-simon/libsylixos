@@ -805,7 +805,7 @@ SylixOS/fs/diskCache/diskCache.c \
 SylixOS/fs/diskCache/diskCacheLib.c \
 SylixOS/fs/diskCache/diskCachePipeline.c \
 SylixOS/fs/diskCache/diskCacheProc.c \
-SylixOS/fs/diskCache/diskCacheThread.c \
+SylixOS/fs/diskCache/diskCacheSync.c \
 SylixOS/fs/diskPartition/diskPartition.c \
 SylixOS/fs/diskRaid/diskRaid0.c \
 SylixOS/fs/diskRaid/diskRaid1.c \
@@ -870,6 +870,7 @@ SylixOS/fs/tpsFs/tpsfs_super.c \
 SylixOS/fs/tpsFs/tpsfs_sylixos.c \
 SylixOS/fs/tpsFs/tpsfs_trans.c \
 SylixOS/fs/tpsFs/tpsfs.c \
+SylixOS/fs/tsync/tsync.c \
 SylixOS/fs/unique/unique.c \
 SylixOS/fs/yaffs2/yaffs_allocator.c \
 SylixOS/fs/yaffs2/yaffs_attribs.c \

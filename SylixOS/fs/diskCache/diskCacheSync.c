@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: diskCacheThread.c
+** 文   件   名: diskCacheSync.c
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
@@ -20,6 +20,7 @@
 **
 ** BUG:
 2016.12.21  简化文件系统回写线程设计.
+2020.06.11  使用统一回写任务.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -47,41 +48,35 @@ PLW_LIST_LINE           _G_plineDiskCacheHeader = LW_NULL;              /*  链表
 #define __LW_DISKCACHE_LIST_UNLOCK()    \
         API_SemaphoreMPost(_G_ulDiskCacheListLock)
 /*********************************************************************************************************
-** 函数名称: __diskCacheThread
+** 函数名称: __diskCacheSync
 ** 功能描述: 磁盘高速缓冲控制器背景回写任务
 ** 输　入  : pvArg             启动参数
-** 输　出  : NULL
+** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-PVOID  __diskCacheThread (PVOID  pvArg)
+VOID  __diskCacheSync (PVOID  pvArg)
 {
     PLW_DISKCACHE_CB   pdiskcDiskCache;
     PLW_LIST_LINE      plineCache;
-    ULONG              ulNSector = LW_CFG_DISKCACHE_BG_MINSECTOR;
+    ULONG              ulNSector = LW_CFG_DISKCACHE_MINSECTOR;
     
     (VOID)pvArg;
     
-    for (;;) {
-        API_TimeSSleep(LW_CFG_DISKCACHE_BG_PERIOD);                     /*  近似延时                    */
-        
-        __LW_DISKCACHE_LIST_LOCK();
-        for (plineCache  = _G_plineDiskCacheHeader;
-             plineCache != LW_NULL;
-             plineCache  = _list_line_get_next(plineCache)) {           /*  遍历所有磁盘缓冲            */
-             
-            pdiskcDiskCache = _LIST_ENTRY(plineCache, 
-                                          LW_DISKCACHE_CB, 
-                                          DISKC_lineManage);            /*  回写磁盘                    */
-            if (pdiskcDiskCache->DISKC_ulDirtyCounter) {
-                __diskCacheIoctl(pdiskcDiskCache,
-                                 LW_BLKD_DISKCACHE_RAMFLUSH, ulNSector);
-            }
+    __LW_DISKCACHE_LIST_LOCK();
+    for (plineCache  = _G_plineDiskCacheHeader;
+         plineCache != LW_NULL;
+         plineCache  = _list_line_get_next(plineCache)) {               /*  遍历所有磁盘缓冲            */
+
+        pdiskcDiskCache = _LIST_ENTRY(plineCache,
+                                      LW_DISKCACHE_CB,
+                                      DISKC_lineManage);                /*  回写磁盘                    */
+        if (pdiskcDiskCache->DISKC_ulDirtyCounter) {
+            __diskCacheIoctl(pdiskcDiskCache,
+                             LW_BLKD_DISKCACHE_RAMFLUSH, ulNSector);
         }
-        __LW_DISKCACHE_LIST_UNLOCK();
     }
-    
-    return  (LW_NULL);
+    __LW_DISKCACHE_LIST_UNLOCK();
 }
 /*********************************************************************************************************
 ** 函数名称: __diskCacheListAdd
