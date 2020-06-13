@@ -315,13 +315,35 @@ static INT  __tshellFsCmdRmdir (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellFsCmdRm (INT  iArgC, PCHAR  ppcArgV[])
 {
     REGISTER INT    iError;
+             PCHAR  pcFile;
+             BOOL   bForce = LW_FALSE;
+             BOOL   bBusy  = LW_FALSE;
     
-    if (iArgC != 2) {
+    if (iArgC == 2) {
+        pcFile = ppcArgV[1];
+
+    } else if (iArgC > 2) {
+        if (lib_strcmp(ppcArgV[1], "-f")) {
+            fprintf(stderr, "option error!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+        bForce = LW_TRUE;
+        pcFile = ppcArgV[2];
+
+    } else {
         fprintf(stderr, "arguments error!\n");
         return  (-ERROR_TSHELL_EPARAM);
     }
-    
-    iError = unlink(ppcArgV[1]);
+
+    if (!bForce) {
+        fisbusy(pcFile, &bBusy);
+        if (bBusy) {
+            fprintf(stderr, "the target file is being used!\n");
+            return  (PX_ERROR);
+        }
+    }
+
+    iError = unlink(pcFile);
     if (iError) {
         if (API_GetLastError() == ENOENT) {
             fprintf(stderr, "file is not exist!\n");
@@ -2313,7 +2335,7 @@ VOID  __tshellFsCmdInit (VOID)
     API_TShellHelpAdd("rmdir", "remove a directory\n");
     
     API_TShellKeywordAdd("rm", __tshellFsCmdRm);
-    API_TShellFormatAdd("rm", " file name");
+    API_TShellFormatAdd("rm", " [-f] file name");
     API_TShellHelpAdd("rm", "remove a file\n");
     
     API_TShellKeywordAdd("mv", __tshellFsCmdMv);

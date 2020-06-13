@@ -1060,6 +1060,11 @@ BOOL  API_IosFdIsBusy (CPCHAR  pcRealName)
 
         pfdentry = _LIST_ENTRY(plineFdEntry, LW_FD_ENTRY, FDENTRY_lineManage);
         if (pfdentry->FDENTRY_state != FDSTAT_CLOSED) {                 /*  文件正常                    */
+            if (pfdentry->FDENTRY_pcName &&
+                (lib_strcmp(pfdentry->FDENTRY_pcName, pcRealName) == 0)) {
+                bRet = LW_TRUE;
+                break;
+            }
             if (pfdentry->FDENTRY_pcRealName &&
                 (lib_strcmp(pfdentry->FDENTRY_pcRealName, pcRealName) == 0)) {
                 bRet = LW_TRUE;
