@@ -198,7 +198,7 @@ VOID  __yaffsOsInit (VOID)
 
 static INT  __tshellYaffsCmd (INT  iArgC, PCHAR  ppcArgV[])
 {
-    INT                  i;
+    INT                  i, force;
     struct yaffs_dev    *pyaffsDev;
     
     if (iArgC < 3) {
@@ -322,10 +322,16 @@ static INT  __tshellYaffsCmd (INT  iArgC, PCHAR  ppcArgV[])
         printf("\nyaffs volume erase ok\n");
 
     } else if (lib_strcmp("format", ppcArgV[2]) == 0) {                 /*  ¸ñÊ½»¯Ð¾Æ¬                  */
-        if (yaffs_format_reldev(pyaffsDev, 1, 0, 1) == 0) {
+        if (iArgC > 3 && ((ppcArgV[3][0] == 'f') || (ppcArgV[3][0] == 'F'))) {
+            force = 1;
+        } else {
+            force = 0;
+        }
+
+        if (yaffs_format_reldev(pyaffsDev, 1, force, 1) == 0) {
             printf("yaffs volume format ok.\n");
         } else {
-            printf("yaffs volume format error!\n");
+            printf("yaffs volume format error: %s\n", lib_strerror(errno));
         }
     }
     __YAFFS_OPUNLOCK();

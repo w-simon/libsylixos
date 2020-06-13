@@ -333,6 +333,10 @@ LW_API INT              flock(INT iFd, INT iOperation);
 LW_API INT              lockf(INT iFd, INT iCmd, off_t oftLen);
 
 LW_API mode_t           umask(mode_t modeMask);
+
+#if defined(__SYLIXOS_EXTEND) || defined(__SYLIXOS_KERNEL)
+LW_API INT              fisbusy(CPCHAR  pcName, BOOL  *bBusy);
+#endif                                                                  /*  __SYLIXOS_EXTEND            */
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
 
 /*********************************************************************************************************

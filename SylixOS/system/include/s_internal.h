@@ -181,8 +181,10 @@ LW_API INT          API_IosFdRefDec(INT  iFd);
 #define iosFdRefDec                              API_IosFdRefDec
 
 LW_API INT          API_IosFdUnlink(PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName);
+LW_API BOOL         API_IosFdIsBusy(CPCHAR  pcRealName);
 
 #define iosFdUnlink                              API_IosFdUnlink
+#define iosFdIsBusy                              API_IosFdIsBusy
 
 LW_API LONG         API_IosCreate(PLW_DEV_HDR    pdevhdrHdr,
                                   PCHAR          pcName,

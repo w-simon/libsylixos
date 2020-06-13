@@ -1037,6 +1037,41 @@ INT  API_IosFdUnlink (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
+** 函数名称: API_IosFdIsBusy
+** 功能描述: 查看文件是否打开
+** 输　入  : pcRealName                    文件绝对路径
+** 输　出  : BOOL
+** 全局变量:
+** 调用模块:
+** 注  意  : 这里的遍历使用 IO 锁, 中段没有打开此锁, 所以不用加 file list 锁.
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+BOOL  API_IosFdIsBusy (CPCHAR  pcRealName)
+{
+    REGISTER PLW_FD_ENTRY    pfdentry;
+    REGISTER PLW_LIST_LINE   plineFdEntry;
+             BOOL            bRet = LW_FALSE;
+
+    _IosLock();                                                         /*  进入 IO 临界区              */
+    for (plineFdEntry  = _S_plineFileEntryHeader;
+         plineFdEntry != LW_NULL;
+         plineFdEntry  = _list_line_get_next(plineFdEntry)) {           /*  删除使用该驱动文件          */
+
+        pfdentry = _LIST_ENTRY(plineFdEntry, LW_FD_ENTRY, FDENTRY_lineManage);
+        if (pfdentry->FDENTRY_state != FDSTAT_CLOSED) {                 /*  文件正常                    */
+            if (pfdentry->FDENTRY_pcRealName &&
+                (lib_strcmp(pfdentry->FDENTRY_pcRealName, pcRealName) == 0)) {
+                bRet = LW_TRUE;
+                break;
+            }
+        }
+    }
+    _IosUnlock();                                                       /*  退出 IO 临界区              */
+
+    return  (bRet);
+}
+/*********************************************************************************************************
 ** 函数名称: API_IosFdDevFind
 ** 功能描述: 校验一个打开的文件描述符是否有效，并返回指向相关设备的设备头
 ** 输　入  : iFd                           文件描述符

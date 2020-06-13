@@ -102,7 +102,9 @@
 #define F_GETSIG                    14                                  /* Get device notify signo      */
 #define F_SETSIG                    15                                  /* Set device notify signo      */
 
+#if defined(__SYLIXOS_EXTEND) || defined(__SYLIXOS_KERNEL)
 #define F_VALID                     16                                  /* Is the file descriptor valid */
+#endif
 
 /*********************************************************************************************************
   POSIX.1-2008

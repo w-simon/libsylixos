@@ -2079,6 +2079,62 @@ mode_t  umask (mode_t modeMask)
     
     return  (modeOld);
 }
+/*********************************************************************************************************
+** 函数名称: fisbusy
+** 功能描述: 获取指定文件是否被打开
+** 输　入  : pcName        文件路径
+**           bBusy         文件是否被打开
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  fisbusy (CPCHAR  pcName, BOOL  *bBusy)
+{
+    PLW_DEV_HDR    pdevhdrHdr;
+    size_t         stDevNameLen;
+    CHAR           cRealName[MAX_FILENAME_LENGTH];
+    CHAR           cFullFileName[MAX_FILENAME_LENGTH];
+
+    if (bBusy == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (pcName == LW_NULL) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "name invalidate.\r\n");
+        _ErrorHandle(EFAULT);                                           /*  Bad address                 */
+        return  (PX_ERROR);
+    }
+
+    if (pcName[0] == PX_EOS) {
+        _ErrorHandle(ENOENT);
+        return  (PX_ERROR);
+    }
+
+    if (ioFullFileNameGet(pcName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    if (cFullFileName[0] == PX_EOS) {
+        lib_strcpy(cRealName, pdevhdrHdr->DEVHDR_pcName);
+
+    } else {
+        stDevNameLen = lib_strlen(pdevhdrHdr->DEVHDR_pcName);
+        if (stDevNameLen == 1) {                                        /*  根目录设备 "/"              */
+            lib_strcpy(cRealName, cFullFileName);                       /*  保存绝对路径文件名          */
+
+        } else {
+            lib_strcpy(cRealName, pdevhdrHdr->DEVHDR_pcName);
+            lib_strcpy(&cRealName[stDevNameLen], cFullFileName);
+        }
+    }
+
+    *bBusy = iosFdIsBusy(cRealName);                                    /*  查看文件是否被打开          */
+
+    return  (ERROR_NONE);
+}
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************
