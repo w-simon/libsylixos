@@ -86,12 +86,9 @@ void srt6_sentry_to_srtentry (struct srtentry *srtentry, const struct srt6_entry
 void srt6_srtentry_to_sentry (struct srt6_entry *sentry6, const struct srtentry *srtentry)
 {
   ip6_addr_t ip6ssrc, ip6esrc;
-  ip6_addr_t ip6sdest, ip6edest;
 
   inet6_addr_to_ip6addr(&ip6ssrc, &((struct sockaddr_in6 *)&srtentry->srt_ssrc)->sin6_addr);
   inet6_addr_to_ip6addr(&ip6esrc, &((struct sockaddr_in6 *)&srtentry->srt_esrc)->sin6_addr);
-  inet6_addr_to_ip6addr(&ip6sdest, &((struct sockaddr_in6 *)&srtentry->srt_sdest)->sin6_addr);
-  inet6_addr_to_ip6addr(&ip6edest, &((struct sockaddr_in6 *)&srtentry->srt_edest)->sin6_addr);
 
   srt6_addr_ntoh(&sentry6->srt6_ssrc_hbo, &ip6ssrc);
   srt6_addr_ntoh(&sentry6->srt6_ssrc_hbo, &ip6esrc);

@@ -103,8 +103,6 @@ INT  _UpSpinUnlock (spinlock_t *psl)
     } else {
         return  (ERROR_NONE);
     }
-    
-    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: _UpSpinLockIgnIrq
@@ -225,8 +223,6 @@ INT  _UpSpinUnlockIrq (spinlock_t *psl, INTREG  iregInterLevel)
     } else {
         return  (ERROR_NONE);
     }
-    
-    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: _UpSpinLockIrqQuick
@@ -334,8 +330,6 @@ INT  _UpSpinUnlockTask (spinlock_t *psl)
     } else {
         return  (ERROR_NONE);
     }
-    
-    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: _UpSpinLockRaw

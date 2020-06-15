@@ -54,7 +54,11 @@ void *dlmalloc_sbrk (int  size)
     if (size == 0) {
         return  (previous_top);
 
-    } else if ((size < 0) || (size >= DEFAULT_MMAP_THRESHOLD)) {
+    } else if ((size < 0)
+#if LW_CFG_VMM_EN > 0
+            || (size >= DEFAULT_MMAP_THRESHOLD)
+#endif /* LW_CFG_VMM_EN > 0 */
+            ) {
         return  ((void *)(-1));
     }
 

@@ -1077,7 +1077,7 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
     struct icmp_echo_hdr    *icmphdr = LW_NULL;
     
     u32_t                    u32OldAddr;
-    u16_t                    usDestPort, usSrcPort;
+    u16_t                    usSrcPort;
     u8_t                     ucProto;
     
     INT                      iHash;
@@ -1104,7 +1104,6 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
             return  (1);
         }
         tcphdr = (struct tcp_hdr *)(((u8_t *)p->payload) + iphdrlen);
-        usDestPort  = tcphdr->dest;
         usSrcPort   = tcphdr->src;
         iHash       = __NAT_HASH(usSrcPort);
         plineHeader = _G_plineNatcbTcp[iHash];
@@ -1115,7 +1114,6 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
             return  (1);
         }
         udphdr = (struct udp_hdr *)(((u8_t *)p->payload) + iphdrlen);
-        usDestPort  = udphdr->dest;
         usSrcPort   = udphdr->src;
         iHash       = __NAT_HASH(usSrcPort);
         plineHeader = _G_plineNatcbUdp[iHash];
@@ -1126,7 +1124,7 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
             return  (1);
         }
         icmphdr = (struct icmp_echo_hdr *)(((u8_t *)p->payload) + iphdrlen);
-        usSrcPort   = usDestPort = icmphdr->id;
+        usSrcPort   = icmphdr->id;
         iHash       = __NAT_HASH(usSrcPort);
         plineHeader = _G_plineNatcbIcmp[iHash];
         break;

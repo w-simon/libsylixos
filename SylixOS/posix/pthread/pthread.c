@@ -1130,8 +1130,6 @@ int  pthread_getid (const char *name, pthread_t *pthread)
 
 #if LW_CFG_MODULELOADER_EN > 0
     pid_t   pid = getpid();
-#else
-    pid_t   pid = 0;
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
     PLW_CLASS_TCB      ptcb;

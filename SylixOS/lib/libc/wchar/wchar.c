@@ -320,7 +320,7 @@ wctype_t wctype(const char *property)
         if ( !strcmp( properties[nn], property ) )
             return (wctype_t)(nn);
 
-    return 0;
+    return WC_TYPE_INVALID;
 }
 
 int wcwidth(wchar_t wc)

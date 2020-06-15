@@ -835,6 +835,8 @@ static PCHAR  __vmmAbortTypeStr (PLW_VMM_ABORT  pabtInfo)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
+#if LW_CFG_VMM_EN > 0
+
 static VOID  __vmmWarnGuarder (LW_OBJECT_HANDLE  ulGuarder)
 {
 #if LW_CFG_SIGNAL_EN > 0
@@ -847,6 +849,8 @@ static VOID  __vmmWarnGuarder (LW_OBJECT_HANDLE  ulGuarder)
     _doSigEvent(ulGuarder, &sigeventWarn, SI_KILL);
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
 }
+
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortKill
 ** 功能描述: 向当前线程产生一个信号

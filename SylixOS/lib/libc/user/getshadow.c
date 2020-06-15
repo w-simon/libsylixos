@@ -161,9 +161,7 @@ int getspnam_r(const char *name, struct spwd *result_buf,
   
   for (;;) {
     if (!scansp(shadow, result_buf, buffer, buflen)) {
-      fclose(shadow);
-      errno = 0;
-      return -1;
+      break;
     }
     if (strcmp(result_buf->sp_namp, name) == 0) {
       fclose(shadow);

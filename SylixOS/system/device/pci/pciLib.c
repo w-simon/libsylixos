@@ -98,6 +98,10 @@ PCI_CTRL_HANDLE     _G_hPciCtrlHandle = LW_NULL;
 *********************************************************************************************************/
 static PCI_DEV_ID_HANDLE __pciDevMatchId(PCI_DEV_HANDLE hDevHandle, PCI_DEV_ID_HANDLE hId);
 /*********************************************************************************************************
+  PCI 尺寸单位名称
+*********************************************************************************************************/
+static CPCHAR  _G_pcPciSizeNameSuffix[5] = {"", "K", "M", "G", "T"};
+/*********************************************************************************************************
 ** 函数名称: __tshellPciCmdCtrl
 ** 功能描述: PCI 命令 "pcictrl"
 ** 输　入  : iArgC         参数个数
@@ -155,17 +159,16 @@ static INT  __tshellPciCmdCtrl (INT  iArgC, PCHAR  ppcArgV[])
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-PCHAR  API_PciSizeNameGet (pci_size_t stSize)
+CPCHAR  API_PciSizeNameGet (pci_size_t stSize)
 {
-    UINT                i;
-    static const CHAR   cSuffix[][2] = {"", "K", "M", "G", "T"};
+    UINT  i;
 
     i = 0;
     if (!stSize) {
-        return  ((PCHAR)cSuffix[i]);
+        return  (_G_pcPciSizeNameSuffix[i]);
     }
 
-    for (i = 0; i < (sizeof(cSuffix) / sizeof(*cSuffix) - 1); i++) {
+    for (i = 0; i < (sizeof(_G_pcPciSizeNameSuffix) / sizeof(_G_pcPciSizeNameSuffix) - 1); i++) {
         if (stSize % 1024) {
             break;
         }
@@ -173,7 +176,7 @@ PCHAR  API_PciSizeNameGet (pci_size_t stSize)
         stSize /= 1024;
     }
 
-    return  ((PCHAR)cSuffix[i]);
+    return  (_G_pcPciSizeNameSuffix[i]);
 }
 /*********************************************************************************************************
 ** 函数名称: API_PciSizeNumGet
@@ -187,14 +190,13 @@ PCHAR  API_PciSizeNameGet (pci_size_t stSize)
 LW_API
 pci_size_t  API_PciSizeNumGet (pci_size_t stSize)
 {
-    UINT                i;
-    static const CHAR   cSuffix[][2] = {"", "K", "M", "G", "T"};
+    UINT  i;
 
     if (!stSize) {
         return  (0);
     }
 
-    for (i = 0; i < (sizeof(cSuffix) / sizeof(*cSuffix) - 1); i++) {
+    for (i = 0; i < (sizeof(_G_pcPciSizeNameSuffix) / sizeof(_G_pcPciSizeNameSuffix[0]) - 1); i++) {
         if (stSize % 1024) {
             break;
         }

@@ -2342,9 +2342,9 @@ __err2:
 __err1:
 #if LW_CFG_VMM_EN > 0
    API_VmmDmaFree(pvDmaBuf);
-#endif
 
 __err0:
+#endif
     __SHEAP_FREE(psdhcitrans);
 
     return  (LW_NULL);

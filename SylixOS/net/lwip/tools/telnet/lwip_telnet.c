@@ -340,7 +340,9 @@ static INT  __telnetShellCallback (INT  iStdOut, INT  iSock)
 {
     struct sockaddr      sa;
     struct sockaddr_in  *psain;
+#if LWIP_IPV6
     struct sockaddr_in6 *psain6;
+#endif
     socklen_t            namelen = sizeof(struct sockaddr);
     CHAR                 cLocalAddr[48];
     CHAR                 cTitle[80];
@@ -416,7 +418,6 @@ static VOID  __telnetServer (INT  iSock)
             _DebugHandle(__ERRORMESSAGE_LEVEL, "pty host can not open.\r\n");
             iErrLevel = 2;
             goto    __error_handle;
-            return;
         }
     }
     {
@@ -430,7 +431,6 @@ static VOID  __telnetServer (INT  iSock)
             _DebugHandle(__ERRORMESSAGE_LEVEL, "pty dev can not open.\r\n");
             iErrLevel = 3;
             goto    __error_handle;
-            return;
         }
     }
     ioctl(iHostFd, FIOSETOPTIONS, OPT_TERMINAL);                        /*  host 使用终端方式           */

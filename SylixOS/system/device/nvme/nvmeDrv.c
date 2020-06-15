@@ -34,7 +34,6 @@
   全局变量
 *********************************************************************************************************/
 static UINT                     _GuiNvmeDrvTotalNum  = 0;
-static UINT                     _GuiNvmeDrvActiveNum = 0;
 static LW_LIST_LINE_HEADER      _GplineNvmeDrvHeader = LW_NULL;
 static LW_OBJECT_HANDLE         _GulNvmeDrvLock      = LW_OBJECT_HANDLE_INVALID;
 
@@ -172,7 +171,6 @@ INT  API_NvmeDrvInit (VOID)
     bInitFlag = LW_TRUE;
 
     _GuiNvmeDrvTotalNum  = 0;
-    _GuiNvmeDrvActiveNum = 0;
     _GplineNvmeDrvHeader = LW_NULL;
 
     _GulNvmeDrvLock = API_SemaphoreMCreate("nvme_drvlock",

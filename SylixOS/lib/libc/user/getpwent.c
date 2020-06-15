@@ -188,9 +188,7 @@ static int getpw_r(
   }
   for(;;) {
     if (!scanpw(fp, pwd, buffer, bufsize)) {
-      errno = EINVAL;
-      fclose(fp);
-      return -1;
+      break;
     }
     if (name) {
       match = (strcmp(pwd->pw_name, name) == 0);
@@ -349,9 +347,7 @@ static int getgr_r(
   }
   for(;;) {
     if (!scangr(fp, grp, buffer, bufsize)) {
-      errno = EINVAL;
-      fclose(fp);
-      return -1;
+      break;
     }
     if (name) {
       match = (strcmp(grp->gr_name, name) == 0);

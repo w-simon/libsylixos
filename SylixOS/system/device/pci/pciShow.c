@@ -1156,10 +1156,10 @@ VOID  API_PciCapMsiShow (INT iBus, INT iSlot, INT iFunc, UINT uiOffset)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static const PCHAR __pciCapPcieLatencyL0s (INT iValue)
+static CPCHAR __pciCapPcieLatencyL0s (INT iValue)
 {
-    static const PCHAR cpcPcieLatencyL0s[] = {"< 64ns", "< 128ns", "< 256ns", "< 512ns", "< 1us", "< 2us",
-                                              "< 4us", "> 4us"};
+    static CPCHAR cpcPcieLatencyL0s[] = {"< 64ns", "< 128ns", "< 256ns", "< 512ns", "< 1us", "< 2us",
+                                         "< 4us", "> 4us"};
 
     return  (cpcPcieLatencyL0s[iValue]);
 }
@@ -1171,10 +1171,10 @@ static const PCHAR __pciCapPcieLatencyL0s (INT iValue)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static const PCHAR __pciCapPcieLatencyL1 (INT iValue)
+static CPCHAR __pciCapPcieLatencyL1 (INT iValue)
 {
-    static const PCHAR cpcPcieLatencyL1[] = {"< 1us", "< 2us", "< 4us","< 8us", "< 16us", "< 32us",
-                                             "< 64us", "> 64us"};
+    static CPCHAR cpcPcieLatencyL1[] = {"< 1us", "< 2us", "< 4us","< 8us", "< 16us", "< 32us",
+                                        "< 64us", "> 64us"};
 
     return  (cpcPcieLatencyL1[iValue]);
 }
@@ -1200,7 +1200,7 @@ static UINT __pciCapPcieSlotPowerLimit (INT iValue)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static const PCHAR __pciCapPcieLinkSpeed (INT iSpeed)
+static CPCHAR __pciCapPcieLinkSpeed (INT iSpeed)
 {
     switch (iSpeed) {
 
@@ -1221,7 +1221,7 @@ static const PCHAR __pciCapPcieLinkSpeed (INT iSpeed)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static const PCHAR __pciCapPcieASPM (INT iValue)
+static CPCHAR __pciCapPcieASPM (INT iValue)
 {
     switch (iValue) {
 
@@ -1245,9 +1245,9 @@ static const PCHAR __pciCapPcieASPM (INT iValue)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static const PCHAR __pciCapPcieASPMEnable (INT iValue)
+static CPCHAR __pciCapPcieASPMEnable (INT iValue)
 {
-    static const PCHAR cpcPcieASPM[] = {"Disabled", "L0s", "L1","L0s & L1"};
+    static CPCHAR cpcPcieASPM[] = {"Disabled", "L0s", "L1","L0s & L1"};
 
     return  (cpcPcieASPM[iValue]);
 }
@@ -1259,9 +1259,9 @@ static const PCHAR __pciCapPcieASPMEnable (INT iValue)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static const PCHAR __pciCapPcieIndicator (INT iValue)
+static CPCHAR __pciCapPcieIndicator (INT iValue)
 {
-    static const PCHAR cpcPcieIndicatorState[] = {"Unknown", "On", "Blink", "Off" };
+    static CPCHAR cpcPcieIndicatorState[] = {"Unknown", "On", "Blink", "Off" };
 
     return  (cpcPcieIndicatorState[iValue]);
 }

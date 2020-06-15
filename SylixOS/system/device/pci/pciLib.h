@@ -42,7 +42,7 @@ typedef PCI_DRV_DEV_CB     *PCI_DRV_DEV_HANDLE;
 /*********************************************************************************************************
   PCI 总线驱动内部使用
 *********************************************************************************************************/
-LW_API PCHAR                API_PciSizeNameGet(pci_size_t stSize);
+LW_API CPCHAR               API_PciSizeNameGet(pci_size_t stSize);
 LW_API pci_size_t           API_PciSizeNumGet(pci_size_t stSize);
 
 LW_API INT                  API_PciSpecialCycle(INT iBus, UINT32 uiMsg);

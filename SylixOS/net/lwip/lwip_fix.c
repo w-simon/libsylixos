@@ -1218,14 +1218,12 @@ void  sio_read_abort (sio_fd_t  fd)
 int ip_input_hook (struct pbuf *p, struct netif *pnetif)
 {
 #if LW_CFG_NET_LOGINBL_EN > 0
-extern INT   loginbl_input_hook(struct pbuf *p, struct netif *inp);
-#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
+    extern INT  loginbl_input_hook(struct pbuf *p, struct netif *inp);
 
-#if LW_CFG_NET_LOGINBL_EN > 0
     return  (loginbl_input_hook(p, pnetif));
-#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
-
+#else
     return  (0);                                                        /*  do not eaten packet         */
+#endif                                                                  /*  LW_CFG_NET_LOGINBL_EN > 0   */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: ip_input_hook

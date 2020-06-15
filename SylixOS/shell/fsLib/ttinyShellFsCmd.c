@@ -2101,7 +2101,7 @@ __input_size:
             fdpInfo[i].FDP_ulMBytes = uiPct;                            /*  TODO: 判断容量越界          */
 
         } else {                                                        /*  比例分配                    */
-            if ((uiPct < 0) || (uiPct > 100)) {
+            if (uiPct > 100) {
                 printf("the partition size percentage(%%) must be 1 ~ 100\n");
                 goto    __input_size;
             }

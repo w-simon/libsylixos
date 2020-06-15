@@ -48,7 +48,9 @@ LW_API
 ULONG  API_ThreadDetachEx (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal)
 {
     REGISTER UINT16                usIndex;
+#if LW_CFG_MODULELOADER_EN > 0
     REGISTER PLW_CLASS_TCB         ptcbCur;
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     REGISTER PLW_CLASS_TCB         ptcb;
     REGISTER PLW_CLASS_WAITJOIN    ptwj;
 
@@ -60,7 +62,9 @@ ULONG  API_ThreadDetachEx (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal)
         return  (ERROR_KERNEL_IN_ISR);
     }
 
+#if LW_CFG_MODULELOADER_EN > 0
     LW_TCB_GET_CUR_SAFE(ptcbCur);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
 #if LW_CFG_ARG_CHK_EN > 0
     if (!_ObjectClassOK(ulId, _OBJECT_THREAD)) {                        /*  检查 ID 类型有效性          */

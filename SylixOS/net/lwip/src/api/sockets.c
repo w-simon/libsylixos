@@ -3408,7 +3408,7 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
         LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB_TYPE(sock, *optlen, sizeof(struct tcp_desc), NETCONN_TCP);
         struct tcp_desc *desc = (struct tcp_desc *)optval;
         if (sock->conn->pcb.tcp->state == LISTEN) {
-          struct tcp_pcb_listen *lpcb = (struct tcp_pcb_listen *)lpcb;
+          struct tcp_pcb_listen *lpcb = (struct tcp_pcb_listen *)(sock->conn->pcb.tcp);
           lib_bzero(desc, sizeof(struct tcp_desc));
           desc->tcp_state = LISTEN;
           desc->tcp_backlog = lpcb->backlog;

@@ -587,7 +587,6 @@ INT  _IosInit (VOID)
     API_MountInit();
 #endif                                                                  /*  LW_CFG_MAX_VOLUMES > 0      */
                                                                         /*  LW_CFG_MOUNT_EN > 0         */
-    return  (ERROR_NONE);
 #endif                                                                  /*  LW_CFG_DEVICE_EN > 0        */
     
     return  (ERROR_NONE);

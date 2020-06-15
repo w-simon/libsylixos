@@ -2459,7 +2459,7 @@ TPS_RESULT  tpsFsInodeDump (PTPS_INODE pinode)
 #endif
 
     if (__tpsFsBtrGetNode(pinode, &pndRoot, pinode->IND_inum) != TPS_ERR_NONE) {
-        return  (0);
+        return  (TPS_ERR_NONE);
     }
 
     tpsFsBtreeDump(pinode, pndRoot);

@@ -504,17 +504,13 @@ INT  API_AhciDriveRegWait (AHCI_DRIVE_HANDLE  hDrive,
         switch (iFlag) {
 
         case LW_TRUE:
-            if ((uiReg & uiMask) == uiValue) {
-                break;
-            } else {
+            if ((uiReg & uiMask) != uiValue) {
                 goto  __timeout_handle;
             }
             break;
 
         case LW_FALSE:
-            if ((uiReg & uiMask) != uiValue) {
-                break;
-            } else {
+            if ((uiReg & uiMask) == uiValue) {
                 goto  __timeout_handle;
             }
             break;
@@ -738,17 +734,13 @@ INT  API_AhciCtrlRegisterWait (AHCI_CTRL_HANDLE  hCtrl,
         switch (iFlag) {
 
         case LW_TRUE:
-            if ((uiReg & uiMask) == uiValue) {
-                break;
-            } else {
+            if ((uiReg & uiMask) != uiValue) {
                 goto  __timeout_handle;
             }
             break;
 
         case LW_FALSE:
-            if ((uiReg & uiMask) != uiValue) {
-                break;
-            } else {
+            if ((uiReg & uiMask) == uiValue) {
                 goto  __timeout_handle;
             }
             break;
