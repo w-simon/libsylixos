@@ -257,29 +257,37 @@ name:
   macros define
 *********************************************************************************************************/
 
+#if   LW_CFG_MIPS_CP0_HAZARD_INSTR == 0
+#define MIPS_EHB    EHB
+#elif LW_CFG_MIPS_CP0_HAZARD_INSTR == 1
+#define MIPS_EHB    SYNC
+#else
+#define MIPS_EHB    SSNOP; SSNOP; SSNOP; SSNOP
+#endif
+
 #define MTC0_EHB(src, dst)              \
     MTC0    src , dst;                  \
-    EHB
+    MIPS_EHB
 
 #define MFC0_EHB(dst, src)              \
     MFC0    dst , src;                  \
-    EHB
+    MIPS_EHB
 
 #define CTC1_EHB(src, dst)              \
     CTC1    src , dst;                  \
-    EHB
+    MIPS_EHB
 
 #define CFC1_EHB(dst, src)              \
     CFC1    dst , src;                  \
-    EHB
+    MIPS_EHB
 
 #define CTC2_EHB(src, dst)              \
     CTC2    src , dst;                  \
-    EHB
+    MIPS_EHB
 
 #define CFC2_EHB(dst, src)              \
     CFC2    dst , src;                  \
-    EHB
+    MIPS_EHB
 
 #if LW_CFG_CPU_WORD_LENGHT == 32
 
@@ -291,11 +299,11 @@ name:
 
 #define MTC0_LONG_EHB(src, dst)         \
     MTC0    src , dst;                  \
-    EHB
+    MIPS_EHB
 
 #define MFC0_LONG_EHB(dst, src)         \
     MFC0    dst , src;                  \
-    EHB
+    MIPS_EHB
 
 #else
 
@@ -307,11 +315,11 @@ name:
 
 #define MTC0_LONG_EHB(src, dst)         \
     DMTC0    src , dst;                 \
-    EHB
+    MIPS_EHB
 
 #define MFC0_LONG_EHB(dst, src)         \
     DMFC0    dst , src;                 \
-    EHB
+    MIPS_EHB
 
 #endif
 
@@ -323,11 +331,11 @@ name:
 
 #define MTC0(src, dst)                  \
     MTC0    src , dst;                  \
-    EHB
+    MIPS_EHB
 
 #define MFC0(dst, src)                  \
     MFC0    dst , src;                  \
-    EHB
+    MIPS_EHB
 
 /*********************************************************************************************************
   寄存器定义(MIPS32 用 O32 ABI, MIPS64 用 N64 ABI)

@@ -69,7 +69,7 @@ FUNC_DEF(mipsMmuTlbRefillEntry)
     ; * K0 = K1
     ; */
     MFC0    K1 , CP0_CONTEXT                                            ;/*  K1 等于 Context 寄存器      */
-    EHB
+    MIPS_EHB
     MOVE    K0 , K1                                                     ;/*  K0 等于 Context 寄存器      */
 
     ;/*
@@ -108,7 +108,7 @@ FUNC_DEF(mipsMmuTlbRefillEntry)
     ; */
     MTC0    K0 , CP0_ENTRYLO0                                           ;/*  EntryLo0                    */
     MTC0    K1 , CP0_ENTRYLO1                                           ;/*  EntryLo1                    */
-    EHB
+    MIPS_EHB
 
     TLBWR                                                               ;/*  TLB 随机替换                */
 

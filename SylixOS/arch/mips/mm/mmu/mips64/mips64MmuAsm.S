@@ -137,7 +137,7 @@ FUNC_DEF(mipsMmuTlbRefillEntry)
     REG_L       T2 , MIPS64_TLB_CTX_PGD(K0)                             ;/*  T2 等于 PGD TABLE BASE      */
 
     DMFC0       T0 , CP0_XCONTEXT                                       ;/*  T0 等于 XContext 寄存器     */
-    EHB
+    MIPS_EHB
 
     ;/*
     ; * T0 <<= MIPS64_PTE_BASE_SIZE
@@ -206,7 +206,7 @@ FUNC_DEF(mipsMmuTlbRefillEntry)
 
     DMTC0       T0 , CP0_ENTRYLO0                                       ;/*  EntryLo0                    */
     DMTC0       T1 , CP0_ENTRYLO1                                       ;/*  EntryLo1                    */
-    EHB
+    MIPS_EHB
     TLBWR                                                               ;/*  TLB 随机替换                */
 
 ;/*********************************************************************************************************
@@ -246,7 +246,7 @@ LINE_LABEL(__error_handle)
 
     DMTC0       ZERO , CP0_ENTRYLO0                                     ;/*  EntryLo0                    */
     DMTC0       ZERO , CP0_ENTRYLO1                                     ;/*  EntryLo1                    */
-    EHB
+    MIPS_EHB
     TLBWR                                                               ;/*  TLB 随机替换                */
 
 ;/*********************************************************************************************************

@@ -226,7 +226,7 @@ FUNC_DEF(mipsVfp32Save)
 
     SW      T1   , FPU_OFFSET_FCSR(A0)                                 ;/*  ±£´æ FPU ×´Ì¬¼Ä´æÆ÷         */
 
-    EHB
+    MIPS_EHB
 
     JR      RA
     NOP

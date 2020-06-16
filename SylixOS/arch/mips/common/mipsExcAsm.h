@@ -79,9 +79,9 @@ MACRO_DEF(MIPS_TLB_REFILL_HANDLE)
 
 #if LW_CFG_CPU_WORD_LENGHT == 64
     DMFC0   K0 , CP0_CONTEXT                                            ;/* CP0_XCONTEXT =  CP0_CONTEXT  */
-    EHB
+    MIPS_EHB
     DMTC0   K0 , CP0_XCONTEXT
-    EHB
+    MIPS_EHB
 #endif
 
     J       mipsMmuTlbRefillEntry
@@ -116,9 +116,9 @@ MACRO_DEF(MIPS32_TLB_REFILL_HANDLE)
 
 #if LW_CFG_CPU_WORD_LENGHT == 64
     DMFC0   K0 , CP0_CONTEXT                                            ;/* CP0_XCONTEXT =  CP0_CONTEXT  */
-    EHB
+    MIPS_EHB
     DMTC0   K0 , CP0_XCONTEXT
-    EHB
+    MIPS_EHB
 #endif
 
     J       mipsMmuTlbRefillEntry

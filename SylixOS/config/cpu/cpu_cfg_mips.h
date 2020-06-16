@@ -110,6 +110,21 @@
 #endif
 
 /*********************************************************************************************************
+  解决 MIPS CP0 Hazard 指令配置
+
+  LW_CFG_MIPS_CP0_HAZARD_INSTR 可配置的值有如下:
+        0  : EHB.
+        1  : SYNC.
+        2  : 4 个 SSNOP.
+*********************************************************************************************************/
+
+#if defined(_MIPS_ARCH_HR2)
+#define LW_CFG_MIPS_CP0_HAZARD_INSTR    1                               /*  华睿2号使用 SYNC 指令       */
+#else
+#define LW_CFG_MIPS_CP0_HAZARD_INSTR    0                               /*  使用 EHB 指令               */
+#endif
+
+/*********************************************************************************************************
   On the Loongson-2G/2H/3A/3B there is a bug that ll / sc and lld / scd is very weak ordering.
   NOTICE: LW_CFG_MIPS_CPU_LOONGSON1 / LW_CFG_MIPS_CPU_LOONGSON2K / LW_CFG_MIPS_CPU_LOONGSON3 Only one can
           set to 1.
