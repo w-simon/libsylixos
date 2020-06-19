@@ -1550,6 +1550,14 @@ tcp_output_segment(struct tcp_seg *seg, struct tcp_pcb *pcb, struct netif *netif
     /** Exclude retransmitted segments from this count. */
     MIB2_STATS_INC(mib2.tcpoutsegs);
   }
+#if LW_CFG_NET_NAT_EN > 0 /* SylixOS Add NAT retransmitted source port reset */
+    else {
+    /** NAT output local tcp packet will change the packet source port
+     *  If this is retransmit packet the header source port has already changed
+     *  so here we change it back */
+    seg->tcphdr->src = lwip_htons(pcb->local_port);
+  }
+#endif /* LW_CFG_NET_NAT_EN */
 
   seg->p->len -= len;
   seg->p->tot_len -= len;

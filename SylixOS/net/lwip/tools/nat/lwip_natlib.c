@@ -1259,8 +1259,9 @@ static struct pbuf *__natIpInput (struct pbuf  *p, struct netif  *pnetifIn, stru
     
     iphdr = (struct ip_hdr *)p->payload;
     
-    if (!ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {
-        return  (p);
+    if (!ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {        /*  只允许发送至本机            */
+        pbuf_free(p);
+        return  (LW_NULL);
     }
 
     if (IPH_OFFSET(iphdr) & PP_HTONS(IP_OFFMASK | IP_MF)) {             /*  分片数据包                  */
@@ -1902,7 +1903,7 @@ static ssize_t  __procFsNatAssNodeRead (PLW_PROCFS_NODE  p_pfsn,
                                         off_t            oft)
 {
     const CHAR   cNatInfoHeader[] = "\n"
-    "    LOCAL IP    LOCAL PORT ASS PORT PROTO IDLE(min)  STATUS\n"
+    "    LOCAL IP    LOCAL PORT ASS PORT PROTO IDLE(sec)  STATUS\n"
     "--------------- ---------- -------- ----- --------- --------\n";
     
           PCHAR     pcFileBuffer;

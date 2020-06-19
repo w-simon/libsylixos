@@ -179,9 +179,9 @@ typedef struct {
 } LW_CLASS_CPUSET;
 typedef LW_CLASS_CPUSET    *PLW_CLASS_CPUSET;
 
-#define LW_CPU_SET(n, p)    ((p)->cpus_bits[(n) / LW_NCPUBITS] |= (ULONG)( (1u << ((n) % LW_NCPUBITS))))
-#define LW_CPU_CLR(n, p)    ((p)->cpus_bits[(n) / LW_NCPUBITS] &= (ULONG)(~(1u << ((n) % LW_NCPUBITS))))
-#define LW_CPU_ISSET(n, p)  ((p)->cpus_bits[(n) / LW_NCPUBITS] &  (ULONG)( (1u << ((n) % LW_NCPUBITS))))
+#define LW_CPU_SET(n, p)    ((p)->cpus_bits[(n) / LW_NCPUBITS] |= (ULONG)( (1ul << ((n) % LW_NCPUBITS))))
+#define LW_CPU_CLR(n, p)    ((p)->cpus_bits[(n) / LW_NCPUBITS] &= (ULONG)(~(1ul << ((n) % LW_NCPUBITS))))
+#define LW_CPU_ISSET(n, p)  ((p)->cpus_bits[(n) / LW_NCPUBITS] &  (ULONG)( (1ul << ((n) % LW_NCPUBITS))))
 #define LW_CPU_ZERO(p)      lib_bzero((PVOID)(p), sizeof(*(p)))
 
 /*********************************************************************************************************

@@ -51,14 +51,14 @@ extern LW_OBJECT_HANDLE    _K_ulInterShowLock;
 *********************************************************************************************************/
 #if LW_CFG_CPU_WORD_LENGHT == 64
 static const CHAR   _G_cInterInfoHdr1[] = "\n\
- IRQ      NAME            ENTRY            CLEAR      ENABLE RND PREEMPT";
+ IRQ      NAME            ENTRY            CLEAR      ENABLE RND PREEMPT PRIO";
 static const CHAR   _G_cInterInfoHdr2[] = "\n\
----- -------------- ---------------- ---------------- ------ --- -------";
+---- -------------- ---------------- ---------------- ------ --- ------- ----";
 #else
 static const CHAR   _G_cInterInfoHdr1[] = "\n\
- IRQ      NAME       ENTRY    CLEAR   ENABLE RND PREEMPT";
+ IRQ      NAME       ENTRY    CLEAR   ENABLE RND PREEMPT PRIO";
 static const CHAR   _G_cInterInfoHdr2[] = "\n\
----- -------------- -------- -------- ------ --- -------";
+---- -------------- -------- -------- ------ --- ------- ----";
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
 
 #if LW_CFG_INTER_INFO > 0
@@ -87,6 +87,8 @@ VOID   API_InterShow (ULONG  ulCPUStart, ULONG  ulCPUEnd)
     PCHAR      pcRnd;
     PCHAR      pcPreem;
     ULONG      ulFlag;
+    UINT       uiPrio = 0;
+    INT        iRet;
     
     PLW_CLASS_INTDESC  pidesc;
     PLW_CLASS_INTACT   piaction;
@@ -120,6 +122,7 @@ VOID   API_InterShow (ULONG  ulCPUStart, ULONG  ulCPUEnd)
     for (i = 0; i < LW_CFG_MAX_INTER_SRC; i++) {
         API_InterVectorGetFlag((ULONG)i, &ulFlag);
         API_InterVectorIsEnable((ULONG)i, &bIsEnable);
+        iRet = API_InterVectorGetPriority((ULONG)i, &uiPrio);
         
         pcIsEnable = (bIsEnable)                        ? "true" : "false";
         pcRnd      = (ulFlag & LW_IRQ_FLAG_SAMPLE_RAND) ? "yes"  : "";
@@ -145,6 +148,12 @@ VOID   API_InterShow (ULONG  ulCPUStart, ULONG  ulCPUEnd)
                    pcIsEnable, 
                    pcRnd, 
                    pcPreem);
+
+            if (iRet) {                                                 /*  打印优先级                  */
+                printf("N/A ");
+            } else {
+                printf("%4d ", uiPrio);
+            }
                    
             for (j = ulCPUStart; j <= ulCPUEnd; j++) {                  /*  打印中断计数                */
                 printf("%13lld ", piaction->IACT_iIntCnt[j]);

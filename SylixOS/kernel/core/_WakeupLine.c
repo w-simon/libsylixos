@@ -164,9 +164,11 @@ VOID  _WakeupStatus (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, ULONG  
     }
     
     if (plineTemp) {
-        __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);
-        ulDelta   = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
-        ulCounter = (ulCounter > ulDelta) ? (ulCounter - ulDelta) : 0ul;
+        if (pwu->WU_i64LastTime) {                                      /*  包含时间预处理              */
+            __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);
+            ulDelta   = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
+            ulCounter = (ulCounter > ulDelta) ? (ulCounter - ulDelta) : 0ul;
+        }
         *pulLeft  = ulCounter;
     
     } else {
