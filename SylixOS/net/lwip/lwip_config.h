@@ -480,7 +480,7 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr,
 
 #define LWIP_ARP                        1
 #define ARP_QUEUEING                    1
-#define ARP_QUEUE_LEN                   10                              /*  每个查询可缓存 10 个数据包  */
+#define ARP_QUEUE_LEN                   LW_CFG_LWIP_ARP_QUEUE_LEN       /*  每个查询可缓存数据包个数    */
 #define ARP_TABLE_SIZE                  LW_CFG_LWIP_ARP_TABLE_SIZE
 
 #define ETHARP_SUPPORT_VLAN             1                               /*  IEEE 802.1q VLAN            */
