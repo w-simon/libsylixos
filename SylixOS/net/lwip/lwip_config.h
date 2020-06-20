@@ -114,6 +114,12 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define MEMP_NUM_REASSDATA              16
 #endif                                                                  /*  MEM_SIZE >= ...             */
 
+#if LW_CFG_LWIP_TX_SINGLE_PBUF > 0
+#define MEMP_NUM_FRAG_PBUF              16
+#else
+#define MEMP_NUM_FRAG_PBUF              MEMP_NUM_REASSDATA              /*  !TX_SINGLE_PBUF ·ÖÆ¬ÊýÁ¿    */
+#endif
+
 /*********************************************************************************************************
   Memory method
 *********************************************************************************************************/
@@ -420,7 +426,7 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define LWIP_DNS                        LWIP_UDP
 
 #ifndef MEMP_NUM_NETDB
-#define MEMP_NUM_NETDB                  10
+#define MEMP_NUM_NETDB                  12
 #endif                                                                  /*  MEMP_NUM_NETDB              */
 
 #if LW_CFG_NET_IPV6 > 0
