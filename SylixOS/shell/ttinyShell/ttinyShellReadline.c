@@ -197,7 +197,9 @@ VOID  __tshellHistoryBackup (PLW_CLASS_TCB  ptcbDel)
 {
     __PSHELL_HISTORY_CTX    psihc = __TTINY_SHELL_GET_HIS(ptcbDel);
 
-    psihc->SIHC_bNeedBackup = LW_TRUE;
+    if (psihc) {
+        psihc->SIHC_bNeedBackup = LW_TRUE;
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellTtyInputHistorySave
@@ -217,6 +219,9 @@ static VOID  __tshellHistorySave (__PSHELL_INPUT_CTX  psicContext)
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     psihc = __TTINY_SHELL_GET_HIS(ptcbCur);
+    if (psihc == LW_NULL) {
+        return;
+    }
     
     pring = psihc->SIHC_pringHeader;
     while (pring) {                                                     /*  循环查找是否与以前的相同    */
@@ -279,8 +284,7 @@ static BOOL  __tshellHistoryGet (BOOL  bNext, PVOID  *ppvCookie, __PSHELL_INPUT_
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
     psihc = __TTINY_SHELL_GET_HIS(ptcbCur);
-
-    if (psihc->SIHC_pringHeader == LW_NULL) {                           /*  没有历史记录                */
+    if (!psihc || psihc->SIHC_pringHeader == LW_NULL) {                 /*  没有历史记录                */
         return  (LW_FALSE);
     }
 

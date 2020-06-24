@@ -55,6 +55,7 @@
 2014.12.08  修正 _TyIRd() 忘记释放 spinlock 错误.
 2015.05.07  优化中断程序操作.
 2015.12.04  修正 SMP 并发操作问题.
+2020.06.23  提高 RAW 模式效率.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -384,6 +385,8 @@ static VOID  _TyFlushWrt (TY_DEV_ID  ptyDev)
     
     rngFlush(ptyDev->TYDEV_vxringidWrBuf);
     
+    ptyDev->TYDEV_tydevwrstat.TYDEVWRSTAT_bCR = LW_FALSE;
+
     LW_SPIN_UNLOCK_QUICK(&ptyDev->TYDEV_slLock, iregInterLevel);        /*  解锁 spinlock 并打开中断    */
     
     ptyDev->TYDEV_tydevwrstat.TYDEVWRSTAT_bFlushingWrtBuf = LW_FALSE;
@@ -1266,15 +1269,11 @@ INT  _TyIRd (TY_DEV_ID  ptyDev, CHAR   cInchar)
     REGISTER INT         iFreeBytes;
 
     
-    if (ptyDev->TYDEV_pfuncProtoHook) {
-        if ((*ptyDev->TYDEV_pfuncProtoHook)(ptyDev->TYDEV_iProtoArg, 
-                                            cInchar)) {                 /*  有链接的协议时调用协议栈    */
-            return  (iStatus);
+    if (LW_UNLIKELY(ptyDev->TYDEV_pfuncProtoHook)) {
+        if (ptyDev->TYDEV_pfuncProtoHook(ptyDev->TYDEV_iProtoArg,
+                                         cInchar) == ERROR_NONE) {      /*  有链接的协议时调用协议栈    */
+            return  (ERROR_NONE);
         }
-    }
-    
-    if (iOpt & OPT_7_BIT) {                                             /*  仅接收 7 位数据             */
-        cInchar &= 0x7f;
     }
     
     LW_SPIN_LOCK_QUICK(&ptyDev->TYDEV_slLock, &iregInterLevel);         /*  锁定 spinlock 并关闭中断    */
@@ -1282,6 +1281,27 @@ INT  _TyIRd (TY_DEV_ID  ptyDev, CHAR   cInchar)
     if (ptyDev->TYDEV_tydevrdstat.TYDEVRDSTAT_bFlushingRdBuf) {         /*  输入缓冲区是否被 FLUSH      */
         LW_SPIN_UNLOCK_QUICK(&ptyDev->TYDEV_slLock, iregInterLevel);    /*  解锁 spinlock 打开中断      */
         return  (PX_ERROR);
+    }
+
+    if (iOpt == OPT_RAW) {                                              /*  原始模式加速操作            */
+        if (RNG_ELEM_PUT(ptyDev->TYDEV_vxringidRdBuf, cInchar, iNTemp) == 0) {
+            iStatus = PX_ERROR;                                         /*  写入输入队列                */
+        }
+        if (rngNBytes(ptyDev->TYDEV_vxringidRdBuf) == 1) {
+            bReleaseTaskLevel = LW_TRUE;                                /*  激活等待任务                */
+        } else {
+            bReleaseTaskLevel = LW_FALSE;
+        }
+        LW_SPIN_UNLOCK_QUICK(&ptyDev->TYDEV_slLock, iregInterLevel);    /*  解锁 spinlock 打开中断      */
+
+        if (bReleaseTaskLevel) {
+            API_SemaphoreBPost(ptyDev->TYDEV_hRdSyncSemB);              /*  激活等待任务                */
+            SEL_WAKE_UP_ALL(&ptyDev->TYDEV_selwulList, SELREAD);        /*  select() 激活               */
+        }
+        return  (iStatus);
+
+    } else if (iOpt & OPT_7_BIT) {
+        cInchar &= 0x7f;                                                /*  仅接收 7 位数据             */
     }
     
     if ((cInchar == __TTY_CC(ptyDev, VINTR)) && 

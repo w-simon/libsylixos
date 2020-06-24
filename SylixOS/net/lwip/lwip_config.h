@@ -650,7 +650,19 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr,
   ppp timeouts
 *********************************************************************************************************/
 
-#define LCP_ECHOINTERVAL                10                              /*  check lcp link per 10seconds*/
+#define FSM_DEFTIMEOUT                  LW_CFG_NET_PPP_TIMEOUT
+#define UPAP_DEFTIMEOUT                 LW_CFG_NET_PPP_TIMEOUT
+#define CHAP_DEFTIMEOUT                 LW_CFG_NET_PPP_TIMEOUT
+#define EAP_DEFREQTIME                  LW_CFG_NET_PPP_TIMEOUT
+#define EAP_DEFTIMEOUT                  LW_CFG_NET_PPP_TIMEOUT
+
+#define FSM_DEFMAXCONFREQS              LW_CFG_NET_PPP_RETRANSMITS
+#define UPAP_DEFTRANSMITS               LW_CFG_NET_PPP_RETRANSMITS
+#define CHAP_DEFTRANSMITS               LW_CFG_NET_PPP_RETRANSMITS
+#define EAP_DEFALLOWREQ                 LW_CFG_NET_PPP_RETRANSMITS
+#define LCP_DEFLOOPBACKFAIL             LW_CFG_NET_PPP_RETRANSMITS
+
+#define LCP_ECHOINTERVAL                LW_CFG_NET_PPP_ECHOINTERVAL     /*  echo timer                  */
 
 /*********************************************************************************************************
   ppp api

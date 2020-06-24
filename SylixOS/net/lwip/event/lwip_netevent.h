@@ -73,6 +73,7 @@ extern "C" {
 #define NET_EVENT_PPP_AUTH      (NET_EVENT_PPP + 2)                     /*  进入用户认证                */
 #define NET_EVENT_PPP_RUN       (NET_EVENT_PPP + 3)                     /*  网络连通                    */
 #define NET_EVENT_PPP_DISCONN   (NET_EVENT_PPP + 4)                     /*  进入连接中断                */
+#define NET_EVENT_PPP_TIMEOUT   (NET_EVENT_PPP + 5)                     /*  连接超时                    */
 
 /*********************************************************************************************************
   wireless 事件类型

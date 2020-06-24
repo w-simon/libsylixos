@@ -17,6 +17,9 @@
 ** 文件创建日期: 2014 年 01 月 08 日
 **
 ** 描        述: lwip ppp 连接管理器.
+
+** BUG:
+2020.06.23  增大 PPPoS 接收缓冲.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -114,6 +117,7 @@ static VOID  __pppLinkStatCb (ppp_pcb *pcb, INT iErrCode, PVOID  pvCtx)
         break;
 
     case PPPERR_PEERDEAD:
+        netEventIfPppExt(ppp_netif(pcb), NET_EVENT_PPP_TIMEOUT);
         printk(KERN_ERR "[PPP]PPPERR_PEERDEAD\n");
         break;
 
@@ -217,15 +221,22 @@ static VOID  __pppNotifyPhaseCb (ppp_pcb *pcb, u8_t ucPhase, PVOID  pvCtx)
 static VOID  __pppOsThread (ppp_pcb *pcb)
 {
     PPP_CTX_PRIV *pctxp;
+    size_t        stBufSz = PPPRBUF_SIZE >> 2;                          /*  接收缓冲 1/4                */
     ssize_t       sstRead;
-    UCHAR         ucBuffer[ETH_FRAME_LEN];
+    UCHAR         ucStatic[ETH_FRAME_LEN];
+    PUCHAR        pucBuffer;
 
-    pctxp = (PPP_CTX_PRIV *)pcb->ctx_cb;
+    pctxp     = (PPP_CTX_PRIV *)pcb->ctx_cb;
+    pucBuffer = (PUCHAR)__SHEAP_ALLOC(stBufSz);
+    if (!pucBuffer) {
+        pucBuffer = ucStatic;
+        stBufSz   = sizeof(ucStatic);
+    }
 
     for (;;) {
-        sstRead = read(pctxp->CTXP_iFd, ucBuffer, sizeof(ucBuffer));
+        sstRead = read(pctxp->CTXP_iFd, pucBuffer, stBufSz);
         if (sstRead > 0) {
-            pppos_input(pcb, ucBuffer, (INT)sstRead);
+            pppos_input(pcb, pucBuffer, (INT)sstRead);
 
         } else {
             if (iosFdGetType(pctxp->CTXP_iFd, LW_NULL) < ERROR_NONE) {
@@ -247,9 +258,14 @@ static VOID  __pppOsThread (ppp_pcb *pcb)
                 lib_free(pctxp->CTXP_cPass);
             }
             __SHEAP_FREE(pctxp);
+            if (pucBuffer != ucStatic) {
+                __SHEAP_FREE(pucBuffer);
+            }
             break;
         }
     }
+
+    LW_THREAD_UNSAFE();                                                 /*  退出安全模式                */
 }
 /*********************************************************************************************************
 ** 函数名称: __pppOsOutput
