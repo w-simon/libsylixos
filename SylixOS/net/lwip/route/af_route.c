@@ -1434,20 +1434,15 @@ VOID  route_hook_netif_updown (struct netif *pnetif)
             pifdata = &pmsghdr->ifm_data;
             lib_bzero(pifdata, sizeof(struct if_data));
             
+            pifdata->ifi_mtu  = pnetif->mtu;
+            pifdata->ifi_type = pnetif->link_type;
+
             if (pnetif->flags & NETIF_FLAG_ETHERNET) {
-                pifdata->ifi_type    = IFT_ETHER;
                 pifdata->ifi_addrlen = ETH_ALEN;
                 pifdata->ifi_hdrlen  = ETH_HLEN;
-                pifdata->ifi_mtu     = ETH_DATA_LEN;
 
             } else if (!(pnetif->flags & NETIF_FLAG_BROADCAST)) {
-                pifdata->ifi_type    = IFT_PPP;
-                pifdata->ifi_addrlen = 0;
                 pifdata->ifi_hdrlen  = 4;
-                pifdata->ifi_mtu     = 1500;
-                
-            } else {
-                pifdata->ifi_type = IFT_OTHER;
             }
             
             pnetdev = (netdev_t *)(pnetif->state);

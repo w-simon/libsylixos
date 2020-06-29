@@ -476,16 +476,7 @@ int  net_ip_hook_netif_get_name (struct netif *pnetif, char *name, size_t size)
 int  net_ip_hook_netif_get_type (struct netif *pnetif, int *type)
 {
     if (pnetif && type) {
-        if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
-            *type = IFT_PPP;
-        } else if (pnetif->flags & (NETIF_FLAG_ETHERNET | NETIF_FLAG_ETHARP)) {
-            *type = IFT_ETHER;
-        } else if (ip4_addr_isloopback(netif_ip4_addr(pnetif))) {
-            *type = IFT_LOOP;
-        } else {
-            *type = IFT_OTHER;
-        }
-        
+        *type = pnetif->link_type;
         return  (ERROR_NONE);
     }
     

@@ -57,17 +57,11 @@ void  rt_build_sockaddr_dl (struct sockaddr_dl *sdl, struct netif *netif)
   sdl->sdl_family = AF_LINK;
   sdl->sdl_index = netif_get_index(netif);
   sdl->sdl_slen = 0;
-  
+  sdl->sdl_type = netif->link_type;
+
   if (netif->flags & NETIF_FLAG_ETHERNET) {
-    sdl->sdl_type = IFT_ETHER;
     sdl->sdl_alen = ETH_ALEN;
-
-  } else if (!(netif->flags & NETIF_FLAG_BROADCAST)) {
-    sdl->sdl_type = IFT_PPP;
-    sdl->sdl_alen = 0;
-
   } else {
-    sdl->sdl_type = IFT_OTHER;
     sdl->sdl_alen = 0;
   }
   
