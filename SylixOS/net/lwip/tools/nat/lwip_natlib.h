@@ -97,7 +97,9 @@ INT         __natStop(VOID);
 INT         __natIpFragSet(UINT8  ucProto, BOOL  bOn);
 INT         __natIpFragGet(UINT8  ucProto, BOOL  *pbOn);
 INT         __natAddLocal(CPCHAR  pcLocal);
+INT         __natDeleteLocal(CPCHAR  pcLocal);
 INT         __natAddAp(CPCHAR  pcAp);
+INT         __natDeleteAp(CPCHAR  pcAp);
 INT         __natMapAdd(ip4_addr_t  *pipaddr, u16_t  usIpCnt, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
 INT         __natMapDelete(ip4_addr_t  *pipaddr, u16_t  usPort, u16_t  AssPort, u8_t  ucProto);
 INT         __natAliasAdd(const ip4_addr_t  *pipaddrAlias, 

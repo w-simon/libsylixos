@@ -41,6 +41,7 @@
 2019.04.09  NAT AP 端口支持主机安全隔离.
 2019.05.20  MAP 0.0.0.0 作为本机映射.
 2020.02.25  三大协议皆使用 Hash 表, 提高转发查找速度.
+2020.06.30  增加网络接口退出 NAT 功能.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -1439,9 +1440,14 @@ INT  __natStart (CPCHAR  pcLocal, CPCHAR  pcAp)
         return  (PX_ERROR);
     }
     
+    if (net_ip_hook_nat_add(__natIphook)) {
+        return  (PX_ERROR);
+    }
+
     lib_strlcpy(_G_natifAp[0].NATIF_cIfName, pcAp, IF_NAMESIZE);
     lib_strlcpy(_G_natifLocal[0].NATIF_cIfName, pcLocal, IF_NAMESIZE);
     
+    __NAT_LOCK();
     _G_natifLocal[0].NATIF_pnetif = netif_find(pcLocal);
     if (_G_natifLocal[0].NATIF_pnetif) {
         _G_natifLocal[0].NATIF_pnetif->nat_mode = NETIF_NAT_LOCAL;
@@ -1451,18 +1457,14 @@ INT  __natStart (CPCHAR  pcLocal, CPCHAR  pcAp)
     if (_G_natifAp[0].NATIF_pnetif) {
         _G_natifAp[0].NATIF_pnetif->nat_mode = NETIF_NAT_AP;
     }
-    
-    if (net_ip_hook_nat_add(__natIphook)) {
-        return  (PX_ERROR);
-    }
+    __NAT_UNLOCK();
     
     API_TimerStart(_G_ulNatcbTimer, (LW_TICK_HZ * 10), LW_OPTION_AUTO_RESTART,
                    (PTIMER_CALLBACK_ROUTINE)__natTimer, (PVOID)10);
     
-    __NAT_LOCK();
     _G_bNatStart = LW_TRUE;
-    __NAT_UNLOCK();
-    
+    KN_SMP_WMB();
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -1598,12 +1600,50 @@ INT  __natAddLocal (CPCHAR  pcLocal)
         return  (PX_ERROR);
     }
     __NAT_UNLOCK();
-    
+
     _G_natifLocal[i].NATIF_pnetif = netif_find(pcLocal);
     if (_G_natifLocal[i].NATIF_pnetif) {
         _G_natifLocal[i].NATIF_pnetif->nat_mode = NETIF_NAT_LOCAL;
     }
-    
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __natDeleteLocal
+** 功能描述: NAT 删除一个本地网络接口
+** 输　入  : pcLocal    本地网络接口
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __natDeleteLocal (CPCHAR  pcLocal)
+{
+    INT  i;
+
+    __NAT_LOCK();
+    if (!_G_bNatStart) {
+        __NAT_UNLOCK();
+        _ErrorHandle(ENOTCONN);
+        return  (PX_ERROR);
+    }
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_LOCAL_IF; i++) {
+        if (_G_natifLocal[i].NATIF_cIfName[0] &&
+            !lib_strcmp(_G_natifLocal[i].NATIF_cIfName, pcLocal)) {
+            _G_natifLocal[i].NATIF_cIfName[0] = PX_EOS;
+            if (_G_natifLocal[i].NATIF_pnetif) {
+                _G_natifLocal[i].NATIF_pnetif->nat_mode = NETIF_NAT_NONE;
+                _G_natifLocal[i].NATIF_pnetif = NULL;
+            }
+            break;
+        }
+    }
+    if (i >= LW_CFG_NET_NAT_MAX_LOCAL_IF) {
+        __NAT_UNLOCK();
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+    }
+    __NAT_UNLOCK();
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -1636,12 +1676,50 @@ INT  __natAddAp (CPCHAR  pcAp)
         return  (PX_ERROR);
     }
     __NAT_UNLOCK();
-    
+
     _G_natifAp[i].NATIF_pnetif = netif_find(pcAp);
     if (_G_natifAp[i].NATIF_pnetif) {
         _G_natifAp[i].NATIF_pnetif->nat_mode = NETIF_NAT_AP;
     }
     
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __natDeleteAp
+** 功能描述: NAT 删除一个出口网络接口
+** 输　入  : pcAp       出口网络接口
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __natDeleteAp (CPCHAR  pcAp)
+{
+    INT  i;
+
+    __NAT_LOCK();
+    if (!_G_bNatStart) {
+        __NAT_UNLOCK();
+        _ErrorHandle(ENOTCONN);
+        return  (PX_ERROR);
+    }
+    for (i = 0; i < LW_CFG_NET_NAT_MAX_AP_IF; i++) {
+        if (_G_natifAp[i].NATIF_cIfName[0] &&
+            !lib_strcmp(_G_natifAp[i].NATIF_cIfName, pcAp)) {
+            _G_natifAp[i].NATIF_cIfName[0] = PX_EOS;
+            if (_G_natifAp[i].NATIF_pnetif) {
+                _G_natifAp[i].NATIF_pnetif->nat_mode = NETIF_NAT_NONE;
+                _G_natifAp[i].NATIF_pnetif = NULL;
+            }
+            break;
+        }
+    }
+    if (i >= LW_CFG_NET_NAT_MAX_AP_IF) {
+        __NAT_UNLOCK();
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+    }
+    __NAT_UNLOCK();
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************

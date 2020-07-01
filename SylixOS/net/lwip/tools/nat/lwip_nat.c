@@ -219,6 +219,21 @@ INT  API_INetNatLocalAdd (CPCHAR  pcLocalNetif)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: API_INetNatLocalDelete
+** 功能描述: 在 NAT 网络中删除本地接口
+** 输　入  : pcLocalNetif          本地内网网络接口名
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+** 注  意  : 不需要 IF list 锁
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_INetNatLocalDelete (CPCHAR  pcLocalNetif)
+{
+    return  (__natDeleteLocal(pcLocalNetif));
+}
+/*********************************************************************************************************
 ** 函数名称: API_INetNatWanAdd
 ** 功能描述: 在 NAT 网络中增加 WAN 接口
 ** 输　入  : pcApNetif             外网网络接口名
@@ -238,6 +253,21 @@ INT  API_INetNatWanAdd (CPCHAR  pcApNetif)
     LWIP_IF_LIST_UNLOCK();
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_INetNatWanDelete
+** 功能描述: 在 NAT 网络中删除 WAN 接口
+** 输　入  : pcApNetif             外网网络接口名
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+** 注  意  : 不需要 IF list 锁
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_INetNatWanDelete (CPCHAR  pcApNetif)
+{
+    return  (__natDeleteAp(pcApNetif));
 }
 /*********************************************************************************************************
 ** 函数名称: API_INetNatMapAdd
