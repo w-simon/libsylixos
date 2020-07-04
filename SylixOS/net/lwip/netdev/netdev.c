@@ -556,12 +556,17 @@ static void  netdev_netif_set_linkup (netdev_t *netdev, int linkup, UINT32 speed
     return;
   }
   
+  netdev->speed = speed;
+
   netif = (struct netif *)netdev->sys;
-  
+  if (speed > 0xffffffff) {
+    netif->link_speed = 0;
+  } else {
+    netif->link_speed = (u32_t)speed;
+  }
+
   if (linkup) {
     netif->ts = sys_jiffies();
-    netdev->speed = speed;
-    
     if (!netif->ext_ctl) { /* not in net bridge or bonding */
       netifapi_netif_set_link_up(netif);
     } else {
@@ -569,12 +574,6 @@ static void  netdev_netif_set_linkup (netdev_t *netdev, int linkup, UINT32 speed
       netdev_netif_linkup(netif);
     }
 
-    if (speed > 0xffffffff) {
-      netif->link_speed = 0;
-    } else {
-      netif->link_speed = (u32_t)speed;
-    }
-  
   } else {
     if (!netif->ext_ctl) { /* not in net bridge or bonding */
       netifapi_netif_set_link_down(netif);
