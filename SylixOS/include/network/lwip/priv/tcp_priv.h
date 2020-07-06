@@ -275,6 +275,7 @@ struct tcp_seg {
 #define LWIP_TCP_OPT_MSS        2
 #define LWIP_TCP_OPT_WS         3
 #define LWIP_TCP_OPT_SACK_PERM  4
+#define LWIP_TCP_OPT_SACK       5 /* SylixOS Add SACK input support */
 #define LWIP_TCP_OPT_TS         8
 
 #define LWIP_TCP_OPT_LEN_MSS    4

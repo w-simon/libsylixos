@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2020-07-05: han.hui
+    支持 tcp SACK input.
+
     2020-05-14: han.hui
     支持多端口侦听 TCP socket (实验性质).
 

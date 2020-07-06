@@ -368,8 +368,10 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define TCP_LISTEN_BACKLOG              1
 #define LWIP_TCP_TIMESTAMPS             1
 
-#define TCP_QUEUE_OOSEQ                 1
-#define LWIP_TCP_SACK_OUT               1
+#define TCP_QUEUE_OOSEQ                 1                               /*  Out of Order support        */
+
+#define LWIP_TCP_SACK_OUT               1                               /*  Full SACK support           */
+#define LWIP_TCP_SACK_IN                LWIP_TCP_SACK_OUT
 
 #ifndef TCP_MSS
 #ifdef __SYLIXOS_LITE

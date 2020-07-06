@@ -82,6 +82,11 @@ static tcpwnd_size_t recv_acked;
 static u16_t tcplen;
 static u8_t flags;
 
+#if LWIP_TCP_SACK_IN /* SylixOS Add SACK input support */
+static u8_t in_sack_nums;
+static struct tcp_sack_range in_sacks[LWIP_TCP_MAX_SACK_NUM];
+#endif /* LWIP_TCP_SACK_IN */
+
 static u8_t recv_flags;
 static struct pbuf *recv_data;
 
@@ -178,6 +183,10 @@ tcp_input(struct pbuf *p, struct netif *inp)
     TCP_STATS_INC(tcp.lenerr);
     goto dropped;
   }
+
+#if LWIP_TCP_SACK_IN /* SylixOS Add SACK input support */
+  in_sack_nums = 0;
+#endif /* LWIP_TCP_SACK_IN */
 
   /* Move the payload pointer in the pbuf so that it points to the
      TCP data instead of the TCP header. */
@@ -1159,6 +1168,73 @@ tcp_free_acked_segments(struct tcp_pcb *pcb, struct tcp_seg *seg_list, const cha
   return seg_list;
 }
 
+#if LWIP_TCP_SACK_IN /* SylixOS Add SACK input support */
+/** Remove segments from a list if the incoming SACK acknowledges them
+ *  'seg_list' must valid */
+static struct tcp_seg *
+tcp_free_sacked_segments(struct tcp_pcb *pcb, struct tcp_seg *seg_list, struct tcp_sack_range *sack,
+                         const char *dbg_list_name, struct tcp_seg *dbg_other_seg_list)
+{
+  struct tcp_seg *prev, *seg, *next;
+  u16_t clen, seqno;
+
+  LWIP_UNUSED_ARG(dbg_list_name);
+  LWIP_UNUSED_ARG(dbg_other_seg_list);
+
+  prev = NULL;
+  seg  = seg_list;
+
+  while (seg) {
+    seqno = lwip_ntohl(seg->tcphdr->seqno);
+    if (TCP_SEQ_GT(seqno, sack->right)) {
+      break; /* Greater than right edge */
+    }
+
+    /* Check if seg is in the range of SACK */
+    if (TCP_SEQ_GEQ(seqno, sack->left) &&
+        TCP_SEQ_LEQ(seqno + TCP_TCPLEN(seg), sack->right + 1)) {
+
+      /* We can remove this segment */
+      if (prev) {
+        prev->next = seg->next;
+      } else {
+        seg_list = seg->next; /* Remove list header */
+      }
+
+      LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_receive: removing %"U32_F":%"U32_F" from pcb->%s\n",
+                                    lwip_ntohl(seg->tcphdr->seqno),
+                                    lwip_ntohl(seg->tcphdr->seqno) + TCP_TCPLEN(seg),
+                                    dbg_list_name));
+      next = seg;
+      seg = seg->next;
+
+      clen = pbuf_clen(next->p);
+      LWIP_DEBUGF(TCP_QLEN_DEBUG, ("tcp_receive: queuelen %"TCPWNDSIZE_F" ... ",
+                                   (tcpwnd_size_t)pcb->snd_queuelen));
+      LWIP_ASSERT("pcb->snd_queuelen >= pbuf_clen(next->p)", (pcb->snd_queuelen >= clen));
+
+      pcb->snd_queuelen = (u16_t)(pcb->snd_queuelen - clen);
+      recv_acked = (tcpwnd_size_t)(recv_acked + next->len);
+      tcp_seg_free(next);
+
+      LWIP_DEBUGF(TCP_QLEN_DEBUG, ("%"TCPWNDSIZE_F" (after freeing %s)\n",
+                                   (tcpwnd_size_t)pcb->snd_queuelen,
+                                   dbg_list_name));
+      if (pcb->snd_queuelen != 0) {
+        LWIP_ASSERT("tcp_receive: valid queue length",
+                    seg_list != NULL || dbg_other_seg_list != NULL);
+      }
+
+    } else { /* This segment not in SACK range */
+      prev = seg;
+      seg = seg->next;
+    }
+  }
+
+  return seg_list;
+}
+#endif /* LWIP_TCP_SACK_IN */
+
 /**
  * Called by tcp_process. Checks if the given segment is an ACK for outstanding
  * data, and if so frees the memory of the buffered data. Next, it places the
@@ -1309,6 +1385,22 @@ tcp_receive(struct tcp_pcb *pcb)
       /* Remove segment from the unacknowledged list if the incoming
          ACK acknowledges them. */
       pcb->unacked = tcp_free_acked_segments(pcb, pcb->unacked, "unacked", pcb->unsent);
+
+#if LWIP_TCP_SACK_IN /* SylixOS Add SACK input support */
+      if (in_sack_nums && pcb->unacked && tcp_is_flag_set(pcb, TF_SACK)) {
+        /* Input packet has SACK option and we have unack packets.
+         */
+        u8_t i; /* 0 ~ LWIP_TCP_MAX_SACK_NUM */
+
+        /* For each sack option */
+        for (i = 0; i < in_sack_nums; i++) {
+          if (in_sacks[i].left != in_sacks[i].right) {
+            pcb->unacked = tcp_free_sacked_segments(pcb, pcb->unacked, &in_sacks[i], "unsacked", pcb->unsent);
+          }
+        }
+      }
+#endif /* LWIP_TCP_SACK_IN */
+
       /* We go through the ->unsent list to see if any of the segments
          on the list are acknowledged by the ACK. This may seem
          strange since an "unsent" segment shouldn't be acked. The
@@ -1930,7 +2022,11 @@ tcp_receive(struct tcp_pcb *pcb)
   }
 }
 
+#ifdef SYLIXOS /* SylixOS make this function run fast! */
+static inline u8_t
+#else /* !SYLIXOS */
 static u8_t
+#endif /* !SYLIXOS */
 tcp_get_next_optbyte(void)
 {
   u16_t optidx = tcp_optidx++;
@@ -1959,6 +2055,10 @@ tcp_parseopt(struct tcp_pcb *pcb)
 #if LWIP_TCP_TIMESTAMPS
   u32_t tsval;
 #endif
+#if LWIP_TCP_SACK_IN /* SylixOS Add SACK input support */
+  u32_t sack;
+  u8_t i;
+#endif /* LWIP_TCP_SACK_IN */
 
   LWIP_ASSERT("tcp_parseopt: invalid pcb", pcb != NULL);
 
@@ -2060,6 +2160,35 @@ tcp_parseopt(struct tcp_pcb *pcb)
           }
           break;
 #endif /* LWIP_TCP_SACK_OUT */
+#if LWIP_TCP_SACK_IN /* SylixOS Add SACK input support */
+        case LWIP_TCP_OPT_SACK:
+          LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_parseopt: SACK_OPT\n"));
+          data = tcp_get_next_optbyte();
+          if (data < 10 || data > 34 || ((data - 2) & 0x7) || (tcp_optidx - 2 + data) > tcphdr_optlen) {
+            /* Bad length */
+            LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_parseopt: bad length\n"));
+            return;
+          }
+          if (tcp_is_flag_set(pcb, TF_SACK)) {
+            /* If we set SACK_PERM flag */
+            in_sack_nums = (data - 2) >> 3;
+            for (i = 0; i < in_sack_nums; i++) {
+              sack = ((u32_t)tcp_get_next_optbyte() << 24);
+              sack |= ((u32_t)tcp_get_next_optbyte() << 16);
+              sack |= ((u32_t)tcp_get_next_optbyte() << 8);
+              sack |= (u32_t)tcp_get_next_optbyte();
+              in_sacks[i].left = sack; /* Host bytes order */
+              sack = ((u32_t)tcp_get_next_optbyte() << 24);
+              sack |= ((u32_t)tcp_get_next_optbyte() << 16);
+              sack |= ((u32_t)tcp_get_next_optbyte() << 8);
+              sack |= (u32_t)tcp_get_next_optbyte();
+              in_sacks[i].right = sack; /* Host bytes order */
+            }
+          } else {
+            tcp_optidx += data - 2;
+          }
+          break;
+#endif /* LWIP_TCP_SACK_IN */
         default:
           LWIP_DEBUGF(TCP_INPUT_DEBUG, ("tcp_parseopt: other\n"));
           data = tcp_get_next_optbyte();

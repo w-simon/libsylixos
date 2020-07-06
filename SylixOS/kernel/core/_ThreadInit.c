@@ -269,9 +269,11 @@ VOID  _TCBBuild (UINT8                    ucPriority,
         ptcb->TCB_bCPULock  = ptcbCur->TCB_bCPULock;
         ptcb->TCB_ulCPULock = ptcbCur->TCB_ulCPULock;                   /*  继承 CPU 亲和度关系         */
     }
+    ptcb->TCB_ulCPUId = ptcb->TCB_ulCPULock;
+#else
+    ptcb->TCB_ulCPUId = 0ul;                                            /*  默认使用 0 号 CPU           */
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 
-    ptcb->TCB_ulCPUId = 0ul;                                            /*  默认使用 0 号 CPU           */
     ptcb->TCB_bIsCand = LW_FALSE;                                       /*  没有加入运行表              */
     
 #if LW_CFG_SMP_EN > 0

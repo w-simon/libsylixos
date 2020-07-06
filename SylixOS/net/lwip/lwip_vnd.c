@@ -533,7 +533,7 @@ static INT  _vndSelDev (PLW_VND_FILE  pvndfil, struct ifvnd *pifvnd)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  _vndCsum (PLW_VND_FILE  pvndfil, INT *pifvnd)
+static INT  _vndCsum (PLW_VND_FILE  pvndfil, INT *piEn)
 {
     PLW_VND_DEV   pvnd;
     INT           iRet;
@@ -545,7 +545,7 @@ static INT  _vndCsum (PLW_VND_FILE  pvndfil, INT *pifvnd)
     }
     
     VND_LOCK();
-    iRet = vnetdev_checksum(&pvnd->VND_vnetdev, 1, *pifvnd);
+    iRet = vnetdev_checksum(&pvnd->VND_vnetdev, 1, *piEn);
     VND_UNLOCK();
     
     return  (iRet);
