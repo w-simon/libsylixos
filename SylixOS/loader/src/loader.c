@@ -900,6 +900,11 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
         pmodule = moduleLoadSub(pmodVProc, pcFile, LW_FALSE);           /*  查找进程已装载模块链表      */
     }
 
+    if (pmodule && (LW_NULL == pvVProc)) {                              /*  内核模块不允许重复加载      */
+        _ErrorHandle(EEXIST);
+        return  (LW_NULL);
+    }
+
     if (LW_NULL == pmodule) {                                           /*  获取动态链接库位置          */
         if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "LD_LIBRARY_PATH", &statFile)) {
             if (ERROR_NONE != moduleGetLibPath(pcFile, cLibPath, MAX_FILENAME_LENGTH, "PATH", &statFile)) {
