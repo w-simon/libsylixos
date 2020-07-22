@@ -42,6 +42,7 @@
 2019.05.20  MAP 0.0.0.0 作为本机映射.
 2020.02.25  三大协议皆使用 Hash 表, 提高转发查找速度.
 2020.06.30  增加网络接口退出 NAT 功能.
+2020.07.22  不拦截本机 DHCP 端口.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -59,6 +60,7 @@
 #include "lwip/ip.h"
 #include "lwip/ip4_frag.h"
 #include "lwip/tcp.h"
+#include "lwip/prot/iana.h"
 #include "lwip/priv/tcp_priv.h"
 #include "lwip/udp.h"
 #include "lwip/icmp.h"
@@ -888,6 +890,13 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
     if ((ucProto != IP_PROTO_ICMP) &&
         ((PP_NTOHS(usDestPort) < LW_CFG_NET_NAT_MIN_PORT) || 
          (PP_NTOHS(usDestPort) > LW_CFG_NET_NAT_MAX_PORT))) {           /*  目标端口不在代理端口之间    */
+
+        if ((ucProto == IP_PROTO_UDP) &&
+            (udphdr->src == PP_HTONS(LWIP_IANA_PORT_DHCP_SERVER)) &&
+            (udphdr->dest == PP_HTONS(LWIP_IANA_PORT_DHCP_CLIENT))) {   /*  本机为 DHCP 客户端          */
+            return  (0);                                                /*  直接放行                    */
+        }
+
         for (plineTemp  = _G_plineNatmap;
              plineTemp != LW_NULL;
              plineTemp  = _list_line_get_next(plineTemp)) {
@@ -1134,6 +1143,12 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
         return  (1);                                                    /*  不能处理的协议              */
     }
     
+    if (!pnetifIn && (ucProto == IP_PROTO_UDP) &&
+        (udphdr->src == PP_HTONS(LWIP_IANA_PORT_DHCP_CLIENT)) &&
+        (udphdr->dest == PP_HTONS(LWIP_IANA_PORT_DHCP_SERVER))) {       /*  本机为 DHCP 客户端          */
+        return  (0);                                                    /*  直接放行                    */
+    }
+
     for (plineTemp  = plineHeader;
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
@@ -1257,11 +1272,13 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
 static struct pbuf *__natIpInput (struct pbuf  *p, struct netif  *pnetifIn, struct netif  *pnetifOut)
 {
     struct ip_hdr  *iphdr;
+    const ip4_addr_t *ipaddr;
     
-    iphdr = (struct ip_hdr *)p->payload;
+    iphdr  = (struct ip_hdr *)p->payload;
+    ipaddr = netif_ip4_addr(pnetifIn);
     
-    if (!ip4_addr_cmp(&iphdr->dest, netif_ip4_addr(pnetifIn))) {        /*  只允许发送至本机            */
-        pbuf_free(p);
+    if ((ipaddr->addr != IPADDR_ANY) && !ip4_addr_cmp(&iphdr->dest, ipaddr)) {
+        pbuf_free(p);                                                   /*  只允许发送至本机            */
         return  (LW_NULL);
     }
 

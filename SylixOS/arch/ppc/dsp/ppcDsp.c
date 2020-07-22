@@ -185,6 +185,10 @@ VOID  archDspCtxShow (INT  iFd, PVOID  pvDspCtx)
 *********************************************************************************************************/
 INT  archDspUndHandle (PLW_CLASS_TCB  ptcbCur)
 {
+    if (LW_CPU_GET_CUR_NESTING() > 1) {                                 /*  中断中发生异常, 返回出错    */
+        return  (PX_ERROR);
+    }
+
     if (PPC_DSP_ISENABLE(_G_pdspop)) {                                  /*  如果当前上下文 DSP 使能     */
         return  (PX_ERROR);                                             /*  此未定义指令与 DSP 无关     */
     }
@@ -192,7 +196,7 @@ INT  archDspUndHandle (PLW_CLASS_TCB  ptcbCur)
     PPC_DSP_ENABLE_TASK(_G_pdspop, ptcbCur);                            /*  任务使能 DSP                */
 
     ptcbCur->TCB_ulOption |= LW_OPTION_THREAD_USED_DSP;
-    PPC_DSP_ENABLE(_G_pdspop);                                          /*  使能 DSP                    */
+    PPC_DSP_RESTORE(_G_pdspop, ptcbCur->TCB_pvStackDSP);                /*  使能 DSP, 初始化 DSP 寄存器 */
 
     return  (ERROR_NONE);
 }

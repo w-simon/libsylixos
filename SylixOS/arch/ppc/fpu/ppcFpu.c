@@ -206,6 +206,10 @@ VOID  archFpuCtxShow (INT  iFd, PVOID  pvFpuCtx)
 *********************************************************************************************************/
 INT  archFpuUndHandle (PLW_CLASS_TCB  ptcbCur)
 {
+    if (LW_CPU_GET_CUR_NESTING() > 1) {                                 /*  中断中发生异常, 返回出错    */
+        return  (PX_ERROR);
+    }
+
     if (ptcbCur->TCB_ulOption & LW_OPTION_THREAD_USED_FP) {
         return  (PX_ERROR);
     }
@@ -213,7 +217,7 @@ INT  archFpuUndHandle (PLW_CLASS_TCB  ptcbCur)
     PPC_VFP_ENABLE_TASK(_G_pfpuop, ptcbCur);                            /*  任务使能 FPU                */
     ptcbCur->TCB_ulOption |= LW_OPTION_THREAD_USED_FP;
 
-    PPC_VFP_ENABLE(_G_pfpuop);                                          /*  使能 FPU                    */
+    PPC_VFP_RESTORE(_G_pfpuop, ptcbCur->TCB_pvStackFP);                 /*  使能 FPU, 初始化 FPU 寄存器 */
     
     return  (ERROR_NONE);
 }

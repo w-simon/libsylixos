@@ -64,7 +64,7 @@ static VOID  __fpuInterEnter (PLW_CLASS_CPU  pcpu)
             __ARCH_FPU_SAVE(ptcbCur->TCB_pvStackFP);                    /*  保存当前被中断线程 FPU CTX  */
         
         } else {
-            __ARCH_FPU_ENABLE();                                        /*  使能当前中断下 FPU          */
+            __ARCH_FPU_RESTORE(__INTER_FPU_CTX(ulInterNesting - 1));    /*  使能当前中断下 FPU          */
         }
 
     } else {
@@ -122,7 +122,7 @@ static VOID  __dspInterEnter (PLW_CLASS_CPU  pcpu)
             __ARCH_DSP_SAVE(ptcbCur->TCB_pvStackDSP);                   /*  保存当前被中断线程 DSP CTX  */
 
         } else {
-            __ARCH_DSP_ENABLE();                                        /*  使能当前中断下 DSP          */
+            __ARCH_DSP_RESTORE(__INTER_DSP_CTX(ulInterNesting - 1));    /*  使能当前中断下 DSP          */
         }
 
     } else {
