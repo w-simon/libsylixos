@@ -1239,6 +1239,10 @@ int ip6_input_hook (struct pbuf *p, struct netif *pnetif)
     return  (0);                                                        /*  do not eaten packet         */
 }
 /*********************************************************************************************************
+  User Route Hook
+*********************************************************************************************************/
+extern struct netif *lwip_ip_route_hook(int ip_type, const void *src, const void *dest);
+/*********************************************************************************************************
 ** 函数名称: ip_route_src_hook
 ** 功能描述: sylixos ip route hook
 ** 输　入  : pipsrc   source address
@@ -1252,6 +1256,11 @@ struct netif *ip_route_src_hook (const ip4_addr_t *pipsrc, const ip4_addr_t *pip
 #if LW_CFG_NET_ROUTER > 0
     struct netif  *netif;
     
+    netif = lwip_ip_route_hook(4, pipsrc, pipdest);                     /*  IP_HOOK_V4 == 4            */
+    if (netif) {
+        return  (netif);
+    }
+
 #if LW_CFG_NET_BALANCING > 0
     netif = srt_route_search_hook(pipsrc, pipdest);                     /*  source route first          */
 #else
@@ -1323,6 +1332,11 @@ struct netif *ip6_route_src_hook (const ip6_addr_t *pip6src, const ip6_addr_t *p
 #if LW_CFG_NET_ROUTER > 0
     struct netif  *netif;
     
+    netif = lwip_ip_route_hook(6, pip6src, pip6dest);                   /*  IP_HOOK_V6 == 6            */
+    if (netif) {
+        return  (netif);
+    }
+
 #if LW_CFG_NET_BALANCING > 0
     netif = srt6_route_search_hook(pip6src, pip6dest);                  /*  source route first          */
 #else

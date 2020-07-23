@@ -622,13 +622,16 @@ __continue_write:
             lib_memcpy(pcIn, pcBuffer, stLen);                          /*  后半部分                    */
             pcBuffer += stLen;
             lib_memcpy(pcBase, pcBuffer, (stNBytesToWrite - stLen));    /*  前半部分                    */
-            pcIn = pcBase + (stNBytesToWrite - stLen);
+            pcIn      = pcBase + (stNBytesToWrite - stLen);
+            pcBuffer += stNBytesToWrite - stLen;
         } else if (stNBytesToWrite < stLen) {
             lib_memcpy(pcIn, pcBuffer, stNBytesToWrite);                /*  直接拷贝                    */
-            pcIn += stNBytesToWrite;
+            pcIn     += stNBytesToWrite;
+            pcBuffer += stNBytesToWrite;
         } else {
             lib_memcpy(pcIn, pcBuffer, stNBytesToWrite);
-            pcIn = pcBase;                                              /*  后半部分全部拷贝            */
+            pcIn      = pcBase;                                         /*  后半部分全部拷贝            */
+            pcBuffer += stNBytesToWrite;
         }
     }
     

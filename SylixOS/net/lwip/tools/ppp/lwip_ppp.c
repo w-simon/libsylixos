@@ -35,6 +35,7 @@
 #include "netif/ppp/pppapi.h"
 #include "netif/ppp/pppos.h"
 #include "lwip_ppp.h"
+#include "net/if_lock.h"
 #include "net/if_event.h"
 #include "net/if_ether.h"
 /*********************************************************************************************************
@@ -249,8 +250,13 @@ static VOID  __pppOsThread (ppp_pcb *pcb)
 
         if ((pctxp->CTXP_bNeedDelete) &&
             (pcb->phase == PPP_PHASE_DEAD)) {                           /*  需要删除 PPP 连接           */
-            close(pctxp->CTXP_iFd);
+            LWIP_IF_LIST_LOCK(LW_TRUE);
             pppapi_free(pcb);
+            LWIP_IF_LIST_UNLOCK();
+
+            if (pctxp->CTXP_iFd >= 0) {
+                close(pctxp->CTXP_iFd);
+            }
             if (pctxp->CTXP_cUser) {
                 lib_free(pctxp->CTXP_cUser);
             }
@@ -495,8 +501,8 @@ __error_handle:
 ** 输　入  : pcEthIf       使用的以太网网卡名
 **           pcIp          服务器地址
 **           usPort        服务器端口
-**           pcSecret      未使用
-**           stSecretLen   未使用
+**           pcSecret      安全密钥
+**           stSecretLen   安全密钥长度
 **           pcIfName      如果创建成功, 则返回网络设备名称
 **           stMaxSize     ifname 缓冲区大小
 ** 输　出  : PPP 连接网卡是否安装成功
@@ -514,11 +520,12 @@ INT  API_PppOl2tpCreate (CPCHAR  pcEthIf,
                          size_t  stMaxSize)
 {
     INT             iErrLevel = 0;
+    UINT8          *pucSecret;
     PPP_CTX_PRIV   *pctxp;
     struct netif   *netif;
     ip_addr_t       ipaddr;
 
-    if (!pcEthIf || !pcIp || !usPort || !pcIfName || (stMaxSize < IF_NAMESIZE)) {
+    if (!pcIp || !usPort || !pcIfName || (stMaxSize < IF_NAMESIZE)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -528,18 +535,26 @@ INT  API_PppOl2tpCreate (CPCHAR  pcEthIf,
         return  (PX_ERROR);
     }
 
-    pctxp = (PPP_CTX_PRIV *)__SHEAP_ALLOC(sizeof(PPP_CTX_PRIV));
+    if (pcSecret && stSecretLen) {
+        pctxp = (PPP_CTX_PRIV *)__SHEAP_ALLOC(sizeof(PPP_CTX_PRIV) + stSecretLen);
+    } else {
+        pctxp = (PPP_CTX_PRIV *)__SHEAP_ALLOC(sizeof(PPP_CTX_PRIV));
+    }
     if (pctxp == LW_NULL) {
         _ErrorHandle(ENOMEM);
         return  (PX_ERROR);
     }
     lib_bzero(pctxp, sizeof(PPP_CTX_PRIV));
 
-    netif = netif_find(pcEthIf);
-    if (netif == LW_NULL) {
-        _ErrorHandle(ENODEV);
-        iErrLevel = 1;
-        goto    __error_handle;
+    if (pcEthIf) {
+        netif = netif_find(pcEthIf);
+        if (netif == LW_NULL) {
+            _ErrorHandle(ENODEV);
+            iErrLevel = 1;
+            goto    __error_handle;
+        }
+    } else {
+        netif = LW_NULL;                                                /*  不指定物理网络接口          */
     }
 
     pctxp->CTXP_uiType      = PPP_OL2TP;
@@ -548,9 +563,16 @@ INT  API_PppOl2tpCreate (CPCHAR  pcEthIf,
     pctxp->CTXP_ucPhase     = PPP_PHASE_DEAD;
     pctxp->CTXP_iFd         = PX_ERROR;
 
+    if (pcSecret && stSecretLen) {
+        pucSecret = (UINT8 *)pctxp + sizeof(PPP_CTX_PRIV);
+        lib_memcpy(pucSecret, pcSecret, stSecretLen);
+    } else {
+        pucSecret   = LW_NULL;
+        stSecretLen = 0;
+    }
+
     pctxp->CTXP_pcb = pppapi_pppol2tp_create(&pctxp->CTXP_netif, netif, &ipaddr, ntohs(usPort),
-                                             (u8_t *)pcSecret, (u8_t)stSecretLen,
-                                             __pppLinkStatCb, pctxp);
+                                             pucSecret, (u8_t)stSecretLen, __pppLinkStatCb, pctxp);
     if (pctxp->CTXP_pcb == LW_NULL) {
         _ErrorHandle(ENODEV);
         iErrLevel = 1;
@@ -608,7 +630,10 @@ INT  API_PppDelete (CPCHAR  pcIfName)
         __KERNEL_SPACE_EXIT();
 
     } else {
+        LWIP_IF_LIST_LOCK(LW_TRUE);
         pppapi_free(pcb);                                               /*  直接删除                    */
+        LWIP_IF_LIST_UNLOCK();
+
         if (pctxp->CTXP_cUser) {
             lib_free(pctxp->CTXP_cUser);
         }

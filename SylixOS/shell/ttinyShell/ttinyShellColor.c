@@ -259,13 +259,15 @@ VOID  API_TShellColorRefresh (VOID)
     PCHAR   pcColor;
     PCHAR   pcNext;
     CHAR    cStrColors[2048];
+    INT     iLen;
 
-    if (__tshellVarGetRt("LS_COLORS", cStrColors, sizeof(cStrColors))) {
+    __tshellColorDel();                                                 /*  删除所有配色方案            */
+
+    iLen = __tshellVarGetRt("LS_COLORS", cStrColors, sizeof(cStrColors));
+    if (iLen <= 0) {
         return;
     }
-    
-    __tshellColorDel();                                                 /*  删除所有配色方案            */
-    
+
     pcNext = cStrColors;
     TSHELL_SKIP_CHAR(pcNext, ':');
     

@@ -4062,7 +4062,7 @@ static PVOID  __ahciMonitorThread (PVOID  pvArg)
             AHCI_LOG(AHCI_LOG_ERR, "msg handle error ctrl %d.\r\n", hCtrl->AHCICTRL_uiIndex);
             continue;
         }
-        hCtrl = tCtrlMsg.AHCIMSG_hCtrl;
+        hCtrl  = tCtrlMsg.AHCIMSG_hCtrl;
         iDrive = tCtrlMsg.AHCIMSG_uiDrive;
         if ((iDrive < 0) ||
             (iDrive >= hCtrl->AHCICTRL_uiImpPortNum)) {                 /* 驱动器索引错误               */
@@ -4146,9 +4146,39 @@ static PVOID  __ahciMonitorThread (PVOID  pvArg)
                      hDrive->AHCIDRIVE_uiIntError, hDrive->AHCIDRIVE_uiIntStatus);
 
             if (hDrive->AHCIDRIVE_ucType == AHCI_TYPE_ATA) {
+                UINT  uiReg;
+
                 AHCI_LOG(AHCI_LOG_ERR, "error ctrl %d drive %d ata drive status init.\r\n",
                          hCtrl->AHCICTRL_uiIndex, iDrive);
-                __ahciDiskCtrlInit(hCtrl, iDrive);
+
+                uiReg  = AHCI_PORT_READ(hDrive, AHCI_PxSCTL);
+                uiReg &= ~0x0ff;
+                uiReg |= AHCI_PSCTL_DET_RESET | AHCI_PSCTL_IPM_PARSLUM_DISABLED | AHCI_PSSTS_SPD_GEN2;
+                AHCI_PORT_WRITE(hDrive, AHCI_PxSCTL, uiReg);
+                AHCI_PORT_READ(hDrive, AHCI_PxSCTL);
+
+                API_TimeMSleep(1);
+
+                uiReg = AHCI_PORT_READ(hDrive, AHCI_PxSCTL);
+
+                iRetry = 5;
+                do {
+                    uiReg = (uiReg & 0x0f0) | 0x300;
+                    AHCI_PORT_WRITE(hDrive, AHCI_PxSCTL, uiReg);
+                    API_TimeMSleep(200);
+
+                    uiReg = AHCI_PORT_READ(hDrive, AHCI_PxSCTL);
+                } while (((uiReg & 0xf0f) != 0x300) && (--iRetry > 0));
+
+                iRet = API_AhciDriveRegWait(hDrive,
+                                            AHCI_PxSSTS, AHCI_PSSTS_DET_MSK, LW_FALSE, AHCI_PSSTS_DET_PHY,
+                                            1, 50, &uiReg);
+                if (iRet != ERROR_NONE) {
+                    break;
+                }
+
+                AHCI_PORT_WRITE(hDrive, AHCI_PxSERR, 0xffffffff);
+
             } else if (hDrive->AHCIDRIVE_ucType == AHCI_TYPE_ATAPI) {
 #if AHCI_ATAPI_EN > 0                                                   /* 是否使能 ATAPI               */
                 AHCI_LOG(AHCI_LOG_PRT, "error ctrl %d drive %d atapi drive status init.\r\n",

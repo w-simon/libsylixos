@@ -105,8 +105,8 @@ extern int ethernet_vlan_check_hook(struct netif *pnetif, const struct eth_hdr *
   ip hook
 *********************************************************************************************************/
 
-extern int   lwip_ip_hook(int ip_type, int hook_type, struct pbuf *p, struct netif *in, struct netif *out);
-struct pbuf *lwip_ip_nat_hook(int ip_type, int hook_type, struct pbuf *p, struct netif *in, struct netif *out);
+extern int           lwip_ip_hook(int ip_type, int hook_type, struct pbuf *p, struct netif *in, struct netif *out);
+extern struct pbuf  *lwip_ip_nat_hook(int ip_type, int hook_type, struct pbuf *p, struct netif *in, struct netif *out);
 
 #endif                                                                  /*  __LWIP_HOOK_H               */
 /*********************************************************************************************************

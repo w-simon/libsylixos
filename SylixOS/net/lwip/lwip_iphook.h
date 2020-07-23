@@ -70,6 +70,12 @@
 #define IP_HT_NAT_POST_ROUTING  4
 
 /*********************************************************************************************************
+  特殊路由回调
+*********************************************************************************************************/
+
+#define IP_HT_ROUTING           0
+
+/*********************************************************************************************************
   通用回调类型内核函数
 *********************************************************************************************************/
 
@@ -94,6 +100,16 @@ int  net_ip_hook_nat_delete(struct pbuf *(*hook)(int ip_type, int hook_type, str
                                                  struct netif *in, struct netif *out));
 int  net_ip_hook_nat_isadd(struct pbuf *(*hook)(int ip_type, int hook_type, struct pbuf *p,
                                                 struct netif *in, struct netif *out), BOOL *pbIsAdd);
+
+/*********************************************************************************************************
+  特殊路由回调
+*********************************************************************************************************/
+
+int  net_ip_hook_route_add(struct netif *(*hook)(int ip_type, const void *src, const void *dest));
+
+int  net_ip_hook_route_delete(struct netif *(*hook)(int ip_type, const void *src, const void *dest));
+
+int  net_ip_hook_route_isadd(struct netif *(*hook)(int ip_type, const void *src, const void *dest), BOOL *pbIsAdd);
 
 /*********************************************************************************************************
   设置 pbuf 成员

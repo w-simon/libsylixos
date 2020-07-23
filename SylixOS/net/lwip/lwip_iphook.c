@@ -43,6 +43,7 @@ typedef IP_HOOK_NODE   *PIP_HOOK_NODE;
 *********************************************************************************************************/
 static LW_LIST_LINE_HEADER   _G_plineIpHook;
 static struct pbuf        *(*_G_pfuncIpHookNat)();
+static struct netif       *(*_G_pfuncIpHookRoute)();
 /*********************************************************************************************************
 ** 函数名称: lwip_ip_hook
 ** 功能描述: lwip ip 回调函数
@@ -88,9 +89,26 @@ struct pbuf *lwip_ip_nat_hook (int ip_type, int hook_type, struct pbuf *p, struc
 {
     if (_G_pfuncIpHookNat) {
         return  (_G_pfuncIpHookNat(ip_type, hook_type, p, in, out));
-    
     } else {
         return  (p);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: lwip_ip_route_hook
+** 功能描述: lwip ROUTE 回调函数
+** 输　入  : ip_type       ip 类型 IP_HOOK_V4 / IP_HOOK_V6
+**           src           源地址
+**           dest          目的地址
+** 输　出  : netif
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+struct netif  *lwip_ip_route_hook (int ip_type, const void *src, const void *dest)
+{
+    if (_G_pfuncIpHookRoute) {
+        return  (_G_pfuncIpHookRoute(ip_type, src, dest));
+    } else {
+        return  (LW_NULL);
     }
 }
 /*********************************************************************************************************
@@ -306,6 +324,90 @@ int  net_ip_hook_nat_isadd (struct pbuf *(*hook)(int ip_type, int hook_type, str
     if (_G_pfuncIpHookNat != hook) {
         *pbIsAdd = LW_FALSE;
         
+    } else {
+        *pbIsAdd = LW_TRUE;
+    }
+    UNLOCK_TCPIP_CORE();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_route_add
+** 功能描述: lwip ip 添加回调函数
+** 输　入  : hook          回调函数
+** 输　出  : -1: 失败
+**            0: 成功
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+int  net_ip_hook_route_add (struct netif *(*hook)(int ip_type, const void *src, const void *dest))
+{
+    if (!hook) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LOCK_TCPIP_CORE();
+    if (_G_pfuncIpHookRoute) {
+        UNLOCK_TCPIP_CORE();
+        _ErrorHandle(EBUSY);
+        return  (PX_ERROR);
+    }
+
+    _G_pfuncIpHookRoute = hook;
+    UNLOCK_TCPIP_CORE();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_route_delete
+** 功能描述: lwip ip 删除 ROUTE 专用回调函数
+** 输　入  : hook          回调函数
+** 输　出  : -1: 失败
+**            0: 成功
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+int  net_ip_hook_route_delete (struct netif *(*hook)(int ip_type, const void *src, const void *dest))
+{
+    if (!hook) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LOCK_TCPIP_CORE();
+    if (_G_pfuncIpHookRoute != hook) {
+        UNLOCK_TCPIP_CORE();
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    _G_pfuncIpHookRoute = LW_NULL;
+    UNLOCK_TCPIP_CORE();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: net_ip_hook_route_isadd
+** 功能描述: lwip ip 回调函数是否已经安装
+** 输　入  : hook          回调函数
+**           pbIsAdd       是否已经添加了
+** 输　出  : -1: 失败
+**            0: 成功
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+int  net_ip_hook_route_isadd (struct netif *(*hook)(int ip_type, const void *src, const void *dest), BOOL *pbIsAdd)
+{
+    if (!hook || !pbIsAdd) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LOCK_TCPIP_CORE();
+    if (_G_pfuncIpHookRoute != hook) {
+        *pbIsAdd = LW_FALSE;
+
     } else {
         *pbIsAdd = LW_TRUE;
     }

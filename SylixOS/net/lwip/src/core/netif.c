@@ -883,7 +883,7 @@ netif_set_default(struct netif *netif)
   netif_default = netif;
 
 #if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add */
-  {
+  if (netif) {
     int i;
     for (i = 0; i < DNS_MAX_SERVERS; i++) {
       if (!ip_addr_isany_val(netif->dns_save[i])) {

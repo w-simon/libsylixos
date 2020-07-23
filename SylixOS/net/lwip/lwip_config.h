@@ -51,7 +51,16 @@ extern "C" {
 
 #define SYS_LIGHTWEIGHT_PROT                    1
 #define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS   1
-#define LWIP_MPU_COMPATIBLE                     0                       /*  Do not use MPU support.     */
+
+/*********************************************************************************************************
+  Thread stack safe
+*********************************************************************************************************/
+
+#if LW_CFG_NET_SAFE > 1
+#define LWIP_MPU_COMPATIBLE                     1
+#else
+#define LWIP_MPU_COMPATIBLE                     0
+#endif
 
 /*********************************************************************************************************
   Platform memcpy smemcpy

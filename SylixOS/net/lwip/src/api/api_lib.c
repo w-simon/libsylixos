@@ -626,7 +626,7 @@ netconn_recv_data(struct netconn *conn, void **new_buf, u8_t apiflags)
   if (conn->flags & NETCONN_FLAG_MBOXINVALID) {
     if (lwip_netconn_is_deallocated_msg(buf)) {
       /* the netconn has been closed from another thread */
-      API_MSG_VAR_FREE_ACCEPT(msg);
+      /* SylixOS remove: API_MSG_VAR_FREE_ACCEPT(msg); */
       return ERR_CONN;
     }
   }
@@ -1323,7 +1323,8 @@ netconn_gethostbyname(const char *name, ip_addr_t *addr)
   }
 #endif /* LWIP_NETCONN_SEM_PER_THREAD */
 
-  cberr = tcpip_send_msg_wait_sem(lwip_netconn_do_gethostbyname, &API_VAR_REF(msg), API_EXPR_REF(API_VAR_REF(msg).sem));
+  /* SylixOS Fixed here: change `API_EXPR_REF(API_VAR_REF(msg).sem)` to `API_VAR_REF(msg).sem` */
+  cberr = tcpip_send_msg_wait_sem(lwip_netconn_do_gethostbyname, &API_VAR_REF(msg), API_VAR_REF(msg).sem);
 #if !LWIP_NETCONN_SEM_PER_THREAD
   sys_sem_free(API_EXPR_REF(API_VAR_REF(msg).sem));
 #endif /* !LWIP_NETCONN_SEM_PER_THREAD */
