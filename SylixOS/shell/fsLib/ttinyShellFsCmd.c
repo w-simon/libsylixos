@@ -942,6 +942,16 @@ static INT  __tshellFsCmdCp (INT  iArgC, PCHAR  ppcArgV[])
         lib_strlcpy(cDstFile, pcDest, MAX_FILENAME_LENGTH);
     }
 
+    iError = stat(cDstFile, &statDst);                                  /*  获得目标文件属性            */
+    if (iError == ERROR_NONE) {                                         /*  目标文件存在                */
+        if ((statDst.st_dev == statFile.st_dev) &&
+            (statDst.st_ino == statFile.st_ino)) {                      /*  源文件与目标文件相同        */
+            close(iFdSrc);
+            fprintf(stderr, "'%s' and '%s' are the same file!\n", pcSrc, cDstFile);
+            return  (PX_ERROR);
+        }
+    }
+
     if (!bForce) {
         iError = access(cDstFile, 0);                                   /*  检测目标文件是否存在        */
         if (iError == ERROR_NONE) {
