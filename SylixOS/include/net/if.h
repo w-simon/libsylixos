@@ -117,6 +117,7 @@ struct ifreq {
         struct sockaddr     ifru_dstaddr;
         struct sockaddr     ifru_broadaddr;
         struct sockaddr     ifru_netmask;
+        struct sockaddr     ifru_gateway;
         struct sockaddr     ifru_hwaddr;
         short               ifru_flags;
         int                 ifru_ifindex;
@@ -133,6 +134,7 @@ struct ifreq {
 #define ifr_addr            ifr_ifru.ifru_addr
 #define ifr_dstaddr         ifr_ifru.ifru_dstaddr
 #define ifr_netmask         ifr_ifru.ifru_netmask
+#define ifr_gateway         ifr_ifru.ifru_gateway
 #define ifr_broadaddr       ifr_ifru.ifru_broadaddr
 #define ifr_hwaddr          ifr_ifru.ifru_hwaddr
 #define ifr_flags           ifr_ifru.ifru_flags
@@ -172,12 +174,14 @@ struct ifconf {
 
 #define SIOCSIFADDR         _IOW('i', 12, struct ifreq)
 #define SIOCSIFNETMASK      _IOW('i', 22, struct ifreq)
+#define SIOCSIFDGWADDR      _IOW('i', 15, struct ifreq)
 #define SIOCSIFDSTADDR      _IOW('i', 14, struct ifreq)
 #define SIOCSIFBRDADDR      _IOW('i', 19, struct ifreq)
 #define SIOCSIFFLAGS        _IOW('i', 16, struct ifreq)
 
 #define SIOCGIFADDR         _IOWR('i', 33, struct ifreq)
 #define SIOCGIFNETMASK      _IOWR('i', 37, struct ifreq)
+#define SIOCGIFDGWADDR      _IOWR('i', 16, struct ifreq)
 #define SIOCGIFDSTADDR      _IOWR('i', 34, struct ifreq)
 #define SIOCGIFBRDADDR      _IOWR('i', 35, struct ifreq)
 #define SIOCGIFFLAGS        _IOWR('i', 17, struct ifreq)

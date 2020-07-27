@@ -357,6 +357,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
     
     case SIOCGIFADDR:                                                   /*  获取地址操作                */
     case SIOCGIFNETMASK:
+    case SIOCGIFDGWADDR:
     case SIOCGIFDSTADDR:
     case SIOCGIFBRDADDR:
         psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
@@ -367,6 +368,7 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         
     case SIOCSIFADDR:                                                   /*  设置地址操作                */
     case SIOCSIFNETMASK:
+    case SIOCSIFDGWADDR:
     case SIOCSIFDSTADDR:
     case SIOCSIFBRDADDR:
         psockaddrin = (struct sockaddr_in *)&(pifreq->ifr_addr);
@@ -388,6 +390,11 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         iRet = ERROR_NONE;
         break;
         
+    case SIOCGIFDGWADDR:                                                /*  默认网关地址                */
+        psockaddrin->sin_addr.s_addr = netif_ip4_gw(pnetif)->addr;
+        iRet = ERROR_NONE;
+        break;
+
     case SIOCGIFDSTADDR:                                                /*  获取网卡目标地址            */
         if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
             psockaddrin->sin_addr.s_addr = netif_ip4_gw(pnetif)->addr;
@@ -433,6 +440,19 @@ static INT  __ifSubIoctl4 (INT  iCmd, PVOID  pvArg)
         }
         break;
         
+    case SIOCSIFDGWADDR:                                                /*  设置默认网关地址            */
+        if (psockaddrin->sin_family == AF_INET) {
+            ip4_addr_t ipaddr;
+            ipaddr.addr = psockaddrin->sin_addr.s_addr;
+            LOCK_TCPIP_CORE();                                          /*  必须 lock 协议栈            */
+            netif_set_gw(pnetif, &ipaddr);
+            UNLOCK_TCPIP_CORE();
+            iRet = ERROR_NONE;
+        } else {
+            _ErrorHandle(EAFNOSUPPORT);
+        }
+        break;
+
     case SIOCSIFDSTADDR:                                                /*  设置网卡目标地址            */
         if ((pnetif->flags & NETIF_FLAG_BROADCAST) == 0) {
             ip4_addr_t ipaddr;
@@ -811,10 +831,12 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     
     case SIOCGIFADDR:                                                   /*  ipv4 操作                   */
     case SIOCGIFNETMASK:
+    case SIOCGIFDGWADDR:
     case SIOCGIFDSTADDR:
     case SIOCGIFBRDADDR:
     case SIOCSIFADDR:
     case SIOCSIFNETMASK:
+    case SIOCSIFDGWADDR:
     case SIOCSIFDSTADDR:
     case SIOCSIFBRDADDR:
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */

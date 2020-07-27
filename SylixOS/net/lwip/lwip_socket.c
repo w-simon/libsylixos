@@ -630,11 +630,13 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCGIFCONF:
             case SIOCSIFADDR:
             case SIOCSIFNETMASK:
+            case SIOCSIFDGWADDR:
             case SIOCSIFDSTADDR:
             case SIOCSIFBRDADDR:
             case SIOCSIFFLAGS:
             case SIOCGIFADDR:
             case SIOCGIFNETMASK:
+            case SIOCGIFDGWADDR:
             case SIOCGIFDSTADDR:
             case SIOCGIFBRDADDR:
             case SIOCGIFFLAGS:
