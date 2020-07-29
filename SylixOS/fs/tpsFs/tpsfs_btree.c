@@ -305,7 +305,7 @@ static TPS_IBLK  __tpsFsBtrAllocNodeBlk (PTPS_TRANS         ptrans,
     TPS_IBLK      blkCnt    = 0;
 
     if (pinode != psb->SB_pinodeSpaceMng) {                             /* 非空间b+tree用空间b+tree分配 */
-        if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
+        if (tpsFsInodeAllocBlk(ptrans, psb,
                                MAX_BLK_NUM, 1, &blkStart, &blkCnt) != TPS_ERR_NONE) {
             return  (0);
         }
@@ -2117,7 +2117,7 @@ TPS_RESULT  tpsFsBtreeAdjustBP (PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb)
     }
 
     if (pbp->BP_uiBlkCnt <= TPS_MIN_BP_BLK) {                           /* 空闲块太少                   */
-        if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
+        if (tpsFsInodeAllocBlk(ptrans, psb,
                                MAX_BLK_NUM, 1, &blkStart,
                                &blkCnt) != TPS_ERR_NONE) {              /* 从空间管理b+tree分配块       */
             return  (TPS_ERR_BTREE_ALLOC);
