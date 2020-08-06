@@ -154,6 +154,22 @@ VOID    _SmpKernelUnlockSched(struct __lw_tcb *ptcbOwner);
 
 #define LW_SPIN_KERN_UNLOCK_SCHED(ptcb)     _SmpKernelUnlockSched(ptcb)
 
+/*********************************************************************************************************
+  SMP 内核时间锁操作.
+*********************************************************************************************************/
+
+VOID    _SmpKernTimeLockIgnIrq(VOID);
+VOID    _SmpKernTimeUnlockIgnIrq(VOID);
+
+VOID    _SmpKernTimeLockQuick(INTREG  *piregInterLevel);
+VOID    _SmpKernTimeUnlockQuick(INTREG  iregInterLevel);
+
+#define LW_SPIN_KERN_TIME_LOCK_IGNIRQ()         _SmpKernTimeLockIgnIrq()
+#define LW_SPIN_KERN_TIME_UNLOCK_IGNIRQ()       _SmpKernTimeUnlockIgnIrq()
+
+#define LW_SPIN_KERN_TIME_LOCK_QUICK(pireg)     _SmpKernTimeLockQuick(pireg)
+#define LW_SPIN_KERN_TIME_UNLOCK_QUICK(ireg)    _SmpKernTimeUnlockQuick(ireg)
+
 #else
 /*********************************************************************************************************
   单处理器伪自旋锁
@@ -229,6 +245,22 @@ VOID    _UpKernelUnlockSched(struct __lw_tcb *ptcbOwner);
 #define LW_SPIN_KERN_UNLOCK_QUICK(ireg)     _UpKernelUnlockQuick(ireg)
 
 #define LW_SPIN_KERN_UNLOCK_SCHED(ptcb)     _UpKernelUnlockSched(ptcb)
+
+/*********************************************************************************************************
+  单处理器内核时间锁操作
+*********************************************************************************************************/
+
+VOID    _UpKernTimeLockIgnIrq(VOID);
+VOID    _UpKernTimeUnlockIgnIrq(VOID);
+
+VOID    _UpKernTimeLockQuick(INTREG  *piregInterLevel);
+VOID    _UpKernTimeUnlockQuick(INTREG  iregInterLevel);
+
+#define LW_SPIN_KERN_TIME_LOCK_IGNIRQ()         _UpKernTimeLockIgnIrq()
+#define LW_SPIN_KERN_TIME_UNLOCK_IGNIRQ()       _UpKernTimeUnlockIgnIrq()
+
+#define LW_SPIN_KERN_TIME_LOCK_QUICK(pireg)     _UpKernTimeLockQuick(pireg)
+#define LW_SPIN_KERN_TIME_UNLOCK_QUICK(ireg)    _UpKernTimeUnlockQuick(ireg)
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */
 #endif                                                                  /*  __K_SPINLOCK_H              */

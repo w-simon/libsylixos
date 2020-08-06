@@ -44,7 +44,7 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
     BOOL                    bSaveTime = LW_FALSE;
 
     if (bProcTime && plineTemp && pwu->WU_pfuncWakeup) {                /*  非周期任务时间预处理        */
-        __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);
+        __KERNEL_TIME_GET(i64CurTime, INT64);
         ulCounter = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
         pwu->WU_i64LastTime = i64CurTime;
 
@@ -86,7 +86,7 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
 
     if (bProcTime && pwu->WU_pfuncWakeup) {
         if (bSaveTime) {
-            __KERNEL_TIME_GET_NO_SPINLOCK(pwu->WU_i64LastTime, INT64);
+            __KERNEL_TIME_GET(pwu->WU_i64LastTime, INT64);
         }
         pwu->WU_pfuncWakeup(pwu->WU_pvWakeupArg);                       /*  唤醒                        */
     }
@@ -119,7 +119,7 @@ VOID  _WakeupDel (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
     }
     
     if (bProcTime && !_list_line_get_prev(&pwun->WUN_lineManage) && pwu->WU_pfuncWakeup) {
-        __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);               /*  非周期任务时间预处理        */
+        __KERNEL_TIME_GET(i64CurTime, INT64);                           /*  非周期任务时间预处理        */
         ulCounter = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
         pwu->WU_i64LastTime = i64CurTime;
 
@@ -165,7 +165,7 @@ VOID  _WakeupStatus (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, ULONG  
     
     if (plineTemp) {
         if (pwu->WU_i64LastTime) {                                      /*  包含时间预处理              */
-            __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);
+            __KERNEL_TIME_GET(i64CurTime, INT64);
             ulDelta   = (ULONG)(i64CurTime - pwu->WU_i64LastTime);
             ulCounter = (ulCounter > ulDelta) ? (ulCounter - ulDelta) : 0ul;
         }

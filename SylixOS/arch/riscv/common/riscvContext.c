@@ -62,6 +62,11 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
 
     pregctx->REG_ulSmallCtx    = 1;                                     /*  小上下文                    */
     pregctx->REG_ulStatus      = XSTATUS_XPP | XSTATUS_XPIE;
+    if (ulOpt & LW_OPTION_THREAD_USED_FP) {
+        pregctx->REG_ulStatus |= XSTATUS_FS;                            /*  使能 FPU                    */
+    } else {
+        pregctx->REG_ulStatus &= ~XSTATUS_FS;                           /*  禁能 FPU                    */
+    }
     pregctx->REG_ulTrapVal     = 0;
     pregctx->REG_ulCause       = 0;
     pregctx->REG_ulEpc         = (ARCH_REG_T)pfuncTask;

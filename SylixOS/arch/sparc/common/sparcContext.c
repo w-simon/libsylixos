@@ -92,7 +92,11 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     uiPsr  = archPsrGet();
     uiPsr &= ~PSR_PIL;                                                  /*  使能中断                    */
     uiPsr &= ~PSR_CWP;                                                  /*  使用窗口 0                  */
-    uiPsr &= ~PSR_EF;                                                   /*  禁能浮点                    */
+    if (ulOpt & LW_OPTION_THREAD_USED_FP) {
+        uiPsr |= PSR_EF;                                                /*  使能 FPU                    */
+    } else {
+        uiPsr &= ~PSR_EF;                                               /*  禁能 FPU                    */
+    }
     uiPsr &= ~PSR_EC;                                                   /*  禁能协处理器                */
     uiPsr |= PSR_S | PSR_PS;                                            /*  特权模式                    */
     uiPsr |= PSR_ET;                                                    /*  使能异常                    */

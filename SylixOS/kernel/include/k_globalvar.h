@@ -262,6 +262,14 @@ __KERNEL_EXT LW_CLASS_PHYCPU         _K_phycpuTable[LW_CFG_MAX_PROCESSORS];
 __KERNEL_EXT LW_CLASS_KERNLOCK       _K_klKernel;                       /*  内核锁                      */
 #endif                                                                  /*  __KERNEL_MAIN_FILE          */
 /*********************************************************************************************************
+  内核时间锁
+*********************************************************************************************************/
+#ifdef __KERNEL_MAIN_FILE
+LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN   (_K_slKernTime);
+#else
+__KERNEL_EXT LW_SPINLOCK_CA_DECLARE (_K_slKernTime);
+#endif
+/*********************************************************************************************************
   原子操作锁
 *********************************************************************************************************/
 #ifdef __KERNEL_MAIN_FILE

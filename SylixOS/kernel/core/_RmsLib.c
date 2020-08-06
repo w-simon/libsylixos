@@ -29,7 +29,7 @@
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
 ** 函数名称: _RmsActive
-** 功能描述: 第一次激活 RMS 并开始对线程执行时间进行测量 (进入内核后被调用)
+** 功能描述: 第一次激活 RMS 并开始对线程执行时间进行测量 (进入内核并关中断后被调用)
 ** 输　入  : 
 ** 输　出  : 
 ** 全局变量: 
@@ -40,11 +40,11 @@
 VOID  _RmsActive (PLW_CLASS_RMS  prms)
 {
     prms->RMS_ucStatus = LW_RMS_ACTIVE;
-    __KERNEL_TIME_GET_NO_SPINLOCK(prms->RMS_ulTickSave, ULONG);
+    __KERNEL_TIME_GET_IGNIRQ(prms->RMS_ulTickSave, ULONG);
 }
 /*********************************************************************************************************
 ** 函数名称: _RmsGetExecTime
-** 功能描述: 计算任务执行的时间 (进入内核后被调用)
+** 功能描述: 计算任务执行的时间 (进入内核并关中断后被调用)
 ** 输　入  : 
 ** 输　出  : 
 ** 全局变量: 
@@ -55,7 +55,7 @@ ULONG   _RmsGetExecTime (PLW_CLASS_RMS  prms)
     REGISTER ULONG            ulThreadExecTime;
              ULONG            ulKernelTime;
     
-    __KERNEL_TIME_GET_NO_SPINLOCK(ulKernelTime, ULONG);
+    __KERNEL_TIME_GET_IGNIRQ(ulKernelTime, ULONG);
     ulThreadExecTime = (ulKernelTime >= prms->RMS_ulTickSave) ? 
                        (ulKernelTime -  prms->RMS_ulTickSave) :
                        (ulKernelTime + (__ARCH_ULONG_MAX - prms->RMS_ulTickSave) + 1);
@@ -64,7 +64,7 @@ ULONG   _RmsGetExecTime (PLW_CLASS_RMS  prms)
 }
 /*********************************************************************************************************
 ** 函数名称: _RmsInitExpire
-** 功能描述: 开始进行时间等待 (进入内核后被调用)
+** 功能描述: 开始进行时间等待 (进入内核并关中断后被调用)
 ** 输　入  : 
 ** 输　出  : 
 ** 全局变量: 
@@ -78,19 +78,19 @@ ULONG  _RmsInitExpire (PLW_CLASS_RMS  prms, ULONG  ulPeriod, ULONG  *pulWaitTick
     
     LW_TCB_GET_CUR(ptcbCur);
     
-    __KERNEL_TIME_GET_NO_SPINLOCK(ulKernelTime, ULONG);
+    __KERNEL_TIME_GET_IGNIRQ(ulKernelTime, ULONG);
     ulThreadExecTime = (ulKernelTime >= prms->RMS_ulTickSave) ? 
                        (ulKernelTime -  prms->RMS_ulTickSave) :
                        (ulKernelTime + (__ARCH_ULONG_MAX - prms->RMS_ulTickSave) + 1);
                           
     if (ulThreadExecTime > ulPeriod) {
-        __KERNEL_TIME_GET_NO_SPINLOCK(prms->RMS_ulTickSave, ULONG);     /*  重新记录系统时钟            */
+        __KERNEL_TIME_GET_IGNIRQ(prms->RMS_ulTickSave, ULONG);          /*  重新记录系统时钟            */
         return  (ERROR_RMS_TICK);
     }
     
     if (ulThreadExecTime == ulPeriod) {
         *pulWaitTick = 0;
-        __KERNEL_TIME_GET_NO_SPINLOCK(prms->RMS_ulTickSave, ULONG);     /*  重新记录系统时钟            */
+        __KERNEL_TIME_GET_IGNIRQ(prms->RMS_ulTickSave, ULONG);          /*  重新记录系统时钟            */
         return  (ERROR_NONE);
     }
     
@@ -99,7 +99,7 @@ ULONG  _RmsInitExpire (PLW_CLASS_RMS  prms, ULONG  ulPeriod, ULONG  *pulWaitTick
     prms->RMS_ucStatus   = LW_RMS_EXPIRED;                              /*  改变状态                    */
     prms->RMS_ptcbOwner  = ptcbCur;                                     /*  记录当前TCB                 */
     
-    __KERNEL_TIME_GET_NO_SPINLOCK(prms->RMS_ulTickNext, ULONG);
+    __KERNEL_TIME_GET_IGNIRQ(prms->RMS_ulTickNext, ULONG);
     prms->RMS_ulTickNext += *pulWaitTick;                               /*  计算下次到时时间            */
                                                                         /*  自然溢出                    */
     
@@ -120,7 +120,7 @@ ULONG  _RmsEndExpire (PLW_CLASS_RMS  prms)
     }
     
     prms->RMS_ucStatus = LW_RMS_ACTIVE;                                 /*  改变状态                    */
-    __KERNEL_TIME_GET_NO_SPINLOCK(prms->RMS_ulTickSave, ULONG);         /*  重新记录系统时钟            */
+    __KERNEL_TIME_GET(prms->RMS_ulTickSave, ULONG);                     /*  重新记录系统时钟            */
     
     if (prms->RMS_ulTickNext != prms->RMS_ulTickSave) {                 /*  是否 TIME OUT               */
         return  (ERROR_THREAD_WAIT_TIMEOUT);

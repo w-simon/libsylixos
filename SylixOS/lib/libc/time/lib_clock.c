@@ -142,17 +142,17 @@ INT  lib_clock_gettime (clockid_t  clockid, struct timespec  *tv)
     switch (clockid) {
     
     case CLOCK_REALTIME:
-        LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+        LW_SPIN_KERN_TIME_LOCK_QUICK(&iregInterLevel);
         *tv = _K_tvTODCurrent;
         LW_TIME_HIGH_RESOLUTION(tv);
-        LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+        LW_SPIN_KERN_TIME_UNLOCK_QUICK(iregInterLevel);
         break;
     
     case CLOCK_MONOTONIC:
-        LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+        LW_SPIN_KERN_TIME_LOCK_QUICK(&iregInterLevel);
         *tv = _K_tvTODMono;
         LW_TIME_HIGH_RESOLUTION(tv);
-        LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+        LW_SPIN_KERN_TIME_UNLOCK_QUICK(iregInterLevel);
         break;
         
     case CLOCK_PROCESS_CPUTIME_ID:
@@ -211,11 +211,11 @@ INT  lib_clock_settime (clockid_t  clockid, const struct timespec  *tv)
         return  (PX_ERROR);
     }
     
-    LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+    LW_SPIN_KERN_TIME_LOCK_QUICK(&iregInterLevel);
     _K_tvTODCurrent = *tv;
     _K_iTODDelta    = 0;                                                /*  清除之前的微调时间          */
     _K_iTODDeltaNs  = 0;
-    LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+    LW_SPIN_KERN_TIME_UNLOCK_QUICK(iregInterLevel);
     
     return  (ERROR_NONE);
 }
@@ -249,14 +249,14 @@ INT  lib_clock_nanosleep (clockid_t  clockid, int  iFlags,
     if (iFlags == TIMER_ABSTIME) {                                      /*  绝对时间                    */
         struct timespec  tvNow;
         
-        LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+        LW_SPIN_KERN_TIME_LOCK_QUICK(&iregInterLevel);
         if (clockid == CLOCK_REALTIME) {
             tvNow = _K_tvTODCurrent;
         } else {
             tvNow = _K_tvTODMono;
         }
         LW_TIME_HIGH_RESOLUTION(&tvNow);
-        LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+        LW_SPIN_KERN_TIME_UNLOCK_QUICK(iregInterLevel);
 
         if (__timespecLeftTime(rqtp, &tvNow)) {
             return  (ERROR_NONE);                                       /*  不需要延迟                  */

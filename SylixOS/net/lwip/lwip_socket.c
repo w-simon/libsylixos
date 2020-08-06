@@ -755,7 +755,11 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
                     iRet = __ifIoctlWireless(iCmd, pvArg);
                 } else 
 #endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
-                {
+                if ((iCmd >= SIOCDEVPRIVATE) &&
+                    (iCmd <= SIOCDEVPRIVATE + 0xf)) {                   /*  Íø¿¨Ë½ÓÐÃüÁî                */
+                    iRet = __ifIoctlPrivate(iCmd, pvArg);
+
+                } else {
                     iRet = lwip_ioctl(psock->SOCK_iLwipFd, (long)iCmd, pvArg);
                 }
                 break;

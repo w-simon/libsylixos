@@ -34,6 +34,7 @@ extern INT  __ifIoctlPacket(INT  iCmd, PVOID  pvArg);
 extern INT  __ifIoctlWireless(INT  iCmd, PVOID  pvArg);
 #endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
 
+extern INT  __ifIoctlPrivate(INT  iCmd, PVOID  pvArg);
 extern INT  __ifIoctlLp(INT  iCmd, PVOID  pvArg);
 
 #endif                                                                  /*  LW_CFG_NET_EN               */

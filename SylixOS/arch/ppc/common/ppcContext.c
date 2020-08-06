@@ -56,8 +56,16 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
 
         uiMsr |=  ARCH_PPC_MSR_EE;                                      /*  使能中断                    */
         uiMsr &= ~ARCH_PPC_MSR_PR;                                      /*  特权模式                    */
-        uiMsr &= ~ARCH_PPC_MSR_FP;                                      /*  禁能 FPU                    */
-        uiMsr &= ~ARCH_PPC_MSR_VEC;                                     /*  禁能 ALTIVEC                */
+        if (ulOpt & LW_OPTION_THREAD_USED_FP) {
+            uiMsr |= ARCH_PPC_MSR_FP;                                   /*  使能 FPU                    */
+        } else {
+            uiMsr &= ~ARCH_PPC_MSR_FP;                                  /*  禁能 FPU                    */
+        }
+        if (ulOpt & LW_OPTION_THREAD_USED_DSP) {
+            uiMsr |= ARCH_PPC_MSR_VEC;                                  /*  使能 ALTIVEC                */
+        } else {
+            uiMsr &= ~ARCH_PPC_MSR_VEC;                                 /*  禁能 ALTIVEC                */
+        }
 #if LW_CFG_VMM_EN > 0
         uiMsr |=  ARCH_PPC_MSR_IR | ARCH_PPC_MSR_DR;                    /*  使能 MMU                    */
 #else
@@ -71,8 +79,16 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
 #define ARCH_PPC_MSR_DS             0x00000010                          /*  data address space selector */
 
         uiMsr |=  ARCH_PPC_MSR_EE;                                      /*  使能中断                    */
-        uiMsr &= ~ARCH_PPC_MSR_FP;                                      /*  禁能 FPU(E500mc E5500 E6500)*/
-        uiMsr &= ~ARCH_PPC_MSR_SPE;                                     /*  禁能 SPE(E6500 时为 ALTIVEC)*/
+        if (ulOpt & LW_OPTION_THREAD_USED_FP) {
+            uiMsr |= ARCH_PPC_MSR_FP;                                   /*  使能 FPU(E500mc E5500 E6500)*/
+        } else {
+            uiMsr &= ~ARCH_PPC_MSR_FP;                                  /*  禁能 FPU(E500mc E5500 E6500)*/
+        }
+        if (ulOpt & LW_OPTION_THREAD_USED_DSP) {
+            uiMsr |= ARCH_PPC_MSR_SPE;                                  /*  使能 SPE(E6500 时为 ALTIVEC)*/
+        } else {
+            uiMsr &= ~ARCH_PPC_MSR_SPE;                                 /*  禁能 SPE(E6500 时为 ALTIVEC)*/
+        }
         uiMsr &= ~(ARCH_PPC_MSR_IS | ARCH_PPC_MSR_DS);                  /*  使用地址空间 0              */
 
 #undef  ARCH_PPC_MSR_SPE

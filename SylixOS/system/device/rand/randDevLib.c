@@ -59,7 +59,7 @@ static VOID __randInterHook (ULONG  ulVector, ULONG  ulNesting)
     
     if (LW_IVEC_GET_FLAG(ulVector) & LW_IRQ_FLAG_SAMPLE_RAND) {         /*  需要更新随机数种子          */
         LW_SPIN_LOCK_QUICK(&_G_slRandLock, &iregInterLevel);
-        _G_tvLastInt = _K_tvTODCurrent;
+        _G_tvLastInt = _K_tvTODCurrent;                                 /*  仅仅是种子, 不需要加时间锁  */
         _G_i64IntCounter++;
         LW_SPIN_UNLOCK_QUICK(&_G_slRandLock, iregInterLevel);
     }

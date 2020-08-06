@@ -223,6 +223,7 @@ VOID _GlobalPrimaryInit (VOID)
      *  内核关键性自旋锁初始化
      */
     LW_SPIN_INIT(&_K_klKernel.KERN_slLock);                             /*  初始化内核自旋锁            */
+    LW_SPIN_INIT(&_K_slKernTime.SLCA_sl);                               /*  初始化内核时间自旋锁        */
     LW_SPIN_INIT(&_K_slcaAtomic.SLCA_sl);                               /*  初始化原子操作自旋锁        */
 
     /*

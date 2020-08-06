@@ -40,14 +40,14 @@ VOID  API_TimeTodAdj (INT32  *piDelta, INT32 *piOldDelta)
 {
     INTREG      iregInterLevel;
 
-    LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+    LW_SPIN_KERN_TIME_LOCK_QUICK(&iregInterLevel);
     if (piOldDelta) {
         *piOldDelta = _K_iTODDelta;
     }
     if (piDelta) {
         _K_iTODDelta = *piDelta;
     }
-    LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+    LW_SPIN_KERN_TIME_UNLOCK_QUICK(iregInterLevel);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_TimeTodAdjEx
@@ -76,7 +76,7 @@ INT  API_TimeTodAdjEx (INT32  *piDelta, INT32  *piDeltaNs, INT32 *piOldDelta, IN
         return  (PX_ERROR);
     }
 
-    LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+    LW_SPIN_KERN_TIME_LOCK_QUICK(&iregInterLevel);
     if (piOldDelta) {
         *piOldDelta = _K_iTODDelta;
     }
@@ -89,7 +89,7 @@ INT  API_TimeTodAdjEx (INT32  *piDelta, INT32  *piDeltaNs, INT32 *piOldDelta, IN
     if (piDeltaNs) {
         _K_iTODDeltaNs = *piDeltaNs;
     }
-    LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+    LW_SPIN_KERN_TIME_UNLOCK_QUICK(iregInterLevel);
     
     return  (ERROR_NONE);
 }

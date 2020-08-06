@@ -915,6 +915,44 @@ INT  __ifIoctlWireless (INT  iCmd, PVOID  pvArg)
 
 #endif                                                                  /*  LW_CFG_NET_WIRELESS_EN > 0  */
 /*********************************************************************************************************
+** 函数名称: __ifIoctlPrivate
+** 功能描述: 网络接口私有 ioctl 操作
+** 输　入  : iCmd      命令
+**           pvArg     参数
+** 输　出  : 处理结果
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __ifIoctlPrivate (INT  iCmd, PVOID  pvArg)
+{
+    INT            iRet = PX_ERROR;
+    struct ifreq  *pifreq;
+    struct netif  *pnetif;
+
+    if (pvArg == LW_NULL) {
+        _ErrorHandle(EINVAL);
+        return  (iRet);
+    }
+
+    pifreq = (struct ifreq *)pvArg;
+
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find(pifreq->ifr_name);
+    if (pnetif == LW_NULL) {
+        _ErrorHandle(EADDRNOTAVAIL);
+
+    } else {
+        if (pnetif->ioctl) {
+            iRet = pnetif->ioctl(pnetif, iCmd, pvArg);
+        } else {
+            _ErrorHandle(ENOSYS);
+        }
+    }
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+
+    return  (iRet);
+}
+/*********************************************************************************************************
 ** 函数名称: __ifIoctlPacket
 ** 功能描述: PACKET 网络接口 ioctl 操作
 ** 输　入  : iCmd      命令

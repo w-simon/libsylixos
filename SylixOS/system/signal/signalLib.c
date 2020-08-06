@@ -573,7 +573,8 @@ static  VOID  __sigCtlCreate (PLW_CLASS_TCB         ptcb,
     pstkSignalShell = archTaskCtxCreate(&ptcb->TCB_archRegCtx,
                                         (PTHREAD_START_ROUTINE)__sigShell,
                                         (PVOID)psigctlmsg,
-                                        ptcb, (PLW_STACK)pucStkNow, 0); /*  建立信号外壳环境            */
+                                        ptcb, (PLW_STACK)pucStkNow,
+                                        ptcb->TCB_ulOption);            /*  建立信号外壳环境            */
     
     archTaskCtxSetFp(pstkSignalShell,
                      &ptcb->TCB_archRegCtx,
@@ -1103,7 +1104,6 @@ BOOL  _sigPendRun (PLW_CLASS_TCB  ptcb)
 *********************************************************************************************************/
 ULONG  _sigTimeoutRecalc (ULONG  ulOrgKernelTime, ULONG  ulOrgTimeout)
 {
-             INTREG     iregInterLevel;
     REGISTER ULONG      ulTimeRun;
              ULONG      ulKernelTime;
     
@@ -1111,12 +1111,10 @@ ULONG  _sigTimeoutRecalc (ULONG  ulOrgKernelTime, ULONG  ulOrgTimeout)
         return  (ulOrgTimeout);
     }
     
-    LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
-    __KERNEL_TIME_GET_NO_SPINLOCK(ulKernelTime, ULONG);
+    __KERNEL_TIME_GET(ulKernelTime, ULONG);                             /*  获得当前系统时间            */
     ulTimeRun = (ulKernelTime >= ulOrgKernelTime) ?
                 (ulKernelTime -  ulOrgKernelTime) :
                 (ulKernelTime + (__ARCH_ULONG_MAX - ulOrgKernelTime) + 1);
-    LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
     
     if (ulTimeRun >= ulOrgTimeout) {                                    /*  已经产生了超时              */
         return  (0);

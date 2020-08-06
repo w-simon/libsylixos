@@ -60,10 +60,18 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     ulCP0Status  = mipsCp0StatusRead();                                 /*  获得当前的 CP0 STATUS 寄存器*/
     ulCP0Status |= bspIntInitEnableStatus() | ST0_IE;                   /*  使能中断                    */
     ulCP0Status |=  ST0_CU0;                                            /*  使能 CU0                    */
-    ulCP0Status &= ~ST0_CU1;                                            /*  禁能 CU1(FPU)               */
+    if (ulOpt & LW_OPTION_THREAD_USED_FP) {
+        ulCP0Status |= ST0_CU1;                                         /*  使能 CU1(FPU)               */
+    } else {
+        ulCP0Status &= ~ST0_CU1;                                        /*  禁能 CU1(FPU)               */
+    }
     ulCP0Status &= ~ST0_CU2;                                            /*  禁能 CU2                    */
     ulCP0Status &= ~ST0_CU3;                                            /*  禁能 CU3                    */
-    ulCP0Status &= ~ST0_MX;                                             /*  禁能 MDMX ASE 或 DSP        */
+    if (ulOpt & LW_OPTION_THREAD_USED_DSP) {
+        ulCP0Status |= ST0_MX;                                          /*  使能 MDMX ASE 或 DSP        */
+    } else {
+        ulCP0Status &= ~ST0_MX;                                         /*  禁能 MDMX ASE 或 DSP        */
+    }
 
     pstkTop = (PLW_STACK)ROUND_DOWN(pstkTop, ARCH_STK_ALIGN_SIZE);      /*  保证出栈后 SP 8/16 字节对齐 */
 

@@ -93,7 +93,7 @@ __wait_again:
     ptcbCur->TCB_ulDelay = ulTick;
     __ADD_TO_WAKEUP_LINE(ptcbCur);                                      /*  加入等待扫描链              */
     
-    __KERNEL_TIME_GET_NO_SPINLOCK(ulKernelTime, ULONG);                 /*  记录系统时间                */
+    __KERNEL_TIME_GET_IGNIRQ(ulKernelTime, ULONG);                      /*  记录系统时间                */
     
     if (__KERNEL_EXIT_IRQ(iregInterLevel)) {                            /*  被信号激活                  */
         ulTick = _sigTimeoutRecalc(ulKernelTime, ulTick);               /*  重新计算等待时间            */
@@ -144,7 +144,7 @@ __wait_again:
     ptcbCur->TCB_ulDelay = ulTick;
     __ADD_TO_WAKEUP_LINE(ptcbCur);                                      /*  加入等待扫描链              */
     
-    __KERNEL_TIME_GET_NO_SPINLOCK(ulKernelTime, ULONG);                 /*  记录系统时间                */
+    __KERNEL_TIME_GET_IGNIRQ(ulKernelTime, ULONG);                      /*  记录系统时间                */
     
     if (__KERNEL_EXIT_IRQ(iregInterLevel)) {                            /*  被信号激活                  */
         if (bSigRet) {
@@ -284,12 +284,12 @@ static VOID  __timeGetHighResolution (struct timespec  *ptv)
 {
     INTREG  iregInterLevel;
     
-    LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
+    LW_SPIN_KERN_TIME_LOCK_QUICK(&iregInterLevel);
     *ptv = _K_tvTODMono;
 #if LW_CFG_TIME_HIGH_RESOLUTION_EN > 0
     bspTickHighResolution(ptv);                                         /*  高精度时间分辨率计算        */
 #endif                                                                  /*  LW_CFG_TIME_HIGH_RESOLUT... */
-    LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
+    LW_SPIN_KERN_TIME_UNLOCK_QUICK(iregInterLevel);
 }
 /*********************************************************************************************************
 ** 函数名称: __timePassSpec
@@ -393,7 +393,7 @@ __wait_again:
     ptcbCur->TCB_ulDelay = ulTick;
     __ADD_TO_WAKEUP_LINE(ptcbCur);                                      /*  加入等待扫描链              */
     
-    __KERNEL_TIME_GET_NO_SPINLOCK(ulKernelTime, ULONG);                 /*  记录系统时间                */
+    __KERNEL_TIME_GET_IGNIRQ(ulKernelTime, ULONG);                      /*  记录系统时间                */
     
     iSchedRet = __KERNEL_EXIT_IRQ(iregInterLevel);                      /*  调度器解锁                  */
     if (iSchedRet == LW_SIGNAL_EINTR) {

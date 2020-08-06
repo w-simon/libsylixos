@@ -179,7 +179,7 @@ __wait_again:
     } else {
         ptcbCur->TCB_ulDelay = ulTimeout;                               /*  设置超时时间                */
     }
-    __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);                   /*  记录系统时间                */
+    __KERNEL_TIME_GET_IGNIRQ(ulTimeSave, ULONG);                        /*  记录系统时间                */
     
     if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
         _EVENT_INDEX_Q_PRIORITY(ptcbCur->TCB_ucPriority, ucPriorityIndex);
@@ -369,7 +369,7 @@ __wait_again:
     } else {
         ptcbCur->TCB_ulDelay = ulTimeout;                               /*  设置超时时间                */
     }
-    __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);                   /*  记录系统时间                */
+    __KERNEL_TIME_GET_IGNIRQ(ulTimeSave, ULONG);                        /*  记录系统时间                */
     
     if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {
         _EVENT_INDEX_Q_PRIORITY(ptcbCur->TCB_ucPriority, ucPriorityIndex);

@@ -152,7 +152,7 @@ __wait_again:
             if (ulTimeout == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
                 __EVENTSET_NOT_READY();
             }                                                           /*  阻塞线程                    */
-            __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);           /*  记录系统时间                */
+            __KERNEL_TIME_GET_IGNIRQ(ulTimeSave, ULONG);                /*  记录系统时间                */
             _EventSetBlock(pes, &esnNode, ulEvent, ucWaitType, ulWaitTime);
         }
         break;
@@ -174,7 +174,7 @@ __wait_again:
             if (ulTimeout == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
                 __EVENTSET_NOT_READY();
             }                                                           /*  阻塞线程                    */
-            __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);           /*  记录系统时间                */
+            __KERNEL_TIME_GET_IGNIRQ(ulTimeSave, ULONG);                /*  记录系统时间                */
             _EventSetBlock(pes, &esnNode, ulEvent, ucWaitType, ulWaitTime);
         }
         break;
@@ -196,7 +196,7 @@ __wait_again:
             if (ulTimeout == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
                 __EVENTSET_NOT_READY();
             }                                                           /*  阻塞线程                    */
-            __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);           /*  记录系统时间                */
+            __KERNEL_TIME_GET_IGNIRQ(ulTimeSave, ULONG);                /*  记录系统时间                */
             _EventSetBlock(pes, &esnNode, ulEvent, ucWaitType, ulWaitTime);
         }
         break;
@@ -218,7 +218,7 @@ __wait_again:
             if (ulTimeout == LW_OPTION_NOT_WAIT) {                      /*  不等待                      */
                 __EVENTSET_NOT_READY();
             }                                                           /*  阻塞线程                    */
-            __KERNEL_TIME_GET_NO_SPINLOCK(ulTimeSave, ULONG);           /*  记录系统时间                */
+            __KERNEL_TIME_GET_IGNIRQ(ulTimeSave, ULONG);                /*  记录系统时间                */
             _EventSetBlock(pes, &esnNode, ulEvent, ucWaitType, ulWaitTime);
         }
         break;

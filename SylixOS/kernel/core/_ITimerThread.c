@@ -63,7 +63,7 @@ PVOID  _ITimerThread (PVOID  pvArg)
     for (;;) {
         iregInterLevel = __KERNEL_ENTER_IRQ();                          /*  进入内核同时关闭中断        */
 
-        __KERNEL_TIME_GET_NO_SPINLOCK(_K_wuITmr.WU_i64LastTime, INT64); /*  原始时间                    */
+        __KERNEL_TIME_GET_IGNIRQ(_K_wuITmr.WU_i64LastTime, INT64);      /*  原始时间                    */
 
         __WAKEUP_GET_FIRST(&_K_wuITmr, pwun);                           /*  获得第一个节点              */
 
@@ -91,7 +91,7 @@ PVOID  _ITimerThread (PVOID  pvArg)
             continue;
         }
 
-        __KERNEL_TIME_GET_NO_SPINLOCK(i64CurTime, INT64);               /*  获得 Sleep 后时间           */
+        __KERNEL_TIME_GET_IGNIRQ(i64CurTime, INT64);                    /*  获得 Sleep 后时间           */
         ulCounter = (ULONG)(i64CurTime - _K_wuITmr.WU_i64LastTime);     /*  真正睡眠时间                */
         _K_wuITmr.WU_i64LastTime = i64CurTime;
 

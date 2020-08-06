@@ -266,6 +266,9 @@ BOOL                __kernelSchedIntCheck(PLW_CLASS_CPU  pcpuCur);
 #define __KERNEL_TIME_GET(time, type)   \
         __KERNEL_TIME_GET_NO_SPINLOCK(time, type)
 
+#define __KERNEL_TIME_GET_IGNIRQ(time, type)    \
+        __KERNEL_TIME_GET_NO_SPINLOCK(time, type)
+
 #else                                                                   /*  LW_CFG_CPU_ATOMIC64_EN      */
 #define __KERNEL_TIME_GET_NO_SPINLOCK(time, type)       \
         {                                               \
@@ -274,9 +277,16 @@ BOOL                __kernelSchedIntCheck(PLW_CLASS_CPU  pcpuCur);
 #define __KERNEL_TIME_GET(time, type)                       \
         {                                                   \
             INTREG  iregInterLevel;                         \
-            LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);       \
+            LW_SPIN_KERN_TIME_LOCK_QUICK(&iregInterLevel);  \
             time = (type)_K_atomic64KernelTime.counter;     \
-            LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);      \
+            LW_SPIN_KERN_TIME_UNLOCK_QUICK(iregInterLevel); \
+        }
+
+#define __KERNEL_TIME_GET_IGNIRQ(time, type)                \
+        {                                                   \
+            LW_SPIN_KERN_TIME_LOCK_IGNIRQ();                \
+            time = (type)_K_atomic64KernelTime.counter;     \
+            LW_SPIN_KERN_TIME_UNLOCK_IGNIRQ();              \
         }
 #endif                                                                  /*  !LW_CFG_CPU_ATOMIC64_EN     */
 
