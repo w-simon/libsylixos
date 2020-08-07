@@ -16,7 +16,7 @@
 **
 ** 文件创建日期: 2015 年 9 月 21 日
 **
-** 描        述: 事物声明
+** 描        述: 事务声明
 
 ** BUG:
 *********************************************************************************************************/
@@ -29,7 +29,7 @@
 *********************************************************************************************************/
 #if LW_CFG_TPSFS_EN > 0
 /*********************************************************************************************************
-  事物magic
+  事务magic
 *********************************************************************************************************/
 #define TPS_TRANS_MAGIC             0xEF34DDA4
 /*********************************************************************************************************
@@ -47,16 +47,16 @@
 #define TPS_TRANS_REV_DATASEC   (0x400 << (psb->SB_uiBlkShift - 12))    /* 保留的事务数据区空间大小     */
 #define TPS_TRAN_PER_SEC        8                                       /* 每个扇区保存多少个事务头     */
 #define TPS_TRAN_SIZE           64                                      /* 事务头大小                   */
-#define TPS_TRAN_SHIFT          6                                       /* 事物头移位数                 */
+#define TPS_TRAN_SHIFT          6                                       /* 事务头移位数                 */
 /*********************************************************************************************************
-  事物状态
+  事务状态
 *********************************************************************************************************/
 #define TPS_TRANS_STATUS_UNINIT     0xFFFFFFFF                          /* 未知态                       */
 #define TPS_TRANS_STATUS_INIT       0                                   /* 已分配和初始化               */
 #define TPS_TRANS_STATUS_COMMIT     1                                   /* 已提交但未完成               */
 #define TPS_TRANS_STATUS_COMPLETE   2                                   /* 已完成                       */
 /*********************************************************************************************************
-  事物类型，目前只支持纯数据型事务
+  事务类型，目前只支持纯数据型事务
 *********************************************************************************************************/
 #define TPS_TRANS_TYPE_DATA         1
 /*********************************************************************************************************
@@ -73,7 +73,7 @@ typedef struct tps_trans_data {
 } TPS_TRANS_DATA;
 typedef TPS_TRANS_DATA  *PTPS_TRANS_DATA;
 /*********************************************************************************************************
-  事物结构
+  事务结构
 *********************************************************************************************************/
 typedef struct tps_trans {
     UINT                 TRANS_uiMagic;                                 /* 事务掩码                     */
@@ -81,20 +81,20 @@ typedef struct tps_trans {
     UINT64               TRANS_ui64Generation;                          /* 格式化ID                     */
     UINT64               TRANS_ui64SerialNum;                           /* 序列号                       */
     INT                  TRANS_iType;                                   /* 事务类型                     */
-    INT                  TRANS_iStatus;                                 /* 事物状态                     */
+    INT                  TRANS_iStatus;                                 /* 事务状态                     */
     UINT64               TRANS_ui64Reserved;                            /* 保留                         */
     UINT64               TRANS_ui64Time;                                /* 修改时间                     */
     UINT64               TRANS_uiDataSecNum;                            /* 事务数据起始扇区             */
     UINT                 TRANS_uiDataSecCnt;                            /* 事务数据扇区数量             */
-    UINT                 TRANS_uiCheckSum;                              /* 事物头校验和                 */
+    UINT                 TRANS_uiCheckSum;                              /* 事务头校验和                 */
 
-    struct tps_trans    *TRANS_pnext;                                   /* 事物列表指针                 */
+    struct tps_trans    *TRANS_pnext;                                   /* 事务列表指针                 */
     PTPS_SUPER_BLOCK     TRANS_psb;                                     /* 超级块指针                   */
     PTPS_TRANS_DATA      TRANS_pdata;                                   /* 事务数据结构指针             */
 } TPS_TRANS;
 typedef TPS_TRANS       *PTPS_TRANS;
 /*********************************************************************************************************
-  事物超级块结构
+  事务超级块结构
 *********************************************************************************************************/
 typedef struct tps_trans_sb {
     UINT64               TSB_ui64TransSecStart;                         /* 事务头列表起始扇区           */
@@ -110,35 +110,35 @@ typedef struct tps_trans_sb {
 
     UINT64               TSP_ui64SerialNum;                             /* 当前事务序列号               */
 
-    struct tps_trans    *TSB_ptrans;                                    /* 事物列表                     */
+    struct tps_trans    *TSB_ptrans;                                    /* 事务列表                     */
 } TPS_TRANS_SB;
 typedef TPS_TRANS_SB       *PTPS_TRANS_SB;
 
 /*********************************************************************************************************
   事务操作
 *********************************************************************************************************/
-                                                                        /* 初始化事物列表               */
+                                                                        /* 初始化事务列表               */
 TPS_RESULT  tpsFsBtreeTransInit(PTPS_SUPER_BLOCK psb);
-                                                                        /* 释放事物列表                 */
+                                                                        /* 释放事务列表                 */
 TPS_RESULT  tpsFsBtreeTransFini(PTPS_SUPER_BLOCK psb);
-                                                                        /* 检查事物完整性               */
+                                                                        /* 检查事务完整性               */
 TPS_RESULT tspFsCheckTrans(PTPS_SUPER_BLOCK psb);
-                                                                        /* 标记事物为一致状态           */
+                                                                        /* 标记事务为一致状态           */
 TPS_RESULT tspFsCompleteTrans(PTPS_SUPER_BLOCK psb);
-                                                                        /* 分配事物                     */
+                                                                        /* 分配事务                     */
 PTPS_TRANS tpsFsTransAllocAndInit(PTPS_SUPER_BLOCK psb);
-                                                                        /* 回滚事物                     */
+                                                                        /* 回滚事务                     */
 TPS_RESULT tpsFsTransRollBackAndFree(PTPS_TRANS ptrans);
                                                                         /* 提交事务                     */
 TPS_RESULT tpsFsTransCommitAndFree(PTPS_TRANS ptrans);
                                                                         /* 从磁盘读取数据               */
 TPS_RESULT tpsFsTransRead(PTPS_SUPER_BLOCK psb, TPS_IBLK blk, UINT uiOff,
                           PUCHAR pucBuff, size_t szLen);
-                                                                        /* 写入数据到事物               */
+                                                                        /* 写入数据到事务               */
 TPS_RESULT tpsFsTransWrite(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb,
                            TPS_IBLK blk, UINT uiOff,
                            PUCHAR pucBuff, size_t szLen);
-BOOL       tpsFsTransTrigerChk(PTPS_TRANS ptrans);                      /* 是否到达事物提交触发点       */
+BOOL       tpsFsTransTrigerChk(PTPS_TRANS ptrans);                      /* 是否到达事务提交触发点       */
 
 #endif                                                                  /* LW_CFG_TPSFS_EN > 0          */
 #endif                                                                  /* __TPSFS_TRANS_H              */

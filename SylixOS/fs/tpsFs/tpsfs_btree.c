@@ -287,7 +287,7 @@ static BOOL  __tpsUnserialBtrNode (PTPS_BTR_NODE pbtrnode, PUCHAR pucBuff, UINT 
 /*********************************************************************************************************
 ** 函数名称: __tpsFsBtrAllocNodeBlk
 ** 功能描述: 分配块磁盘块
-**           ptrans             事物
+**           ptrans             事务
 **           psb                超级块指针
 **           pinode             文件inode指针
 ** 输　出  : 成功：块号  失败：0
@@ -347,7 +347,7 @@ static TPS_IBLK  __tpsFsBtrAllocNodeBlk (PTPS_TRANS         ptrans,
 /*********************************************************************************************************
 ** 函数名称: __tpsFsBtrFreeNodeBlk
 ** 功能描述: 释放块磁盘块
-**           ptrans             事物
+**           ptrans             事务
 **           psb                超级块指针
 **           pinode             文件inode指针
 **           blkFree            被释放物理块号
@@ -514,7 +514,7 @@ static TPS_RESULT  __tpsFsBtrGetNode (PTPS_INODE pinode, PTPS_BTR_NODE *ppbtrnod
 /*********************************************************************************************************
 ** 函数名称: __tpsFsBtrPutNode
 ** 功能描述: 保存节点到磁盘
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           pbtrnode           节点指针
 **           blkPtr             物理块号，保存节点到该块
@@ -594,7 +594,7 @@ static TPS_RESULT  __tpsFsBtrPutNode (PTPS_TRANS       ptrans,
 /*********************************************************************************************************
 ** 函数名称: __tpsFsUpdateKey
 ** 功能描述: 更新节点键值
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           pbtrnode           节点指针
 **           blkKeyOld          老键值
@@ -654,7 +654,7 @@ static TPS_RESULT  __tpsFsUpdateKey (PTPS_TRANS     ptrans,
 /*********************************************************************************************************
 ** 函数名称: __tpsFsBtreeInsertNode
 ** 功能描述: 插入键到节点
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           pbtrnode           节点指针
 **           btrkv              待插入键-值对
@@ -925,7 +925,7 @@ static TPS_RESULT  __tpsFsBtreeInsertNode (PTPS_TRANS       ptrans,
 /*********************************************************************************************************
 ** 函数名称: __tpsFsBtreeInsert
 ** 功能描述: 插入键到b+tree，用于磁盘块释放
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           kvInsert           待插入键-值对
 ** 输　出  : 成功：0  失败：ERROR
@@ -974,7 +974,7 @@ static TPS_RESULT  __tpsFsBtreeInsert (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS
 /*********************************************************************************************************
 ** 函数名称: __tpsFsBtreeRemoveNode
 ** 功能描述: 从节点删除键
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           pbtrnode           节点指针
 **           iRemove            待删除键下标
@@ -1384,7 +1384,7 @@ error_out:
 /*********************************************************************************************************
 ** 函数名称: __tpsFsBtreeRemove
 ** 功能描述: 从b+tree删除键，用于分配磁盘块
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           kvRemove           待删除键-值对
 ** 输　出  : 成功：0  失败：ERROR
@@ -1508,7 +1508,7 @@ static TPS_RESULT  __tpsFsBtreeGet (PTPS_INODE pinode, TPS_IBLK blkKey, PTPS_BTR
 /*********************************************************************************************************
 ** 函数名称: __tpsFsBtreeSet
 ** 功能描述: 设置指定键的值
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           blkKey             要设置的键
 **           pkv                新的值
@@ -1577,7 +1577,7 @@ static TPS_RESULT  __tpsFsBtreeSet (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_IB
 /*********************************************************************************************************
 ** 函数名称: tpsFsBtreeInit
 ** 功能描述: 初始化b+tree
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 ** 输　出  : 成功：0  失败：ERROR
 ** 全局变量:
@@ -1620,7 +1620,7 @@ TPS_RESULT  tpsFsBtreeInit (PTPS_TRANS ptrans, PTPS_INODE pinode)
 /*********************************************************************************************************
 ** 函数名称: tpsFsBtreeFreeBlk
 ** 功能描述: 插入块区间到b+tree，用于释放磁盘块
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           blkKey             键值
 **           blkStart           起始块号
@@ -1712,7 +1712,7 @@ TPS_RESULT  tpsFsBtreeFreeBlk (PTPS_TRANS   ptrans,
 /*********************************************************************************************************
 ** 函数名称: tpsFsBtreeAllocBlk
 ** 功能描述: 从b+tree删除块区间，用于分配磁盘块
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           blkKey             键值
 **           blkAllocStart      返回分配得到的起始块
@@ -1812,7 +1812,7 @@ TPS_RESULT  tpsFsBtreeGetBlk (PTPS_INODE pinode, TPS_IBLK blkKey, TPS_IBLK *blkS
 /*********************************************************************************************************
 ** 函数名称: tpsFsBtreeAppendBlk
 ** 功能描述: 从尾部追加块到b+tree
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           blkStart           起始块
 **           blkCnt             块数量
@@ -1852,7 +1852,7 @@ TPS_RESULT  tpsFsBtreeAppendBlk (PTPS_TRANS ptrans,
 /*********************************************************************************************************
 ** 函数名称: tpsFsBtreeTrunc
 ** 功能描述: 分多次删除b+tree中指定键值之后的块区间
-**           ptrans             事物
+**           ptrans             事务
 **           pinode             文件inode指针
 **           blkStart           返回本次删除的区间起始块
 **           blkCnt             返回本次删除的区间结束块,如果没有可删除的块,则返回0
@@ -2080,7 +2080,7 @@ TPS_RESULT  tpsFsBtreeInitBP (PTPS_SUPER_BLOCK psb, TPS_IBLK blkStart, TPS_IBLK 
 /*********************************************************************************************************
 ** 函数名称: tpsFsBtreeAdjustBP
 ** 功能描述: 调整块缓冲区
-**           ptrans          事物
+**           ptrans          事务
 **           psb             超级块指针
 ** 输　出  : 成功：0  失败：ERROR
 ** 全局变量:

@@ -16,7 +16,7 @@
 **
 ** 文件创建日期: 2015 年 9 月 21 日
 **
-** 描        述: 事物操作
+** 描        述: 事务操作
 
 ** BUG:
 *********************************************************************************************************/
@@ -37,7 +37,7 @@
 #include "tpsfs_dev_buf.h"
 /*********************************************************************************************************
 ** 函数名称: tpsFsBtreeTransInit
-** 功能描述: 初始化事物列表
+** 功能描述: 初始化事务列表
 **           psb             超级块指针
 ** 输　出  : 成功：0  失败：ERROR
 ** 全局变量:
@@ -61,7 +61,7 @@ TPS_RESULT  tpsFsBtreeTransInit (PTPS_SUPER_BLOCK psb)
     ptranssb->TSB_ui64TransSecStart  = (psb->SB_ui64LogStartBlk << psb->SB_uiBlkShift)
                                               >> psb->SB_uiSectorShift;
     ptranssb->TSB_ui64TransSecCnt    = psb->SB_ui64LogBlkCnt >> (TPS_TRAN_SHIFT + 1);
-                                                                        /* 假设每个事物头对应2个块数据  */
+                                                                        /* 假设每个事务头对应2个块数据  */
     if (ptranssb->TSB_ui64TransSecCnt <= 0) {
         return  (TPS_TRAN_INIT_SIZE);
     }
@@ -125,7 +125,7 @@ TPS_RESULT  tpsFsBtreeTransInit (PTPS_SUPER_BLOCK psb)
 }
 /*********************************************************************************************************
 ** 函数名称: tpsFsBtreeTransFini
-** 功能描述: 释放事物列表
+** 功能描述: 释放事务列表
 **           psb             超级块指针
 ** 输　出  : 成功：0  失败：ERROR
 ** 全局变量:
@@ -143,8 +143,8 @@ TPS_RESULT  tpsFsBtreeTransFini (PTPS_SUPER_BLOCK psb)
 
 /*********************************************************************************************************
 ** 函数名称: tspFsCompleteTrans
-** 功能描述: 标记事物为一致状态
-** 输　入  : ptrans           事物
+** 功能描述: 标记事务为一致状态
+** 输　入  : ptrans           事务
 ** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
@@ -155,9 +155,9 @@ TPS_RESULT  tspFsCompleteTrans (PTPS_SUPER_BLOCK psb)
 }
 /*********************************************************************************************************
 ** 函数名称: tpsFsTransAllocAndInit
-** 功能描述: 分配并初始化事物
-** 输　入  : ptrans           事物
-** 输　出  : 事物对象指针
+** 功能描述: 分配并初始化事务
+** 输　入  : ptrans           事务
+** 输　出  : 事务对象指针
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -182,8 +182,8 @@ PTPS_TRANS  tpsFsTransAllocAndInit (PTPS_SUPER_BLOCK psb)
 }
 /*********************************************************************************************************
 ** 函数名称: tpsFsTransRollBackAndFree
-** 功能描述: 回滚并释放事物
-** 输　入  : ptrans           事物
+** 功能描述: 回滚并释放事务
+** 输　入  : ptrans           事务
 ** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
@@ -498,8 +498,8 @@ TPS_RESULT  __tpsFsLoadTransData (PTPS_TRANS ptrans)
 
 /*********************************************************************************************************
 ** 函数名称: tpsFsTransCommitAndFree
-** 功能描述: 提交并释放事物
-** 输　入  : ptrans           事物
+** 功能描述: 提交并释放事务
+** 输　入  : ptrans           事务
 ** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
@@ -555,7 +555,7 @@ TPS_RESULT  tpsFsTransCommitAndFree (PTPS_TRANS ptrans)
     }
 
     /*
-     *  本行代码后出错，则只能重做事物，不能回滚，因此将文件系统设置为不可访问状态
+     *  本行代码后出错，则只能重做事务，不能回滚，因此将文件系统设置为不可访问状态
      */
     for (i = 0; i < ptrans->TRANS_pdata->TD_uiSecAreaCnt; i++) {        /* 写实际扇区                   */
         ui64DataSecCnt = ptrans->TRANS_uiDataSecNum + ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecOff;
@@ -622,8 +622,8 @@ TPS_RESULT  tpsFsTransCommitAndFree (PTPS_TRANS ptrans)
 }
 /*********************************************************************************************************
 ** 函数名称: tspFsCheckTrans
-** 功能描述: 检查事物完整性
-** 输　入  : ptrans           事物
+** 功能描述: 检查事务完整性
+** 输　入  : ptrans           事务
 ** 输　出  : ERROR
 ** 全局变量:
 ** 调用模块:
@@ -1056,8 +1056,8 @@ TPS_RESULT  tpsFsTransRead (PTPS_SUPER_BLOCK   psb,
 }
 /*********************************************************************************************************
 ** 函数名称: tpsFsTransWrite
-** 功能描述: 写入数据到事物
-** 输　入  : ptrans           事物
+** 功能描述: 写入数据到事务
+** 输　入  : ptrans           事务
 **           psb              超级快指针
 **           blk              块号
 **           uiOff            块内偏移
@@ -1156,7 +1156,7 @@ TPS_RESULT  tpsFsTransWrite (PTPS_TRANS        ptrans,
 /*********************************************************************************************************
 ** 函数名称: tpsFsTransTrigerChk
 ** 功能描述: 判断事务是否应该提交事务，防止事务数据溢出，一般用于一个将大事务划分成多个小事务
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 ** 输　出  : 返回LW_TRUE表示事务需要提交，否则表示不需要提交
 ** 全局变量:
 ** 调用模块:

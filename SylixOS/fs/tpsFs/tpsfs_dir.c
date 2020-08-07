@@ -131,7 +131,7 @@ static TPS_IBLK __tpsFsGetHash (CPCHAR pcFileName)
 /*********************************************************************************************************
 ** 函数名称: __tpsFsHashEntryCreate
 ** 功能描述: 在hash表中创建目录
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pinodeHash       hash根节点
 **           pcFileName       文件名
 **           inum             文件号
@@ -190,7 +190,7 @@ static TPS_RESULT  __tpsFsHashEntryCreate (PTPS_TRANS    ptrans,
 /*********************************************************************************************************
 ** 函数名称: __tpsFsHashEntryRemove
 ** 功能描述: 从hash表中删除目录
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pinodeHash       hash表根节点
 **           pentry           entry指针
 ** 输　出  : ERROR
@@ -411,7 +411,7 @@ __retry_find:
 /*********************************************************************************************************
 ** 函数名称: tpsFsCreateEntry
 ** 功能描述: 创建文件或目录
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pinodeDir        父目录
 **           pcFileName       文件名
 **           inum             文件号
@@ -519,7 +519,7 @@ TPS_RESULT  tpsFsCreateEntry (PTPS_TRANS    ptrans,
 /*********************************************************************************************************
 ** 函数名称: tpsFsEntryRemove
 ** 功能描述: 删除文件或目录
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pentry           entry指针
 ** 输　出  : ERROR
 ** 全局变量:

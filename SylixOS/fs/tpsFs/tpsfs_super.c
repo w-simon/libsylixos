@@ -284,7 +284,7 @@ errno_t  tpsFsUnmount (PTPS_SUPER_BLOCK psb)
         return  (EBUSY);
     }
 
-    if (tspFsCompleteTrans(psb) != TPS_ERR_NONE) {                      /* 标记事物为一致状态           */
+    if (tspFsCompleteTrans(psb) != TPS_ERR_NONE) {                      /* 标记事务为一致状态           */
         return  (EIO);
     }
 
@@ -495,7 +495,7 @@ errno_t  tpsFsFormat (PTPS_DEV pdev, UINT uiBlkSize)
 ** 函数名称: tpsFsFlushSuperBlock
 ** 功能描述: flush超级块
 ** 输　入  : psb          超级块指针
-**           ptrans       事物指针
+**           ptrans       事务指针
 ** 输　出  : 成功返回0，失败返回错误码
 ** 全局变量:
 ** 调用模块:

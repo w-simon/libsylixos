@@ -101,7 +101,7 @@ static PTPS_ENTRY  __tpsFSCreate (PTPS_INODE pinodeDir, CPCHAR pcFileName, INT i
         return  (LW_NULL);
     }
 
-    ptrans = tpsFsTransAllocAndInit(psb);                               /* 分配事物                     */
+    ptrans = tpsFsTransAllocAndInit(psb);                               /* 分配事务                     */
     if (ptrans == LW_NULL) {
         *piErr = EINVAL;
         return  (LW_NULL);
@@ -435,7 +435,7 @@ errno_t  tpsFsRemove (PTPS_SUPER_BLOCK psb, CPCHAR pcPath)
     }
 
     while (LW_TRUE) {
-        ptrans = tpsFsTransAllocAndInit(psb);                           /* 分配事物                     */
+        ptrans = tpsFsTransAllocAndInit(psb);                           /* 分配事务                     */
         if (ptrans == LW_NULL) {
             tpsFsEntryFree(pentry);
             return  (ENOMEM);
@@ -582,7 +582,7 @@ errno_t  tpsFsMove (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
         return  (ENOENT);
     }
 
-    ptrans = tpsFsTransAllocAndInit(psb);                               /* 分配事物                     */
+    ptrans = tpsFsTransAllocAndInit(psb);                               /* 分配事务                     */
     if (ptrans == LW_NULL) {
         tpsFsEntryFree(pentrySrc);
         tpsFsEntryFree(pentryDst);
@@ -677,7 +677,7 @@ errno_t  tpsFsLink (PTPS_SUPER_BLOCK psb, CPCHAR pcPathSrc, CPCHAR pcPathDst)
         return  (ENOENT);
     }
 
-    ptrans = tpsFsTransAllocAndInit(psb);                               /* 分配事物                     */
+    ptrans = tpsFsTransAllocAndInit(psb);                               /* 分配事务                     */
     if (ptrans == LW_NULL) {
         tpsFsEntryFree(pentrySrc);
         tpsFsEntryFree(pentryDst);
@@ -839,7 +839,7 @@ errno_t  tpsFsClose (PTPS_INODE pinode)
         return  (EIO);
     }
 
-    ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
+    ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事务                     */
     if (ptrans == LW_NULL) {
         return  (ENOMEM);
     }
@@ -876,7 +876,7 @@ errno_t  tpsFsFlushHead (PTPS_INODE pinode)
         return  (EIO);
     }
 
-    ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
+    ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事务                     */
     if (ptrans == LW_NULL) {
         return  (ENOMEM);
     }
@@ -916,7 +916,7 @@ errno_t  tpsFsTrunc (PTPS_INODE pinode, TPS_SIZE_T szNewSize)
     }
 
     do {
-        ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);                   /* 分配事物                     */
+        ptrans = tpsFsTransAllocAndInit(pinode->IND_psb);               /* 分配事务                     */
         if (ptrans == LW_NULL) {
             return  (ENOMEM);
         }
@@ -927,7 +927,7 @@ errno_t  tpsFsTrunc (PTPS_INODE pinode, TPS_SIZE_T szNewSize)
             return  (EIO);
         }
 
-        if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {              /* 提交事务                     */
+        if (tpsFsTransCommitAndFree(ptrans) != TPS_ERR_NONE) {          /* 提交事务                     */
             tpsFsTransRollBackAndFree(ptrans);
             return  (EIO);
         }

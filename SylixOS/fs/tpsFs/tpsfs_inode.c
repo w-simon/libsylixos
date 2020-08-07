@@ -106,7 +106,7 @@ static BOOL  __tpsFsInodeUnserial (PTPS_INODE pinode, PUCHAR pucBuff, UINT uiSiz
 /*********************************************************************************************************
 ** 函数名称: __tpsFsGetFromFreeList
 ** 功能描述: 从空闲inode列表获取块
-**           ptrans             事物
+**           ptrans             事务
 **           psb                超级块指针
 **           blkKey             键值
 **           blkAllocStart      返回分配得到的起始块
@@ -163,7 +163,7 @@ static TPS_RESULT  __tpsFsGetFromFreeList (PTPS_TRANS        ptrans,
 /*********************************************************************************************************
 ** 函数名称: __tpsFsInodeAddToFreeList
 ** 功能描述: 将inode添加到空闲队列
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           psb              超级块指针
 **           pinode           inode指针
 ** 输　出  : ERROR
@@ -192,7 +192,7 @@ static TPS_RESULT  __tpsFsInodeAddToFreeList (PTPS_TRANS         ptrans,
 /*********************************************************************************************************
 ** 函数名称: tpsFsInodeAllocBlk
 ** 功能描述: 将inode添加到空闲队列
-**           ptrans             事物
+**           ptrans             事务
 **           psb                超级块指针
 **           blkKey             键值
 **           pblkAllocStart     返回分配得到的起始块
@@ -222,7 +222,7 @@ TPS_RESULT  tpsFsInodeAllocBlk (PTPS_TRANS          ptrans,
 /*********************************************************************************************************
 ** 函数名称: tpsFsCreateInode
 ** 功能描述: 创建并初始化inode
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           psb              超级块指针
 **           inum             文件号
 **           iMode            文件模式
@@ -410,7 +410,7 @@ PTPS_INODE  tpsFsOpenInode (PTPS_SUPER_BLOCK psb, TPS_INUM inum)
 /*********************************************************************************************************
 ** 函数名称: tpsFsFlushHead
 ** 功能描述: 如果inode为脏，则写入头部，一般用于flush文件大小
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pinode           inode指针
 ** 输　出  : ERROR
 ** 全局变量:
@@ -503,7 +503,7 @@ TPS_RESULT  tpsFsCloseInode (PTPS_INODE pinode)
 /*********************************************************************************************************
 ** 函数名称: tpsFsInodeAddRef
 ** 功能描述: inode引用计数加1
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pinode           inode指针
 ** 输　出  : ERROR
 ** 全局变量:
@@ -543,7 +543,7 @@ TPS_RESULT  tpsFsInodeAddRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
 /*********************************************************************************************************
 ** 函数名称: tpsFsInodeDelRef
 ** 功能描述: inode引用计数减1
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pinode           inode指针
 ** 输　出  : ERROR
 ** 全局变量:
@@ -630,7 +630,7 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
 /*********************************************************************************************************
 ** 函数名称: tpsFsInodeDelRef
 ** 功能描述: 截断文件
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pinode           inode指针
 **           ui64Off          截断后的长度
 ** 输　出  : ERROR
@@ -681,7 +681,7 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
             return  (TPS_ERR_BP_ADJUST);
         }
 
-        if (tpsFsTransTrigerChk(ptrans)) {                              /* 避免一个事物中执行太多操作   */
+        if (tpsFsTransTrigerChk(ptrans)) {                              /* 避免一个事务中执行太多操作   */
             return  (TPS_ERR_TRANS_NEED_COMMIT);
         }
     }
@@ -715,7 +715,7 @@ TPS_RESULT  tpsFsTruncInode (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_SIZE_T si
 **           off              起始位置
 **           pucBuff          缓冲区
 **           szLen            读取长度
-**           bTransData       是否需要读取事物中缓存的数据
+**           bTransData       是否需要读取事务中缓存的数据
 ** 输　出  : 成功返回实际读取长度，失败返回-ERRNO
 ** 全局变量:
 ** 调用模块:
@@ -782,12 +782,12 @@ TPS_SIZE_T  tpsFsInodeRead (PTPS_INODE pinode, TPS_OFF_T off, PUCHAR pucBuff,
 /*********************************************************************************************************
 ** 函数名称: tpsFsInodeTransWrite
 ** 功能描述: 写文件
-** 输　入  : ptrans           事物
+** 输　入  : ptrans           事务
 **           pinode           inode指针
 **           off              起始位置
 **           pucBuff          缓冲区
 **           szLen            读取长度
-**           bTransData       文件数据是否要记录事物
+**           bTransData       文件数据是否要记录事务
 ** 输　出  : 成功返回实际写入长度，，失败返回-ERRNO
 ** 全局变量:
 ** 调用模块:
@@ -849,7 +849,7 @@ TPS_SIZE_T  tpsFsInodeWrite (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off
             return  (-EIO);
         }
 
-        if (tpsFsTransTrigerChk(ptrans)) {                              /* 避免一个事物中执行太多操作   */
+        if (tpsFsTransTrigerChk(ptrans)) {                              /* 避免一个事务中执行太多操作   */
             break;
         }
     }

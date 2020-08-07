@@ -150,11 +150,11 @@ VOID   API_InterShow (ULONG  ulCPUStart, ULONG  ulCPUEnd)
                    pcPreem);
 
             if (iRet) {                                                 /*  打印优先级                  */
-                printf("N/A ");
+                printf(" N/A ");
             } else {
                 printf("%4d ", uiPrio);
             }
-                   
+
             for (j = ulCPUStart; j <= ulCPUEnd; j++) {                  /*  打印中断计数                */
                 printf("%13lld ", piaction->IACT_iIntCnt[j]);
             }
