@@ -165,7 +165,9 @@ INT  lib_clock_gettime (clockid_t  clockid, struct timespec  *tv)
             }
             LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
             __tickToTimespec(pvproc->VP_clockUser + pvproc->VP_clockSystem, tv);
+            LW_SPIN_KERN_TIME_LOCK_IGNIRQ();
             LW_TIME_HIGH_RESOLUTION(tv);
+            LW_SPIN_KERN_TIME_UNLOCK_IGNIRQ();
             LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
         }
 #else
@@ -178,7 +180,9 @@ INT  lib_clock_gettime (clockid_t  clockid, struct timespec  *tv)
         LW_SPIN_KERN_LOCK_QUICK(&iregInterLevel);
         LW_TCB_GET_CUR(ptcbCur);
         __tickToTimespec(ptcbCur->TCB_ulCPUTicks, tv);
+        LW_SPIN_KERN_TIME_LOCK_IGNIRQ();
         LW_TIME_HIGH_RESOLUTION(tv);
+        LW_SPIN_KERN_TIME_UNLOCK_IGNIRQ();
         LW_SPIN_KERN_UNLOCK_QUICK(iregInterLevel);
         break;
         
