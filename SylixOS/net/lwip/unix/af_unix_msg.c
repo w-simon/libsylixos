@@ -21,6 +21,7 @@
 ** BUG:
 2013.11.18  加入对 MSG_CMSG_CLOEXEC 支持.
 2018.07.10  传递文件描述符前, 需要检测文件描述符有效性.
+2020.08.17  修正同进程文件描述符传递引用错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -54,13 +55,8 @@ static INT  __unix_dup (pid_t  pidSend, INT  iFdSend)
         return  (PX_ERROR);
     }
     
-    if (pidSend == __PROC_GET_PID_CUR()) {
-        iDup = dup(iFdSend);                                            /*  同一个进程中 dup 一次       */
-    
-    } else {
-        iDup = vprocIoFileDupFrom(pidSend, iFdSend);                    /*  从发送进程 dup 到本进程     */
-        vprocIoFileRefDecByPid(pidSend, iFdSend);                       /*  减少发送进程对于此文件的引用*/
-    }
+    iDup = vprocIoFileDupFrom(pidSend, iFdSend);                        /*  从发送进程 dup 到本进程     */
+    vprocIoFileRefDecByPid(pidSend, iFdSend);                           /*  减少发送进程对于此文件的引用*/
 
 #else
     iDup = dup(iFdSend);                                                /*  内核中做一次 dup            */
