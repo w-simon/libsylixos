@@ -36,6 +36,7 @@
 2018.08.09  增加 S.M.A.R.T 功能的支持. (v1.2.0-rc0)
 2018.08.20  修复 x86 下安装完系统后重启, 控制器给机械盘发送 RST-OFF 命令超时问题. (v1.2.1-rc0)
 2018.03.01  增加 ATAPI 驱动支持. (v1.2.2-rc0)
+2020.08.20  增加 PHY 复位后对错误寄存器进行清除操作来增强兼容性. (v1.2.3-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_STDIO
@@ -281,6 +282,15 @@ static INT  __ahciDrivePhyReset (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
                  hCtrl->AHCICTRL_uiIndex, uiDrive);
         return  (PX_ERROR);
     }
+
+    /*
+     * 端口复位后清除错误寄存器
+     */
+    AHCI_PORT_REG_MSG(hDrive, AHCI_PxSERR);
+    uiReg = AHCI_PORT_READ(hDrive, AHCI_PxSERR);
+    AHCI_PORT_WRITE(hDrive, AHCI_PxSERR, uiReg);
+    AHCI_PORT_READ(hDrive, AHCI_PxSERR);
+    AHCI_PORT_REG_MSG(hDrive, AHCI_PxSERR);
 
     return  (ERROR_NONE);
 }

@@ -26,6 +26,7 @@
 2017.03.29  修正部分设备如 Sunrise Point-H 内存索引非 0 的问题. (v1.0.3-rc0)
 2018.03.15  增加对 Loongson SATA 控制器 (如 7A1000) 资源索引的特殊处理. (v1.0.4-rc0)
 2019.03.01  增加对 ATAPI 的支持. (v1.1.0-rc0)
+2020.08.20  增加对 ZX-200 系列等只支持 MSI-X 中断的兼容支持. (v1.1.1-rc0)
 *********************************************************************************************************/
 #define  __SYLIXOS_PCI_DRV
 #define  __SYLIXOS_AHCI_DRV
@@ -938,6 +939,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     PCI_RESOURCE_HANDLE     hResource;
     pci_resource_size_t     stStart;
     INT                     iBarIndex;
+    PCI_MSI_DESC_HANDLE     hMsgHandle;
 
     hPciDev = (PCI_DEV_HANDLE)hCtrl->AHCICTRL_pvPciArg;                 /* 获取设备句柄                 */
 
@@ -974,6 +976,27 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx szie %llx.\r\n",
              hCtrl->AHCICTRL_pvRegAddr, hCtrl->AHCICTRL_stRegSize);
 
+    API_PciDevConfigReadWord(hPciDev,  PCI_STATUS,  &usStatus);
+    API_PciDevConfigWriteWord(hPciDev, PCI_STATUS,  usStatus);
+    API_PciDevConfigReadWord(hPciDev,  PCI_COMMAND, &usCmd);
+    API_PciDevConfigWriteWord(hPciDev, PCI_COMMAND, (usCmd | PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER));
+
+    hMsgHandle = &hPciDev->PCIDEV_pmdDevIrqMsiDesc;
+    iRet = API_PciDevMsixEnableSet(hPciDev, LW_TRUE);
+    if (iRet != ERROR_NONE) {
+        goto  __msi_handle;
+    }
+
+    iRet = API_PciDevMsixRangeEnable(hPciDev, hMsgHandle, 1, 1);
+    if (iRet != ERROR_NONE) {
+        goto  __msi_handle;
+    }
+    hCtrl->AHCICTRL_ulIrqVector = hMsgHandle->PCIMSI_ulDevIrqVector;
+
+    return  (ERROR_NONE);
+
+__msi_handle:
+    API_PciDevMsixEnableSet(hPciDev, LW_FALSE);
     iRet = API_PciDevMsiEnableSet(hPciDev, LW_TRUE);
     if (iRet != ERROR_NONE) {
         goto  __intx_handle;
@@ -982,26 +1005,15 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
     iRet = API_PciDevMsiRangeEnable(hPciDev, 1, 1);
     if (iRet != ERROR_NONE) {
         goto  __intx_handle;
-    
-    } else {
-        hCtrl->AHCICTRL_ulIrqVector = hPciDev->PCIDEV_ulDevIrqVector;
-        goto __msi_handlel;
     }
+    hCtrl->AHCICTRL_ulIrqVector = hMsgHandle->PCIMSI_ulDevIrqVector;
+
+    return  (ERROR_NONE);
 
 __intx_handle:
-    iRet = API_PciDevMsiEnableSet(hPciDev, LW_FALSE);
-    if (iRet != ERROR_NONE) {
-        AHCI_LOG(AHCI_LOG_ERR, "pci msi disable failed dev %d:%d.%d.\r\n",
-                 hPciDev->PCIDEV_iDevBus, hPciDev->PCIDEV_iDevDevice, hPciDev->PCIDEV_iDevFunction);
-    }
+    API_PciDevMsiEnableSet(hPciDev, LW_FALSE);
     hResource = API_PciDevResourceGet(hPciDev, PCI_IORESOURCE_IRQ, 0);
     hCtrl->AHCICTRL_ulIrqVector = (ULONG)PCI_RESOURCE_START(hResource);
-
-__msi_handlel:
-    API_PciDevConfigReadWord(hPciDev,  PCI_STATUS,  &usStatus);
-    API_PciDevConfigWriteWord(hPciDev, PCI_STATUS,  usStatus);
-    API_PciDevConfigReadWord(hPciDev,  PCI_COMMAND, &usCmd);
-    API_PciDevConfigWriteWord(hPciDev, PCI_COMMAND, (usCmd | PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER));
 
     return  (ERROR_NONE);
 }
