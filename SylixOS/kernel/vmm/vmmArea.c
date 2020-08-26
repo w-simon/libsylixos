@@ -163,14 +163,14 @@ static ULONG  __areaSpaceInit (PLW_VMM_AREA  pvmarea, addr_t  ulAddr, size_t  st
     pvmarea->AREA_ulHashSize = ulHashSize;
     
     pvmarea->AREA_ptrbrHash = 
-        (PLW_TREE_RB_ROOT)__KHEAP_ALLOC(sizeof(PLW_TREE_RB_ROOT) * (size_t)ulHashSize);
+        (PLW_TREE_RB_ROOT)__KHEAP_ALLOC(sizeof(LW_TREE_RB_ROOT) * (size_t)ulHashSize);
     if (pvmarea->AREA_ptrbrHash == LW_NULL) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "kernel low memory.\r\n");
         _ErrorHandle(ERROR_KERNEL_LOW_MEMORY);                          /*  缺少内核内存                */
         return  (ERROR_KERNEL_LOW_MEMORY);
     }
     lib_bzero(pvmarea->AREA_ptrbrHash,
-              (size_t)(sizeof(PLW_TREE_RB_ROOT) * ulHashSize));         /*  清空 hash 表                */
+              (size_t)(sizeof(LW_TREE_RB_ROOT) * ulHashSize));          /*  清空 hash 表                */
     
     return  (ERROR_NONE);
 }
@@ -336,7 +336,6 @@ static VOID  __areaInsertPage (PLW_VMM_AREA  pvmarea, addr_t  ulAddr, PLW_VMM_PA
     
     while (*pptrbnRoot) {
         ptrbnParent = *pptrbnRoot;
-        
         pvmpageTemp = _TREE_ENTRY(ptrbnParent, LW_VMM_PAGE, PAGE_trbnNode);
         
         if (ulAddr < pvmpageTemp->PAGE_ulPageAddr) {

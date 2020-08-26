@@ -1155,10 +1155,14 @@ VOID  tpsFsStatfs (PTPS_SUPER_BLOCK  psb, struct statfs *pstatfs)
         return;
     }
 
-    pstatfs->f_bsize  = (long)psb->SB_uiBlkSize;
-    pstatfs->f_blocks = (long)psb->SB_ui64DataBlkCnt;
-    pstatfs->f_bfree  = (long)tpsFsBtreeGetBlkCnt(psb->SB_pinodeSpaceMng);
-    pstatfs->f_bavail = pstatfs->f_bfree;
+    pstatfs->f_type    = TPS_SUPER_MAGIC;
+    pstatfs->f_bsize   = (long)psb->SB_uiBlkSize;
+    pstatfs->f_blocks  = (long)psb->SB_ui64DataBlkCnt;
+    pstatfs->f_bfree   = (long)tpsFsBtreeGetBlkCnt(psb->SB_pinodeSpaceMng);
+    pstatfs->f_namelen = PATH_MAX;
+
+    pstatfs->f_fsid.val[0] = (int32_t)psb->SB_ui64Generation;
+    pstatfs->f_fsid.val[1] = 0;
 
     /*
      * 统计已删除节点列表
@@ -1175,6 +1179,8 @@ VOID  tpsFsStatfs (PTPS_SUPER_BLOCK  psb, struct statfs *pstatfs)
         inum = pinode->IND_inumDeleted;
         tpsFsClose(pinode);
     }
+
+    pstatfs->f_bavail = pstatfs->f_bfree;
 }
 /*********************************************************************************************************
 ** 函数名称: tpsFsGetSize

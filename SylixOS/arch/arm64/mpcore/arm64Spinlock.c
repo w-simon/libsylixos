@@ -18,6 +18,7 @@
 **
 ** 描        述: ARM64 体系构架自旋锁驱动.
 *********************************************************************************************************/
+#define  __SYLIXOS_SMPFMB
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 /*********************************************************************************************************
@@ -68,6 +69,10 @@ static VOID  arm64SpinLock (SPINLOCKTYPE  *psld, VOIDFUNCPTR  pfuncPoll, PVOID  
             ARM_WFE();
         }
         sldVal.SLD_usSvcNow = LW_ACCESS_ONCE(UINT16, psld->SLD_usSvcNow);
+
+#if LW_CFG_ARM64_ACCESS_ONCE_RMB > 0
+        KN_SMP_RMB();
+#endif
     }
 }
 /*********************************************************************************************************

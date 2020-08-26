@@ -63,12 +63,13 @@ mode_t  __fsAttrToMode (BYTE  ucAttr)
     
     if (ucAttr & AM_DIR) {
         mode |= S_IFDIR;
-    
+
     } else {
         mode |= S_IFREG;
-        mode |= S_IXUSR | S_IXGRP;                                      /*  owner gourp 拥有可执行权限  */
     }
     
+    mode |= S_IXUSR | S_IXGRP;                                          /*  owner gourp 拥有可执行权限  */
+
     return  (mode);
 }
 /*********************************************************************************************************
