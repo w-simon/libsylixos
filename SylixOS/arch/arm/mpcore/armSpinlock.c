@@ -18,6 +18,7 @@
 **
 ** 描        述: ARM 体系构架自旋锁驱动.
 *********************************************************************************************************/
+#define  __SYLIXOS_SMPFMB
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
 /*********************************************************************************************************
@@ -71,6 +72,10 @@ static VOID  armSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvA
             __asm__ __volatile__(ARM_WFE(""));
         }
         sldVal.SLD_usSvcNow = LW_ACCESS_ONCE(UINT16, psld->SLD_usSvcNow);
+
+#if LW_CFG_ARM_ACCESS_ONCE_RMB > 0
+        KN_SMP_RMB();
+#endif
     }
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH__ >= 6   */
 }

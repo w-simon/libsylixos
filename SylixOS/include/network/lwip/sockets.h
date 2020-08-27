@@ -124,7 +124,6 @@ typedef u32_t socklen_t; /* SylixOS Add some standard defined check */
 
 /* SylixOS Removed IOV_MAX and struct iovec
    redefined with SylixOS */
-
 struct msghdr {
   void         *msg_name;
   socklen_t     msg_namelen;
@@ -343,13 +342,12 @@ struct tcp_md5sig {
 #endif /* SYLIXOS */
 #endif /* LWIP_TCP */
 
-#if LWIP_IPV6
+/* SylixOS Removed #if LWIP_IPV6 */
 /*
  * Options for level IPPROTO_IPV6
  */
 #define IPV6_CHECKSUM       7  /* RFC3542: calculate and insert the ICMPv6 checksum for raw sockets. */
 #define IPV6_V6ONLY         27 /* RFC3493: boolean control to restrict AF_INET6 sockets to IPv6 communications only. */
-#endif /* LWIP_IPV6 */
 
 #if LWIP_UDP && LWIP_UDPLITE
 /*

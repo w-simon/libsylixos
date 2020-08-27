@@ -1100,7 +1100,6 @@ static INT  __tshellLoginBl (INT  iArgC, PCHAR  *ppcArgV)
 {
     struct sockaddr      addr;
     struct sockaddr_in  *pinaddr  = (struct sockaddr_in *)&addr;
-    struct sockaddr_in6 *pin6addr = (struct sockaddr_in6 *)&addr;
 
     if (iArgC == 1) {
         API_LoginBlShow();
@@ -1114,6 +1113,9 @@ static INT  __tshellLoginBl (INT  iArgC, PCHAR  *ppcArgV)
     
     pinaddr->sin_addr.s_addr = inet_addr(ppcArgV[2]);
     if (pinaddr->sin_addr.s_addr == INADDR_NONE) {
+#if LWIP_IPV6
+        struct sockaddr_in6 *pin6addr = (struct sockaddr_in6 *)&addr;
+
         if (inet6_aton(ppcArgV[2], &pin6addr->sin6_addr) == 0) {
             fprintf(stderr, "ipaddr error!\n");
             return  (-ERROR_TSHELL_EPARAM);
@@ -1122,6 +1124,10 @@ static INT  __tshellLoginBl (INT  iArgC, PCHAR  *ppcArgV)
             pin6addr->sin6_len    = sizeof(struct sockaddr_in6);
             pin6addr->sin6_family = AF_INET6;
         }
+#else
+        fprintf(stderr, "ipaddr error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+#endif
     
     } else {
         pinaddr->sin_len    = sizeof(struct sockaddr_in);
@@ -1154,7 +1160,6 @@ static INT  __tshellLoginWl (INT  iArgC, PCHAR  *ppcArgV)
 {
     struct sockaddr      addr;
     struct sockaddr_in  *pinaddr  = (struct sockaddr_in *)&addr;
-    struct sockaddr_in6 *pin6addr = (struct sockaddr_in6 *)&addr;
 
     if (iArgC == 1) {
         API_LoginWlShow();
@@ -1168,6 +1173,9 @@ static INT  __tshellLoginWl (INT  iArgC, PCHAR  *ppcArgV)
     
     pinaddr->sin_addr.s_addr = inet_addr(ppcArgV[2]);
     if (pinaddr->sin_addr.s_addr == INADDR_NONE) {
+#if LWIP_IPV6
+        struct sockaddr_in6 *pin6addr = (struct sockaddr_in6 *)&addr;
+
         if (inet6_aton(ppcArgV[2], &pin6addr->sin6_addr) == 0) {
             fprintf(stderr, "ipaddr error!\n");
             return  (-ERROR_TSHELL_EPARAM);
@@ -1176,7 +1184,11 @@ static INT  __tshellLoginWl (INT  iArgC, PCHAR  *ppcArgV)
             pin6addr->sin6_len    = sizeof(struct sockaddr_in6);
             pin6addr->sin6_family = AF_INET6;
         }
-    
+#else
+        fprintf(stderr, "ipaddr error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+#endif
+
     } else {
         pinaddr->sin_len    = sizeof(struct sockaddr_in);
         pinaddr->sin_family = AF_INET;
