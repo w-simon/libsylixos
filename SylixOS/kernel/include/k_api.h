@@ -282,8 +282,12 @@ LW_API ULONG            API_ThreadRestartEx(LW_OBJECT_HANDLE       ulId,
 
 LW_API LW_OBJECT_HANDLE API_ThreadIdSelf(VOID);                         /*  获得线程自己的句柄          */
 
+LW_API LW_OBJECT_HANDLE API_ThreadIdSelfFast(VOID);
+
 #ifdef __SYLIXOS_KERNEL
 LW_API PLW_CLASS_TCB    API_ThreadTcbSelf(VOID);                        /*  获得线程自己的 TCB          */
+
+LW_API PLW_CLASS_TCB    API_ThreadTcbSelfFast(VOID);
 
 LW_API LW_OBJECT_HANDLE API_ThreadIdInter(VOID);                        /*  获得被中断线程 ID           */
 

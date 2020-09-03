@@ -27,6 +27,11 @@ PERFORMANCE OF THIS SOFTWARE.
 
 #include <pthread.h>
 
+/* SylixOS use this hack method to speed up */
+#ifndef USE_TSD_DATA_HACK
+#define USE_TSD_DATA_HACK
+#endif
+
 #undef thread_atfork_static
 
 /* Use fast inline spinlocks with gcc.  */
@@ -117,6 +122,21 @@ typedef pthread_spinlock_t mutex_t;
    The hack only works when pthread_t can be converted to an integral
    type. */
 
+#ifdef SYLIXOS
+
+#define TSD_HACK_KEY_SIZE   32
+typedef void *tsd_key_t[TSD_HACK_KEY_SIZE];
+
+#define tsd_key_create(key, destr) do { \
+  bzero(key, sizeof(void *) * TSD_HACK_KEY_SIZE); \
+} while(0)
+#define tsd_setspecific(key, data) \
+ (key[(unsigned)Lw_Thread_SelfFast() % TSD_HACK_KEY_SIZE] = (data))
+#define tsd_getspecific(key, vptr) \
+ (vptr = key[(unsigned)Lw_Thread_SelfFast() % TSD_HACK_KEY_SIZE])
+
+#else /* SYLIXOS */
+
 typedef void *tsd_key_t[256];
 #define tsd_key_create(key, destr) do { \
   int i; \
@@ -126,6 +146,8 @@ typedef void *tsd_key_t[256];
  (key[(unsigned)pthread_self() % 256] = (data))
 #define tsd_getspecific(key, vptr) \
  (vptr = key[(unsigned)pthread_self() % 256])
+
+#endif /* !SYLIXOS */
 
 #else
 

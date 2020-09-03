@@ -99,7 +99,7 @@
 #define Lw_Thread_Create                        API_ThreadCreate
 #define Lw_Thread_Init                          API_ThreadInit
 #define Lw_Thread_Self                          API_ThreadIdSelf
-#define Lw_Thread_Tcb                           API_ThreadTcbSelf
+#define Lw_Thread_SelfFast                      API_ThreadIdSelfFast
 
 #define Lw_Thread_Desc                          API_ThreadDesc
 

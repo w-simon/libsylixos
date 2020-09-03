@@ -217,9 +217,8 @@ static PX86_IOAPIC_INTR  __x86IoApicIntrLookup (UINT8  ucIrq, UINT8  *pucRedNum)
     INT               i;
 
     for (i = 0; i < _G_uiX86IoApicNr; i++) {
-        pIoApicIntr = &_G_x86IoApicIntrs[i];
-
-        uiIoApicIdOffset = _G_x86IoApicIntrs->IOAPIC_ucId - _G_ucX86MpApicIoBaseId;
+        pIoApicIntr      = &_G_x86IoApicIntrs[i];
+        uiIoApicIdOffset = pIoApicIntr->IOAPIC_ucId - _G_ucX86MpApicIoBaseId;
 
         if ((ucIrq >= (uiIoApicIdOffset * _G_uiX86IoApicRedEntriesNr)) &&
             (ucIrq < ((uiIoApicIdOffset + 1) * _G_uiX86IoApicRedEntriesNr))) {

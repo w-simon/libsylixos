@@ -128,9 +128,7 @@ ULONG  API_ThreadCurNotePad (UINT8  ucNoteIndex)
 LW_API
 ULONG  API_ThreadFastNotePad (UINT8  ucNoteIndex)
 {
-    REGISTER PLW_CLASS_TCB  ptcbCur;
-
-    asm volatile ("mov %0, x18" : "=r"(ptcbCur));
+    REGISTER PLW_CLASS_TCB  ptcbCur asm("x18");                         /*  x18 saved current tcb       */
 
     return  (ptcbCur->TCB_notepadThreadNotePad.NOTEPAD_ulNotePad[ucNoteIndex]);
 }
