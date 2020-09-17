@@ -133,7 +133,7 @@ static INT  __sdmemDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, VOID
 
     dcattrl.DCATTR_pvCacheMem       = LW_NULL;
     dcattrl.DCATTR_stMemSize        = (size_t)lCacheSize;
-    dcattrl.DCATTR_iBurstOpt        = 0;
+    dcattrl.DCATTR_iBurstOpt        = LW_DCATTR_BOPT_PAGE_ALIGN;
     dcattrl.DCATTR_iMaxRBurstSector = (INT)lSectorBurst;
     dcattrl.DCATTR_iMaxWBurstSector = (INT)(lSectorBurst << 1);
     dcattrl.DCATTR_iMsgCount        = 4;
