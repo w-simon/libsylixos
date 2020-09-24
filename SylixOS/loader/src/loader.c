@@ -178,6 +178,7 @@ static LW_LD_EXEC_MODULE  *moduleCreate (CPCHAR       pcPath,
     pmodule->EMOD_dev          = pstatFile->st_dev;
     pmodule->EMOD_ino          = pstatFile->st_ino;
     pmodule->EMOD_pvproc       = (LW_LD_VPROC *)pvVProc;
+    pmodule->EMOD_pvRoot       = LW_NULL;
 
     if (pcInit) {
         pmodule->EMOD_pcInit = (PCHAR)pmodule + stInitOff;
@@ -476,8 +477,17 @@ static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
     do {
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
 
-        if (pmodTemp->EMOD_ulStatus == LW_LD_STATUS_LOADED) {
+        if (pmodTemp->EMOD_ulStatus == LW_LD_STATUS_LOADED && pmodTemp->EMOD_pvRoot == pmodule) {
             pmodTemp->EMOD_ulStatus = LW_LD_STATUS_INITED;              /*  处理构造函数调用opendl      */
+            /*
+             *  这里必须释放锁,因为初始化函数可能调用到加锁的代码如dlopen,如果不释放可能导致死锁。
+             *  这里释放锁没有问题,因为：
+             *  1、模块状态已经在加锁时修改了,其它线程不会重复进入初始化函数。
+             *  2、本模块不会被卸载，因为模块句柄尚未返回。
+             *  3、进程模块链表可能会新增其它模块，但不会影响本模块，链表改动和读取都处于加锁状态，所以不会错乱
+             *  4、如果进程在解锁状态被kill掉，则执行初始化函数的线程停止，不会异常，同时也不会占用锁
+             */
+            LW_VP_UNLOCK(pmodule->EMOD_pvproc);
 
             for (i = 0; i < pmodTemp->EMOD_ulInitArrCnt; i++) {         /*  正顺序调用初始化函数        */
                 pfuncInit = pmodTemp->EMOD_ppfuncInitArray[i];
@@ -492,7 +502,6 @@ static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
                 iRet = pmodTemp->EMOD_pfuncInit();
                 if (pmodTemp->EMOD_ulModType == LW_LD_MOD_TYPE_KO) {    /*  内核模块需要判断返回值      */
                     if (iRet < 0) {
-                        LW_VP_UNLOCK(pmodule->EMOD_pvproc);
                         return  (PX_ERROR);
                     
                     } else if (iRet == LW_INIT_RET_UNLOAD_DISALLOW) {
@@ -500,10 +509,11 @@ static INT initArrayCall (LW_LD_EXEC_MODULE *pmodule)
                     }
                 }
             }
-            
+
 #if LW_CFG_TRUSTED_COMPUTING_EN > 0
             bspTrustedModuleLoad((PVOID)pmodTemp);
 #endif                                                                  /*  LW_CFG_TRUSTED_COMPUTING_EN */
+            LW_VP_LOCK(pmodule->EMOD_pvproc);
         }
 
         pringTemp = _list_ring_get_prev(pringTemp);
@@ -623,8 +633,14 @@ static INT finiArrayCall (LW_LD_EXEC_MODULE *pmodule, BOOL  bRunFini)
     do {
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
 
-        if (pmodTemp->EMOD_ulRefs == 0 && pmodTemp->EMOD_ulStatus == LW_LD_STATUS_INITED) {
+        if (pmodTemp->EMOD_ulRefs == 0 &&
+            pmodTemp->EMOD_ulStatus == LW_LD_STATUS_INITED &&
+            pmodTemp->EMOD_pvRoot == pmodule) {
             pmodTemp->EMOD_ulStatus = LW_LD_STATUS_FINIED;
+            /*
+             *  原因参考initArrayCall函数
+             */
+            LW_VP_UNLOCK(pmodule->EMOD_pvproc);
 
             if (pmodTemp->EMOD_ulModType == LW_LD_MOD_TYPE_KO) {            /*  处理内核模块 atexit     */
                 LW_LD_EXEC_MODATEXIT  *pmodae;
@@ -683,6 +699,8 @@ static INT finiArrayCall (LW_LD_EXEC_MODULE *pmodule, BOOL  bRunFini)
             __cxa_module_finalize(pmodTemp->EMOD_pvBaseAddr,
                                   pmodTemp->EMOD_stLen,
                                   bRunFini);                            /*  释放当前模块的 cxx_atexit   */
+
+            LW_VP_LOCK(pmodule->EMOD_pvproc);
         }
 
         pringTemp = _list_ring_get_next(pringTemp);
@@ -709,6 +727,7 @@ static INT moduleCleanup (LW_LD_EXEC_MODULE *pmodule)
         pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
 
         pmodTemp->EMOD_ulRefs = 0;
+        pmodTemp->EMOD_pvRoot = pmodule;
 
         pringTemp = _list_ring_get_next(pringTemp);
     } while (pringTemp != &pmodule->EMOD_ringModules);
@@ -735,6 +754,9 @@ static INT moduleDelRef (LW_LD_EXEC_MODULE *pmodule)
     LW_VP_LOCK(pmodule->EMOD_pvproc);
     if (pmodule->EMOD_ulRefs > 0) {
         pmodule->EMOD_ulRefs--;
+        if (pmodule->EMOD_ulRefs == 0) {
+            pmodule->EMOD_pvRoot = pmodule;
+        }
     }
 
     while (bUpdated) {
@@ -748,6 +770,9 @@ static INT moduleDelRef (LW_LD_EXEC_MODULE *pmodule)
                 for (i = 0; i < pmodTemp->EMOD_ulUsedCnt; i++) {
                     if (pmodUsedArr[i] && pmodUsedArr[i]->EMOD_ulRefs > 0) {
                         pmodUsedArr[i]->EMOD_ulRefs--;
+                        if (pmodUsedArr[i]->EMOD_ulRefs == 0) {
+                            pmodUsedArr[i]->EMOD_pvRoot = pmodule;
+                        }
                         bUpdated = LW_TRUE;
                     }
                 }

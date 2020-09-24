@@ -158,6 +158,8 @@ typedef struct {
     dev_t                   EMOD_dev;                                   /*  模块文件设备标识            */
     ino_t                   EMOD_ino;                                   /*  模块文件 inode 标识         */
 
+    PVOID                   EMOD_pvRoot;                                /*  导致模块被加载或卸载根模块  */
+
 #if LW_CFG_MODULELOADER_TEXT_RO_EN > 0
     size_t                  EMOD_stCodeLen;                             /*  模块代码段长度              */
     ULONG                   EMOD_ulCodeOft;                             /*  模块代码段偏移              */

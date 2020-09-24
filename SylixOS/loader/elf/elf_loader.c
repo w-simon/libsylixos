@@ -2051,6 +2051,7 @@ INT __elfListLoad (LW_LD_EXEC_MODULE *pmodule, CPCHAR pcPath)
                 goto    __out;
             }
             pmodTemp->EMOD_ulStatus = LW_LD_STATUS_LOADED;
+            pmodTemp->EMOD_pvRoot   = pmodule;
         }
         pringTemp = _list_ring_get_next(pringTemp);
     } while (pringTemp != &pmodule->EMOD_ringModules);
