@@ -480,6 +480,7 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
 {
   err_t err;
   struct netif *netif = (struct netif *)netdev->sys;
+  struct netif *inpfw;
   struct eth_hdr *eh;
   
   /* fixed pad */
@@ -502,7 +503,9 @@ static int  netdev_netif_linkinput (netdev_t *netdev, struct pbuf *p)
     }
   }
 
-  if (netif->inner_fw && netif->inner_fw(netif, p)) {
+  inpfw = netif->ext_inp ? netif->ext_inp : netif;
+
+  if (inpfw->inner_fw && inpfw->inner_fw(inpfw, p)) {
     return (0); /* inner firewall eaten */
   }
 

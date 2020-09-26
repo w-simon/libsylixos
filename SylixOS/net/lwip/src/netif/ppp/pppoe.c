@@ -195,6 +195,11 @@ ppp_pcb *pppoe_create(struct netif *pppif,
   memset(sc, 0, sizeof(struct pppoe_softc));
   sc->pcb = ppp;
   sc->sc_ethif = ethif;
+#ifdef SYLIXOS /* SylixOS process pppoe count */
+  if (ethif) {
+    ethif->ppp_ref++;
+  }
+#endif /* SYLIXOS */
 #if PPPOE_SCNAME_SUPPORT
   sc->sc_service_name = service_name;
   sc->sc_concentrator_name = concentrator_name;
@@ -298,6 +303,14 @@ pppoe_destroy(ppp_pcb *ppp, void *ctx)
   LWIP_UNUSED_ARG(ppp);
 
   sys_untimeout(pppoe_timeout, sc);
+
+#ifdef SYLIXOS /* SylixOS process pppoe count */
+  if (sc->sc_ethif) {
+    if (sc->sc_ethif->ppp_ref) {
+      sc->sc_ethif->ppp_ref--;
+    }
+  }
+#endif /* SYLIXOS */
 
   /* remove interface from list */
   for (copp = &pppoe_softc_list; (freep = *copp); copp = &freep->next) {
@@ -769,6 +782,11 @@ pppoe_send_padi(struct pppoe_softc *sc)
     l2 = (int)strlen(sc->sc_concentrator_name);
     len += 2 + 2 + l2;
   }
+#ifdef SYLIXOS /* SylixOS Add empty AC name */
+    else {
+    len += 2 + 2;
+  }
+#endif /* SYLIXOS */
 #endif /* PPPOE_SCNAME_SUPPORT */
   LWIP_ASSERT("sizeof(struct eth_hdr) + PPPOE_HEADERLEN + len <= 0xffff",
     sizeof(struct eth_hdr) + PPPOE_HEADERLEN + len <= 0xffff);
@@ -801,6 +819,12 @@ pppoe_send_padi(struct pppoe_softc *sc)
     MEMCPY(p, sc->sc_concentrator_name, l2);
     p += l2;
   }
+#ifdef SYLIXOS /* SylixOS Add empty AC name */
+    else {
+    PPPOE_ADD_16(p, PPPOE_TAG_ACNAME);
+    PPPOE_ADD_16(p, 0);
+  }
+#endif /* SYLIXOS */
 #endif /* PPPOE_SCNAME_SUPPORT */
   PPPOE_ADD_16(p, PPPOE_TAG_HUNIQUE);
   PPPOE_ADD_16(p, sizeof(sc));

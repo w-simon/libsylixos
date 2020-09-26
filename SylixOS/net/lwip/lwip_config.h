@@ -646,13 +646,15 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr,
 #define MSCHAP_SUPPORT                  0
 #endif                                                                  /*  __LWIP_USE_PPP_NEW > 0      */
 
+#define MPPE_SUPPORT                    1
 #define EAP_SUPPORT                     1
-#define CBCP_SUPPORT                    0
-#define CCP_SUPPORT                     0
-#define ECP_SUPPORT                     0
+#define CCP_SUPPORT                     1
 #define LQR_SUPPORT                     1
 #define VJ_SUPPORT                      1
 #define MD5_SUPPORT                     1
+
+#define CBCP_SUPPORT                    0                               /*  NOT SUPPORT NOW!            */
+#define ECP_SUPPORT                     0
 
 #define PPP_MD5_RANDM                   1
 #define PPP_IPV6_SUPPORT                LWIP_IPV6

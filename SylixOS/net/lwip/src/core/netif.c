@@ -389,6 +389,7 @@ netif_add(struct netif *netif,
   netif->priv_flags = 0;
   netif->ext_eth = NULL;
   netif->ext_ctl = NULL;
+  netif->ext_inp = NULL;
   netif->flowctl = NULL;
   netif->vlanid = (u16_t)-1;
   netif->metric = 1;
@@ -398,6 +399,9 @@ netif_add(struct netif *netif,
   netif->masterif = NULL;
   netif->nat_mode = NETIF_NAT_NONE;
   netif->ar_hrd = 0xffff;
+#if PPP_SUPPORT
+  netif->ppp_ref = 0;
+#endif /* PPP_SUPPORT */
 #if LW_CFG_LWIP_DNS_SWITCH > 0
   lib_bzero(netif->dns_save, sizeof(netif->dns_save));
 #endif /* LW_CFG_LWIP_DNS_SWITCH */

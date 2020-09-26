@@ -461,6 +461,7 @@ static int netbd_rxmode (struct netdev *netdev, int flags)
    'netif' is sub erhernet device */
 static err_t  netbd_input (struct pbuf *p, struct netif *netif)
 {
+  int pppoe = 0;
   netdev_t *netdev = (netdev_t *)(netif->state); /* sub ethernet device */
   netbd_eth_t *netbd_eth = (netbd_eth_t *)netif->ext_eth;
   netdev_t *netdev_bd = netbd_eth->netdev_bd; /* bonding device */
@@ -484,10 +485,11 @@ static err_t  netbd_input (struct pbuf *p, struct netif *netif)
       type = vlan->tpid;
     }
     switch (type) {
-    case PP_HTONS(ETHTYPE_ARP):
-    case PP_HTONS(ETHTYPE_RARP):
     case PP_HTONS(ETHTYPE_PPPOE):
     case PP_HTONS(ETHTYPE_PPPOEDISC):
+      pppoe = 1;
+    case PP_HTONS(ETHTYPE_ARP):
+    case PP_HTONS(ETHTYPE_RARP):
     case PP_HTONS(ETHTYPE_IP):
     case PP_HTONS(ETHTYPE_IPV6):
       goto to_bd;
@@ -515,7 +517,7 @@ to_sub:
   }
 
 to_bd:
-  if (!(netif_bd->flags & NETIF_FLAG_UP)) {
+  if (!(netif_bd->flags & NETIF_FLAG_UP) && !pppoe) {
     return (ERR_IF); /* bonding was down */
   }
   
@@ -731,6 +733,7 @@ int  netbd_add_dev (const char *bddev, int bdindex, const char *sub, int sub_is_
   netif->input  = netbd_input; /* set new input function */
   netif->ext_eth = (void *)netbd_eth;
   netif->ext_ctl = (void *)netbd;
+  netif->ext_inp = (struct netif *)(netbd->netdev_bd.sys);
   
   if (need_up) {
     netifapi_netif_set_up(netif_bd); /* make bonding up */
@@ -861,6 +864,7 @@ int  netbd_delete_dev (const char *bddev, int bdindex, const char *sub, int sub_
   
   netif->input = netbd_eth->input; /* restore old input function */
   netif->ext_ctl = netif->ext_eth = NULL;
+  netif->ext_inp = NULL;
 
   NETBD_LOCK(netbd);
   if (netbd->master == netbd_eth) {
@@ -1285,6 +1289,7 @@ int  netbd_delete (const char *bddev, int bdindex)
   
     netif->input = netbd_eth->input; /* restore input function */
     netif->ext_ctl = netif->ext_eth = NULL;
+    netif->ext_inp = NULL;
   
     mem_free(netbd_eth);
   
@@ -1452,6 +1457,7 @@ void  netbd_sub_delete_hook (netdev_t *netdev)
   
   netif->input = netbd_eth->input; /* restore old input function */
   netif->ext_ctl = netif->ext_eth = NULL;
+  netif->ext_inp = NULL;
   
   mem_free(netbd_eth);
 }

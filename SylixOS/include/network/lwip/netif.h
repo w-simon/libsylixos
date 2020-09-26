@@ -416,6 +416,7 @@ struct netif {
   int priv_flags;
   void *ext_eth; /* net bridge or bonding or ... eth node */
   void *ext_ctl; /* net bridge or bonding or ... ctl block */
+  struct netif *ext_inp; /* net bridge or bonding netif */
   void *flowctl; /* net flow ctl */
   u16_t vlanid; /* include tag & pri */
   int metric; /* netif metric (NOT support now) */
@@ -432,6 +433,9 @@ struct netif {
   u8_t nat_mode;
   /* ARPHRD_xxx */
   u16_t ar_hrd;
+#if PPP_SUPPORT
+  u32_t ppp_ref; /* PPP reference count */
+#endif
 #if LW_CFG_LWIP_DNS_SWITCH > 0
   ip_addr_t dns_save[DNS_MAX_SERVERS];
 #endif /* LW_CFG_LWIP_DNS_SWITCH */

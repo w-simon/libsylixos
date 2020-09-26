@@ -1406,7 +1406,11 @@ int link_input_hook (struct pbuf *p, struct netif *pnetif)
 {
 extern INT packet_link_input(struct pbuf *p, struct netif *inp, BOOL bOutgo);
 
-    if (!netif_is_up(pnetif)) {
+    if (LW_UNLIKELY(!netif_is_up(pnetif)
+#if PPP_SUPPORT
+        && !pnetif->ppp_ref
+#endif                                                                  /*  PPP_SUPPORT                 */
+    )) {
         return  (1);                                                    /*  没有使能的网卡不接收        */
     }
 

@@ -157,7 +157,7 @@ static int netbr_rxmode (struct netdev *netdev, int flags)
    'netif' is sub erhernet device */
 static err_t  netbr_input (struct pbuf *p, struct netif *netif)
 {
-  int found, key;
+  int found, key, pppoe = 0;
   netdev_t *netdev = (netdev_t *)(netif->state); /* sub ethernet device */
   netbr_eth_t *netbr_eth = (netbr_eth_t *)netif->ext_eth;
   netdev_t *netdev_br = netbr_eth->netdev_br; /* bridge device */
@@ -184,10 +184,11 @@ static err_t  netbr_input (struct pbuf *p, struct netif *netif)
       type = vlan->tpid;
     }
     switch (type) {
-    case PP_HTONS(ETHTYPE_ARP):
-    case PP_HTONS(ETHTYPE_RARP):
     case PP_HTONS(ETHTYPE_PPPOE):
     case PP_HTONS(ETHTYPE_PPPOEDISC):
+      pppoe = 1;
+    case PP_HTONS(ETHTYPE_ARP):
+    case PP_HTONS(ETHTYPE_RARP):
     case PP_HTONS(ETHTYPE_IP):
     case PP_HTONS(ETHTYPE_IPV6):
       goto to_br;
@@ -215,7 +216,7 @@ to_sub:
   }
 
 to_br:
-  if (!(netif_br->flags & NETIF_FLAG_UP)) {
+  if (!(netif_br->flags & NETIF_FLAG_UP) && !pppoe) {
     return (ERR_IF); /* bridge was down */
   }
   
@@ -444,6 +445,7 @@ int  netbr_add_dev (const char *brdev, int brindex, const char *sub, int sub_is_
   netif->input  = netbr_input; /* set new input function */
   netif->ext_eth = (void *)netbr_eth;
   netif->ext_ctl = (void *)netbr;
+  netif->ext_inp = (struct netif *)(netbr->netdev_br.sys);
 
   if (need_up) {
     netifapi_netif_set_up(netif_br); /* make bridge up */
@@ -562,6 +564,7 @@ int  netbr_delete_dev (const char *brdev, int brindex, const char *sub, int sub_
   
   netif->input = netbr_eth->input; /* restore old input function */
   netif->ext_ctl = netif->ext_eth = NULL;
+  netif->ext_inp = NULL;
 
   NETBR_LOCK(netbr);
   _List_Line_Del(&netbr_eth->list, &netbr->eth_list);
@@ -727,6 +730,7 @@ int  netbr_delete (const char *brdev, int brindex)
     
     netif->input = netbr_eth->input; /* restore input function */
     netif->ext_ctl = netif->ext_eth = NULL;
+    netif->ext_inp = NULL;
   
     mem_free(netbr_eth);
   
@@ -852,6 +856,7 @@ void  netbr_sub_delete_hook (netdev_t *netdev)
   
   netif->input = netbr_eth->input; /* restore old input function */
   netif->ext_ctl = netif->ext_eth = NULL;
+  netif->ext_inp = NULL;
   
   mem_free(netbr_eth);
 }
