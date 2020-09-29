@@ -484,6 +484,10 @@ struct netif *netif_find(const char *name);
 
 void netif_set_default(struct netif *netif);
 
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add netif dns server set */
+void netif_dns_setserver(struct netif *netif, u8_t numdns, const ip_addr_t *dnsserver);
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
+
 #if LWIP_IPV4
 void netif_set_ipaddr(struct netif *netif, const ip4_addr_t *ipaddr);
 void netif_set_netmask(struct netif *netif, const ip4_addr_t *netmask);

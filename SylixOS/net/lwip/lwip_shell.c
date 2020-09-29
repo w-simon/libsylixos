@@ -706,14 +706,33 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
                 fprintf(stderr, "can not find net interface.\n");
                 return  (-ERROR_TSHELL_EPARAM);
             }
-            for (iIndex = 2; iIndex < (iArgC - 1); iIndex += 2) {       /*  连续设置参数                */
-                if (inet_aton(ppcArgV[iIndex + 1], &inaddr) == 0) {     /*  获得 IP 地址                */
+
+            if (lib_strcmp(ppcArgV[2], "dns") == 0 && iArgC > 4) {      /*  设置网卡 DNS                */
+                INT     iDnsIndex = 0;
+
+                sscanf(ppcArgV[3], "%d", &iDnsIndex);
+                if (iDnsIndex >= DNS_MAX_SERVERS) {
+                    LWIP_IF_LIST_UNLOCK();
+                    fprintf(stderr, "arguments error!\n");
+                    return  (-ERROR_TSHELL_EPARAM);
+                }
+                if (ipaddr_aton(ppcArgV[4], &ipaddr) == 0) {            /*  获得 IP 地址                */
+                    LWIP_IF_LIST_UNLOCK();
                     fprintf(stderr, "address error.\n");
                     return  (-ERROR_TSHELL_EPARAM);
                 }
-                ip_2_ip4(&ipaddr)->addr = inaddr.s_addr;
-                IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_V4);
-                __netIfSet(netif, ppcArgV[iIndex], ip_2_ip4(&ipaddr));  /*  设置网络接口                */
+                netifapi_netif_set_dns(netif, (u8_t)iDnsIndex, &ipaddr);/*  设置 DNS                    */
+
+            } else {
+                for (iIndex = 2; iIndex < (iArgC - 1); iIndex += 2) {   /*  连续设置参数                */
+                    if (inet_aton(ppcArgV[iIndex + 1], &inaddr) == 0) { /*  获得 IP 地址                */
+                        fprintf(stderr, "address error.\n");
+                        return  (-ERROR_TSHELL_EPARAM);
+                    }
+                    ip_2_ip4(&ipaddr)->addr = inaddr.s_addr;
+                    IP_SET_TYPE_VAL(ipaddr, IPADDR_TYPE_V4);            /*  设置网络接口                */
+                    __netIfSet(netif, ppcArgV[iIndex], ip_2_ip4(&ipaddr));
+                }
             }
             LWIP_IF_LIST_UNLOCK();
         }
@@ -1573,6 +1592,7 @@ VOID  __tshellNetInit (VOID)
                                      "ifconfig en1 inet    192.168.0.3\n"
                                      "ifconfig en1 netmask 255.255.255.0\n"
                                      "ifconfig en1 gateway 192.168.0.1\n"
+                                     "ifconfig en1 dns 0   192.168.0.2\n"
                                      "ifconfig dns 0       192.168.0.2\n");
 
     API_TShellKeywordAdd("ifup", __tshellIfUp);

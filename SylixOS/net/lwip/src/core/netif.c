@@ -463,6 +463,13 @@ netif_add(struct netif *netif,
   /* SylixOS Changed pull netif_invoke_ext_callback() here */
   netif_invoke_ext_callback(netif, LWIP_NSC_NETIF_ADDED, NULL);
   
+  /* SylixOS Add init state notify */
+  {
+    netif_ext_callback_args_t arg;
+    arg.status_changed.state = (netif->flags & NETIF_FLAG_UP) ? 1 : 0;
+    netif_invoke_ext_callback(netif, LWIP_NSC_STATUS_CHANGED, &arg);
+  }
+
   /* SylixOS Changed push netif_set_addr() here */
 #if LWIP_IPV4
   netif_set_addr(netif, ipaddr, netmask, gw);
@@ -864,6 +871,37 @@ netif_remove(struct netif *netif)
 #endif /* LWIP_NETIF_REMOVE_CALLBACK */
   LWIP_DEBUGF( NETIF_DEBUG, ("netif_remove: removed netif\n") );
 }
+
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add netif dns server set */
+/**
+ * @ingroup dns
+ * Initialize one of the DNS servers.
+ *
+ * @param netif the network interface
+ * @param numdns the index of the DNS server to set must be < DNS_MAX_SERVERS
+ * @param dnsserver IP address of the DNS server to set
+ */
+void
+netif_dns_setserver(struct netif *netif, u8_t numdns, const ip_addr_t *dnsserver)
+{
+  if (netif && numdns < DNS_MAX_SERVERS) {
+    if (dnsserver != NULL) {
+      netif->dns_save[numdns] = (*dnsserver);
+    } else {
+      netif->dns_save[numdns] = *IP_ADDR_ANY;
+    }
+  }
+
+  if (netif_default == netif) {
+    int i;
+    for (i = 0; i < DNS_MAX_SERVERS; i++) {
+      if (!ip_addr_isany_val(netif->dns_save[i])) {
+        dns_setserver(i, &netif->dns_save[i]);
+      }
+    }
+  }
+}
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
 
 /**
  * @ingroup netif

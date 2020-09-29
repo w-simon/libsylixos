@@ -405,6 +405,33 @@ netifapi_netif_set_addr(struct netif *netif,
 }
 #endif /* LWIP_IPV4 */
 
+#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add netif dns server set */
+/**
+ * @ingroup dns
+ * Initialize one of the DNS servers.
+ *
+ * @param netif the network interface
+ * @param numdns the index of the DNS server to set must be < DNS_MAX_SERVERS
+ * @param dnsserver IP address of the DNS server to set
+ */
+err_t
+netifapi_netif_set_dns(struct netif *netif, u8_t numdns, const ip_addr_t *dnsserver)
+{
+  err_t err;
+
+#if LWIP_TCPIP_CORE_LOCKING
+  err = ERR_OK;
+  LOCK_TCPIP_CORE();
+  netif_dns_setserver(netif, numdns, dnsserver);
+  UNLOCK_TCPIP_CORE();
+#else
+  err = ERR_VAL;
+#endif /* LWIP_TCPIP_CORE_LOCKING */
+
+  return err;
+}
+#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
+
 /**
  * call the "errtfunc" (or the "voidfunc" if "errtfunc" is NULL) in a thread-safe
  * way by running that function inside the tcpip_thread context.
