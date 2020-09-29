@@ -3101,6 +3101,7 @@ static ssize_t  __procFsNetIfInet6Read (PLW_PROCFS_NODE  p_pfsn,
 **           ipaddr        arp ip 地址
 **           ethaddr       arp mac 地址
 **           iIsStatic     是否为静态转换关系
+**           iIsStrict     是否为强绑定
 **           pcBuffer      缓冲
 **           stTotalSize   缓冲区大小
 **           pstOft        当前偏移量
@@ -3112,6 +3113,7 @@ static INT  __procFsNetArpPrint (struct netif      *netif,
                                  ip_addr_t         *ipaddr, 
                                  struct eth_addr   *ethaddr,
                                  INT                iIsStatic, 
+                                 INT                iIsStrict,
                                  PCHAR              pcBuffer, 
                                  size_t             stTotalSize, 
                                  size_t            *pstOft)
@@ -3120,7 +3122,7 @@ static INT  __procFsNetArpPrint (struct netif      *netif,
     CHAR    cIfName[NETIF_NAMESIZE];
 
     *pstOft = bnprintf(pcBuffer, stTotalSize, *pstOft,
-                       "%-4s %-16s %02x:%02x:%02x:%02x:%02x:%02x %s\n",
+                       "%-4s %-16s %02x:%02x:%02x:%02x:%02x:%02x %s%s\n",
                        netif_get_name(netif, cIfName),
                        ipaddr_ntoa_r(ipaddr, cBuffer, INET_ADDRSTRLEN),
                        ethaddr->addr[0],
@@ -3129,7 +3131,8 @@ static INT  __procFsNetArpPrint (struct netif      *netif,
                        ethaddr->addr[3],
                        ethaddr->addr[4],
                        ethaddr->addr[5],
-                       (iIsStatic) ? "static" : "dynamic");
+                       (iIsStatic) ? "static" : "dynamic",
+                       (iIsStrict) ? "(s)" : "");
                        
     return  (ERROR_NONE);
 }

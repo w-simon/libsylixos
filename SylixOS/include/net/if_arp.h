@@ -104,6 +104,7 @@ struct arpreq {
 #define ATF_PERM            0x04                            /* permanent entry                          */
 #define ATF_PUBL            0x08                            /* publish entry (respond for other host)   */
 #define ATF_USETRAILERS     0x10                            /* has requested trailers                   */
+#define ATF_STRICT          0x8000                          /* Bind IP and MAC strictly                 */
 
 /*********************************************************************************************************
  * arp ioctl command

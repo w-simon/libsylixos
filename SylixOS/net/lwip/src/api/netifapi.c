@@ -203,7 +203,7 @@ netifapi_arp_remove(const ip4_addr_t *ipaddr, enum netifapi_arp_entry type)
 
 #if ETHARP_SUPPORT_STATIC_ENTRIES && LWIP_TCPIP_CORE_LOCKING
   LOCK_TCPIP_CORE();
-  err = etharp_remove_static_entry(ipaddr);
+  err = etharp_remove_static_entry(ipaddr, type == NETIFAPI_ARP_COM ? 1 : 0 /* SylixOS Add force delete */);
   UNLOCK_TCPIP_CORE();
 #else
   /* @todo add new vars to struct netifapi_msg and create a 'do' func */

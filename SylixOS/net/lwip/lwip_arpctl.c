@@ -17,6 +17,8 @@
 ** 文件创建日期: 2017 年 12 月 08 日
 **
 ** 描        述: ioctl ARP 支持.
+**
+2020.09.28  加入 IP MAC 强绑定支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -38,6 +40,7 @@
 #define ETHARP_FLAG_TRY_HARD     1
 #define ETHARP_FLAG_FIND_ONLY    2
 #define ETHARP_FLAG_STATIC_ENTRY 4
+#define ETHARP_FLAG_STRICT_ENTRY 0x80
 #endif
 /*********************************************************************************************************
 ** 函数名称: __ifArpSearch
@@ -46,6 +49,7 @@
 **           ipaddr     ip
 **           ethaddr    以太网地址
 **           iStatic    静态 ?
+**           iStrict    强绑定 ?
 **           ipaddr_s   比较 ip
 **           netif_s    保存网络接口
 **           flags_s    保存 flags
@@ -58,6 +62,7 @@ static INT  __ifArpSearch (struct netif    *netif,
                            ip4_addr_t      *ipaddr, 
                            struct eth_addr *ethaddr, 
                            INT              iStatic,
+                           INT              iStrict,
                            ip4_addr_t      *ipaddr_s, 
                            struct netif   **netif_s, 
                            int             *flags_s, 
@@ -67,6 +72,9 @@ static INT  __ifArpSearch (struct netif    *netif,
         *netif_s = netif;
         if (iStatic) {
             *flags_s = ATF_INUSE | ATF_COM | ATF_PERM;
+            if (iStrict) {
+                *flags_s |= ATF_STRICT;
+            }
         } else {
             *flags_s = ATF_INUSE | ATF_COM;
         }
@@ -83,6 +91,7 @@ static INT  __ifArpSearch (struct netif    *netif,
 **           ipaddr     ip
 **           ethaddr    以太网地址
 **           iStatic    静态 ?
+**           iStrict    强绑定 ?
 **           puiCount   累加变量
 ** 输　出  : 0: 继续遍历 1: 退出遍历
 ** 全局变量:
@@ -92,6 +101,7 @@ static INT  __ifArpCount (struct netif    *netif,
                           ip4_addr_t      *ipaddr,
                           struct eth_addr *ethaddr,
                           INT              iStatic,
+                          INT              iStrict,
                           UINT            *puiCount)
 {
     (*puiCount)++;
@@ -104,6 +114,7 @@ static INT  __ifArpCount (struct netif    *netif,
 **           ipaddr     ip
 **           ethaddr    以太网地址
 **           iStatic    静态 ?
+**           iStrict    强绑定 ?
 **           parplst    缓冲列表
 ** 输　出  : 0: 继续遍历 1: 退出遍历
 ** 全局变量:
@@ -113,6 +124,7 @@ static INT  __ifArpWalk (struct netif       *netif,
                          ip4_addr_t         *ipaddr,
                          struct eth_addr    *ethaddr,
                          INT                 iStatic,
+                         INT                 iStrict,
                          struct arpreq_list *parplst)
 {
     if (parplst->arpl_num < parplst->arpl_bcnt) {
@@ -126,6 +138,9 @@ static INT  __ifArpWalk (struct netif       *netif,
         netif_get_name(netif, parpreq->arp_dev);
         if (iStatic) {
             parpreq->arp_flags = ATF_INUSE | ATF_COM | ATF_PERM;
+            if (iStrict) {
+                parpreq->arp_flags |= ATF_STRICT;
+            }
         } else {
             parpreq->arp_flags = ATF_INUSE | ATF_COM;
         }
@@ -162,6 +177,9 @@ static INT  __ifArpSet (const struct arpreq  *parpreq)
     }
     if (parpreq->arp_flags & ATF_PERM) {
         flags = ETHARP_FLAG_TRY_HARD | ETHARP_FLAG_STATIC_ENTRY;
+        if (parpreq->arp_flags & ATF_STRICT) {
+            flags |= ETHARP_FLAG_STRICT_ENTRY;
+        }
     } else {
         flags = ETHARP_FLAG_TRY_HARD;
     }
@@ -181,7 +199,7 @@ static INT  __ifArpSet (const struct arpreq  *parpreq)
     
     err = netifapi_arp_update(netif, &ipaddr, &ethaddr, flags);
     if (err) {
-        _ErrorHandle(EINVAL);
+        _ErrorHandle(err_to_errno(err));
         return  (PX_ERROR);
     }
     
@@ -243,9 +261,13 @@ static INT  __ifArpDel (const struct arpreq  *parpreq)
     }
     ipaddr.addr = ((struct sockaddr_in *)&parpreq->arp_pa)->sin_addr.s_addr;
     
-    err = netifapi_arp_remove(&ipaddr, NETIFAPI_ARP_PERM);
+    if (parpreq->arp_flags & ATF_PERM) {
+        err = netifapi_arp_remove(&ipaddr, NETIFAPI_ARP_PERM);
+    } else {
+        err = netifapi_arp_remove(&ipaddr, NETIFAPI_ARP_COM);
+    }
     if (err) {
-        _ErrorHandle(EINVAL);
+        _ErrorHandle(err_to_errno(err));
         return  (PX_ERROR);
     }
     

@@ -100,9 +100,36 @@ struct etharp_entry {
   struct eth_addr ethaddr;
   u16_t ctime;
   u8_t state;
+
+#ifdef SYLIXOS /* SylixOS Add strict binding mode */
+  u8_t strict; /* This is a strict binding */
+  u8_t conflict; /* This entry confilct with strict binding */
+#endif /* SYLIXOS */
 };
 
 static struct etharp_entry arp_table[ARP_TABLE_SIZE];
+
+#ifdef SYLIXOS /* SylixOS Add strict binding mode */
+static int arp_strict_cnt = 0;
+
+/* Make entry strict binding */
+#define ETHARP_MAKE_STRICT(i) \
+        { \
+          if (!arp_table[i].strict) { \
+            arp_table[i].strict = 1; \
+            arp_strict_cnt++; \
+          } \
+        }
+
+/* Clear entry strict binding */
+#define ETHARP_CLEAR_STRICT(i) \
+        { \
+          if (arp_table[i].strict) { \
+            arp_table[i].strict = 0; \
+            arp_strict_cnt--; \
+          } \
+        }
+#endif /* SYLIXOS */
 
 #if !LWIP_NETIF_HWADDRHINT
 static netif_addr_idx_t etharp_cached_entry;
@@ -115,6 +142,10 @@ static netif_addr_idx_t etharp_cached_entry;
 #if ETHARP_SUPPORT_STATIC_ENTRIES
 #define ETHARP_FLAG_STATIC_ENTRY 4
 #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+
+#ifdef SYLIXOS /* SylixOS Add strict binding mode */
+#define ETHARP_FLAG_STRICT_ENTRY 0x80 /* SylixOS Add strict IP MAC binding */
+#endif
 
 #if LWIP_NETIF_HWADDRHINT
 #define ETHARP_SET_ADDRHINT(netif, addrhint)  do { if (((netif) != NULL) && ((netif)->hints != NULL)) { \
@@ -186,6 +217,10 @@ etharp_free_entry(int i)
   }
   /* recycle entry for re-use */
   arp_table[i].state = ETHARP_STATE_EMPTY;
+#ifdef SYLIXOS /* SylixOS Add strict binding mode */
+  ETHARP_CLEAR_STRICT(i);
+  arp_table[i].conflict = 0;
+#endif /* SYLIXOS */
 #ifdef LWIP_DEBUG
   /* for debugging, clean out the complete entry */
   arp_table[i].ctime = 0;
@@ -239,6 +274,31 @@ etharp_tmr(void)
   }
 }
 
+#ifdef SYLIXOS /* SylixOS Add clean same mac */
+/**
+ * Clean same mac IP address binding
+ *
+ * @param ethaddr Ethernet address
+ * @param except Excluded index
+ */
+static void
+etharp_clean_ethaddr(struct eth_addr *ethaddr, s16_t except)
+{
+  s16_t i;
+
+  for (i = 0; i < ARP_TABLE_SIZE; ++i) {
+    if (i == except) {
+      continue;
+    }
+    if (arp_table[i].state >= ETHARP_STATE_STABLE) {
+      if (eth_addr_cmp(&arp_table[i].ethaddr, ethaddr)) {
+        etharp_free_entry(i);
+      }
+    }
+  }
+}
+#endif /* SYLIXOS */
+
 /**
  * Search the ARP table for a matching or new entry.
  *
@@ -256,12 +316,13 @@ etharp_tmr(void)
  * @param ipaddr IP address to find in ARP cache, or to add if not found.
  * @param flags See @ref etharp_state
  * @param netif netif related to this address (used for NETIF_HWADDRHINT)
+ * @param strict_ethaddr SylixOS Add strict binding mode.
  *
  * @return The ARP entry index that matched or is created, ERR_MEM if no
  * entry is found or could be recycled.
  */
 static s16_t
-etharp_find_entry(const ip4_addr_t *ipaddr, u8_t flags, struct netif *netif)
+etharp_find_entry(const ip4_addr_t *ipaddr, u8_t flags, struct netif *netif, struct eth_addr *strict_ethaddr)
 {
   s16_t old_pending = ARP_TABLE_SIZE, old_stable = ARP_TABLE_SIZE;
   s16_t empty = ARP_TABLE_SIZE;
@@ -270,6 +331,11 @@ etharp_find_entry(const ip4_addr_t *ipaddr, u8_t flags, struct netif *netif)
   s16_t old_queue = ARP_TABLE_SIZE;
   /* its age */
   u16_t age_queue = 0, age_pending = 0, age_stable = 0;
+
+#ifdef SYLIXOS
+  s16_t same = -1;
+  u8_t has_strict = 0; /* SylixOS Add strict binding mode */
+#endif
 
   LWIP_UNUSED_ARG(netif);
 
@@ -306,7 +372,16 @@ etharp_find_entry(const ip4_addr_t *ipaddr, u8_t flags, struct netif *netif)
          ) {
         LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_find_entry: found matching entry %d\n", (int)i));
         /* found exact IP address match, simply bail out */
+#ifdef SYLIXOS /* SylixOS Add strict binding support */
+        if (!strict_ethaddr || !arp_strict_cnt) {
+          return i; /* Return immediately */
+        } else {
+          same = i;
+          goto next; /* Need check strict binding conflict */
+        }
+#else /* SYLIXOS */
         return i;
+#endif /* !SYLIXOS */
       }
       /* pending entry? */
       if (state == ETHARP_STATE_PENDING) {
@@ -337,6 +412,13 @@ etharp_find_entry(const ip4_addr_t *ipaddr, u8_t flags, struct netif *netif)
             age_stable = arp_table[i].ctime;
           }
         }
+#ifdef SYLIXOS /* SylixOS Add strict binding support */
+          else if (strict_ethaddr && arp_table[i].strict && !has_strict) {
+          if (eth_addr_cmp(&arp_table[i].ethaddr, strict_ethaddr)) {
+            has_strict = 1;
+          }
+        }
+#endif /* SYLIXOS */
       }
     }
   }
@@ -349,6 +431,31 @@ etharp_find_entry(const ip4_addr_t *ipaddr, u8_t flags, struct netif *netif)
     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_find_entry: no empty entry found and not allowed to recycle\n"));
     return (s16_t)ERR_MEM;
   }
+
+#ifdef SYLIXOS /* SylixOS Add strict binding mode */
+next:
+  if (same >= 0) {
+    if (!has_strict) {
+      for (i = same + 1; i < ARP_TABLE_SIZE; ++i) { /* Check the remaining mac bindings */
+        if (arp_table[i].strict && eth_addr_cmp(&arp_table[i].ethaddr, strict_ethaddr)) {
+          has_strict = 1; /* Has mac conflict */
+          break;
+        }
+      }
+    }
+    if (has_strict) {
+      arp_table[same].conflict = 1; /* This entry has confilct with strict binding do not queue packet */
+      return (s16_t)ERR_USE;
+    } else {
+      arp_table[same].conflict = 0; /* Normal entry */
+      return same;
+    }
+  } else { /* Traversed */
+    if (has_strict) {
+      return (s16_t)ERR_USE;
+    }
+  }
+#endif /* SYLIXOS */
 
   /* b) choose the least destructive entry to recycle:
    * 1) empty entry
@@ -448,7 +555,7 @@ etharp_update_arp_entry(struct netif *netif, const ip4_addr_t *ipaddr, struct et
     return ERR_ARG;
   }
   /* find or create ARP entry */
-  i = etharp_find_entry(ipaddr, flags, netif);
+  i = etharp_find_entry(ipaddr, flags, netif, ethaddr /* SylixOS Add strict binding mode */);
   /* bail out if no entry could be found */
   if (i < 0) {
     return (err_t)i;
@@ -458,6 +565,12 @@ etharp_update_arp_entry(struct netif *netif, const ip4_addr_t *ipaddr, struct et
   if (flags & ETHARP_FLAG_STATIC_ENTRY) {
     /* record static type */
     arp_table[i].state = ETHARP_STATE_STATIC;
+#ifdef SYLIXOS /* SylixOS Add strict binding mode */
+    if (flags & ETHARP_FLAG_STRICT_ENTRY) {
+      ETHARP_MAKE_STRICT(i);
+      etharp_clean_ethaddr(ethaddr, i); /* SylixOS Strict binding need clean mac */
+    }
+#endif /* SYLIXOS */
   } else if (arp_table[i].state == ETHARP_STATE_STATIC) {
     /* found entry is a static type, don't overwrite it */
     return ERR_VAL;
@@ -466,6 +579,9 @@ etharp_update_arp_entry(struct netif *netif, const ip4_addr_t *ipaddr, struct et
   {
     /* mark it stable */
     arp_table[i].state = ETHARP_STATE_STABLE;
+#ifdef SYLIXOS /* SylixOS Add strict binding mode */
+    ETHARP_CLEAR_STRICT(i);
+#endif
   }
 
   /* record network interface */
@@ -539,7 +655,7 @@ etharp_add_static_entry(const ip4_addr_t *ipaddr, struct eth_addr *ethaddr)
  *         ERR_ARG: entry wasn't a static entry but a dynamic one
  */
 err_t
-etharp_remove_static_entry(const ip4_addr_t *ipaddr)
+etharp_remove_static_entry(const ip4_addr_t *ipaddr, u8_t force /* SylixOS Add force delete */)
 {
   s16_t i;
   LWIP_ASSERT_CORE_LOCKED();
@@ -547,13 +663,14 @@ etharp_remove_static_entry(const ip4_addr_t *ipaddr)
               ip4_addr1_16(ipaddr), ip4_addr2_16(ipaddr), ip4_addr3_16(ipaddr), ip4_addr4_16(ipaddr)));
 
   /* find or create ARP entry */
-  i = etharp_find_entry(ipaddr, ETHARP_FLAG_FIND_ONLY, NULL);
+  i = etharp_find_entry(ipaddr, ETHARP_FLAG_FIND_ONLY, NULL, NULL);
   /* bail out if no entry could be found */
   if (i < 0) {
     return (err_t)i;
   }
 
-  if (arp_table[i].state != ETHARP_STATE_STATIC) {
+  /* SylixOS Add force delete */
+  if (!force && arp_table[i].state != ETHARP_STATE_STATIC) {
     /* entry wasn't a static entry, cannot remove it */
     return ERR_ARG;
   }
@@ -603,7 +720,7 @@ etharp_find_addr(struct netif *netif, const ip4_addr_t *ipaddr,
 
   LWIP_UNUSED_ARG(netif);
 
-  i = etharp_find_entry(ipaddr, ETHARP_FLAG_FIND_ONLY, netif);
+  i = etharp_find_entry(ipaddr, ETHARP_FLAG_FIND_ONLY, netif, NULL);
   if ((i >= 0) && (arp_table[i].state >= ETHARP_STATE_STABLE)) {
     *eth_ret = &arp_table[i].ethaddr;
     *ip_ret = &arp_table[i].ipaddr;
@@ -980,7 +1097,7 @@ etharp_query(struct netif *netif, const ip4_addr_t *ipaddr, struct pbuf *q)
   }
 
   /* find entry in ARP cache, ask to create entry if queueing packet */
-  i_err = etharp_find_entry(ipaddr, ETHARP_FLAG_TRY_HARD, netif);
+  i_err = etharp_find_entry(ipaddr, ETHARP_FLAG_TRY_HARD, netif, NULL);
 
   /* could not find or create entry? */
   if (i_err < 0) {
@@ -1029,6 +1146,12 @@ etharp_query(struct netif *netif, const ip4_addr_t *ipaddr, struct pbuf *q)
       return result;
     }
   }
+
+#ifdef SYLIXOS /* Confilct strict entry do not queue packet */
+  if (arp_table[i].conflict) {
+    return ERR_OK; /* Return OK? */
+  }
+#endif /* SYLIXOS */
 
   /* packet given? */
   LWIP_ASSERT("q != NULL", q != NULL);
@@ -1275,7 +1398,7 @@ etharp_traversal(struct netif *netif,
         (arp_table[i].state == ETHARP_STATE_STATIC)) {
       if ((!netif) || (arp_table[i].netif == netif)) {
         if (callback(arp_table[i].netif, &arp_table[i].ipaddr, &arp_table[i].ethaddr, 
-                     (arp_table[i].state == ETHARP_STATE_STATIC),
+                     (arp_table[i].state == ETHARP_STATE_STATIC), (int)arp_table[i].strict,
                      arg0, arg1, arg2, arg3, arg4, arg5)) {
           break;
         }

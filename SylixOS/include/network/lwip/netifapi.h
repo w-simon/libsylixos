@@ -54,6 +54,9 @@ extern "C" {
 /* Used for netfiapi_arp_* APIs */
 enum netifapi_arp_entry {
   NETIFAPI_ARP_PERM /* Permanent entry */
+#ifdef SYLIXOS
+  , NETIFAPI_ARP_COM
+#endif /* SYLIXOS */
   /* Other entry types can be added here */
 };
 
