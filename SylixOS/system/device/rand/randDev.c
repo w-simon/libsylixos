@@ -111,6 +111,51 @@ INT  API_RandDevCreate (VOID)
     
     return  (ERROR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: getrandom
+** 功能描述: 获得随机数序列. (sys/random.h)
+** 输　入  : buf     缓存
+**           buflen  缓存长度
+**           flags   GRND_NONBLOCK / GRND_RANDOM  / ...
+** 输　出  : 读出的随机数序列长度.
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+ssize_t getrandom (void *buf, size_t buflen, unsigned int flags)
+{
+    if (!buf || !buflen) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    return  (__randRead(NULL, buf, buflen));
+}
+/*********************************************************************************************************
+** 函数名称: getentropy
+** 功能描述: 获得随机数序列. (sys/random.h)
+** 输　入  : buf     缓存
+**           buflen  缓存长度
+** 输　出  : 读出的随机数序列长度.
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+int getentropy (void *buf, size_t buflen)
+{
+    ssize_t randlen;
+
+    if (!buf || !buflen) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    randlen = __randRead(NULL, buf, buflen);
+
+    return  (randlen == buflen ? ERROR_NONE : PX_ERROR);
+}
 
 #endif                                                                  /*  LW_CFG_DEVICE_EN            */
 /*********************************************************************************************************

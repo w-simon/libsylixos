@@ -4,6 +4,37 @@ HISTORY
 
 ++ New features:
 
+    2020-10-04: han.hui
+    加入 sys/random.h 支持.
+
+    2020-09-30: han.hui
+    支持网卡独立的 DNS 设置.
+
+    2020-09-29: han.hui
+    ARP 支持 IP 与 MAC 排他性强绑定模式.
+
+    2020-09-03: han.hui
+    加入一些快速上下文接口, 提高 EdgerOS 引擎效率.
+
+    2020-08-26: han.hui
+    ARM / ARM64 排队自旋锁加入可配置屏障, 适用于一些特殊的定制处理器.
+
+    2020-08-06: han.hui
+    使用分离时间自旋锁提高实时性.
+
+++ Bugfixes:
+
+    2020-09-24: han.hui
+    修正桥接网卡与 bound 网卡防火墙 hook 错误.
+    修正 loader init/fini call 死锁错误.
+
+    2020-08-17: han.hui
+    修正 AF_UNIX 线程间传递文件描述符.
+
+(STABLE-1.12.6)
+
+++ New features:
+
     2020-07-05: han.hui
     支持 tcp SACK input.
 

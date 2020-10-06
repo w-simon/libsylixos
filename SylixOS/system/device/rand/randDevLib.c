@@ -176,6 +176,8 @@ ssize_t  __randRead (PLW_RAND_FIL  prandfil, PCHAR  pcBuffer, size_t  stMaxBytes
     INT             iTimes = stMaxBytes / 4;                            /*  一次 4 个字节               */
     INT             iLefts = stMaxBytes % 4;
     
+    (VOID)prandfil;                                                     /*  目前不使用此参数            */
+
     LW_SPIN_LOCK_QUICK(&_G_slRandLock, &iregInterLevel);
     lSeedInit += (INT32)_G_tvLastInt.tv_nsec;                           /*  快速重复调用确保不相同      */
     LW_SPIN_UNLOCK_QUICK(&_G_slRandLock, iregInterLevel);
