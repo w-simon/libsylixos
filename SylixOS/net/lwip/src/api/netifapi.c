@@ -194,7 +194,7 @@ netifapi_arp_add(const ip4_addr_t *ipaddr, struct eth_addr *ethaddr, enum netifa
  * @return ERR_OK: entry removed, else error from err_t
  */
 err_t
-netifapi_arp_remove(const ip4_addr_t *ipaddr, enum netifapi_arp_entry type)
+netifapi_arp_remove(const ip4_addr_t *ipaddr, struct netif *netif /* SylixOS Add netif parameter */, enum netifapi_arp_entry type)
 {
   err_t err;
 
@@ -203,7 +203,7 @@ netifapi_arp_remove(const ip4_addr_t *ipaddr, enum netifapi_arp_entry type)
 
 #if ETHARP_SUPPORT_STATIC_ENTRIES && LWIP_TCPIP_CORE_LOCKING
   LOCK_TCPIP_CORE();
-  err = etharp_remove_static_entry(ipaddr, type == NETIFAPI_ARP_COM ? 1 : 0 /* SylixOS Add force delete */);
+  err = etharp_remove_static_entry(ipaddr, netif, type == NETIFAPI_ARP_COM ? 1 : 0 /* SylixOS Add force delete */);
   UNLOCK_TCPIP_CORE();
 #else
   /* @todo add new vars to struct netifapi_msg and create a 'do' func */

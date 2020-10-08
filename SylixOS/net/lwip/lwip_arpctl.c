@@ -224,8 +224,8 @@ static INT  __ifArpGet (struct arpreq  *parpreq)
         _ErrorHandle(EPROTOTYPE);
         return  (PX_ERROR);
     }
+
     ipaddr.addr = ((struct sockaddr_in *)&parpreq->arp_pa)->sin_addr.s_addr;
-    
     netif = LW_NULL;
     netifapi_arp_traversal(LW_NULL, __ifArpSearch, &ipaddr, &netif, &arp_flags, 
                            &ethaddr, LW_NULL, LW_NULL);
@@ -252,23 +252,52 @@ static INT  __ifArpGet (struct arpreq  *parpreq)
 *********************************************************************************************************/
 static INT  __ifArpDel (const struct arpreq  *parpreq)
 {
-    err_t                err;
-    ip4_addr_t           ipaddr;
+    struct netif  *netif;
+    err_t          err;
+    ip4_addr_t     ipaddr;
     
     if (parpreq->arp_pa.sa_family != AF_INET) {
         _ErrorHandle(EPROTOTYPE);
         return  (PX_ERROR);
     }
+
     ipaddr.addr = ((struct sockaddr_in *)&parpreq->arp_pa)->sin_addr.s_addr;
-    
-    if (parpreq->arp_flags & ATF_PERM) {
-        err = netifapi_arp_remove(&ipaddr, NETIFAPI_ARP_PERM);
+    if (parpreq->arp_dev[0] == '\0') {
+        netif = netif_find(parpreq->arp_dev);
+        if (!netif) {
+            _ErrorHandle(EHOSTUNREACH);
+            return  (PX_ERROR);
+        }
+
     } else {
-        err = netifapi_arp_remove(&ipaddr, NETIFAPI_ARP_COM);
+        netif = LW_NULL;
     }
-    if (err) {
-        _ErrorHandle(err_to_errno(err));
-        return  (PX_ERROR);
+
+
+    if (ipaddr.addr == INADDR_ANY) {
+        if (netif) {
+            if (netif->flags & NETIF_FLAG_ETHARP) {
+                netifapi_arp_cleanup(netif);
+            }
+
+        } else {
+            NETIF_FOREACH(netif) {
+                if (netif->flags & NETIF_FLAG_ETHARP) {
+                    netifapi_arp_cleanup(netif);
+                }
+            }
+        }
+
+    } else {
+        if (parpreq->arp_flags & ATF_PERM) {
+            err = netifapi_arp_remove(&ipaddr, netif, NETIFAPI_ARP_PERM);
+        } else {
+            err = netifapi_arp_remove(&ipaddr, netif, NETIFAPI_ARP_COM);
+        }
+        if (err) {
+            _ErrorHandle(err_to_errno(err));
+            return  (PX_ERROR);
+        }
     }
     
     return  (ERROR_NONE);

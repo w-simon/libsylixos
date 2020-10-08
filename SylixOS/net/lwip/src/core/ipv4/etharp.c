@@ -655,7 +655,7 @@ etharp_add_static_entry(const ip4_addr_t *ipaddr, struct eth_addr *ethaddr)
  *         ERR_ARG: entry wasn't a static entry but a dynamic one
  */
 err_t
-etharp_remove_static_entry(const ip4_addr_t *ipaddr, u8_t force /* SylixOS Add force delete */)
+etharp_remove_static_entry(const ip4_addr_t *ipaddr, struct netif *netif, u8_t force /* SylixOS Add netif and force parameter */)
 {
   s16_t i;
   LWIP_ASSERT_CORE_LOCKED();
@@ -663,7 +663,7 @@ etharp_remove_static_entry(const ip4_addr_t *ipaddr, u8_t force /* SylixOS Add f
               ip4_addr1_16(ipaddr), ip4_addr2_16(ipaddr), ip4_addr3_16(ipaddr), ip4_addr4_16(ipaddr)));
 
   /* find or create ARP entry */
-  i = etharp_find_entry(ipaddr, ETHARP_FLAG_FIND_ONLY, NULL, NULL);
+  i = etharp_find_entry(ipaddr, ETHARP_FLAG_FIND_ONLY, netif, NULL);
   /* bail out if no entry could be found */
   if (i < 0) {
     return (err_t)i;

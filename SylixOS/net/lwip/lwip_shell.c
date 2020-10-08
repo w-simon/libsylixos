@@ -1096,7 +1096,7 @@ static INT  __tshellArp (INT  iArgC, PCHAR  *ppcArgV)
             return  (-ERROR_TSHELL_EPARAM);
         }
         
-        err = netifapi_arp_remove(&ipaddr, NETIFAPI_ARP_PERM);
+        err = netifapi_arp_remove(&ipaddr, LW_NULL, NETIFAPI_ARP_PERM);
         return  (err ? PX_ERROR : ERROR_NONE);
     
     } else {

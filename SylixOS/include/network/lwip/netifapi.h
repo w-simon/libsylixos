@@ -63,7 +63,7 @@ enum netifapi_arp_entry {
 /** @ingroup netifapi_arp */
 err_t netifapi_arp_add(const ip4_addr_t *ipaddr, struct eth_addr *ethaddr, enum netifapi_arp_entry type);
 /** @ingroup netifapi_arp */
-err_t netifapi_arp_remove(const ip4_addr_t *ipaddr, enum netifapi_arp_entry type);
+err_t netifapi_arp_remove(const ip4_addr_t *ipaddr, struct netif *netif /* SylixOS Add netif parameter */, enum netifapi_arp_entry type);
 
 #ifdef SYLIXOS /* SylixOS Add this safe function */
 void netifapi_arp_traversal(struct netif *netif, int (*callback)(), void *arg0, void *arg1,
