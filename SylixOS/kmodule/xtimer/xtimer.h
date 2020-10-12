@@ -43,6 +43,14 @@
 #include <SylixOS.h>
 
 /*
+ * xtimer internal lock type
+ * Warning: If you are using a Linux compatibility layer, you must choose a spin lock type.
+ */
+#define __SYLIXOS_XTIMER_LT_SPIN   0
+#define __SYLIXOS_XTIMER_LT_MUTEX  1
+#define __SYLIXOS_XTIMER_LT        __SYLIXOS_XTIMER_LT_SPIN
+
+/*
  * xtimer type.
  */
 typedef struct {
@@ -98,4 +106,3 @@ BOOL  xtimer_pending(xtimer_t *timer);
 #endif /* __SYLIXOS_KERNEL */
 
 #endif /* __XTIMER_H */
-

@@ -86,7 +86,9 @@ ULONG  API_SemaphoreCFlush (LW_OBJECT_HANDLE  ulId, ULONG  *pulThreadUnblockNum)
         }
 
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_SEM,
+                             LW_SCHED_ACT_OTHER);                       /*  处理 TCB                    */
         iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
     }
 

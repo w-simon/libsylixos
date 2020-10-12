@@ -158,16 +158,17 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
     struct siginfo   *psiginfo  = &psigea->SE_event.SE_siginfo;
 
 #if LW_CFG_POSIX_EN > 0
-    iNotify = psigevent->sigev_notify & (~SIGEV_THREAD_ID);
-    if (psigevent->sigev_notify & SIGEV_THREAD_ID) {
-        ulId = psigevent->sigev_notify_thread_id;                       /*  向指定线程发送信号          */
+    if (psigevent->sigev_notify == SIGEV_THREAD_ID) {                   /*  向指定线程发送信号          */
+        ulId    = psigevent->sigev_notify_thread_id;
+        iNotify = SIGEV_SIGNAL;
+    } else {
+        iNotify = psigevent->sigev_notify;
     }
 #else
     iNotify = psigevent->sigev_notify;
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
     
-    if ((iNotify != SIGEV_SIGNAL) &&
-        (iNotify != SIGEV_THREAD)) {
+    if (iNotify != SIGEV_SIGNAL) {                                      /*  内核发送只支持 SIGNAL 类型  */
         goto    __out;
     }
     
@@ -197,11 +198,6 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
                       psigevent->sigev_notify,
                       psigevent->sigev_value.sival_ptr,
                       LW_NULL);
-                      
-    if (iNotify == SIGEV_THREAD) {
-        _ErrorHandle(ENOSYS);
-        goto    __out;
-    }
     
     _sigPendInit(&sigpend);
     

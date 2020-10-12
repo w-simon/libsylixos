@@ -87,7 +87,9 @@ ULONG  API_MsgQueueFlushSend (LW_OBJECT_HANDLE  ulId, ULONG  *pulThreadUnblockNu
         }
         
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);          /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_MSGQUEUE,
+                             LW_SCHED_ACT_OTHER);                       /*  处理 TCB                    */
         iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
     }
     
@@ -157,7 +159,9 @@ ULONG  API_MsgQueueFlushReceive (LW_OBJECT_HANDLE  ulId, ULONG  *pulThreadUnbloc
         
         *ptcb->TCB_pstMsgByteSize = 0;                                  /*  消息长度为 0                */
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);          /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_MSGQUEUE,
+                             LW_SCHED_ACT_OTHER);                       /*  处理 TCB                    */
         iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
     }
     

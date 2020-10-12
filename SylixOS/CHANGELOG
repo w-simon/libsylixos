@@ -24,6 +24,10 @@ HISTORY
 
 ++ Bugfixes:
 
+    2020-10-12: han.hui
+    修正内核事件广播激活顺序.
+    xtimer 可配置多种锁类型.
+
     2020-09-24: han.hui
     修正桥接网卡与 bound 网卡防火墙 hook 错误.
     修正 loader init/fini call 死锁错误.

@@ -128,7 +128,9 @@ ULONG  API_SemaphoreMPost (LW_OBJECT_HANDLE  ulId)
         pevent->EVENT_ulMaxCounter = (ULONG)ptcb->TCB_ucPriority;
         pevent->EVENT_pvTcbOwn     = (PVOID)ptcb;                       /*  保存线程信息                */
 
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_SEM,
+                             LW_SCHED_ACT_INTERRUPT);                   /*  处理 TCB                    */
         
         if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {
             LW_THREAD_SAFE_INKERN(ptcb);                                /*  将激活任务设置为安全        */

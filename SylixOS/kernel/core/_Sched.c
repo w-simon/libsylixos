@@ -133,17 +133,13 @@ static VOID  _SchedSmpNotify (ULONG  ulCPUIdCur)
 {
     INT             i;
     PLW_CLASS_CPU   pcpu;
-    PLW_CLASS_TCB   ptcb;
     
     LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUIdCur) {                      /*  遍历 CPU 检查是否需要调度   */
         pcpu = LW_CPU_GET(i);
         if (LW_CAND_ROT(pcpu) &&                                        /*  需要检查调度                */
             ((LW_CPU_GET_IPI_PEND(i) & LW_IPI_SCHED_MSK) == 0) &&       /*  没有核间中断标志            */
             !LW_ACCESS_ONCE(ULONG, pcpu->CPU_ulInterNesting)) {         /*  不在中断中                  */
-            ptcb = LW_CAND_TCB(pcpu);
-            if (LW_CPU_LOCK_QUICK_GET(pcpu) || !__THREAD_LOCK_GET(ptcb)) {
-                _SmpSendIpi(i, LW_IPI_SCHED, 0, LW_TRUE);               /*  产生核间中断                */
-            }
+            _SmpSendIpi(i, LW_IPI_SCHED, 0, LW_TRUE);                   /*  产生核间中断                */
         }
     }
 }

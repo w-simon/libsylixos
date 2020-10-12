@@ -88,7 +88,9 @@ ULONG  API_MsgQueueClear (LW_OBJECT_HANDLE  ulId)
         }
         
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);          /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_MSGQUEUE,
+                             LW_SCHED_ACT_OTHER);                       /*  处理 TCB                    */
         iregInterLevel = KN_INT_DISABLE();                              /*  关闭中断                    */
     }
     

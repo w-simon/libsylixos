@@ -33,6 +33,7 @@
 2013.07.18  使用新的获取 TCB 的方法, 确保 SMP 系统安全.
 2013.09.02  等待类型改为 16 位.
 2014.01.14  修改长函数名.
+2020.10.12  _EventReadyHighLevel() 加入可选调度激活方式.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -154,14 +155,15 @@ PLW_CLASS_TCB  _EventReadyPriorityLowLevel (PLW_CLASS_EVENT  pevent,
 ** 函数名称: _EventReadyHighLevel
 ** 功能描述: 将一个线程从 FIFO 事件等待队列中解锁并就绪, 同时设置相关标志位, 需要时进入就绪表.
 **           此函数在内核锁定状态被调用.
-** 输　入  : ptcb          任务控制块
-**           usWaitType    等待类型
+** 输　入  : ptcb              任务控制块
+**           usWaitType        等待类型
+**           ucSchedActivate   激活调度方式
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
                                       此函数在开中断时被调用.
 *********************************************************************************************************/
-VOID  _EventReadyHighLevel (PLW_CLASS_TCB    ptcb, UINT16   usWaitType)
+VOID  _EventReadyHighLevel (PLW_CLASS_TCB  ptcb, UINT16  usWaitType, UINT8  ucSchedActivate)
 {
              INTREG           iregInterLevel;
     REGISTER PLW_CLASS_PCB    ppcb;
@@ -176,7 +178,7 @@ VOID  _EventReadyHighLevel (PLW_CLASS_TCB    ptcb, UINT16   usWaitType)
     } else {                                                            /*  清除相应等待位              */
         ptcb->TCB_usStatus = (UINT16)(ptcb->TCB_usStatus & (~usWaitType));
         if (__LW_THREAD_IS_READY(ptcb)) {                               /*  是否就绪                    */
-            ptcb->TCB_ucSchedActivate = LW_SCHED_ACT_INTERRUPT;         /*  中断激活方式                */
+            ptcb->TCB_ucSchedActivate = ucSchedActivate;                /*  调度激活方式                */
             ppcb = _GetPcb(ptcb);
             __ADD_TO_READY_RING(ptcb, ppcb);                            /*  加入到相对优先级就绪环      */
         }

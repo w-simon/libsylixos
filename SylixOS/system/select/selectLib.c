@@ -167,7 +167,7 @@ static INT   __selFdsetGetFileCounter (INT               iWidth,
             if (ulPartMask == 0) {
                 iFd += NFDBITS - 1;
             
-            } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFd) % NFDBITS))) {
+            } else if (ulPartMask & (ULONG)(1ul << (((unsigned)iFd) % NFDBITS))) {
                 iFoundCounter++;
             }
         }
@@ -179,7 +179,7 @@ static INT   __selFdsetGetFileCounter (INT               iWidth,
             if (ulPartMask == 0) {
                 iFd += NFDBITS - 1;
             
-            } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFd) % NFDBITS))) {
+            } else if (ulPartMask & (ULONG)(1ul << (((unsigned)iFd) % NFDBITS))) {
                 iFoundCounter++;
             }
         }
@@ -191,7 +191,7 @@ static INT   __selFdsetGetFileCounter (INT               iWidth,
             if (ulPartMask == 0) {
                 iFd += NFDBITS - 1;
             
-            } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFd) % NFDBITS))) {
+            } else if (ulPartMask & (ULONG)(1ul << (((unsigned)iFd) % NFDBITS))) {
                 iFoundCounter++;
             }
         }

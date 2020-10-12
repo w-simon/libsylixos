@@ -33,6 +33,7 @@
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
+#include "../SylixOS/system/include/s_system.h"
 /*********************************************************************************************************
   加入裁剪支持
 *********************************************************************************************************/
@@ -735,6 +736,26 @@ VOID  __vmmPhysicalPageFaultClear (LW_OBJECT_HANDLE  ulId)
 }
 
 #endif                                                                  /*  LW_CFG_THREAD_DEL_EN > 0    */
+/*********************************************************************************************************
+** 函数名称: __vmmPhysicalPageFaultWarn
+** 功能描述: 物理内存缺少告警
+** 输　入  : ulGuarder      警卫线程 ID
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  __vmmPhysicalPageFaultWarn (LW_OBJECT_HANDLE  ulGuarder)
+{
+#if LW_CFG_SIGNAL_EN > 0
+    struct sigevent  sigeventWarn;
+
+    sigeventWarn.sigev_signo  = SIGLOWMEM;
+    sigeventWarn.sigev_notify = SIGEV_SIGNAL;
+    sigeventWarn.sigev_value.sival_ptr = LW_NULL;
+
+    _doSigEvent(ulGuarder, &sigeventWarn, SI_KILL);
+#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
+}
 /*********************************************************************************************************
 ** 函数名称: __vmmPhysicalPageFaultGuarder
 ** 功能描述: 设置缺页中断警卫线程

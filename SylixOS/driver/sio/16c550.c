@@ -154,7 +154,7 @@ INT  sio16c550Init (SIO16C550_CHAN *psiochan)
     psiochan->err_framing = 0;
     psiochan->err_break   = 0;
     
-    psiochan->rx_trigger_level &= 0x3;
+    psiochan->rx_trigger_level &= (0x3 | SIO16C550_FIFO_MERGE_INIT);
 
     /*
      * reset the chip
@@ -403,6 +403,31 @@ static INT  sio16c550SetHighBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
 
 #endif                                                                  /*  __GNUC__                    */
 /*********************************************************************************************************
+** 函数名称: sio16c550ClearFifo
+** 功能描述: 清除 FIFO
+** 输　入  : psiochan      SIO CHAN
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID sio16c550ClearFifo (SIO16C550_CHAN *psiochan)
+{
+    REGISTER INT  rx_trigger_level = psiochan->rx_trigger_level & ~SIO16C550_FIFO_MERGE_INIT;
+
+    if (psiochan->rx_trigger_level & SIO16C550_FIFO_MERGE_INIT) {
+        SET_REG(psiochan, FCR,
+                ((rx_trigger_level << 6) |
+                 RxCLEAR | TxCLEAR | FIFO_ENABLE));
+
+    } else {
+        SET_REG(psiochan, FCR,
+                ((rx_trigger_level << 6) |
+                 RxCLEAR | TxCLEAR));
+
+        SET_REG(psiochan, FCR, FIFO_ENABLE);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: sio16c550SetBaud
 ** 功能描述: 设置波特率
 ** 输　入  : psiochan      SIO CHAN
@@ -463,12 +488,8 @@ static INT sio16c550SetBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
      */
     SET_REG(psiochan, IER, 0);                                          /* disable interrupt            */
     
-    SET_REG(psiochan, FCR, 
-            ((psiochan->rx_trigger_level << 6) | 
-             RxCLEAR | TxCLEAR));
-             
-    SET_REG(psiochan, FCR, FIFO_ENABLE);
-             
+    sio16c550ClearFifo(psiochan);                                       /* clear FIFO                   */
+
     if (psiochan->channel_mode == SIO_MODE_INT) {
         SET_REG(psiochan, IER, psiochan->ier);                          /* enable interrupt             */
     }
@@ -567,15 +588,11 @@ static INT sio16c550SetHwOption (SIO16C550_CHAN *psiochan, INT  hw_option)
     SET_REG(psiochan, LCR, psiochan->lcr);
     SET_REG(psiochan, MCR, psiochan->mcr);
 
+    sio16c550ClearFifo(psiochan);                                       /* clear FIFO                   */
+
     /*
      * now reset the channel mode registers
      */
-    SET_REG(psiochan, FCR, 
-            ((psiochan->rx_trigger_level << 6) | 
-             RxCLEAR | TxCLEAR));
-             
-    SET_REG(psiochan, FCR, FIFO_ENABLE);
-
     if (hw_option & CREAD) {
         psiochan->ier |= RxFIFO_BIT;
     }
@@ -643,11 +660,7 @@ static INT sio16c550Open (SIO16C550_CHAN *psiochan)
         /*
          * clear Tx and receive and enable FIFO
          */
-        SET_REG(psiochan, FCR, 
-                ((psiochan->rx_trigger_level << 6) | 
-                 RxCLEAR | TxCLEAR));
-                 
-        SET_REG(psiochan, FCR, FIFO_ENABLE);
+        sio16c550ClearFifo(psiochan);
 
         LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
     }

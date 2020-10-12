@@ -636,12 +636,13 @@ static PVOID  __aioNotifyWrapper (PVOID  pvArg)
 *********************************************************************************************************/
 VOID  __aioSigevent (LW_OBJECT_HANDLE  hThread, struct sigevent  *psigevent)
 {
+    int                          iNotify;
     pthread_t                    tid;
     pthread_attr_t               attr, *pattr;
     struct sigevent_notify_arg  *psna;
 
-    if ((psigevent->sigev_notify == SIGEV_THREAD) &&
-        (psigevent->sigev_notify_function)) {
+    iNotify = psigevent->sigev_notify;
+    if ((iNotify == SIGEV_THREAD) && (psigevent->sigev_notify_function)) {
         pattr = (pthread_attr_t *)psigevent->sigev_notify_attributes;
         if (!pattr) {
             pthread_attr_init(&attr);
@@ -662,7 +663,7 @@ VOID  __aioSigevent (LW_OBJECT_HANDLE  hThread, struct sigevent  *psigevent)
             return;
         }
 
-    } else if ((psigevent->sigev_notify & SIGEV_NOTIFY_MASK) == SIGEV_SIGNAL) {
+    } else if ((iNotify == SIGEV_SIGNAL) || (iNotify == SIGEV_THREAD_ID)) {
         _doSigEvent(hThread, psigevent, SI_ASYNCIO);                    /*  notify                      */
     }
 }

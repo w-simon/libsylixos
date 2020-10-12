@@ -144,7 +144,9 @@ __re_send:
         }
                    
         KN_INT_ENABLE(iregInterLevel);                                  /*  使能中断                    */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);          /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_MSGQUEUE,
+                             LW_SCHED_ACT_INTERRUPT);                   /*  处理 TCB                    */
         
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_MSGQ, MONITOR_EVENT_MSGQ_POST, 
                           ulId, ptcb->TCB_ulId, LW_NULL);

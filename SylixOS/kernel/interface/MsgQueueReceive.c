@@ -151,7 +151,9 @@ __wait_again:
             }
             
             KN_INT_ENABLE(iregInterLevel);                              /*  使能中断                    */
-            _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);      /*  处理 TCB                    */
+            _EventReadyHighLevel(ptcb,
+                                 LW_THREAD_STATUS_MSGQUEUE,
+                                 LW_SCHED_ACT_INTERRUPT);               /*  处理 TCB                    */
             __KERNEL_EXIT();                                            /*  退出内核                    */
         
         } else {
@@ -341,7 +343,9 @@ __wait_again:
             }
             
             KN_INT_ENABLE(iregInterLevel);                              /*  使能中断                    */
-            _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_MSGQUEUE);      /*  处理 TCB                    */
+            _EventReadyHighLevel(ptcb,
+                                 LW_THREAD_STATUS_MSGQUEUE,
+                                 LW_SCHED_ACT_INTERRUPT);               /*  处理 TCB                    */
             __KERNEL_EXIT();                                            /*  退出内核                    */
         
         } else {

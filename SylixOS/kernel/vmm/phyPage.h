@@ -74,6 +74,8 @@ VOID            __vmmPhysicalGetKernelDesc(PLW_MMU_PHYSICAL_DESC  pphydescText,
 VOID            __vmmPhysicalPageFaultClear(LW_OBJECT_HANDLE  ulId);
 #endif                                                                  /*  LW_CFG_THREAD_DEL_EN > 0    */
 
+VOID            __vmmPhysicalPageFaultWarn(LW_OBJECT_HANDLE  ulGuarder);
+
 INT             __vmmPhysicalPageFaultLimit(PLW_VMM_PAGE_FAULT_LIMIT  pvpflNew,
                                             PLW_VMM_PAGE_FAULT_LIMIT  pvpflOld);
 BOOL            __vmmPhysicalPageFaultCheck(ULONG  ulPageNum,

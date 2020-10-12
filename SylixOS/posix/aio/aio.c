@@ -228,10 +228,8 @@ int  lio_listio (int mode, struct aiocb * const list[], int nent, struct sigeven
             if ((list[iCnt]->aio_lio_opcode != LIO_NOP) &&
                 (list[iCnt]->aio_req.aioreq_error != EINPROGRESS)) {
                 
-                iNotify  = list[iCnt]->aio_sigevent.sigev_notify;
-                iNotify &= ~SIGEV_THREAD_ID;
-                if ((iNotify != SIGEV_SIGNAL) && 
-                    (iNotify != SIGEV_THREAD)) {
+                iNotify = list[iCnt]->aio_sigevent.sigev_notify;
+                if ((iNotify != SIGEV_THREAD_ID) && (iNotify != SIGEV_SIGNAL) && (iNotify != SIGEV_THREAD)) {
                     list[iCnt]->aio_sigevent.sigev_notify = SIGEV_NONE;
                 }
                 

@@ -51,14 +51,37 @@ static INT64 xtimer_last_tick;
 /* Timer service task */
 static LW_HANDLE xtimer_task = LW_HANDLE_INVALID;
 
+/* Timer installed? */
+static BOOL xtimer_install = LW_FALSE;
+
+#if __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_SPIN
+
+/* Global mutex */
+static LW_SPINLOCK_DEFINE(xtimer_mutex);
+
+/* Timer condition variable */
+static LW_HANDLE xtimer_cond = LW_HANDLE_INVALID;
+
+/* Timer mutex */
+#define XTIMER_LOCK()   LW_SPIN_LOCK(&xtimer_mutex)
+#define XTIMER_UNLOCK() LW_SPIN_UNLOCK(&xtimer_mutex)
+
+/* Timer condition */
+#define XTIMER_COND_WAIT(count) \
+        do { \
+            XTIMER_UNLOCK(); \
+            API_SemaphoreBPend(xtimer_cond, count); \
+            XTIMER_LOCK(); \
+        } while (0)
+#define XTIMER_COND_POST()  API_SemaphoreBPost(xtimer_cond)
+
+#else /* __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_SPIN */
+
 /* Global mutex */
 static LW_HANDLE xtimer_mutex = LW_HANDLE_INVALID;
 
 /* Timer condition variable */
 static LW_THREAD_COND xtimer_cond;
-
-/* Timer installed? */
-static BOOL xtimer_install = LW_FALSE;
 
 /* Timer mutex */
 #define XTIMER_LOCK()   API_SemaphoreMPend(xtimer_mutex, LW_OPTION_WAIT_INFINITE)
@@ -67,6 +90,8 @@ static BOOL xtimer_install = LW_FALSE;
 /* Timer condition */
 #define XTIMER_COND_WAIT(count) API_ThreadCondWait(&xtimer_cond, xtimer_mutex, count)
 #define XTIMER_COND_POST()      API_ThreadCondSignal(&xtimer_cond)
+
+#endif /* __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_MUTEX */
 
 /*
  * Start Stop a xtimer internal.
@@ -280,9 +305,10 @@ int xtimer_start (xtimer_t *timer)
     }
 
     xtimer_start_internal(timer);
-    XTIMER_COND_POST();
 
     XTIMER_UNLOCK();
+
+    XTIMER_COND_POST();
 
     return  (ERROR_NONE);
 }
@@ -332,9 +358,10 @@ int xtimer_modify (xtimer_t *timer, ULONG count, ULONG interval)
     timer->interval = interval;
 
     xtimer_start_internal(timer);
-    XTIMER_COND_POST();
 
     XTIMER_UNLOCK();
+
+    XTIMER_COND_POST();
 
     return  (ERROR_NONE);
 }
@@ -367,6 +394,18 @@ int module_init (void)
 {
     LW_CLASS_THREADATTR  attr;
 
+#if __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_SPIN
+
+    LW_SPIN_INIT(&xtimer_mutex);
+
+    xtimer_cond = API_SemaphoreBCreate("xtmr_cond", LW_FALSE, LW_OPTION_OBJECT_GLOBAL, LW_NULL);
+    if (xtimer_cond == LW_HANDLE_INVALID) {
+        printk(KERN_ERR "xtimer cond create error.\n");
+        return  (LW_INIT_RET_ERROR);
+    }
+
+#else /* __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_SPIN */
+
     xtimer_mutex = API_SemaphoreMCreate("xtmr_mutex", LW_PRIO_DEF_CEILING,
                                         LW_OPTION_WAIT_PRIORITY | LW_OPTION_INHERIT_PRIORITY |
                                         LW_OPTION_DELETE_SAFE |
@@ -383,14 +422,26 @@ int module_init (void)
         return  (LW_INIT_RET_ERROR);
     }
 
+#endif /* __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_MUTEX */
+
     API_ThreadAttrBuild(&attr, LW_CFG_THREAD_ITMR_STK_SIZE, LW_PRIO_T_ITIMER,
                         (LW_CFG_ITIMER_OPTION | LW_OPTION_THREAD_SAFE |
                          LW_OPTION_OBJECT_GLOBAL | LW_OPTION_THREAD_DETACHED), LW_NULL);
 
     xtimer_task = API_ThreadCreate("t_xtimer", xtimer_service, &attr, LW_NULL);
-    if (xtimer_mutex == LW_HANDLE_INVALID) {
+    if (xtimer_task == LW_HANDLE_INVALID) {
+
+#if __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_SPIN
+
+        API_SemaphoreBDelete(&xtimer_cond);
+
+#else /* __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_SPIN */
+
         API_SemaphoreMDelete(&xtimer_mutex);
         API_ThreadCondDestroy(&xtimer_cond);
+
+#endif /* __SYLIXOS_XTIMER_LT == __SYLIXOS_XTIMER_LT_MUTEX */
+
         printk(KERN_ERR "xtimer task create error.\n");
         return  (LW_INIT_RET_ERROR);
     }

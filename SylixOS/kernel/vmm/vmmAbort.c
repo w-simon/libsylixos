@@ -84,7 +84,6 @@ static LW_VMM_STATUS      _K_vmmStatus;
 /*********************************************************************************************************
   内部函数声明
 *********************************************************************************************************/
-static VOID   __vmmWarnGuarder(LW_OBJECT_HANDLE  ulGuarder);
 static VOID   __vmmAbortKill(PLW_VMM_ABORT_CTX  pabtctx);
 static VOID   __vmmAbortAccess(PLW_VMM_ABORT_CTX  pabtctx);
 static PCHAR  __vmmAbortTypeStr(PLW_VMM_ABORT  pabtInfo);
@@ -753,7 +752,7 @@ static VOID  __vmmAbortShell (PLW_VMM_ABORT_CTX  pabtctx)
     
 __abort_return:
     if (ulGuarder) {
-        __vmmWarnGuarder(ulGuarder);                                    /*  发送警告通知                */
+        __vmmPhysicalPageFaultWarn(ulGuarder);                          /*  发送警告通知                */
     }
     __KERNEL_SPACE_SET(pabtctx->ABTCTX_iKernelSpace);                   /*  恢复成进入之前的状态        */
     errno = pabtctx->ABTCTX_iLastErrno;                                 /*  恢复之前的 errno            */
@@ -827,30 +826,6 @@ static PCHAR  __vmmAbortTypeStr (PLW_VMM_ABORT  pabtInfo)
         return  ("unknown");
     }
 }
-/*********************************************************************************************************
-** 函数名称: __vmmWarnGuarder
-** 功能描述: 向内存守护线程发送一个警告信息
-** 输　入  : pabtctx    page fail 上下文
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-#if LW_CFG_VMM_EN > 0
-
-static VOID  __vmmWarnGuarder (LW_OBJECT_HANDLE  ulGuarder)
-{
-#if LW_CFG_SIGNAL_EN > 0
-    struct sigevent  sigeventWarn;
-
-    sigeventWarn.sigev_signo  = SIGLOWMEM;
-    sigeventWarn.sigev_notify = SIGEV_SIGNAL;
-    sigeventWarn.sigev_value.sival_ptr = LW_NULL;
-
-    _doSigEvent(ulGuarder, &sigeventWarn, SI_KILL);
-#endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
-}
-
-#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: __vmmAbortKill
 ** 功能描述: 向当前线程产生一个信号

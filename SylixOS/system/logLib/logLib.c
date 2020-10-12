@@ -574,7 +574,7 @@ VOID   __logPrintk (int  iLevel, PCHAR  pcPrintk)
         if (ulPartMask == 0) {                                          /*  这个组中与这个文件无关      */
             iFdTemp += NFDBITS - 1;                                     /*  进行下一个掩码组判断        */
         
-        } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFdTemp) % NFDBITS))) {
+        } else if (ulPartMask & (ULONG)(1ul << (((unsigned)iFdTemp) % NFDBITS))) {
             write(iFdTemp, pcPrintk, stLen);                            /*  打印                        */
         }
     }
@@ -628,7 +628,7 @@ VOID   __logPrintf (CPCHAR       pcFormat,
         if (ulPartMask == 0) {                                          /*  这个组中与这个文件无关      */
             iFdTemp += NFDBITS - 1;                                     /*  进行下一个掩码组判断        */
         
-        } else if (ulPartMask & (ULONG)(1 << (((unsigned)iFdTemp) % NFDBITS))) {
+        } else if (ulPartMask & (ULONG)(1ul << (((unsigned)iFdTemp) % NFDBITS))) {
             write(iFdTemp, cPrintBuffer, stLen);                        /*  打印                        */
         }
     }

@@ -53,8 +53,8 @@
 
 #define __SYLIXOS_MAJOR_VER     2
 #define __SYLIXOS_MINOR_VER     0
-#define __SYLIXOS_PATCH_VER     1
-#define __SYLIXOS_PATCH_PAD     0
+#define __SYLIXOS_PATCH_VER     2
+#define __SYLIXOS_PATCH_PAD     1
 
 /*********************************************************************************************************
   ∞Ê±æ∏Ò Ω

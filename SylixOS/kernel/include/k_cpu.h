@@ -112,7 +112,6 @@ typedef struct __lw_cpu {
 #ifdef __LW_SPINLOCK_BUG_TRACE_EN
     ULONG                    CPU_ulSpinNesting;                         /*  spinlock 加锁数量           */
 #endif                                                                  /*  __LW_SPINLOCK_BUG_TRACE_EN  */
-    volatile UINT            CPU_uiLockQuick;                           /*  是否在 Lock Quick 中        */
     
     /*
      *  CPU 基本信息
@@ -248,16 +247,6 @@ extern LW_CLASS_PHYCPU       _K_phycpuTable[];                          /*  物理
 #define LW_PHYCPU_FOREACH(i)                    \
         LW_PHYCPU_FOREACH_LOOP(i)
 #endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
-
-/*********************************************************************************************************
-  CPU LOCK QUICK 记录
-*********************************************************************************************************/
-
-#if LW_CFG_SMP_EN > 0
-#define LW_CPU_LOCK_QUICK_INC(pcpu)             ((pcpu)->CPU_uiLockQuick++)
-#define LW_CPU_LOCK_QUICK_DEC(pcpu)             ((pcpu)->CPU_uiLockQuick--)
-#define LW_CPU_LOCK_QUICK_GET(pcpu)             ((pcpu)->CPU_uiLockQuick)
-#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 
 /*********************************************************************************************************
   CPU 强制运行亲和度线程

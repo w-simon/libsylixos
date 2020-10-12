@@ -94,7 +94,9 @@ ULONG  API_SemaphoreRWDelete (LW_OBJECT_HANDLE  *pulId)
 
         KN_INT_ENABLE(iregInterLevel);
         ptcb->TCB_ucIsEventDelete = LW_EVENT_DELETE;                    /*  事件已经被删除              */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_SEM,
+                             LW_SCHED_ACT_OTHER);                       /*  处理 TCB                    */
         iregInterLevel = KN_INT_DISABLE();
     }
     
@@ -110,7 +112,9 @@ ULONG  API_SemaphoreRWDelete (LW_OBJECT_HANDLE  *pulId)
 
         KN_INT_ENABLE(iregInterLevel);
         ptcb->TCB_ucIsEventDelete = LW_EVENT_DELETE;                    /*  事件已经被删除              */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_SEM,
+                             LW_SCHED_ACT_OTHER);                       /*  处理 TCB                    */
         iregInterLevel = KN_INT_DISABLE();
     }
     

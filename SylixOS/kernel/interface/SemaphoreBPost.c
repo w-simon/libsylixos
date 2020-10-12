@@ -82,7 +82,9 @@ ULONG  API_SemaphoreBPost (LW_OBJECT_HANDLE  ulId)
         }
         
         KN_INT_ENABLE(iregInterLevel);                                  /*  使能中断                    */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_SEM,
+                             LW_SCHED_ACT_INTERRUPT);                   /*  处理 TCB                    */
         
         MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SEMB, MONITOR_EVENT_SEM_POST, 
                           ulId, ptcb->TCB_ulId, LW_NULL);
@@ -162,7 +164,9 @@ ULONG  API_SemaphoreBPost2 (LW_OBJECT_HANDLE  ulId, LW_OBJECT_HANDLE  *pulId)
         }
         
         KN_INT_ENABLE(iregInterLevel);                                  /*  使能中断                    */
-        _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);               /*  处理 TCB                    */
+        _EventReadyHighLevel(ptcb,
+                             LW_THREAD_STATUS_SEM,
+                             LW_SCHED_ACT_INTERRUPT);                   /*  处理 TCB                    */
         
         if (pulId) {
             *pulId = ptcb->TCB_ulId;                                    /*  记录激活的任务              */

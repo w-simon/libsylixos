@@ -369,7 +369,7 @@ PLW_CLASS_TCB    _EventReadyPriorityLowLevel(PLW_CLASS_EVENT   pevent,
                                              PVOID             pvMsgBoxMessage, 
                                              PLW_LIST_RING    *ppringList);
 
-VOID             _EventReadyHighLevel(PLW_CLASS_TCB  ptcb, UINT16  usWaitType);
+VOID             _EventReadyHighLevel(PLW_CLASS_TCB  ptcb, UINT16  usWaitType, UINT8  ucSchedActivate);
 
 PLW_CLASS_EVENT  _EventUnQueue(PLW_CLASS_TCB  ptcb);
 

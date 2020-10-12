@@ -93,7 +93,9 @@ ULONG  API_SemaphoreBRelease (LW_OBJECT_HANDLE  ulId, ULONG  ulReleaseCounter, B
             }
 
             KN_INT_ENABLE(iregInterLevel);                              /*  打开中断                    */
-            _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);           /*  处理 TCB                    */
+            _EventReadyHighLevel(ptcb,
+                                 LW_THREAD_STATUS_SEM,
+                                 LW_SCHED_ACT_OTHER);                   /*  处理 TCB                    */
             
             MONITOR_EVT_LONG2(MONITOR_EVENT_ID_SEMB, MONITOR_EVENT_SEM_POST, 
                               ulId, ptcb->TCB_ulId, LW_NULL);

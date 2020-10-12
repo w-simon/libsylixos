@@ -131,7 +131,9 @@ __release_pend:
             }
             
             KN_INT_ENABLE(iregInterLevel);
-            _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);           /*  处理 TCB                    */
+            _EventReadyHighLevel(ptcb,
+                                 LW_THREAD_STATUS_SEM,
+                                 LW_SCHED_ACT_INTERRUPT);               /*  处理 TCB                    */
             
             pevent->EVENT_pvTcbOwn = (PVOID)ptcb;
             pevent->EVENT_iStatus  = EVENT_RW_STATUS_W;
@@ -166,7 +168,9 @@ __release_pend:
                 pevent->EVENT_ulCounter++;                              /*  增加使用者计数              */
                 
                 KN_INT_ENABLE(iregInterLevel);                          /*  打开中断                    */
-                _EventReadyHighLevel(ptcb, LW_THREAD_STATUS_SEM);       /*  处理 TCB                    */
+                _EventReadyHighLevel(ptcb,
+                                     LW_THREAD_STATUS_SEM,
+                                     LW_SCHED_ACT_OTHER);               /*  处理 TCB                    */
                 
                 if (pevent->EVENT_ulOption & LW_OPTION_DELETE_SAFE) {   /*  将激活任务设置为安全        */
                     LW_THREAD_SAFE_INKERN(ptcb);

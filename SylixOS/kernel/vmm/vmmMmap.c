@@ -22,6 +22,7 @@
 2015.07.20  msync() 仅针对 SHARED 类型映射才回写文件.
 2017.06.08  修正 mmap() 针对 AF_PACKET 映射错误问题.
 2018.08.06  加入 API_VmmMProtect().
+2020.10.10  mmap 预分配内存时需要进行内存配合限制.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -31,6 +32,7 @@
   加入裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0 && LW_CFG_DEVICE_EN > 0
+#include "phyPage.h"
 #include "vmmMmap.h"
 /*********************************************************************************************************
   全局变量声明
@@ -247,16 +249,26 @@ __full_with_zero:
 **           stLen         内存大小
 **           iFlags        LW_VMM_SHARED_CHANGE / LW_VMM_PRIVATE_CHANGE / LW_VMM_PHY_PREALLOC
 **           ulFlag        虚拟空间内存属性
+**           pulGuarder    警戒线程
 ** 输　出  : 内存地址
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static PVOID  __vmmMapnMalloc (PLW_VMM_MAP_NODE  pmapn, size_t  stLen, INT  iFlags, ULONG  ulFlag)
+static PVOID  __vmmMapnMalloc (PLW_VMM_MAP_NODE  pmapn, size_t  stLen,
+                               INT  iFlags, ULONG  ulFlag, LW_OBJECT_HANDLE  *pulGuarder)
 {
     REGISTER PVOID  pvMem;
+    REGISTER BOOL   bNoLimit;
+    PLW_CLASS_TCB   ptcbCur;
     
     if (iFlags & LW_VMM_PHY_PREALLOC) {
-        pvMem = API_VmmMallocEx(stLen, ulFlag);
+        LW_TCB_GET_CUR_SAFE(ptcbCur);
+        bNoLimit = __vmmPhysicalPageFaultCheck(1, ptcbCur, pulGuarder);     /*  检查物理内存是否超限        */
+        if (bNoLimit) {
+            pvMem = API_VmmMallocEx(stLen, ulFlag);
+        } else {
+            pvMem = LW_NULL;
+        }
 
     } else {
         pvMem = API_VmmMallocAreaEx(stLen, __vmmMapnFill, pmapn, iFlags, ulFlag);
@@ -362,11 +374,13 @@ static VOID  __vmmMapnReclaim (PLW_VMM_MAP_NODE  pmapn, LW_LD_VPROC  *pvproc)
 **           ulFlag        LW_VMM_FLAG_READ | LW_VMM_FLAG_RDWR | LW_VMM_FLAG_EXEC
 **           iFd           文件描述符
 **           off           文件偏移量
+**           pulGuarder    警戒线程
 ** 输　出  : 分配的虚拟内存地址, LW_VMM_MAP_FAILED 表示错误
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd, off_t  off)
+static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag,
+                            int  iFd, off_t  off, LW_OBJECT_HANDLE  *pulGuarder)
 {
     PLW_VMM_MAP_NODE    pmapn;
     struct stat64       stat64Fd;
@@ -417,7 +431,7 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag, int  iFd,
         return  (LW_VMM_MAP_FAILED);
     }
     
-    pmapn->MAPN_pvAddr = __vmmMapnMalloc(pmapn, stLen, iFlags, ulFlag);
+    pmapn->MAPN_pvAddr = __vmmMapnMalloc(pmapn, stLen, iFlags, ulFlag, pulGuarder);
     if (pmapn->MAPN_pvAddr == LW_NULL) {                                /*  申请映射内存                */
         _ErrorHandle(ENOMEM);
         iErrLevel = 1;
@@ -596,11 +610,13 @@ static PVOID  __vmmMmapShrink (PLW_VMM_MAP_NODE  pmapn, size_t stNewSize)
 ** 输　入  : pmapn         mmap node
 **           stNewSize     需要设置的内存区域新大小
 **           iMoveEn       是否可以重新分配.
+**           pulGuarder    警戒线程
 ** 输　出  : 分配的虚拟内存地址, LW_VMM_MAP_FAILED 表示错误
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static PVOID  __vmmMmapExpand (PLW_VMM_MAP_NODE  pmapn, size_t stNewSize, INT  iMoveEn)
+static PVOID  __vmmMmapExpand (PLW_VMM_MAP_NODE  pmapn, size_t stNewSize,
+                               INT  iMoveEn, LW_OBJECT_HANDLE  *pulGuarder)
 {
     PVOID               pvRetAddr;
     PVOID               pvOldAddr;
@@ -618,8 +634,7 @@ static PVOID  __vmmMmapExpand (PLW_VMM_MAP_NODE  pmapn, size_t stNewSize, INT  i
     }
     
     pvRetAddr = __vmmMapnMalloc(pmapn, stNewSize, 
-                                pmapn->MAPN_iFlags, 
-                                pmapn->MAPN_ulFlag);
+                                pmapn->MAPN_iFlags, pmapn->MAPN_ulFlag, pulGuarder);
     if (pvRetAddr == LW_NULL) {
         _ErrorHandle(ENOMEM);
         return  (LW_VMM_MAP_FAILED);
@@ -742,7 +757,8 @@ static VOID  __vmmMmapMerge (PLW_VMM_MAP_NODE  pmapnL, PLW_VMM_MAP_NODE  pmapnR)
 LW_API 
 PVOID  API_VmmMmap (PVOID  pvAddr, size_t  stLen, INT  iFlags, ULONG  ulFlag, INT  iFd, off_t  off)
 {
-    PVOID   pvRet;
+    PVOID              pvRet;
+    LW_OBJECT_HANDLE   ulGuarder = LW_OBJECT_HANDLE_INVALID;
     
     if ((iFlags & LW_VMM_SHARED_CHANGE) &&
         (iFlags & LW_VMM_PRIVATE_CHANGE)) {                             /*  不允许同时出现两个          */
@@ -767,13 +783,17 @@ PVOID  API_VmmMmap (PVOID  pvAddr, size_t  stLen, INT  iFlags, ULONG  ulFlag, IN
     
     __VMM_MMAP_LOCK();
     if (pvAddr == LW_NULL) {                                            /*  分配新的内存                */
-        pvRet = __vmmMmapNew(stLen, iFlags, ulFlag, iFd, off);
+        pvRet = __vmmMmapNew(stLen, iFlags, ulFlag, iFd, off, &ulGuarder);
     
     } else {                                                            /*  修改之前映射的内存          */
         pvRet = __vmmMmapChange(pvAddr, stLen, iFlags, ulFlag, iFd, off);
     }
     __VMM_MMAP_UNLOCK();
     
+    if (ulGuarder) {
+        __vmmPhysicalPageFaultWarn(ulGuarder);                          /*  发送警告通知                */
+    }
+
     return  (pvRet);
 }
 /*********************************************************************************************************
@@ -793,6 +813,7 @@ PVOID  API_VmmMremap (PVOID  pvAddr, size_t stOldSize, size_t stNewSize, INT  iM
 {
     PLW_VMM_MAP_NODE    pmapn;
     PVOID               pvRet;
+    LW_OBJECT_HANDLE    ulGuarder = LW_OBJECT_HANDLE_INVALID;
     
     if (!ALIGNED(pvAddr, LW_CFG_VMM_PAGE_SIZE) || (stNewSize == 0)) {
         _ErrorHandle(EINVAL);
@@ -827,13 +848,17 @@ PVOID  API_VmmMremap (PVOID  pvAddr, size_t stOldSize, size_t stNewSize, INT  iM
         pvRet = __vmmMmapShrink(pmapn, stNewSize);
         
     } else if (pmapn->MAPN_stLen < stNewSize) {                         /*  进行扩展                    */
-        pvRet = __vmmMmapExpand(pmapn, stNewSize, iMoveEn);
+        pvRet = __vmmMmapExpand(pmapn, stNewSize, iMoveEn, &ulGuarder);
     
     } else {
         pvRet = pvAddr;
     }
     __VMM_MMAP_UNLOCK();
     
+    if (ulGuarder) {
+        __vmmPhysicalPageFaultWarn(ulGuarder);                          /*  发送警告通知                */
+    }
+
     return  (pvRet);
 }
 /*********************************************************************************************************
