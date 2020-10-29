@@ -228,6 +228,9 @@ static VOID  pciStorageAtaCtrlIch4Delay (ATA_CTRL_HANDLE  hCtrl)
     ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
     ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
     ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
+    ATA_IO_BYTES_READ(hCtrl, ATA_A_STATUS_ADDR(hCtrl), &ucReg, 1);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: pciStorageAtaCtrlQuirk

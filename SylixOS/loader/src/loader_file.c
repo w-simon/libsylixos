@@ -135,6 +135,7 @@ VOID  vprocIoFileInit (LW_LD_VPROC *pvproc, ULONG ulExts)
     pvprocFather = pvproc->VP_pvprocFather;
     if (pvprocFather) {                                                 /*  如果有父亲则继承父亲所有文件*/
         if (!(ulExts & POSIX_SPAWN_EXT_NO_FILE_INHERIT)) {
+            pvproc->VP_ulFdSize = pvprocFather->VP_ulFdSize;
             iMax = (ulExts & POSIX_SPAWN_EXT_NO_FILE_INHERIT_EXC_STD)
                  ? 3 : LW_VP_MAX_FILES;
             _IosLock();
@@ -149,9 +150,13 @@ VOID  vprocIoFileInit (LW_LD_VPROC *pvproc, ULONG ulExts)
                 }
             }
             _IosUnlock();
+
+        } else {
+            pvproc->VP_ulFdSize = LW_VP_MAX_FILES;
         }
     
     } else {                                                            /*  不存在父亲, 则继承系统的    */
+        pvproc->VP_ulFdSize = LW_VP_MAX_FILES;
         _IosLock();
         for (i = 0; i < 3; i++) {                                       /*  继承标准文件描述符          */
             pfdentry = _IosFileGetKernel(i, LW_FALSE);
@@ -178,6 +183,7 @@ INT  vprocIoFileDupFrom (pid_t  pidSrc, INT  iFd)
 {
     INT             i;
     LW_LD_VPROC    *pvproc;
+    LW_LD_VPROC    *pvprocCur;
     PLW_FD_DESC     pfddesc;
     PLW_FD_ENTRY    pfdentry;
     
@@ -200,9 +206,10 @@ INT  vprocIoFileDupFrom (pid_t  pidSrc, INT  iFd)
         return  (PX_ERROR);
     }
     
-    pfddesc = &__LW_VP_GET_CUR_PROC()->VP_fddescTbl[0];                 /*  从本进程 0 开始搜索         */
+    pvprocCur = __LW_VP_GET_CUR_PROC();
+    pfddesc   = &pvprocCur->VP_fddescTbl[0];                            /*  从本进程 0 开始搜索         */
     
-    for (i = 0; i < LW_VP_MAX_FILES; i++, pfddesc++) {
+    for (i = 0; i < pvprocCur->VP_ulFdSize; i++, pfddesc++) {
         if (!pfddesc->FDDESC_pfdentry) {
             pfddesc->FDDESC_pfdentry = pfdentry;
             pfddesc->FDDESC_bCloExec = LW_FALSE;
@@ -594,7 +601,7 @@ INT  vprocIoFileDup (PLW_FD_ENTRY pfdentry, INT iMinFd)
     PLW_FD_DESC     pfddesc;
     LW_LD_VPROC    *pvproc = __LW_VP_GET_CUR_PROC();
     
-    for (i = iMinFd; i < LW_VP_MAX_FILES; i++, pfddesc++) {
+    for (i = iMinFd; i < pvproc->VP_ulFdSize; i++, pfddesc++) {
         pfddesc = &pvproc->VP_fddescTbl[i];
         if (!pfddesc->FDDESC_pfdentry) {
             pfddesc->FDDESC_pfdentry = pfdentry;
@@ -619,12 +626,13 @@ INT  vprocIoFileDup (PLW_FD_ENTRY pfdentry, INT iMinFd)
 INT  vprocIoFileDup2 (PLW_FD_ENTRY pfdentry, INT  iNewFd)
 {
     PLW_FD_DESC     pfddesc;
+    LW_LD_VPROC    *pvproc = __LW_VP_GET_CUR_PROC();
     
-    if (iNewFd < 0 || iNewFd >= LW_VP_MAX_FILES) {
+    if (iNewFd < 0 || iNewFd >= pvproc->VP_ulFdSize) {
         return  (PX_ERROR);
     }
     
-    pfddesc = &__LW_VP_GET_CUR_PROC()->VP_fddescTbl[iNewFd];
+    pfddesc = &pvproc->VP_fddescTbl[iNewFd];
     
     if (!pfddesc->FDDESC_pfdentry) {
         pfddesc->FDDESC_pfdentry = pfdentry;
@@ -651,7 +659,7 @@ static INT  vprocIoFileDup2Ex (LW_LD_VPROC *pvproc, PLW_FD_ENTRY pfdentry, INT  
 {
     PLW_FD_DESC     pfddesc;
     
-    if (iNewFd < 0 || iNewFd >= LW_VP_MAX_FILES) {
+    if (iNewFd < 0 || iNewFd >= pvproc->VP_ulFdSize) {
         return  (PX_ERROR);
     }
     
@@ -752,6 +760,37 @@ INT  vprocIoFileRefGet (INT  iFd)
     }
     
     return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: vprocIoFileSizeGet
+** 功能描述: 获取指定进程描述符表大小
+** 输　入  : pvproc    进程控制块
+** 输　出  : 描述符表大小
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+ULONG  vprocIoFileSizeGet (LW_LD_VPROC  *pvproc)
+{
+    return  (pvproc->VP_ulFdSize);
+}
+/*********************************************************************************************************
+** 函数名称: vprocIoFileSizeSet
+** 功能描述: 设置当前进程描述符表大小
+** 输　入  : pvproc    进程控制块
+**           ulFdSize  描述符表大小
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  vprocIoFileSizeSet (LW_LD_VPROC  *pvproc, ULONG  ulFdSize)
+{
+    if (ulFdSize < 3 || ulFdSize > LW_VP_MAX_FILES) {
+        return  (PX_ERROR);
+    }
+
+    pvproc->VP_ulFdSize = ulFdSize;
+
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */

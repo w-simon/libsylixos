@@ -22,6 +22,7 @@
 2013.06.13  实现 setpriority getpriority 与 nice. 
             setpriority 与 getpriority 优先级参数必须在 PRIO_MIN PRIO_MAX 之间. 数值越小, 优先级越高.
 2014.07.04  修正 getpriority 与 setpriority 参数处理错误.
+2020.10.26  加入进程文件描述符打开数量限制.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "unistd.h"
@@ -86,8 +87,41 @@ int  getrusage (int  who, struct rusage *r_usage)
 LW_API 
 int  getrlimit (int resource, struct rlimit *rlp)
 {
+#if LW_CFG_MODULELOADER_EN > 0
+    INT           iRet = PX_ERROR;
+    LW_LD_VPROC  *pvproc;
+
+    if (!rlp) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+
+    pvproc = __LW_VP_GET_CUR_PROC();
+
+    switch (resource) {
+
+    case RLIMIT_OFILE:
+        if (pvproc) {
+            rlp->rlim_cur = (rlim_t)vprocIoFileSizeGet(pvproc);
+            rlp->rlim_max = LW_VP_MAX_FILES;
+        } else {
+            rlp->rlim_cur = LW_CFG_MAX_FILES;
+            rlp->rlim_max = LW_CFG_MAX_FILES;
+        }
+        iRet = ERROR_NONE;
+        break;
+
+    default:
+        errno = ENOSYS;
+        iRet  = PX_ERROR;
+        break;
+    }
+
+    return  (iRet);
+#else
     errno = ENOSYS;
     return  (PX_ERROR);
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: setrlimit
@@ -102,8 +136,41 @@ int  getrlimit (int resource, struct rlimit *rlp)
 LW_API 
 int  setrlimit (int resource, const struct rlimit *rlp)
 {
+#if LW_CFG_MODULELOADER_EN > 0
+    INT           iRet = PX_ERROR;
+    LW_LD_VPROC  *pvproc;
+
+    if (!rlp || (rlp->rlim_max > rlp->rlim_cur)) {
+        errno = EINVAL;
+        return  (PX_ERROR);
+    }
+
+    pvproc = __LW_VP_GET_CUR_PROC();
+
+    switch (resource) {
+
+    case RLIMIT_OFILE:
+        if (pvproc) {
+            iRet = vprocIoFileSizeSet(pvproc, rlp->rlim_cur);
+            if (iRet) {
+                errno = EINVAL;
+            }
+        } else {
+            errno = ENOSYS;
+        }
+        break;
+
+    default:
+        errno = ENOSYS;
+        iRet  = PX_ERROR;
+        break;
+    }
+
+    return  (iRet);
+#else
     errno = ENOSYS;
     return  (PX_ERROR);
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: __gprio_hook
@@ -121,7 +188,7 @@ int  setrlimit (int resource, const struct rlimit *rlp)
 
 static void  __gprio_hook (PLW_CLASS_TCB  ptcb, int  *ret, int which, id_t  who, UINT8  *pucPriority)
 {
-    LW_LD_VPROC     *pvproc = __LW_VP_GET_TCB_PROC(ptcb);
+    LW_LD_VPROC  *pvproc = __LW_VP_GET_TCB_PROC(ptcb);
     
     if (pvproc) {
         switch (which) {
@@ -168,7 +235,7 @@ static void  __gprio_hook (PLW_CLASS_TCB  ptcb, int  *ret, int which, id_t  who,
 *********************************************************************************************************/
 static void  __sprio_hook (PLW_CLASS_TCB  ptcb, int  *ret, int which, id_t  who, UINT8  *pucPriority)
 {
-    LW_LD_VPROC     *pvproc = __LW_VP_GET_TCB_PROC(ptcb);
+    LW_LD_VPROC  *pvproc = __LW_VP_GET_TCB_PROC(ptcb);
     
     if (pvproc) {
         switch (which) {

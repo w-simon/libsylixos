@@ -59,6 +59,14 @@ typedef struct tps_dev {
     INT        (*DEV_Trim)(struct tps_dev *pdev,
                            UINT64 ui64StartSector,
                            UINT64 uiSectorCnt);                         /* Trim磁盘                     */
+    INT        (*DEV_WriteMeta)(struct tps_dev *pdev,
+                                PUCHAR pucBuf,
+                                UINT64 ui64StartSector,
+                                UINT64 uiSectorCnt);                    /* 写元数据                     */
+    INT        (*DEV_ReadMeta)(struct tps_dev *pdev,
+                               PUCHAR pucBuf,
+                               UINT64 ui64StartSector,
+                               UINT64 uiSectorCnt);                     /* 读元数据                     */
     PVOID        DEV_pvPriv;                                            /* 私有成员                     */
 } TPS_DEV;
 typedef TPS_DEV *PTPS_DEV;

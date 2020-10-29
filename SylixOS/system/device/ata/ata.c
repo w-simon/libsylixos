@@ -1015,7 +1015,7 @@ static INT  ataDriveConfig (ATA_DRV_HANDLE  hCtrlDrv, UINT  uiCtrl, UINT  uiDriv
 
 #if (ATA_DISK_MOUNTEX_EN > 0)
     dcattrl.DCATTR_pvCacheMem = LW_NULL;
-    dcattrl.DCATTR_iBurstOpt  = LW_DCATTR_BOPT_CACHE_COHERENCE;
+    dcattrl.DCATTR_iBurstOpt  = LW_DCATTR_BOPT_META_ONE_BURST;
 
     if (hInfo->ATADINFO_stCacheMemSize) {
         dcattrl.DCATTR_stMemSize = hInfo->ATADINFO_stCacheMemSize;
@@ -1052,12 +1052,7 @@ static INT  ataDriveConfig (ATA_DRV_HANDLE  hCtrlDrv, UINT  uiCtrl, UINT  uiDriv
         dcattrl.DCATTR_iMsgCount = ATA_CACHE_MSG_CNT;
     }
 
-    if (hInfo->ATADINFO_iPipeline) {
-        dcattrl.DCATTR_bParallel = LW_TRUE;
-
-    } else {
-        dcattrl.DCATTR_bParallel = LW_FALSE;
-    }
+    dcattrl.DCATTR_bParallel = LW_FALSE;
 
     API_OemDiskMount2(ATA_ATA_MEDIA_NAME, hBlkDev, &dcattrl);
     

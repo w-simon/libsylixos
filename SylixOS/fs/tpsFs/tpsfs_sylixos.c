@@ -311,7 +311,7 @@ static INT  __tpsFsDiskSync (PTPS_DEV pdev, UINT64 ui64StartSector, UINT64 uiSec
     return  (__blockIoDevIoctl((INT)iDrv, FIOSYNCMETA, (LONG)&blkrange));
 }
 /*********************************************************************************************************
-** 函数名称: __tpsFsDiskSync
+** 函数名称: __tpsFsDiskTrim
 ** 功能描述: 同步扇区数据到磁盘
 **           pdev               设备文件
 ** 输　入  : ui64StartSector    起始扇区
@@ -329,6 +329,50 @@ static INT  __tpsFsDiskTrim (PTPS_DEV pdev, UINT64 ui64StartSector, UINT64 uiSec
     blkrange.BLKR_ulEndSector   = (ULONG)(ui64StartSector + uiSectorCnt - 1);
 
     return  (__blockIoDevIoctl((INT)iDrv, FIOTRIM, (LONG)&blkrange));
+}
+/*********************************************************************************************************
+** 函数名称: __tpsFsDiskWrMeta
+** 功能描述: 写元数据扇区
+**           pdev               设备文件
+** 输　入  : pucBuf             数据缓冲区
+**           ui64StartSector    起始扇区
+**           uiSectorCnt        扇区数
+** 输　出  : 0 别是成功， 非0 表示失败
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tpsFsDiskWrMeta (PTPS_DEV pdev, PUCHAR pucBuf, UINT64 ui64StartSector, UINT64 uiSectorCnt)
+{
+    INT             iDrv = __tpsFsDiskIndex(pdev);
+    LW_BLK_METADATA blkrange;
+
+    blkrange.BLKM_ulStartSector = (ULONG)(ui64StartSector);
+    blkrange.BLKM_ulSectorCnt   = (ULONG)(uiSectorCnt);
+    blkrange.BLKM_pucBuf        = pucBuf;
+
+    return  (__blockIoDevIoctl((INT)iDrv, FIOWRMETA, (LONG)&blkrange));
+}
+/*********************************************************************************************************
+** 函数名称: __tpsFsDiskRdMeta
+** 功能描述: 读元数据扇区
+**           pdev               设备文件
+** 输　入  : pucBuf             数据缓冲区
+**           ui64StartSector    起始扇区
+**           uiSectorCnt        扇区数
+** 输　出  : 0 别是成功， 非0 表示失败
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tpsFsDiskRdMeta (PTPS_DEV pdev, PUCHAR pucBuf, UINT64 ui64StartSector, UINT64 uiSectorCnt)
+{
+    INT             iDrv = __tpsFsDiskIndex(pdev);
+    LW_BLK_METADATA blkrange;
+
+    blkrange.BLKM_ulStartSector = (ULONG)(ui64StartSector);
+    blkrange.BLKM_ulSectorCnt   = (ULONG)(uiSectorCnt);
+    blkrange.BLKM_pucBuf        = pucBuf;
+
+    return  (__blockIoDevIoctl((INT)iDrv, FIORDMETA, (LONG)&blkrange));
 }
 /*********************************************************************************************************
 ** 函数名称: API_TpsFsDrvInstall
@@ -445,6 +489,8 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     ptpsvol->TPSVOL_dev.DEV_WriteSector   = __tpsFsDiskWrite;
     ptpsvol->TPSVOL_dev.DEV_Sync          = __tpsFsDiskSync;
     ptpsvol->TPSVOL_dev.DEV_Trim          = __tpsFsDiskTrim;
+    ptpsvol->TPSVOL_dev.DEV_WriteMeta     = __tpsFsDiskWrMeta;
+    ptpsvol->TPSVOL_dev.DEV_ReadMeta      = __tpsFsDiskRdMeta;
 
     ptpsvol->TPSVOL_bForceDelete = LW_FALSE;                            /*  不允许强制卸载卷            */
     ptpsvol->TPSVOL_iDrv     = iBlkdIndex;                              /*  记录驱动位置                */

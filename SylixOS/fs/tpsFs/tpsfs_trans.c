@@ -449,8 +449,8 @@ static TPS_RESULT  __tpsFsGetTrans (PTPS_SUPER_BLOCK psb, PTPS_TRANS ptrans, UIN
     ptranssb->TSB_uiTransSecOff   = (ui64Index & ((1 << (psb->SB_uiSectorShift - TPS_TRAN_SHIFT)) - 1))
                                     << TPS_TRAN_SHIFT;
 
-    if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, ptranssb->TSB_pucSecBuff,
-                                    ptranssb->TSB_ui64TransCurSec, 1) != 0) {
+    if (psb->SB_dev->DEV_ReadMeta(psb->SB_dev, ptranssb->TSB_pucSecBuff,
+                                  ptranssb->TSB_ui64TransCurSec, 1) != 0) {
         ptrans->TRANS_iStatus = TPS_TRANS_STATUS_UNINIT;
 
         return  (TPS_ERR_BUF_WRITE);
@@ -479,9 +479,9 @@ TPS_RESULT  __tpsFsLoadTransData (PTPS_TRANS ptrans)
      *  循环逆序列化扇区区间列表
      */
     do {
-        if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, psb->SB_pucSectorBuf,
-                                        (ptrans->TRANS_uiDataSecNum + ptrans->TRANS_uiDataSecCnt - 1),
-                                        1) != 0) {
+        if (psb->SB_dev->DEV_ReadMeta(psb->SB_dev, psb->SB_pucSectorBuf,
+                                      (ptrans->TRANS_uiDataSecNum + ptrans->TRANS_uiDataSecCnt - 1),
+                                      1) != 0) {
             return  (TPS_ERR_BUF_WRITE);
         }
 
@@ -563,8 +563,8 @@ TPS_RESULT  tpsFsTransCommitAndFree (PTPS_TRANS ptrans)
         for (j = 0; j < ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecCnt; j += ui64SecWrCnt) {
             ui64SecWrCnt = min((ptrans->TRANS_pdata->TD_secareaArr[i].TD_uiSecCnt - j),
                                psb->SB_uiSecPerBlk);
-            if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, psb->SB_pucSectorBuf,
-                                            ui64DataSecCnt + j, ui64SecWrCnt) != 0) {
+            if (psb->SB_dev->DEV_ReadMeta(psb->SB_dev, psb->SB_pucSectorBuf,
+                                          ui64DataSecCnt + j, ui64SecWrCnt) != 0) {
                 psb->SB_uiFlags |= TPS_TRANS_FAULT;
                 return  (TPS_ERR_TRANS_COMMIT_FAULT);
             }
@@ -783,8 +783,8 @@ TPS_RESULT  tspFsCheckTrans (PTPS_SUPER_BLOCK psb)
     return  (TPS_ERR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: tspFsCheckTrans
-** 功能描述: 从事务链表获取数据，因为部分磁盘数据可能被缓存在事务链表中
+** 函数名称: __tpsFsTransGetData
+** 功能描述: 从未完成事务中获取数据，因为部分磁盘数据可能被缓存在事务链表中
 ** 输　入  : psb           超级块指针
 **           pucSecBuf     扇区数据缓冲区
 **           ui64SecNum    扇区起始
@@ -793,31 +793,33 @@ TPS_RESULT  tspFsCheckTrans (PTPS_SUPER_BLOCK psb)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  __tpsFsTransGetData (PTPS_SUPER_BLOCK   psb,
-                                  PUCHAR             pucSecBuf,
-                                  UINT64             ui64SecNum,
-                                  UINT64             ui64SecCnt)
+static TPS_RESULT  __tpsFsTransGetData (PTPS_SUPER_BLOCK   psb,
+                                        PUCHAR             pucSecBuf,
+                                        UINT64             ui64SecNum,
+                                        UINT64             ui64SecCnt)
 {
     INT                 i;
     UINT64              ui64SecAreaStart;
     UINT64              ui64SecAreaCnt;
     UINT64              ui64DataSecCnt;
     PTPS_TRANS          ptrans = psb->SB_ptranssb->TSB_ptrans;
-    UINT                uiSecNeedCpy;
     PTPS_TRANS_DATA     ptrdata;
+    UINT64              ui64CurSec;
 
-    /*
-     *  遍历事务链表
-     */
-    while (ptrans) {
-        if ((ptrans->TRANS_iStatus != TPS_TRANS_STATUS_INIT) &&
-            (ptrans->TRANS_iStatus != TPS_TRANS_STATUS_COMMIT)) {       /* 跳过未初始化或以完成的事务   */
-            ptrans = ptrans->TRANS_pnext;
-            continue;
-        }
+    if ((ptrans->TRANS_iStatus != TPS_TRANS_STATUS_INIT) &&
+        (ptrans->TRANS_iStatus != TPS_TRANS_STATUS_COMMIT)) {           /* 跳过未初始化或以完成的事务   */
+        return  (psb->SB_dev->DEV_ReadMeta(psb->SB_dev, pucSecBuf, ui64SecNum, ui64SecCnt));
+    }
 
+    if (psb->SB_dev->DEV_ReadMeta(psb->SB_dev, pucSecBuf,
+                                  ui64SecNum, ui64SecCnt) != TPS_ERR_NONE) {
+        return  (TPS_ERR_BUF_READ);
+    }
+
+    for (ui64CurSec = ui64SecNum; ui64CurSec < (ui64SecNum + ui64SecCnt); ui64CurSec++) {
         ptrdata = ptrans->TRANS_pdata;
-        for (i = 0; i < ptrdata->TD_uiSecAreaCnt; i++) {                /* 遍历扇区区间列表             */
+        i = ptrdata->TD_uiSecAreaCnt;
+        for (i--; i >= 0; i--) {                                        /* 遍历扇区区间列表             */
             ui64SecAreaStart = ptrdata->TD_secareaArr[i].TD_ui64SecStart;
             ui64DataSecCnt   = ptrans->TRANS_uiDataSecNum + ptrdata->TD_secareaArr[i].TD_uiSecOff;
             ui64SecAreaCnt   = ptrdata->TD_secareaArr[i].TD_uiSecCnt;
@@ -825,33 +827,19 @@ static VOID  __tpsFsTransGetData (PTPS_SUPER_BLOCK   psb,
             /*
              *  是否重叠，只需处理存在重叠的扇区区间
              */
-            if (max(ui64SecAreaStart, ui64SecNum) >=
-                min((ui64SecAreaStart + ui64SecAreaCnt), (ui64SecNum + ui64SecCnt))) {
-                continue;
-            }
-
-            /*
-             *  计算重叠区间大小
-             */
-            uiSecNeedCpy = min((ui64SecAreaStart + ui64SecAreaCnt), (ui64SecNum + ui64SecCnt)) -
-                           max(ui64SecAreaStart, ui64SecNum);
-
-            if (ui64SecAreaStart > ui64SecNum) {
-                psb->SB_dev->DEV_ReadSector(psb->SB_dev,
-                                            pucSecBuf + ((ui64SecAreaStart - ui64SecNum)
-                                                         << psb->SB_uiSectorShift),
-                                            ui64DataSecCnt,
-                                            uiSecNeedCpy);
-            } else {
-                psb->SB_dev->DEV_ReadSector(psb->SB_dev,
-                                            pucSecBuf,
-                                            ui64DataSecCnt + ui64SecNum - ui64SecAreaStart,
-                                            uiSecNeedCpy);
+            if (ui64CurSec >= ui64SecAreaStart && ui64CurSec < (ui64SecAreaStart + ui64SecAreaCnt)) {
+                if (psb->SB_dev->DEV_ReadMeta(psb->SB_dev,
+                                              pucSecBuf + ((ui64CurSec - ui64SecNum) << psb->SB_uiSectorShift),
+                                              ui64DataSecCnt + (ui64CurSec - ui64SecAreaStart),
+                                              1) != TPS_ERR_NONE) {
+                    return  (TPS_ERR_BUF_READ);
+                }
+                break;
             }
         }
-
-        ptrans = ptrans->TRANS_pnext;
     }
+
+    return  (TPS_ERR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: tspFsCheckTrans
@@ -1009,11 +997,10 @@ TPS_RESULT  tpsFsTransRead (PTPS_SUPER_BLOCK   psb,
     if (uiSecOff != 0) {                                                /* 起始位置不对齐               */
         uiReadLen = uiSecSize - uiSecOff;
         uiReadLen = min(szLen, uiReadLen);
-        if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, pucSecBuf, ui64SecNum, 1) != 0) {
+
+        if (__tpsFsTransGetData(psb, pucSecBuf, ui64SecNum, 1) != TPS_ERR_NONE) {
             return  (TPS_ERR_BUF_READ);
         }
-
-        __tpsFsTransGetData(psb, pucSecBuf, ui64SecNum, 1);             /* 从事务链表获取数据           */
 
         lib_memcpy(pucBuff, pucSecBuf + uiSecOff, uiReadLen);
 
@@ -1025,12 +1012,10 @@ TPS_RESULT  tpsFsTransRead (PTPS_SUPER_BLOCK   psb,
     }
 
     if (ui64SecCnt > 0) {                                               /* 对齐扇区直接写缓冲区         */
-        if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, pucBuff + szCompleted,
-                                        ui64SecNum, ui64SecCnt) != 0) {
+        if (__tpsFsTransGetData(psb, pucBuff + szCompleted,
+                                ui64SecNum, ui64SecCnt) != TPS_ERR_NONE) {
             return  (TPS_ERR_BUF_READ);
         }
-
-        __tpsFsTransGetData(psb, pucBuff + szCompleted, ui64SecNum, ui64SecCnt);
 
         szCompleted += (size_t)(ui64SecCnt * uiSecSize);
         ui64SecNum  += ui64SecCnt;
@@ -1040,11 +1025,9 @@ TPS_RESULT  tpsFsTransRead (PTPS_SUPER_BLOCK   psb,
     if (szCompleted <  szLen) {                                         /* 结束位置不对齐               */
         uiReadLen = ((uiOff + szLen) & psb->SB_uiSectorMask);
         if (uiReadLen > 0) {
-            if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, pucSecBuf, ui64SecNum, 1) != 0) {
+            if (__tpsFsTransGetData(psb, pucSecBuf, ui64SecNum, 1) != TPS_ERR_NONE) {
                 return  (TPS_ERR_BUF_READ);
             }
-
-            __tpsFsTransGetData(psb, pucSecBuf, ui64SecNum, 1);         /* 从事务链表获取数据           */
 
             lib_memcpy(pucBuff + szCompleted, pucSecBuf, uiReadLen);
 
@@ -1102,11 +1085,10 @@ TPS_RESULT  tpsFsTransWrite (PTPS_TRANS        ptrans,
     if (uiSecOff != 0) {                                                /* 起始位置不对齐,先读取再写入  */
         uiReadLen = uiSecSize - uiSecOff;
         uiReadLen = min(szLen, uiReadLen);
-        if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, pucSecBuf, ui64SecNum, 1) != 0) {
-            return  (TPS_ERR_BUF_READ);
-        }
 
-        __tpsFsTransGetData(psb, pucSecBuf, ui64SecNum, 1);             /* 从事务链表获取数据           */
+        if (__tpsFsTransGetData(psb, pucSecBuf, ui64SecNum, 1) != TPS_ERR_NONE ) {
+            return  (TPS_ERR_BUF_WRITE);
+        }
 
         lib_memcpy(pucSecBuf + uiSecOff, pucBuff, uiReadLen);
 
@@ -1135,11 +1117,9 @@ TPS_RESULT  tpsFsTransWrite (PTPS_TRANS        ptrans,
     if (szCompleted < szLen) {                                          /* 结束位置不对齐,先读取再写入  */
         uiReadLen = ((uiOff + szLen) & psb->SB_uiSectorMask);
         if (uiReadLen > 0) {
-            if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, pucSecBuf, ui64SecNum, 1) != 0) {
-                return  (TPS_ERR_BUF_READ);
+            if (__tpsFsTransGetData(psb, pucSecBuf, ui64SecNum, 1) != TPS_ERR_NONE) {
+                return  (TPS_ERR_BUF_WRITE);
             }
-
-            __tpsFsTransGetData(psb, pucSecBuf, ui64SecNum, 1);         /* 从事务链表获取数据           */
 
             lib_memcpy(pucSecBuf, pucBuff + szCompleted, uiReadLen);
 

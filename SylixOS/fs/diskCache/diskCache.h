@@ -77,6 +77,7 @@
 
 #define LW_DCATTR_BOPT_CACHE_COHERENCE  0x01                            /*  缓冲区需要 CACHE 一致性保障 */
 #define LW_DCATTR_BOPT_PAGE_ALIGN       0x02                            /*  缓冲区必须页面对齐          */
+#define LW_DCATTR_BOPT_META_ONE_BURST   0x04                            /*  Metadata 猝发扇区为 1       */
 
 typedef struct {
     PVOID           DCATTR_pvCacheMem;                                  /*  扇区缓存地址                */

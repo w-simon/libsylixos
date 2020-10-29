@@ -148,6 +148,12 @@ typedef struct {
 } LW_BLK_RANGE;
 typedef LW_BLK_RANGE       *PLW_BLK_RANGE;
 
+typedef struct {
+    ULONG       BLKM_ulStartSector;                                     /*  起始扇区                    */
+    ULONG       BLKM_ulSectorCnt;                                       /*  结束扇区                    */
+    PUCHAR      BLKM_pucBuf;                                            /*  数据缓冲区                  */
+} LW_BLK_METADATA;
+typedef LW_BLK_METADATA       *PLW_BLK_METADATA;
 #endif                                                                  /* __SYLIXOS_KERNEL             */
 /*********************************************************************************************************
   磁盘设备必须要支持的通用 FIO 命令如下:

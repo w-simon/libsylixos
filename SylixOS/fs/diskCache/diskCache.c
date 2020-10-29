@@ -270,6 +270,12 @@ ULONG  API_DiskCacheCreateEx2 (PLW_BLK_DEV          pblkdDisk,
     pdiskcDiskCache->DISKC_ulBytesPerSector = ulBytesPerSector;
     pdiskcDiskCache->DISKC_iMaxRBurstSector = pdcattrl->DCATTR_iMaxRBurstSector;
     pdiskcDiskCache->DISKC_iMaxWBurstSector = pdcattrl->DCATTR_iMaxWBurstSector;
+	
+    if (pdcattrl->DCATTR_iBurstOpt & LW_DCATTR_BOPT_META_ONE_BURST) {
+        pdiskcDiskCache->DISKC_iMetaBurstSector = 1;
+    } else {
+        pdiskcDiskCache->DISKC_iMetaBurstSector = 0;
+    }
     
     /*
      *  确定 HASH 表的大小

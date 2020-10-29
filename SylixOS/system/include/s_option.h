@@ -126,6 +126,8 @@
 #ifdef __SYLIXOS_KERNEL
 #define FIOTRIM             LW_OSIOW('f', 31, LW_BLK_RANGE)     /* ATA TRIM command                     */
 #define FIOSYNCMETA         LW_OSIOW('f', 32, LW_BLK_RANGE)     /* sync range sector to disk            */
+#define FIORDMETA           LW_OSIOR('f', 57, LW_BLK_METADATA)  /* read metadata                        */
+#define FIOWRMETA           LW_OSIOW('f', 58, LW_BLK_METADATA)  /* write metadata                       */
 #endif
 
 #define FIOLABELGET         LW_OSIOR('f', 33, LW_PATHB)         /* get volume label                     */

@@ -99,6 +99,7 @@ typedef struct lw_ld_vproc {
     pid_t                   VP_pidGroup;                                /*  组 id 号                    */
     LW_LIST_LINE_HEADER     VP_plineThread;                             /*  子线程链表                  */
     
+    ULONG                   VP_ulFdSize;                                /*  进程 fd 表大小              */
     LW_FD_DESC              VP_fddescTbl[LW_VP_MAX_FILES];              /*  进程 fd 表                  */
     
     BOOL                    VP_bKillPrepare;                            /*  清除进程前是否需要 release  */
@@ -279,6 +280,8 @@ INT                 vprocIoFileRefDecArryByPid(pid_t  pid, INT  iFd[], INT  iNum
 *********************************************************************************************************/
 
 VOID                vprocIoReclaim(pid_t  pid, BOOL  bIsExec);
+ULONG               vprocIoFileSizeGet(LW_LD_VPROC  *pvproc);
+INT                 vprocIoFileSizeSet(LW_LD_VPROC  *pvproc, ULONG  ulFdSize);
 
 /*********************************************************************************************************
   进程线程堆栈

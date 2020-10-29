@@ -39,6 +39,13 @@ extern PLW_LIST_LINE        _G_plineDiskCacheHeader;                    /*  链表
 #define __LW_DISKCACHE_UNLOCK(pdiskc)   \
         API_SemaphoreMPost(pdiskc->DISKC_hDiskCacheLock)
 /*********************************************************************************************************
+  PIPE LINE LOCK
+*********************************************************************************************************/
+#define __LW_DISKCACHE_PL_LOCK(pwp)     \
+        API_SemaphoreMPend(pwp->DISKCWP_hLock, LW_OPTION_WAIT_INFINITE)
+#define __LW_DISKCACHE_PL_UNLOCK(pwp)   \
+        API_SemaphoreMPost(pwp->DISKCWP_hLock)
+/*********************************************************************************************************
   DISK CACHE NODE OP
 *********************************************************************************************************/
 #define __LW_DISKCACHE_NODE_READ                0                       /*  节点读                      */
@@ -126,6 +133,7 @@ typedef struct {
     
     INT                     DISKC_iMaxRBurstSector;                     /*  最大猝发读写扇区数量        */
     INT                     DISKC_iMaxWBurstSector;
+    INT                     DISKC_iMetaBurstSector;                     /*  元数据读取猝发扇区数量      */
     LW_DISKCACHE_WP         DISKC_wpWrite;                              /*  并发写管线                  */
     
     PLW_LIST_RING           DISKC_pringLruHeader;                       /*  LRU 表头                    */

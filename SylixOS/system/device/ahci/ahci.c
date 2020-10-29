@@ -2773,6 +2773,10 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
         } else {
             dcattrl.DCATTR_iPipeline = 1;
         }
+
+        if (hDrive->AHCIDRIVE_bTrim != LW_TRUE) {                       /* 是否支持 TRIM 的 SSD         */
+            dcattrl.DCATTR_iBurstOpt |= LW_DCATTR_BOPT_META_ONE_BURST;
+        }
                                                                         /* 挂载设备                     */
         if (!hDev->AHCIDEV_pvOemdisk) {
             hDev->AHCIDEV_pvOemdisk = (PVOID)API_OemDiskMount2(AHCI_MEDIA_NAME, hBlkDev, &dcattrl);

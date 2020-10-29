@@ -959,6 +959,131 @@ INT  __diskCacheWrite (PLW_DISKCACHE_CB   pdiskcDiskCache,
     return  (iError);
 }
 /*********************************************************************************************************
+** 函数名称: __diskCacheReadMeta
+** 功能描述: 读取元数据 (DISK CACHE 未加锁调用)
+** 输　入  : pdiskcDiskCache    磁盘 CACHE 控制块
+**           pvBuffer           缓冲区
+**           ulStartSector      起始扇区
+**           ulSectorCount      连续扇区数量
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __diskCacheReadMeta (PLW_DISKCACHE_CB   pdiskcDiskCache,
+                          VOID              *pvBuffer,
+                          ULONG              ulStartSector,
+                          ULONG              ulSectorCount)
+{
+             INT                    i;
+             INT                    iError = ERROR_NONE;
+    REGISTER PLW_DISKCACHE_NODE     pdiskn;
+             PCHAR                  pcData = (PCHAR)pvBuffer;
+             INT                    iMaxRBurstSector;
+
+    __LW_DISKCACHE_LOCK(pdiskcDiskCache);                               /*  互斥访问                    */
+
+    iMaxRBurstSector = pdiskcDiskCache->DISKC_iMaxRBurstSector;
+                                                                        /*  备份触发扇区数              */
+    if(pdiskcDiskCache->DISKC_iMetaBurstSector) {                       /*  设置元数据猝发扇区          */
+        pdiskcDiskCache->DISKC_iMaxRBurstSector = pdiskcDiskCache->DISKC_iMetaBurstSector;
+    } else {
+        pdiskcDiskCache->DISKC_iMaxRBurstSector = min(ulSectorCount, iMaxRBurstSector);
+    }
+
+    for (i = 0; i < ulSectorCount; i++) {
+        pdiskn = __diskCacheNodeGet(pdiskcDiskCache,
+                                    (ulStartSector + i),
+                                    (INT)(ulSectorCount - i),
+                                    LW_TRUE);
+        if (pdiskn == LW_NULL) {
+            iError =  PX_ERROR;
+            break;
+        }
+
+        __diskCacheMemcpy(pcData, pdiskn->DISKN_pcData,
+                   (size_t)pdiskcDiskCache->DISKC_ulBytesPerSector);    /*  拷贝数据                    */
+
+        pcData += pdiskcDiskCache->DISKC_ulBytesPerSector;
+    }
+
+    pdiskcDiskCache->DISKC_iMaxRBurstSector = iMaxRBurstSector;         /*  恢复触发扇区数              */
+
+    __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                             /*  解锁                        */
+
+    return  (iError);
+}
+/*********************************************************************************************************
+** 函数名称: __diskCacheWriteMeta
+** 功能描述: 写元数据 (DISK CACHE 未加锁调用)
+** 输　入  : pdiskcDiskCache    磁盘 CACHE 控制块
+**           pvBuffer           缓冲区
+**           ulStartSector      起始扇区
+**           ulSectorCount      连续扇区数量
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __diskCacheWriteMeta (PLW_DISKCACHE_CB   pdiskcDiskCache,
+                           VOID              *pvBuffer,
+                           ULONG              ulStartSector,
+                           ULONG              ulSectorCount)
+{
+             INT                    i;
+             INT                    iError = ERROR_NONE;
+    REGISTER PLW_DISKCACHE_NODE     pdiskn;
+             PCHAR                  pcData = (PCHAR)pvBuffer;
+             PLW_BLK_RANGE          pblkrange;
+    REGISTER PLW_DISKCACHE_WP       pwp = &pdiskcDiskCache->DISKC_wpWrite;
+
+    if (!pwp->DISKCWP_bParallel) {
+        __LW_DISKCACHE_PL_LOCK(pwp);
+    }
+
+    if (pdiskcDiskCache->DISKC_pblkdDisk->BLKD_pfuncBlkWrt(pdiskcDiskCache->DISKC_pblkdDisk,
+                                                           pvBuffer, ulStartSector,
+                                                           ulSectorCount) < 0) {
+        if (!pwp->DISKCWP_bParallel) {                                  /*  并行处理这里可以释放锁      */
+            __LW_DISKCACHE_PL_UNLOCK(pwp);
+        }
+        return  (PX_ERROR);
+    }
+
+    pblkrange->BLKR_ulStartSector = ulStartSector;
+    pblkrange->BLKR_ulEndSector   = ulStartSector + ulSectorCount - 1;
+    __LW_DISKCACHE_DISK_IOCTL(pdiskcDiskCache)(pdiskcDiskCache->DISKC_pblkdDisk, FIOSYNCMETA, &pblkrange);
+
+    if (!pwp->DISKCWP_bParallel) {                                      /*  并行处理这里可以释放锁      */
+        __LW_DISKCACHE_PL_UNLOCK(pwp);
+    }
+
+    __LW_DISKCACHE_LOCK(pdiskcDiskCache);                               /*  互斥访问                    */
+
+    for (i = 0; i < ulSectorCount; i++) {
+        pdiskn = __diskCacheNodeGet(pdiskcDiskCache,
+                                    (ulStartSector + i),
+                                    (INT)(ulSectorCount - i),
+                                    LW_FALSE);
+        if (pdiskn == LW_NULL) {
+            iError =  PX_ERROR;
+            break;
+        }
+
+        if (__LW_DISKCACHE_IS_DIRTY(pdiskn) != 0) {
+            __LW_DISKCACHE_CLR_DIRTY(pdiskn);
+            pdiskcDiskCache->DISKC_ulDirtyCounter--;
+        }
+
+        __diskCacheMemcpy(pdiskn->DISKN_pcData, pcData,
+                   (size_t)pdiskcDiskCache->DISKC_ulBytesPerSector);    /*  写入数据                    */
+
+        pcData += pdiskcDiskCache->DISKC_ulBytesPerSector;
+    }
+
+    __LW_DISKCACHE_UNLOCK(pdiskcDiskCache);                             /*  解锁                        */
+
+    return  (iError);
+}
+/*********************************************************************************************************
 ** 函数名称: __diskCacheIoctl
 ** 功能描述: 通过磁盘 CACHE 控制一个磁盘
 ** 输　入  : pdiskcDiskCache   磁盘 CACHE 控制块
@@ -970,13 +1095,16 @@ INT  __diskCacheWrite (PLW_DISKCACHE_CB   pdiskcDiskCache,
 *********************************************************************************************************/
 INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg)
 {
-    REGISTER INT            iError;
-    REGISTER BOOL           bMutex;
-             PLW_BLK_RANGE  pblkrange;
+    REGISTER INT               iError;
+    REGISTER BOOL              bMutex;
+             PLW_BLK_RANGE     pblkrange;
+             PLW_BLK_METADATA  pblkMeta;
 
-    if (__LW_DISKCACHE_LOCK(pdiskcDiskCache)) {                         /*  互斥访问                    */
-        _ErrorHandle(ENXIO);
-        return  (PX_ERROR);
+    if ((iCmd != FIOWRMETA) && (iCmd != FIORDMETA)) {
+        if (__LW_DISKCACHE_LOCK(pdiskcDiskCache)) {                     /*  互斥访问                    */
+            _ErrorHandle(ENXIO);
+            return  (PX_ERROR);
+        }
     }
 
     switch (iCmd) {
@@ -1035,6 +1163,16 @@ INT  __diskCacheIoctl (PLW_DISKCACHE_CB   pdiskcDiskCache, INT  iCmd, LONG  lArg
         __diskCacheWpSync(&pdiskcDiskCache->DISKC_wpWrite, 0);          /*  等待写结束                  */
         break;
         
+    case FIORDMETA:                                                     /*  读元数据                    */
+        pblkMeta = (PLW_BLK_METADATA)lArg;
+        return (__diskCacheReadMeta(pdiskcDiskCache, pblkMeta->BLKM_pucBuf,
+                                    pblkMeta->BLKM_ulStartSector, pblkMeta->BLKM_ulSectorCnt));
+
+    case FIOWRMETA:                                                     /*  写元数据                    */
+        pblkMeta = (PLW_BLK_METADATA)lArg;
+        return (__diskCacheWriteMeta(pdiskcDiskCache, pblkMeta->BLKM_pucBuf,
+                                     pblkMeta->BLKM_ulStartSector, pblkMeta->BLKM_ulSectorCnt));
+
     case FIODISKCHANGE:                                                 /*  磁盘发生改变                */
         pdiskcDiskCache->DISKC_blkdCache.BLKD_bDiskChange = LW_TRUE;
     case FIOUNMOUNT:                                                    /*  卸载卷                      */

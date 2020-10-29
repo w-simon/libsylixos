@@ -152,8 +152,8 @@ static INT  __logicDiskRd (LW_DISKPART_OPERAT    *pdpoLogic,
 *********************************************************************************************************/
 static INT  __logicDiskIoctl (LW_DISKPART_OPERAT    *pdpoLogic, INT  iCmd, LONG  lArg)
 {
-    PLW_BLK_RANGE  pblkrLogic;
-    LW_BLK_RANGE   blkrPhy;
+    LW_BLK_RANGE    *pblkrLogic, blkrPhy;
+    LW_BLK_METADATA *pblkmLogic, blkmPhy;
 
     switch (iCmd) {
     
@@ -167,6 +167,17 @@ static INT  __logicDiskIoctl (LW_DISKPART_OPERAT    *pdpoLogic, INT  iCmd, LONG 
         return  (pdpoLogic->DPT_pblkdDisk->BLKD_pfuncBlkIoctl(pdpoLogic->DPT_pblkdDisk, 
                                                               iCmd,
                                                               &blkrPhy));
+
+    case FIORDMETA:
+    case FIOWRMETA:
+        pblkmLogic = (PLW_BLK_METADATA)lArg;
+        blkmPhy.BLKM_pucBuf        = pblkmLogic->BLKM_pucBuf;
+        blkmPhy.BLKM_ulSectorCnt   = pblkmLogic->BLKM_ulSectorCnt;
+        blkmPhy.BLKM_ulStartSector = pblkmLogic->BLKM_ulStartSector
+                                   + pdpoLogic->DPO_dpnEntry.DPN_ulStartSector;
+        return  (pdpoLogic->DPT_pblkdDisk->BLKD_pfuncBlkIoctl(pdpoLogic->DPT_pblkdDisk,
+                                                              iCmd,
+                                                              &blkmPhy));
                                                               
     default:
         return  (pdpoLogic->DPT_pblkdDisk->BLKD_pfuncBlkIoctl(pdpoLogic->DPT_pblkdDisk, 
