@@ -6,6 +6,6 @@
 #define KERNEL_VERSION(a,b,c)   (((a) << 16) + ((b) << 8) + (c))
 #endif
 
-#define LINUX_VERSION_CODE      KERNEL_VERSION(3, 4, 0)
+#define LINUX_VERSION_CODE      KERNEL_VERSION(4, 4, 4)
 
 #endif  /* __LINUX_VERSION_H */

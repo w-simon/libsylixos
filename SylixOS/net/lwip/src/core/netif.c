@@ -362,6 +362,9 @@ netif_add(struct netif *netif,
 #if ENABLE_LOOPBACK
   netif->loop_first = NULL;
   netif->loop_last = NULL;
+#if LWIP_NETIF_LOOPBACK_MULTITHREADING /* SylixOS Add this to fixed loop event lost bug */
+  netif->loop_schedule = 0;
+#endif /* LWIP_NETIF_LOOPBACK_MULTITHREADING */
 #endif /* ENABLE_LOOPBACK */
 
   /* remember netif specific state information data */
@@ -1196,9 +1199,7 @@ netif_loop_output(struct netif *netif, struct pbuf *p)
   struct netif *stats_if = netif;
 #endif /* LWIP_HAVE_LOOPIF */
 #endif /* MIB2_STATS */
-#if LWIP_NETIF_LOOPBACK_MULTITHREADING
-  u8_t schedule_poll = 0;
-#endif /* LWIP_NETIF_LOOPBACK_MULTITHREADING */
+  /* SylixOS Remove local schedule loop flag variable */
   SYS_ARCH_DECL_PROTECT(lev);
 
   LWIP_ASSERT("netif_loop_output: invalid netif", netif != NULL);
@@ -1253,7 +1254,7 @@ netif_loop_output(struct netif *netif, struct pbuf *p)
     netif->loop_last = last;
 #if LWIP_NETIF_LOOPBACK_MULTITHREADING
     /* No existing packets queued, schedule poll */
-    schedule_poll = 1;
+    netif->loop_schedule = 1; /* SylixOS fixed loop event lost bug */
 #endif /* LWIP_NETIF_LOOPBACK_MULTITHREADING */
   }
   SYS_ARCH_UNPROTECT(lev);
@@ -1264,8 +1265,10 @@ netif_loop_output(struct netif *netif, struct pbuf *p)
 
 #if LWIP_NETIF_LOOPBACK_MULTITHREADING
   /* For multithreading environment, schedule a call to netif_poll */
-  if (schedule_poll) {
-    tcpip_try_callback((tcpip_callback_fn)netif_poll, netif);
+  if (netif->loop_schedule) { /* SylixOS fixed loop event lost bug */
+    if (tcpip_try_callback((tcpip_callback_fn)netif_poll, netif) == ERR_OK) {
+      netif->loop_schedule = 0;
+    }
   }
 #endif /* LWIP_NETIF_LOOPBACK_MULTITHREADING */
 

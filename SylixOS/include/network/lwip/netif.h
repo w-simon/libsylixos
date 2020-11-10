@@ -390,6 +390,9 @@ struct netif {
   /* List of packets to be queued for ourselves. */
   struct pbuf *loop_first;
   struct pbuf *loop_last;
+#if LWIP_NETIF_LOOPBACK_MULTITHREADING /* SylixOS Add this to fixed loop event lost bug */
+  u8_t loop_schedule;
+#endif /* LWIP_NETIF_LOOPBACK_MULTITHREADING */
 #if LWIP_LOOPBACK_MAX_PBUFS
   u16_t loop_cnt_current;
 #endif /* LWIP_LOOPBACK_MAX_PBUFS */
