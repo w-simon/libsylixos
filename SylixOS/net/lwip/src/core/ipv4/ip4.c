@@ -781,6 +781,10 @@ ip4_input(struct pbuf *p, struct netif *inp)
   ip_data.current_ip4_header = iphdr;
   ip_data.current_ip_header_tot_len = IPH_HL_BYTES(iphdr);
 
+#ifdef SYLIXOS /* SylixOS add next header type */
+  ip_data.current_next_proto = IPH_PROTO(iphdr);
+#endif /* SYLIXOS */
+
 #ifdef SYLIXOS /* SylixOS Add this hook */
   if (lwip_ip_hook(IP_HOOK_V4, IP_HT_LOCAL_IN, p, inp, NULL)) {
     pbuf_free(p);

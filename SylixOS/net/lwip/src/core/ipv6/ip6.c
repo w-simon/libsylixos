@@ -1122,6 +1122,10 @@ options_done:
 
   ip_data.current_ip_header_tot_len = hlen_tot;
 
+#ifdef SYLIXOS /* SylixOS add next header type */
+  ip_data.current_next_proto = *nexth;
+#endif /* SYLIXOS */
+
 #ifdef SYLIXOS /* SylixOS Add this hook */
   if (lwip_ip_hook(IP_HOOK_V6, IP_HT_LOCAL_IN, p, inp, NULL)) {
     pbuf_free(p);

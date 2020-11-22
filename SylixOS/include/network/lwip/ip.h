@@ -126,6 +126,10 @@ struct ip_globals
   ip_addr_t current_iphdr_src;
   /** Destination IP address of current_header */
   ip_addr_t current_iphdr_dest;
+#ifdef SYLIXOS /* SylixOS add next header type */
+  /** Next protocol of current_ip4/6_header */
+  u8_t current_next_proto;
+#endif /* SYLIXOS */
 };
 extern struct ip_globals ip_data;
 
@@ -173,6 +177,10 @@ extern struct ip_globals ip_data;
 #define ip4_current_src_addr()     (ip_2_ip4(&ip_data.current_iphdr_src))
 /** Destination IP4 address of current_header */
 #define ip4_current_dest_addr()    (ip_2_ip4(&ip_data.current_iphdr_dest))
+
+#ifdef SYLIXOS /* SylixOS add next header type */
+#define ip_current_next_proto()    (ip_data.current_next_proto)
+#endif /* SYLIXOS */
 
 #elif LWIP_IPV4 /* LWIP_IPV4 && LWIP_IPV6 */
 
