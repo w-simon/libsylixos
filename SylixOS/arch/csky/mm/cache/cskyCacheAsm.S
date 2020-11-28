@@ -97,7 +97,7 @@ FUNC_DEF(cskyICacheDisableHw)
     MTCR        A0 , CR17
 
     MFCR        A0 , CR18
-    BCLRI       A0 , 2
+    BCLRI       A0 , S_CACHE_CFG_IE
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyICacheDisableHw)
@@ -111,7 +111,7 @@ FUNC_DEF(cskyDCacheDisableHw)
     MTCR        A0 , CR17
 
     MFCR        A0 , CR18
-    BCLRI       A0 , 3
+    BCLRI       A0 , S_CACHE_CFG_DE
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyDCacheDisableHw)
@@ -125,7 +125,7 @@ FUNC_DEF(cskyICacheEnableHw)
     MTCR        A0 , CR17
 
     MFCR        A0 , CR18
-    BSETI       A0 , 2
+    BSETI       A0 , S_CACHE_CFG_IE
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyICacheEnableHw)
@@ -139,11 +139,14 @@ FUNC_DEF(cskyDCacheEnableHw)
     MTCR        A1 , CR17
 
     MFCR        A1 , CR18
-    BSETI       A1 , 3                                                  ;/*  DE 数据高速缓存设置位       */
-
+    BSETI       A1 , S_CACHE_CFG_DE                                     ;/*  DE 数据高速缓存设置位       */
     BCLRI       A1 , S_CACHE_CFG_WB                                     ;/*  WB 高速缓存写回设置位       */
     BCLRI       A1 , S_CACHE_CFG_WA                                     ;/*  WA 高速缓存写分配有效设置   */
     OR          A1 , A0
+
+#ifdef __CK860__
+    BCLRI       A1 , S_CACHE_CFG_WB                                     ;/*  CK860 2.4 手册上此位为 0    */
+#endif
 
     MTCR        A1 , CR18
     RTS
@@ -155,8 +158,8 @@ FUNC_DEF(cskyDCacheEnableHw)
 
 FUNC_DEF(cskyBranchPredictorInvalidate)
     MFCR        A0 , CR17
-    BSETI       A0 , 16
-    BSETI       A0 , 17
+    BSETI       A0 , S_CFR_BHT_INV
+    BSETI       A0 , S_CFR_BTB_INV
     MTCR        A0 , CR17
     RTS
     FUNC_END(cskyBranchPredictorInvalidate)
@@ -166,13 +169,13 @@ FUNC_DEF(cskyBranchPredictorInvalidate)
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyBranchPredictionEnable)
-    MOVIH       A0 , 0x3                                                ;/*  无效分支预测缓冲            */
+    MOVIH       A0 , B_CFR_CACHE_A                                      ;/*  无效分支预测缓冲            */
     MTCR        A0 , CR17
 
     MFCR        A0 , CR18
-    BSETI       A0 , 11                                                 ;/*  BTB 分支目标缓冲器使能      */
-    BSETI       A0 , 6                                                  ;/*  Z 允许预测跳转设置位        */
-    BSETI       A0 , 5                                                  ;/*  RS 地址返回栈设置位         */
+    BSETI       A0 , S_CACHE_CFG_BTB                                    ;/*  BTB 分支目标缓冲器使能      */
+    BSETI       A0 , S_CACHE_CFG_Z                                      ;/*  Z 允许预测跳转设置位        */
+    BSETI       A0 , S_CACHE_CFG_RS                                     ;/*  RS 地址返回栈设置位         */
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyBranchPredictionEnable)
@@ -182,15 +185,15 @@ FUNC_DEF(cskyBranchPredictionEnable)
 ;*********************************************************************************************************/
 
 FUNC_DEF(cskyBranchPredictionDisable)
-    MOVIH       A0 , 0x3                                                ;/*  无效分支预测缓冲            */
+    MOVIH       A0 , B_CFR_CACHE_A                                      ;/*  无效分支预测缓冲            */
     MTCR        A0 , CR17
 
     MFCR        A0 , CR18
-    BCLRI       A0 , 11
+    BCLRI       A0 , S_CACHE_CFG_BTB
 #ifndef __CK807__
-    BCLRI       A0 , 6
+    BCLRI       A0 , S_CACHE_CFG_Z
 #endif
-    BCLRI       A0 , 5
+    BCLRI       A0 , S_CACHE_CFG_RS
     MTCR        A0 , CR18
     RTS
     FUNC_END(cskyBranchPredictionDisable)

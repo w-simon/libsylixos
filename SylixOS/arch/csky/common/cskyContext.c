@@ -64,13 +64,16 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     pregctx->REG_ulReg[REG_A0] = (ARCH_REG_T)pvArg;
     pregctx->REG_ulReg[REG_RA] = (ARCH_REG_T)0x0;
     pregctx->REG_ulReg[REG_SP] = (ARCH_REG_T)pfpctx;
+    pregctx->REG_ulReg[REG_FP] = (ARCH_REG_T)pstkTop;
 
     ulPsr  = archGetPSR();                                              /*  »ñµÃµ±Ç°µÄ PSR ¼Ä´æÆ÷       */
     ulPsr |= bspIntInitEnableStatus() | M_PSR_IE | M_PSR_EE;            /*  Ê¹ÄÜÖÐ¶ÏºÍÒì³£              */
     pregctx->REG_ulPsr = (ARCH_REG_T)ulPsr;
     pregctx->REG_ulPc  = (ARCH_REG_T)pfuncTask;
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     pregctx->REG_ulLo  = (ARCH_REG_T)0x0;
     pregctx->REG_ulHi  = (ARCH_REG_T)0x0;
+#endif
     pregctx->REG_ulMeh = (ARCH_REG_T)0x0;
 
     return  ((PLW_STACK)pfpctx);
@@ -154,12 +157,13 @@ VOID  archTaskRegsSet (ARCH_REG_CTX  *pregctxDest, const ARCH_REG_CTX  *pregctxS
     pregctxDest->REG_ulReg[29] = pregctxSrc->REG_ulReg[29];
     pregctxDest->REG_ulReg[30] = pregctxSrc->REG_ulReg[30];   
     pregctxDest->REG_ulReg[31] = pregctxSrc->REG_ulReg[31];
-    
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     pregctxDest->REG_ulLo  = pregctxSrc->REG_ulLo;                      /*  ³ýÊýµÍÎ»¼Ä´æÆ÷              */
     pregctxDest->REG_ulHi  = pregctxSrc->REG_ulHi;                      /*  ³ýÊý¸ßÎ»¼Ä´æÆ÷              */
+#endif
+    pregctxDest->REG_ulMeh = pregctxSrc->REG_ulMeh;                     /*  ´íÎóµØÖ·¼Ä´æÆ÷              */
     pregctxDest->REG_ulPsr = pregctxSrc->REG_ulPsr;                     /*  PSR ¼Ä´æÆ÷                  */
     pregctxDest->REG_ulPc  = pregctxSrc->REG_ulPc;                      /*  ³ÌÐò¼ÆÊýÆ÷¼Ä´æÆ÷            */
-    pregctxDest->REG_ulMeh = pregctxSrc->REG_ulMeh;                     /*  ´íÎóµØÖ·¼Ä´æÆ÷              */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: archTaskCtxShow
@@ -182,8 +186,10 @@ VOID  archTaskCtxShow (INT  iFd, const ARCH_REG_CTX  *pregctx)
         fdprintf(iFd, "\n");
 
         fdprintf(iFd, "PC      = "LX_FMT"\n", pregctx->REG_ulPc);
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
         fdprintf(iFd, "LO      = "LX_FMT"\n", pregctx->REG_ulLo);
         fdprintf(iFd, "HI      = "LX_FMT"\n", pregctx->REG_ulHi);
+#endif
         fdprintf(iFd, "MEH     = "LX_FMT"\n", pregctx->REG_ulMeh);
         
 #ifdef __CSKYABIV2__
@@ -278,8 +284,10 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
         size_t  stOft = 0;
 
         stOft = bnprintf(pvBuffer, stSize, stOft, "PC      = "LX_FMT"\n", pregctx->REG_ulPc);
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
         stOft = bnprintf(pvBuffer, stSize, stOft, "LO      = "LX_FMT"\n", pregctx->REG_ulLo);
         stOft = bnprintf(pvBuffer, stSize, stOft, "HI      = "LX_FMT"\n", pregctx->REG_ulHi);
+#endif
         stOft = bnprintf(pvBuffer, stSize, stOft, "MEH     = "LX_FMT"\n", pregctx->REG_ulMeh);
     
 #ifdef __CSKYABIV2__
@@ -352,8 +360,10 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
         _PrintFormat("\r\n");
 
         _PrintFormat("PC      = "LX_FMT"\r\n", pregctx->REG_ulPc);
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
         _PrintFormat("LO      = "LX_FMT"\r\n", pregctx->REG_ulLo);
         _PrintFormat("HI      = "LX_FMT"\r\n", pregctx->REG_ulHi);
+#endif
         _PrintFormat("MEH     = "LX_FMT"\r\n", pregctx->REG_ulMeh);
         
 #ifdef __CSKYABIV2__

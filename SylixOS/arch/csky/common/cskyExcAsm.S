@@ -119,13 +119,13 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
 
     MFCR        R18 , EPSR                                              ;/*  EPSR ´úÌæ PSR ±£´æ          */
     ST.W        R18 , (SP , XPSR)
-
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     MFLO        R18                                                     ;/*  ±£´æ LO ¼Ä´æÆ÷              */
     ST.W        R18 , (SP , XLO)
 
     MFHI        R18                                                     ;/*  ±£´æ HI ¼Ä´æÆ÷              */
     ST.W        R18 , (SP , XHI)
-
+#endif
     MFCR        R18 , CR<4, 15>                                         ;/*  ±£´æ MEH ¼Ä´æÆ÷             */
     ST.W        R18 , (SP , XMEH)
 

@@ -133,6 +133,8 @@ int netdev_mipif_add (netdev_t *netdev, const ip4_addr_t *ip4,
     return (-1);
   }
   
+  mipif->ioctl = netif->ioctl;
+
   return (0);
 }
 

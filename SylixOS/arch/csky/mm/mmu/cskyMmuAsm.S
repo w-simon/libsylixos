@@ -56,6 +56,9 @@ FUNC_DEF(cskyMmuContextSet)
 #if LW_CFG_CSKY_HARD_TLB_REFILL > 0
     ORI         A0 , A0 , 1
 #endif
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+    MTCR        A0 , CR<28, 15>
+#endif
     MTCR        A0 , CR<29, 15>
     RTS
     FUNC_END(cskyMmuContextSet)
@@ -247,7 +250,11 @@ FUNC_DEF(cskyMmuTlbLdStExceptHandle)
     BGENI       A2 , 29
     BTSTI       A3 , 31
     BF          1f
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+    BGENI       A2 , 27
+#else
     BGENI       A2 , 25
+#endif
     MTCR        A2 , CR<8, 15>
     BGENI       A2 , 28
 

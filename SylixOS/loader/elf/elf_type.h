@@ -211,7 +211,8 @@ typedef SINT64   Elf64_Sxword;
 #define EM_PPC64        21                                              /* PowerPC64                    */
 #define EM_S390         22                                              /* IBM S/390                    */
 #define EM_SPU          23                                              /* Cell BE SPU                  */
-#define EM_CSKY         39                                              /* C-SKY                        */
+#define EM_CSKY_OLD     39                                              /* C-SKY                        */
+#define EM_CSKY         252                                             /* C-SKY                        */
 #define EM_ARM          40                                              /* ARM/Thumb family             */
 #define EM_SH           42                                              /* SuperH                       */
 #define EM_SPARCV9      43                                              /* SPARC v9 64-bit              */

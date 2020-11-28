@@ -65,7 +65,11 @@
   全局变量
 *********************************************************************************************************/
 static BOOL                 _G_bMmuEnByBoot  = LW_TRUE;                 /*  BOOT 是否已经启动了 MMU     */
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+static ULONG                _G_ulMmuTlbSize  = 512;                     /*  TLB 数组大小                */
+#else
 static ULONG                _G_ulMmuTlbSize  = 128;                     /*  TLB 数组大小                */
+#endif
 static LW_OBJECT_HANDLE     _G_hPGDPartition = LW_HANDLE_INVALID;       /*  系统目前仅使用一个 PGD      */
 static LW_OBJECT_HANDLE     _G_hPTEPartition = LW_HANDLE_INVALID;       /*  PTE 缓冲区                  */
 /*********************************************************************************************************

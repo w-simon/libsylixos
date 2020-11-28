@@ -22,6 +22,10 @@
 #ifndef __AF_UNIX_H
 #define __AF_UNIX_H
 
+#ifndef __SYS_UN_H
+#include "sys/un.h"
+#endif
+
 /*********************************************************************************************************
   AF_UNIX 接收数据节点扩展数据
 *********************************************************************************************************/
@@ -63,9 +67,14 @@ typedef struct af_unix_queue {
   关于 UNIX_hCanRead  表示当前 socket 读操作无数据时等待的信号量
   关于 UNIX_hCanWrite 表示其他 socket 写本节点时需要等待的信号量
 *********************************************************************************************************/
+typedef struct unix_temp_mode unix_temp_mode_t;
 
 typedef struct af_unix_t {
     LW_LIST_LINE        UNIX_lineManage;
+    LW_LIST_LINE        UNIX_linePath;
+
+    unix_temp_mode_t    UNIX_tempmode;                                  /*  无文件模式 DGRAM            */
+    BOOL                UNIX_bHasConn;                                  /*  DGRAM 被连接过              */
     
     LW_LIST_RING        UNIX_ringConnect;                               /*  连接队列                    */
     LW_LIST_RING_HEADER UNIX_pringConnect;                              /*  等待连接的队列              */

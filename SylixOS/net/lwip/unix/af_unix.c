@@ -47,6 +47,7 @@
             AF_UNIX 支持多线程并行读写.
 2017.08.31  shutdown 写后, 远程端有机会读出最后暂存的数据.
 2019.01.09  修正 __unixUpdateWriter() 判断错误.
+2020.11.25  增加路径搜索 HASH 表, 提高路径搜索效率.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -57,7 +58,6 @@
 #if LW_CFG_NET_EN > 0 && LW_CFG_NET_UNIX_EN > 0
 #include "limits.h"
 #include "sys/socket.h"
-#include "sys/un.h"
 #include "af_unix.h"
 #include "lwip/mem.h"
 #include "af_unix_msg.h"
@@ -65,6 +65,10 @@
   函数声明
 *********************************************************************************************************/
 extern void  __socketEnotify(void *file, LW_SEL_TYPE type, INT  iSoErr);
+/*********************************************************************************************************
+  hash 函数声明
+*********************************************************************************************************/
+extern INT  __hashHorner(CPCHAR  pcKeyword, INT  iTableSize);
 /*********************************************************************************************************
   宏配置
 *********************************************************************************************************/
@@ -84,10 +88,13 @@ extern void  __socketEnotify(void *file, LW_SEL_TYPE type, INT  iSoErr);
 
 #define __AF_UNIX_PART_256          LW_CFG_AF_UNIX_256_POOLS            /*  256 字节内存池数量          */
 #define __AF_UNIX_PART_512          LW_CFG_AF_UNIX_512_POOLS            /*  512 字节内存池数量          */
+
+#define __AF_UNIX_PATH_HASH_SIZE    71                                  /*  PATH HASH table size        */
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
 static LW_LIST_LINE_HEADER          _G_plineAfUnix;
+static LW_LIST_LINE_HEADER          _G_plineAfUnixPath[__AF_UNIX_PATH_HASH_SIZE];
 static LW_OBJECT_HANDLE             _G_hAfUnixMutex;
 
 #define __AF_UNIX_LOCK()            API_SemaphoreMPend(_G_hAfUnixMutex, LW_OPTION_WAIT_INFINITE)
@@ -302,6 +309,32 @@ static VOID  __unixDeleteAllMsg (AF_UNIX_T  *pafunix)
     }
     
     pafunixq->UNIQ_stTotal = 0;
+}
+/*********************************************************************************************************
+** 函数名称: __unixFreeBytes
+** 功能描述: 判断接收端空余数据量
+** 输　入  : pafunix         接收方
+** 输　出  : 空余数据量
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static size_t  __unixFreeBytes (AF_UNIX_T  *pafunix)
+{
+    size_t      stFreeBuf;
+
+    if (pafunix->UNIX_iStatus == __AF_UNIX_STATUS_LISTEN) {             /*  CONNECT 状态下不可写        */
+        return  (0);
+    }
+
+    if (pafunix->UNIX_stMaxBufSize >
+        pafunix->UNIX_unixq.UNIQ_stTotal) {
+        stFreeBuf = pafunix->UNIX_stMaxBufSize
+                  - pafunix->UNIX_unixq.UNIQ_stTotal;                   /*  获得对方剩余缓冲大小        */
+    } else {
+        stFreeBuf = 0;
+    }
+
+    return  (stFreeBuf);
 }
 /*********************************************************************************************************
 ** 函数名称: __unixCanWrite
@@ -710,6 +743,77 @@ static VOID  __unixShutdownW (AF_UNIX_T  *pafunix)
     }
 }
 /*********************************************************************************************************
+** 函数名称: __unixAddPath
+** 功能描述: 将 UNIX 节点加入路径搜索表
+** 输　入  : pafunix   控制块
+**           pcPath    路径
+** 输　出  :
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __unixAddPath (AF_UNIX_T  *pafunix, CPCHAR  pcPath)
+{
+    INT  iHash;
+
+    iHash = __hashHorner(pcPath, __AF_UNIX_PATH_HASH_SIZE);
+
+    _List_Line_Add_Ahead(&pafunix->UNIX_linePath, &_G_plineAfUnixPath[iHash]);
+
+    lib_strcpy(pafunix->UNIX_cFile, pcPath);
+}
+/*********************************************************************************************************
+** 函数名称: __unixRemovePath
+** 功能描述: 将 UNIX 节点从路径搜索表移除
+** 输　入  : pafunix   控制块
+** 输　出  :
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __unixRemovePath (AF_UNIX_T  *pafunix)
+{
+    INT  iHash;
+
+    iHash = __hashHorner(pafunix->UNIX_cFile, __AF_UNIX_PATH_HASH_SIZE);
+
+    _List_Line_Del(&pafunix->UNIX_linePath, &_G_plineAfUnixPath[iHash]);
+
+    pafunix->UNIX_cFile[0] = '\0';
+}
+/*********************************************************************************************************
+** 函数名称: __unixFind
+** 功能描述: 查询一个节点
+** 输　入  : pcPath                查询一个节点
+**           iType                 类型
+**           bListen               是否查询一个 listen 节点
+** 输　出  : pafunix
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static AF_UNIX_T  *__unixFind (CPCHAR  pcPath, INT  iType, BOOL  bListen)
+{
+    INT              iHash;
+    AF_UNIX_T       *pafunixTemp;
+    PLW_LIST_LINE    plineTemp;
+
+    iHash = __hashHorner(pcPath, __AF_UNIX_PATH_HASH_SIZE);
+
+    for (plineTemp  = _G_plineAfUnixPath[iHash];
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+
+        pafunixTemp = _LIST_ENTRY(plineTemp, AF_UNIX_T, UNIX_linePath);
+        if ((iType == SOCK_DGRAM) || !bListen ||
+            (pafunixTemp->UNIX_iStatus == __AF_UNIX_STATUS_LISTEN)) {
+            if ((__AF_UNIX_TYPE(pafunixTemp) == iType) &&
+                (lib_strcmp(pafunixTemp->UNIX_cFile, pcPath) == 0)) {
+                return  (pafunixTemp);
+            }
+        }
+    }
+
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
 ** 函数名称: __unixCreate
 ** 功能描述: 创建一个 af_unix 控制块
 ** 输　入  : iType                 SOCK_STREAM / SOCK_DGRAM / SOCK_SEQPACKET
@@ -776,6 +880,7 @@ static VOID  __unixDelete (AF_UNIX_T  *pafunix)
     
     __AF_UNIX_LOCK();
     __unixDeleteAllMsg(pafunix);                                        /*  删除所有未接收的信息        */
+
     for (plineTemp  = _G_plineAfUnix;
          plineTemp != LW_NULL;
          plineTemp  = _list_line_get_next(plineTemp)) {
@@ -785,44 +890,18 @@ static VOID  __unixDelete (AF_UNIX_T  *pafunix)
             pafunixTemp->UNIX_pafunxPeer = LW_NULL;
         }
     }
+
     _List_Line_Del(&pafunix->UNIX_lineManage, &_G_plineAfUnix);
+
+    if (pafunix->UNIX_cFile[0]) {
+        __unixRemovePath(pafunix);
+    }
     __AF_UNIX_UNLOCK();
     
     API_SemaphoreBDelete(&pafunix->UNIX_hCanRead);
     API_SemaphoreBDelete(&pafunix->UNIX_hCanWrite);
     
     __SHEAP_FREE(pafunix);
-}
-/*********************************************************************************************************
-** 函数名称: __unixFind
-** 功能描述: 查询一个节点
-** 输　入  : pcPath                查询一个节点
-**           iType                 类型
-**           bListen               是否查询一个 listen 节点
-** 输　出  : pafunix
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-static AF_UNIX_T  *__unixFind (CPCHAR  pcPath, INT  iType, BOOL  bListen)
-{
-    AF_UNIX_T       *pafunixTemp;
-    PLW_LIST_LINE    plineTemp;
-    
-    for (plineTemp  = _G_plineAfUnix;
-         plineTemp != LW_NULL;
-         plineTemp  = _list_line_get_next(plineTemp)) {
-    
-        pafunixTemp = (AF_UNIX_T *)plineTemp;
-        if ((__AF_UNIX_TYPE(pafunixTemp) == iType) &&
-            (lib_strcmp(pafunixTemp->UNIX_cFile, pcPath) == 0)) {
-            if ((iType == SOCK_DGRAM) || !bListen ||
-                (pafunixTemp->UNIX_iStatus == __AF_UNIX_STATUS_LISTEN)) {
-                return  (pafunixTemp);
-            }
-        }
-    }
-    
-    return  (LW_NULL);
 }
 /*********************************************************************************************************
 ** 函数名称: __unixConnect
@@ -1127,7 +1206,7 @@ AF_UNIX_T  *unix_socket (INT  iDomain, INT  iType, INT  iProtocol)
 INT  unix_bind (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t namelen)
 {
     struct sockaddr_un  *paddrun = (struct sockaddr_un *)name;
-           INT           iFd;
+           INT           iFd     = -1;
            INT           iPathLen;
            INT           iSockType;
            AF_UNIX_T    *pafunixFind;
@@ -1151,13 +1230,18 @@ INT  unix_bind (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t name
     lib_strncpy(cPath, paddrun->sun_path, iPathLen);
     cPath[iPathLen] = PX_EOS;
     
-    iFd = open(cPath, O_CREAT | O_RDWR, __AF_UNIX_DEF_FLAG | S_IFSOCK); /*  创建 socket 文件            */
-    if (iFd < 0) {
-        return  (PX_ERROR);
+    if (!pafunix->UNIX_tempmode.enable) {
+        iFd = open(cPath, O_CREAT | O_RDWR, __AF_UNIX_DEF_FLAG | S_IFSOCK);
+        if (iFd < 0) {                                                  /*  创建 socket 文件            */
+            return  (PX_ERROR);
+        }
     }
     
     __AF_UNIX_LOCK();
-    API_IosFdGetName(iFd, cPath, MAX_FILENAME_LENGTH);                  /*  获得完整路径                */
+    if (!pafunix->UNIX_tempmode.enable) {
+        API_IosFdGetName(iFd, cPath, MAX_FILENAME_LENGTH);                  /*  获得完整路径                */
+    }
+
     iSockType = __AF_UNIX_TYPE(pafunix);
     pafunixFind = __unixFind(cPath, iSockType, 
                              (iSockType == SOCK_DGRAM) ?
@@ -1168,10 +1252,16 @@ INT  unix_bind (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t name
         _ErrorHandle(EADDRINUSE);                                       /*  不允许重复地址绑定          */
         return  (PX_ERROR);
     }
-    lib_strcpy(pafunix->UNIX_cFile, cPath);
+
+    if (pafunix->UNIX_cFile[0]) {
+        __unixRemovePath(pafunix);
+    }
+    __unixAddPath(pafunix, cPath);                                      /*  加入路径搜索表              */
     __AF_UNIX_UNLOCK();
     
-    close(iFd);
+    if (iFd >= 0) {
+        close(iFd);
+    }
     
     return  (ERROR_NONE);
 }
@@ -1260,7 +1350,7 @@ AF_UNIX_T  *unix_accept (AF_UNIX_T  *pafunix, struct sockaddr *addr, socklen_t *
                 pafunixNew->UNIX_iStatus     = __AF_UNIX_STATUS_ESTAB;
                 pafunixNew->UNIX_pafunxPeer  = pafunixConn;
                 pafunixNew->UNIX_iPassCred   = pafunix->UNIX_iPassCred; /*  继承 SO_PASSCRED 选项       */
-                lib_strcpy(pafunixNew->UNIX_cFile, pafunix->UNIX_cFile);/*  继承 accept 地址            */
+                __unixAddPath(pafunixNew, pafunix->UNIX_cFile);         /*  继承 accept 地址            */
                 
                 if (paddrun && addrlen && (*addrlen > __AF_UNIX_ADDROFFSET)) {
                     size_t  stPathLen    = lib_strlen(pafunixConn->UNIX_cFile);
@@ -1319,7 +1409,7 @@ INT  unix_connect (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t n
 {
     struct sockaddr_un  *paddrun = (struct sockaddr_un *)name;
     AF_UNIX_T           *pafunixAcce;
-    CHAR                 cPath[MAX_FILENAME_LENGTH];
+    CHAR                *pcPath, cPath[MAX_FILENAME_LENGTH];
 
     if (paddrun == LW_NULL) {
         _ErrorHandle(EINVAL);
@@ -1331,7 +1421,12 @@ INT  unix_connect (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t n
         return  (PX_ERROR);
     }
     
-    _PathGetFull(cPath, MAX_FILENAME_LENGTH, paddrun->sun_path);        /*  获得完整路径                */
+    if (pafunix->UNIX_tempmode.enable) {
+        pcPath = paddrun->sun_path;
+    } else {
+        _PathGetFull(cPath, MAX_FILENAME_LENGTH, paddrun->sun_path);    /*  获得完整路径                */
+        pcPath = cPath;
+    }
     
     __AF_UNIX_LOCK();
     if (pafunix->UNIX_iStatus == __AF_UNIX_STATUS_CONNECT) {
@@ -1351,7 +1446,7 @@ INT  unix_connect (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t n
         return  (PX_ERROR);
     }
     
-    pafunixAcce = __unixFind(cPath, __AF_UNIX_TYPE(pafunix), LW_TRUE);  /*  查询连接目的                */
+    pafunixAcce = __unixFind(pcPath, __AF_UNIX_TYPE(pafunix), LW_TRUE); /*  查询连接目的                */
     if (pafunixAcce == LW_NULL) {
         __AF_UNIX_UNLOCK();
         _ErrorHandle(ECONNRESET);                                       /*  没有目的 ECONNRESET         */
@@ -1359,6 +1454,16 @@ INT  unix_connect (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t n
     }
     
     if (__AF_UNIX_TYPE(pafunix) == SOCK_DGRAM) {                        /*  非面向连接类型              */
+        if (pafunixAcce->UNIX_tempmode.enable) {
+            if ((pafunixAcce->UNIX_tempmode.peer >= 0) &&
+                (pafunixAcce->UNIX_tempmode.peer != getpid())) {        /*  是否允许 connect            */
+                __AF_UNIX_UNLOCK();
+                _ErrorHandle(ECONNREFUSED);                             /*  无法连接目的 ECONNREFUSED   */
+                return  (PX_ERROR);
+            }
+            pafunixAcce->UNIX_bHasConn   = LW_TRUE;
+            pafunixAcce->UNIX_pafunxPeer = pafunix;                     /*  pipe connect                */
+        }
         pafunix->UNIX_pafunxPeer = pafunixAcce;                         /*  保存远程节点                */
         
     } else {                                                            /*  面向连接类型                */
@@ -1727,7 +1832,6 @@ static ssize_t  unix_sendto2 (AF_UNIX_T  *pafunix, const void *data, size_t size
         
         if (bHaveTo) {                                                  /*  是否有地址信息              */
             pafunixRecver = __unixFind(cPath, __AF_UNIX_TYPE(pafunix), LW_FALSE);
-        
         } else {
             pafunixRecver = pafunix->UNIX_pafunxPeer;
         }
@@ -1741,7 +1845,7 @@ static ssize_t  unix_sendto2 (AF_UNIX_T  *pafunix, const void *data, size_t size
                 __unixSignalNotify(flags);
                 _ErrorHandle(ECONNRESET);                               /*  连接已经中断                */
             }
-            return  (sstTotal);
+            return  (sstTotal ? sstTotal : PX_ERROR);
         }
         
 __try_send:
@@ -1952,6 +2056,15 @@ INT  unix_close (AF_UNIX_T  *pafunix)
         pafunix->UNIX_iStatus    = __AF_UNIX_STATUS_NONE;
         pafunix->UNIX_pafunxPeer = LW_NULL;                             /*  解除本地连接关系            */
         __unixUpdateExcept(pafunix, ENOTCONN);
+
+    } else {                                                            /*  DGRAM                       */
+        if (pafunix->UNIX_tempmode.enable) {                            /*  是对端文件异常              */
+            pafunixPeer = pafunix->UNIX_pafunxPeer;
+            if (pafunixPeer) {
+                pafunixPeer->UNIX_pafunxPeer = LW_NULL;                 /*  解除对方的连接关系          */
+                __unixUpdateExcept(pafunixPeer, ECONNRESET);
+            }
+        }
     }
     __AF_UNIX_UNLOCK();
     
@@ -2306,13 +2419,16 @@ INT  unix_getsockopt (AF_UNIX_T  *pafunix, int level, int optname, void *optval,
 *********************************************************************************************************/
 INT  unix_ioctl (AF_UNIX_T  *pafunix, INT  iCmd, PVOID  pvArg)
 {
-    INT     iRet = ERROR_NONE;
+    INT  iRet = ERROR_NONE;
     
     switch (iCmd) {
     
     case FIOGETFL:
         if (pvArg) {
             *(INT *)pvArg = pafunix->UNIX_iFlag;
+        } else {
+            _ErrorHandle(EINVAL);
+            iRet = PX_ERROR;
         }
         break;
         
@@ -2327,9 +2443,31 @@ INT  unix_ioctl (AF_UNIX_T  *pafunix, INT  iCmd, PVOID  pvArg)
     case FIONREAD:
         if (pvArg) {
             *(INT *)pvArg = (INT)pafunix->UNIX_unixq.UNIQ_stTotal;
+        } else {
+            _ErrorHandle(EINVAL);
+            iRet = PX_ERROR;
         }
         break;
         
+    case FIONFREE:
+        if (pvArg) {
+            AF_UNIX_T  *pafunixPeer = pafunix->UNIX_pafunxPeer;
+            if (pafunixPeer) {
+                size_t stFree = __unixFreeBytes(pafunixPeer);
+                if (stFree >= __AF_UNIX_PIPE_BUF) {
+                    *(INT *)pvArg = (INT)stFree;
+                } else {
+                    *(INT *)pvArg = 0;
+                }
+            } else {
+                *(INT *)pvArg = __AF_UNIX_PIPE_BUF;
+            }
+        } else {
+            _ErrorHandle(EINVAL);
+            iRet = PX_ERROR;
+        }
+        break;
+
     case FIONBIO:
         if (pvArg && *(INT *)pvArg) {
             pafunix->UNIX_iFlag |= O_NONBLOCK;
@@ -2338,6 +2476,32 @@ INT  unix_ioctl (AF_UNIX_T  *pafunix, INT  iCmd, PVOID  pvArg)
         }
         break;
         
+    case UNIXCGTEMPMODE:
+        if (!pvArg) {
+            _ErrorHandle(EINVAL);
+            iRet = PX_ERROR;
+        } else {
+            *(struct unix_temp_mode *)pvArg = pafunix->UNIX_tempmode;
+        }
+        break;
+
+    case UNIXCSTEMPMODE:
+        if (!pvArg) {
+            _ErrorHandle(EINVAL);
+            iRet = PX_ERROR;
+        } else if (__AF_UNIX_TYPE(pafunix) != SOCK_DGRAM) {
+            _ErrorHandle(ENOTSUP);
+            iRet = PX_ERROR;
+        } else {
+            if (pafunix->UNIX_tempmode.enable) {
+                _ErrorHandle(EALREADY);
+                iRet = PX_ERROR;
+            } else {
+                pafunix->UNIX_tempmode = *(struct unix_temp_mode *)pvArg;
+            }
+        }
+        break;
+
     default:
         _ErrorHandle(ENOSYS);
         iRet = PX_ERROR;
@@ -2423,7 +2587,12 @@ int __unix_have_event (AF_UNIX_T *pafunix, int type, int  *piSoErr)
                 break;
             }
         } else {
-            if (__unixCanRead(pafunix, 0, 0)) {                         /*  可读                        */
+            if (pafunix->UNIX_tempmode.enable &&
+                pafunix->UNIX_bHasConn && !pafunix->UNIX_pafunxPeer) {  /*  对方已经不存在了            */
+                *piSoErr = ECONNRESET;                                  /*  读已经被停止了              */
+                iEvent   = 1;
+
+            } else if (__unixCanRead(pafunix, 0, 0)) {                  /*  可读                        */
                 *piSoErr = ERROR_NONE;
                 iEvent   = 1;
             }

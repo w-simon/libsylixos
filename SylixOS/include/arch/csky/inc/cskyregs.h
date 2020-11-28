@@ -48,21 +48,21 @@ do {                                        \
     __asm__ __volatile__(                   \
         "mtcr      %0, cr<4, 15>"           \
         :: "r"(value));                     \
-}while (0)
+} while (0)
 
 #define cskyEntryLo0Write(value)            \
 do {                                        \
     __asm__ __volatile__(                   \
         "mtcr      %0, cr<2, 15>"           \
         :: "r"(value));                     \
-}while (0)
+} while (0)
 
 #define cskyEntryLo1Write(value)            \
 do {                                        \
     __asm__ __volatile__(                   \
         "mtcr      %0, cr<3, 15>"           \
         :: "r"(value));                     \
-}while (0)
+} while (0)
 
 #define cskyIndexRead()                     \
 ({  UINT32   uiRes;                         \
@@ -77,12 +77,20 @@ do {                                        \
     __asm__ __volatile__(                   \
         "mtcr      %0, cr<0, 15>"           \
         :: "r"(value));                     \
-}while (0)
+} while (0)
 
 #define cskyEntryHiRead()                   \
 ({  UINT32   uiRes;                         \
     __asm__ __volatile__(                   \
         "mfcr      %0, cr<4, 15>"           \
+        : "=r"(uiRes));                     \
+    uiRes;                                  \
+})
+
+#define cskyPageMaskRead()                  \
+({  UINT32   uiRes;                         \
+    __asm__ __volatile__(                   \
+        "mfcr      %0, cr<6, 15>"           \
         : "=r"(uiRes));                     \
     uiRes;                                  \
 })
@@ -111,6 +119,44 @@ do {                                        \
     uiRes;                                  \
 })
 
+#define cskyMSA0Read()                      \
+({  UINT32   uiRes;                         \
+    __asm__ __volatile__(                   \
+        "mfcr      %0, cr<30, 15>"          \
+        : "=r"(uiRes));                     \
+    uiRes;                                  \
+})
+
+#define cskyMSA1Read()                      \
+({  UINT32   uiRes;                         \
+    __asm__ __volatile__(                   \
+        "mfcr      %0, cr<31, 15>"          \
+        : "=r"(uiRes));                     \
+    uiRes;                                  \
+})
+
+#define cskyCCR2Read()                      \
+({  UINT32   uiRes;                         \
+    __asm__ __volatile__(                   \
+        "mfcr      %0, cr<23, 0>"           \
+        : "=r"(uiRes));                     \
+    uiRes;                                  \
+})
+
+#define cskyCCR2Write(value)                \
+do {                                        \
+    __asm__ __volatile__(                   \
+        "mtcr      %0, cr<23, 0>"           \
+        :: "r"(value));                     \
+} while (0)
+
+#define cskyCR24Write(value)                \
+do {                                        \
+    __asm__ __volatile__(                   \
+        "mtcr      %0, cr24\n\t"            \
+        :: "r"(value));                     \
+} while (0)
+
 #define SET_CIR(value)                      \
     __asm__ __volatile__(                   \
         "mtcr  %0 , cr22\n\t" ::"r"(value))
@@ -134,52 +180,51 @@ do {                                        \
         :"=r"(tmp)                          \
         :"r"(addr), "0"(tmp))
 
+#define CSKY_TLBP          0x80000000
+#define CSKY_TLBR          0x40000000
+#define CSKY_TLBWI         0x20000000
+#define CSKY_TLBWR         0x10000000
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+#define CSKY_TLBINV        0x08000000
+#else
+#define CSKY_TLBINV        0x02000000
+#endif
+#define CSKY_TLBINV_ALL    0x04000000
+
 static inline void cskyTlbProbe(void)
 {
-    int value = 0x80000000;
-
     __asm__ __volatile__("mtcr %0,cr<8, 15>\n\t"
-                    : :"r" (value));
+                    : :"r" (CSKY_TLBP));
 }
 
 static inline void cskyTlbRead(void)
 {
-    int value = 0x40000000;
-
     __asm__ __volatile__("mtcr %0,cr<8, 15>\n\t"
-                    : :"r" (value));
+                    : :"r" (CSKY_TLBR));
 }
 
 static inline void cskyTlbWriteIndexed(void)
 {
-    int value = 0x20000000;
-
     __asm__ __volatile__("mtcr %0,cr<8,15>\n\t"
-                    : :"r" (value));
+                    : :"r" (CSKY_TLBWI));
 }
 
 static inline void cskyTlbWriteRandom(void)
 {
-    int value = 0x10000000;
-
     __asm__ __volatile__("mtcr %0,cr<8, 15>\n\t"
-                    : :"r" (value));
+                    : :"r" (CSKY_TLBWR));
 }
 
 static inline void cskyTlbInvalidAll(void)
 {
-    int value = 0x04000000;
-
     __asm__ __volatile__("mtcr %0,cr<8, 15>\n\t"
-                    : :"r" (value));
+                    : :"r" (CSKY_TLBINV_ALL));
 }
 
 static inline void cskyTlbInvalidIndexed(void)
 {
-    int value = 0x02000000;
-
     __asm__ __volatile__("mtcr %0,cr<8, 15>\n\t"
-                    : :"r" (value));
+                    : :"r" (CSKY_TLBINV));
 }
 
 static inline uint32_t cskyMpuGetCCR(void)

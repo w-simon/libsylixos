@@ -35,12 +35,13 @@ MACRO_DEF(SAVE_KERN_REGS)
     
     MFCR        A2 , PSR                                                ;/*  ±£´æ PSR ¼Ä´æÆ÷             */
     ST.W        A2 , (A1 , XPSR)
-
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     MFLO        A2                                                      ;/*  ±£´æ LO ¼Ä´æÆ÷              */
     ST.W        A2 , (A1 , XLO)
 
     MFHI        A2                                                      ;/*  ±£´æ HI ¼Ä´æÆ÷              */
     ST.W        A2 , (A1 , XHI)
+#endif
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -49,12 +50,13 @@ MACRO_DEF(SAVE_KERN_REGS)
 ;*********************************************************************************************************/
 
 MACRO_DEF(RESTORE_KERN_REGS)
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     LD.W        A0 , (A1 , XLO)                                         ;/*  »Ö¸´ LO ¼Ä´æÆ÷              */
     MTLO        A0
 
     LD.W        A0 , (A1 , XHI)                                         ;/*  »Ö¸´ HI ¼Ä´æÆ÷              */
     MTHI        A0
-
+#endif
     LD.W        A0 , (A1 , XPSR)                                        ;/*  »Ö¸´ PSR ¼Ä´æÆ÷             */
     MTCR        A0 , EPSR
 

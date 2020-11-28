@@ -30,6 +30,10 @@
 #define __SYLIXOS_CSKY_ARCH_CK803__
 #endif
 
+#if defined(__CK860__)
+#define __SYLIXOS_CSKY_ARCH_CK860__
+#endif
+
 #endif                                                                  /*  __ARCHPROB_H                */
 /*********************************************************************************************************
   END

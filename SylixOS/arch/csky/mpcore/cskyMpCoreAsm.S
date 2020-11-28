@@ -42,7 +42,12 @@
 ;*********************************************************************************************************/
 
 FUNC_DEF(archMpCur)
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+    MFCR        A0 , CR<30, 0>
+    ANDI        A0 , A0 , 0xff
+#else
     MOVI        A0 , 0
+#endif
     RTS
     FUNC_END(archMpCur)
 

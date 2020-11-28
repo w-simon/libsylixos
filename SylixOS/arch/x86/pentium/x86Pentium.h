@@ -31,6 +31,7 @@
 #define X86_MSR_IA32_STAR           0xc0000081
 #define X86_MSR_IA32_LSTAR          0xc0000082
 #define X86_MSR_IA32_FMASK          0xc0000084
+#define X86_MSR_IA32_FS_BASE        0xc0000100
 #define X86_MSR_IA32_GS_BASE        0xc0000101
 #define X86_MSR_IA32_KERNEL_GS_BASE 0xc0000102
 

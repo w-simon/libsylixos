@@ -123,6 +123,12 @@ static INT elfCheck (Elf_Ehdr *pehdr, BOOL bLoad)
         return  (PX_ERROR);
     }
 
+#if defined(LW_CFG_CPU_ARCH_CSKY)
+    if ((EM_CSKY_OLD == pehdr->e_machine) && (ELF_ARCH == EM_CSKY)) {   /*  新老版本编译器值不一样      */
+        return  (ERROR_NONE);
+    }
+#endif
+
     if (ELF_ARCH != pehdr->e_machine) {                                 /*  检查ELF体系结构是否匹配     */
         if (bLoad) {
             fprintf(stderr, "[ld]Architecture error: this CPU is \"%s\" but ELF file CPU is \"%s\"!\n",
@@ -1550,22 +1556,24 @@ static INT elfPhdrRead (LW_LD_EXEC_MODULE *pmodule,
     /*
      *  计算 RELA 重定位表项数和重定位表
      */
-    pshdr = (Elf_Shdr *)pcShdrBuf;
+    if (EM_CSKY_OLD == pehdr->e_machine) {
+        pshdr = (Elf_Shdr *)pcShdrBuf;
 
-    for (i = 0; i < pehdr->e_shnum; i++, pshdr++) {
-        if ((pshdr->sh_type == SHT_RELA)   ||
-            (pshdr->sh_type == SHT_REL)) {
+        for (i = 0; i < pehdr->e_shnum; i++, pshdr++) {
+            if ((pshdr->sh_type == SHT_RELA)   ||
+                (pshdr->sh_type == SHT_REL)) {
 
-            if (pshdr->sh_size <= 0) {
-                continue;
+                if (pshdr->sh_size <= 0) {
+                    continue;
+                }
+
+                pdyndir->ulRelaSize   = pshdr->sh_size;
+                pdyndir->ulRelaCount += pshdr->sh_size / sizeof(Elf_Rela);   /*  RELA重定位表项数            */
+                pdyndir->prelaTable   = (Elf_Rela *)LW_LD_V2PADDR(addrMin,
+                                                        pmodule->EMOD_pvBaseAddr,
+                                                        pshdr->sh_offset);
+                break;
             }
-
-            pdyndir->ulRelaSize   = pshdr->sh_size;
-            pdyndir->ulRelaCount += pshdr->sh_size / sizeof(Elf_Rela);   /*  RELA重定位表项数            */
-            pdyndir->prelaTable   = (Elf_Rela *)LW_LD_V2PADDR(addrMin,
-                                                    pmodule->EMOD_pvBaseAddr,
-                                                    pshdr->sh_offset);
-            break;
         }
     }
 
@@ -2184,6 +2192,7 @@ static CPCHAR  __elfGetMachineStr (Elf_Half  ehMachine)
         return  ("Cell BE SPU");
 
     case EM_CSKY:
+    case EM_CSKY_OLD:
         return  ("C-SKY");
 
     case EM_ARM:

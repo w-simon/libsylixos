@@ -35,7 +35,7 @@
   L2 CACHE 支持
 *********************************************************************************************************/
 #if LW_CFG_CSKY_CACHE_L2 > 0
-#include "../l2/cskyL2.h"
+#include "l2/cskyL2.h"
 /*********************************************************************************************************
   L1 CACHE 状态
 *********************************************************************************************************/
@@ -75,6 +75,19 @@ typedef struct {
     UINT32      CACHE_uiWaySize;                                        /*  路大小                      */
 } CSKY_CACHE;
 
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+static CSKY_CACHE _G_ICacheInfo = {
+    32 * LW_CFG_KB_SIZE,                                                /*  32KB 的两路组相联 ICACHE    */
+    64,
+    16 * LW_CFG_KB_SIZE
+};
+
+static CSKY_CACHE _G_DCacheInfo = {
+    64 * LW_CFG_KB_SIZE,                                                /*  64KB 的两路组相联 DCACHE    */
+    64,
+    32 * LW_CFG_KB_SIZE
+};
+#else
 static CSKY_CACHE _G_ICacheInfo = {
     8 * LW_CFG_KB_SIZE,                                                 /*  8KB 的四路组相联 ICACHE     */
     32,
@@ -86,6 +99,7 @@ static CSKY_CACHE _G_DCacheInfo = {
     32,
     2 * LW_CFG_KB_SIZE
 };
+#endif
 
 #define CSKY_ICACHE_SIZE                   _G_ICacheInfo.CACHE_uiSize
 #define CSKY_DCACHE_SIZE                   _G_DCacheInfo.CACHE_uiSize
@@ -281,7 +295,7 @@ static VOID  cskyDCacheClear (PVOID  pvStart, PVOID  pvEnd, size_t  uiStep)
 ** 调用模块:
 *********************************************************************************************************/
 static VOID  cskyDCacheInvalidate (PVOID  pvStart, PVOID  pvEnd, size_t  uiStep)
-{    
+{
     cskyCacheOp(pvStart,
                 pvEnd,
                 uiStep,
@@ -315,13 +329,16 @@ static LW_INLINE VOID  cskyICacheInvalidate (PVOID  pvStart, PVOID  pvEnd, size_
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-** 注  意  : 由于 L2 为物理地址 tag 所以这里暂时使用 L2 全部回写指令.
+** 注  意  : 由于 L2 CACHE 的操作指令会同时操作 L1 CACHE, 所以调用 L2 CACHE 的函数后返回
 *********************************************************************************************************/
 INT  cskyCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
 
     if (cachetype == DATA_CACHE) {
+#if LW_CFG_CSKY_CACHE_L2 > 0
+        return  (cskyL2Flush(pvAdrs, stBytes));                         /*  L2 包含了 L1                */
+#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
         if (stBytes >= CSKY_L1_CACHE_LOOP_OP_MAX_SIZE) {
             cskyDCacheFlushAll();                                       /*  全部回写                    */
 
@@ -330,10 +347,6 @@ INT  cskyCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
             cskyDCacheFlush(pvAdrs, (PVOID)ulEnd,
                             CSKY_DCACHE_LINE_SIZE);                     /*  部分回写                    */
         }
-
-#if LW_CFG_CSKY_CACHE_L2 > 0
-        cskyL2FlushAll();
-#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
     }
 
     return  (ERROR_NONE);
@@ -348,12 +361,16 @@ INT  cskyCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
+** 注  意  : L2 CACHE 的操作指令使用的是虚拟地址
 *********************************************************************************************************/
 static INT  cskyCacheFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID  pvPdrs, size_t  stBytes)
 {
     addr_t  ulEnd;
 
     if (cachetype == DATA_CACHE) {
+#if LW_CFG_CSKY_CACHE_L2 > 0
+        return  (cskyL2Flush(pvAdrs, stBytes));                         /*  L2 包含了 L1                */
+#endif
         if (stBytes >= CSKY_L1_CACHE_LOOP_OP_MAX_SIZE) {
             cskyDCacheFlushAll();                                       /*  全部回写                    */
 
@@ -362,10 +379,6 @@ static INT  cskyCacheFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID  
             cskyDCacheFlush(pvAdrs, (PVOID)ulEnd,
                             CSKY_DCACHE_LINE_SIZE);                     /*  部分回写                    */
         }
-
-#if LW_CFG_CSKY_CACHE_L2 > 0
-        cskyL2Flush(pvPdrs, stBytes);
-#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
     }
 
     return  (ERROR_NONE);
@@ -396,6 +409,9 @@ static INT  cskyCacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
 
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
+#if LW_CFG_CSKY_CACHE_L2 > 0
+            return  (cskyL2Invalidate(pvAdrs, stBytes));                /*  虚拟与物理地址必须相同      */
+#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
             addr_t  ulStart = (addr_t)pvAdrs;
                     ulEnd   = ulStart + stBytes;
 
@@ -414,14 +430,11 @@ static INT  cskyCacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
                 cskyDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, CSKY_DCACHE_LINE_SIZE);
             }
 
-#if LW_CFG_CSKY_CACHE_L2 > 0
-            cskyL2Invalidate(pvAdrs, stBytes);                          /*  虚拟与物理地址必须相同      */
-#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");
         }
     }
-    
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -450,6 +463,9 @@ static INT  cskyCacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
 
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
+#if LW_CFG_CSKY_CACHE_L2 > 0
+            return  (cskyL2Invalidate(pvAdrs, stBytes));                /*  虚拟与物理地址必须相同      */
+#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
             addr_t  ulStart = (addr_t)pvAdrs;
                     ulEnd   = ulStart + stBytes;
 
@@ -468,9 +484,6 @@ static INT  cskyCacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
                 cskyDCacheInvalidate((PVOID)ulStart, (PVOID)ulEnd, CSKY_DCACHE_LINE_SIZE);
             }
 
-#if LW_CFG_CSKY_CACHE_L2 > 0
-            cskyL2Invalidate(pvPdrs, stBytes);                          /*  虚拟与物理地址必须相同      */
-#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
         } else {
             _DebugHandle(__ERRORMESSAGE_LEVEL, "stBytes == 0.\r\n");
         }
@@ -487,7 +500,7 @@ static INT  cskyCacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
-** 注  意  : 由于 L2 为物理地址 tag 所以这里暂时使用 L2 全部回写并无效指令.
+** 注  意  : 由于 L2 CACHE 的操作指令会同时操作 L1 CACHE, 所以调用 L2 CACHE 的函数后返回
 *********************************************************************************************************/
 static INT  cskyCacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 {
@@ -503,6 +516,9 @@ static INT  cskyCacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
         }
 
     } else {
+#if LW_CFG_CSKY_CACHE_L2 > 0
+        return  (cskyL2Clear(pvAdrs, stBytes));
+#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
         if (stBytes >= CSKY_L1_CACHE_LOOP_OP_MAX_SIZE) {
             cskyDCacheClearAll();                                       /*  全部回写并无效              */
 
@@ -511,12 +527,8 @@ static INT  cskyCacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
             cskyDCacheClear(pvAdrs, (PVOID)ulEnd,
                             CSKY_DCACHE_LINE_SIZE);                     /*  部分回写并无效              */
         }
-
-#if LW_CFG_CSKY_CACHE_L2 > 0
-        cskyL2ClearAll();
-#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
     }
-    
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -544,6 +556,9 @@ static INT  cskyCacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvP
         }
 
     } else {
+#if LW_CFG_CSKY_CACHE_L2 > 0
+        return  (cskyL2Clear(pvAdrs, stBytes));
+#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
         if (stBytes >= CSKY_L1_CACHE_LOOP_OP_MAX_SIZE) {
             cskyDCacheClearAll();                                       /*  全部回写并无效              */
 
@@ -552,10 +567,6 @@ static INT  cskyCacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvP
             cskyDCacheClear(pvAdrs, (PVOID)ulEnd,
                             CSKY_DCACHE_LINE_SIZE);                     /*  部分回写并无效              */
         }
-
-#if LW_CFG_CSKY_CACHE_L2 > 0
-        cskyL2Clear(pvPdrs, stBytes);
-#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
     }
 
     return  (ERROR_NONE);
@@ -659,6 +670,32 @@ static INT  cskyCacheDataUpdate (PVOID  pvAdrs, size_t  stBytes, BOOL  bInv)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: cskyCacheCfgSet
+** 功能描述: 初始化 CACHE 寄存器 CR18 设置
+** 输　入  : NONE
+** 输　出  : 寄存器 CR18 设置
+** 全局变量:
+** 调用模块:
+** 注  意  : 不同 CK860 的芯片配置可能不同，故提供一个配置寄存器的接口
+*********************************************************************************************************/
+LW_WEAK UINT32  cskyCacheCfgSet (VOID)
+{
+    UINT32 uiCacheConfig;
+
+    uiCacheConfig = M_CACHE_CFG_IPE       |
+                    M_CACHE_CFG_WBR       |
+                    M_CACHE_CFG_WA        |
+                    M_CACHE_CFG_BTB       |
+                    M_CACHE_CFG_Z         |
+                    M_CACHE_CFG_RS        |
+                    M_CACHE_CFG_DE        |
+                    M_CACHE_CFG_IE        |
+                    B_CACHE_CFG_MP_VALID  |
+                    (1 << S_CACHE_CFG_SCK);
+
+    return  (uiCacheConfig);
+}
+/*********************************************************************************************************
 ** 函数名称: cskyCacheInit
 ** 功能描述: 初始化 CACHE
 ** 输　入  : pcacheop       CACHE 操作函数集
@@ -674,9 +711,14 @@ VOID  cskyCacheInit (LW_CACHE_OP *pcacheop,
                      CACHE_MODE   uiData,
                      CPCHAR       pcMachineName)
 {
+#if LW_CFG_CSKY_CACHE_L2 > 0
+    uiCacheCfg = cskyCacheCfgSet();
+    cskyL2Init(uiInstruction, uiData, pcMachineName);
+#else
     if (uiData & CACHE_COPYBACK) {
         uiCacheCfg |= M_CACHE_CFG_WB;
     }
+#endif                                                                  /*  LW_CFG_ARM_CACHE_L2 > 0     */
 
 #if LW_CFG_SMP_EN > 0
     pcacheop->CACHEOP_ulOption = CACHE_TEXT_UPDATE_MP;
@@ -686,10 +728,13 @@ VOID  cskyCacheInit (LW_CACHE_OP *pcacheop,
 #else
     pcacheop->CACHEOP_ulOption = 0ul;
 #endif                                                                  /*  LW_CFG_SMP_EN               */
-
-    pcacheop->CACHEOP_iILoc = CACHE_LOCATION_PIPT;
-    pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
-
+    if (lib_strcmp(pcMachineName, CSKY_MACHINE_860) == 0) {             /*  CK860 处理器 L2 CACHE       */
+        pcacheop->CACHEOP_iILoc = CACHE_LOCATION_VIPT;
+        pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
+    } else {
+        pcacheop->CACHEOP_iILoc = CACHE_LOCATION_PIPT;
+        pcacheop->CACHEOP_iDLoc = CACHE_LOCATION_PIPT;
+    }
     pcacheop->CACHEOP_iICacheLine = CSKY_ICACHE_LINE_SIZE;
     pcacheop->CACHEOP_iDCacheLine = CSKY_DCACHE_LINE_SIZE;
 

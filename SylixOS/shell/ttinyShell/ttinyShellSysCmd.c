@@ -86,6 +86,7 @@
 *********************************************************************************************************/
 #include "../SylixOS/shell/ttinyVar/ttinyVarLib.h"
 #include "../SylixOS/posix/include/px_resource.h"
+#include "../SylixOS/lib/libc/time/lib_local.h"
 #if LW_CFG_POSIX_EN > 0
 #include "pthread.h"
 #include "pthread_np.h"
@@ -1083,7 +1084,7 @@ static INT  __tshellSysCmdDate (INT  iArgC, PCHAR  ppcArgV[])
                                    + ((pcDate[1] - '0') * 100)
                                    + ((pcDate[2] - '0') * 10)
                                    +  (pcDate[3] - '0');                /*  ¶ÁÈ¡ year ÐÅÏ¢              */
-                    if (tmTime.tm_year >  1900) {
+                    if (tmTime.tm_year >= EPOCH_YEAR) {
                         tmTime.tm_year -= 1900;
                     } else {
                         goto    __invalid_date;

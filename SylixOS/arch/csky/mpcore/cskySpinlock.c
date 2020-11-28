@@ -86,7 +86,7 @@ static LW_INLINE UINT32  cskySpinTryLock (SPINLOCKTYPE *psld)
     UINT32  uiInc = 1 << LW_SPINLOCK_TICKET_SHIFT;
 
     do {
-        asm volatile (
+        __asm__ __volatile__ (
         "   ldex.w      %0 , (%3)       \n"
         "   movi        %2 , 1          \n"
         "   rotli       %1 , %0 , 16    \n"
@@ -101,7 +101,7 @@ static LW_INLINE UINT32  cskySpinTryLock (SPINLOCKTYPE *psld)
         : "cc");
     } while (!uiRes);
 
-    if (!uiCont) {
+    if (uiCont) {
         return  (1);
     }
 #endif                                                                  /*  LW_CFG_CSKY_HAS_LDSTEX_INSTR*/
@@ -124,9 +124,79 @@ static LW_INLINE VOID  cskySpinUnlock (SPINLOCKTYPE *psld)
 #endif                                                                  /*  LW_CFG_CSKY_HAS_LDSTEX_INSTR*/
 }
 /*********************************************************************************************************
+** 函数名称: cskySpinLockDummy
+** 功能描述: 空操作
+** 输　入  : psl       spinlock 指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  cskySpinLockDummy (SPINLOCKTYPE  *psl, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
+{
+}
+/*********************************************************************************************************
+** 函数名称: cskySpinTryLockDummy
+** 功能描述: 空操作
+** 输　入  : psl       spinlock 指针
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static UINT32  cskySpinTryLockDummy (SPINLOCKTYPE  *psl)
+{
+    return  (0);
+}
+/*********************************************************************************************************
+** 函数名称: cskySpinUnlockDummy
+** 功能描述: 空操作
+** 输　入  : psl       spinlock 指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  cskySpinUnlockDummy (SPINLOCKTYPE  *psl)
+{
+}
+/*********************************************************************************************************
+  spin lock cache 依赖处理
+*********************************************************************************************************/
+static VOID    (*pfuncCskySpinLock)(SPINLOCKTYPE *, VOIDFUNCPTR, PVOID) = cskySpinLock;
+static UINT32  (*pfuncCskySpinTryLock)(SPINLOCKTYPE *)                  = cskySpinTryLock;
+static VOID    (*pfuncCskySpinUnlock)(SPINLOCKTYPE *)                   = cskySpinUnlock;
+/*********************************************************************************************************
+** 函数名称: archSpinBypass
+** 功能描述: spinlock 函数不起效
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archSpinBypass (VOID)
+{
+    pfuncCskySpinLock    = cskySpinLockDummy;
+    pfuncCskySpinTryLock = cskySpinTryLockDummy;
+    pfuncCskySpinUnlock  = cskySpinUnlockDummy;
+}
+/*********************************************************************************************************
+** 函数名称: archSpinWork
+** 功能描述: spinlock 函数起效
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 注  意  : 主核开启 CACHE 后, BSP 应立即调用此函数, 使 spinlock 生效,
+             从核启动到开启 CACHE 过程中, 不得操作 spinlock.
+*********************************************************************************************************/
+VOID  archSpinWork (VOID)
+{
+    pfuncCskySpinLock    = cskySpinLock;
+    pfuncCskySpinTryLock = cskySpinTryLock;
+    pfuncCskySpinUnlock  = cskySpinUnlock;
+}
+/*********************************************************************************************************
 ** 函数名称: archSpinInit
 ** 功能描述: 初始化一个 spinlock
-** 输　入  : psl        spinlock 指针
+** 输　入  : psl       spinlock 指针
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
@@ -185,7 +255,7 @@ INT  archSpinLock (spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur, VOIDFUNCPTR  pfuncP
         return  (1);                                                    /*  重复调用                    */
     }
 
-    cskySpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
+    pfuncCskySpinLock(&psl->SL_sltData, pfuncPoll, pvArg);
 
     psl->SL_pcpuOwner = pcpuCur;                                        /*  保存当前 CPU                */
 
@@ -209,7 +279,7 @@ INT  archSpinTryLock (spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur)
         return  (1);                                                    /*  重复调用                    */
     }
 
-    if (cskySpinTryLock(&psl->SL_sltData)) {                            /*  尝试加锁                    */
+    if (pfuncCskySpinTryLock(&psl->SL_sltData)) {                       /*  尝试加锁                    */
         return  (0);
     }
 
@@ -241,7 +311,7 @@ INT  archSpinUnlock (spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur)
     psl->SL_pcpuOwner = LW_NULL;                                        /*  没有 CPU 获取               */
     KN_SMP_WMB();
 
-    cskySpinUnlock(&psl->SL_sltData);                                   /*  解锁                        */
+    pfuncCskySpinUnlock(&psl->SL_sltData);                              /*  解锁                        */
 
     return  (1);
 }
@@ -256,7 +326,7 @@ INT  archSpinUnlock (spinlock_t  *psl, PLW_CLASS_CPU  pcpuCur)
 *********************************************************************************************************/
 INT  archSpinLockRaw (spinlock_t  *psl)
 {
-    cskySpinLock(&psl->SL_sltData, LW_NULL, LW_NULL);
+    pfuncCskySpinLock(&psl->SL_sltData, LW_NULL, LW_NULL);
 
     return  (1);                                                        /*  加锁成功                    */
 }
@@ -271,7 +341,7 @@ INT  archSpinLockRaw (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinTryLockRaw (spinlock_t  *psl)
 {
-    if (cskySpinTryLock(&psl->SL_sltData)) {                            /*  尝试加锁                    */
+    if (pfuncCskySpinTryLock(&psl->SL_sltData)) {                       /*  尝试加锁                    */
         return  (0);
     }
 
@@ -288,7 +358,7 @@ INT  archSpinTryLockRaw (spinlock_t  *psl)
 *********************************************************************************************************/
 INT  archSpinUnlockRaw (spinlock_t  *psl)
 {
-    cskySpinUnlock(&psl->SL_sltData);                                   /*  解锁                        */
+    pfuncCskySpinUnlock(&psl->SL_sltData);                              /*  解锁                        */
 
     return  (1);
 }

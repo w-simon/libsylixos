@@ -384,7 +384,8 @@ LW_API ULONG            API_ThreadGetNotePad(LW_OBJECT_HANDLE  ulId,
                                                                         /*  获得线程记事本              */
 LW_API ULONG            API_ThreadCurNotePad(UINT8  ucNoteIndex);       /*  获得当前任务记事本          */
 
-#if defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_FAST_TCB_CUR > 0)
+#if ((defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_FAST_TCB_CUR > 0)) || \
+     (defined(LW_CFG_CPU_ARCH_X86)   && (LW_CFG_X64_FAST_TCB_CUR > 0)))
 LW_API ULONG            API_ThreadFastNotePad(UINT8  ucNoteIndex);
 #endif
 #endif

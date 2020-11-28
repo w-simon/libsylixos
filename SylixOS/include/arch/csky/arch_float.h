@@ -29,7 +29,11 @@
 *********************************************************************************************************/
 #if defined(__SYLIXOS_KERNEL) || defined(__ASSEMBLY__) || defined(ASSEMBLY)
 
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+#define FPU_REG_NR              32                                      /*  FPU 通用寄存器数量          */
+#else
 #define FPU_REG_NR              16                                      /*  FPU 通用寄存器数量          */
+#endif                                                                  /*  __SYLIXOS_CSKY_ARCH_CK860__ */
 #if defined(__SYLIXOS_CSKY_ARCH_CK803__)
 #define FPU_REG_WIDTH           32                                      /*  浮点数据寄存器的位宽        */
 #else

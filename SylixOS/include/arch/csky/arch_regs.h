@@ -41,7 +41,11 @@
 
 #define ARCH_GREG_NR            32                                      /*  通用寄存器数目              */
 
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+#define ARCH_REG_CTX_WORD_SIZE  36                                      /*  寄存器上下文字数            */
+#else
 #define ARCH_REG_CTX_WORD_SIZE  38                                      /*  寄存器上下文字数            */
+#endif
 #define ARCH_STK_MIN_WORD_SIZE  256                                     /*  堆栈最小字数                */
 
 #define ARCH_REG_SIZE           4                                       /*  寄存器大小                  */
@@ -58,10 +62,13 @@
 #define XGREG(n)                ((n) * ARCH_REG_SIZE)
 #define XPC                     ((ARCH_GREG_NR + 0) * ARCH_REG_SIZE)
 #define XPSR                    ((ARCH_GREG_NR + 1) * ARCH_REG_SIZE)
+#if defined(__SYLIXOS_CSKY_ARCH_CK860__)
+#define XMEH                    ((ARCH_GREG_NR + 2) * ARCH_REG_SIZE)
+#else
 #define XLO                     ((ARCH_GREG_NR + 2) * ARCH_REG_SIZE)
 #define XHI                     ((ARCH_GREG_NR + 3) * ARCH_REG_SIZE)
 #define XMEH                    ((ARCH_GREG_NR + 4) * ARCH_REG_SIZE)
-
+#endif
 /*********************************************************************************************************
   寄存器表
 *********************************************************************************************************/
@@ -74,8 +81,10 @@ typedef struct {
     ARCH_REG_T  REG_ulReg[ARCH_GREG_NR];                                /*  32 个通用目的寄存器         */
     ARCH_REG_T  REG_ulPc;                                               /*  程序计数器寄存器            */
     ARCH_REG_T  REG_ulPsr;                                              /*  处理器状态寄存器            */
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     ARCH_REG_T  REG_ulLo;                                              
     ARCH_REG_T  REG_ulHi;                                               
+#endif
     ARCH_REG_T  REG_ulMeh;
     ARCH_REG_T  REG_ulPad;
 

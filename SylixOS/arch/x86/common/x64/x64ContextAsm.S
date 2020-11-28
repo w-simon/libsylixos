@@ -27,6 +27,7 @@
 #include <config/kernel/kernel_cfg.h>
 #include <config/mp/mp_cfg.h>
 #include "x64ContextAsm.h"
+#include "arch/x86/pentium/x86Pentium.h"
 
     FILE_BEGIN()
 
@@ -60,6 +61,13 @@ FUNC_DEF(archResumePc)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
+#if LW_CFG_X64_FAST_TCB_CUR > 0
+    MOVL    0(%RDI) , %EAX                                              ;/*  Low-order 32 bits           */
+    MOVL    4(%RDI) , %EDX                                              ;/*  High-order 32 bits          */
+    MOV     $X86_MSR_IA32_FS_BASE , %RCX                                ;/*  Specify FS_BASE to write    */
+    WRMSR                                                               ;/*  Write %EDX:%EAX to the MSR  */
+#endif
+
     MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前TCB的 REG_CTX 地址*/
 
     RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
@@ -84,9 +92,15 @@ FUNC_DEF(archTaskCtxSwitch)
 
     MOV     %RDI , %R12                                                 ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedSwp                                                   ;/*  _SchedSwp();                */
-    MOV     %R12 , %RDI
 
-    MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前TCB的 REG_CTX 地址*/
+#if LW_CFG_X64_FAST_TCB_CUR > 0
+    MOVL    0(%R12) , %EAX                                              ;/*  Low-order 32 bits           */
+    MOVL    4(%R12) , %EDX                                              ;/*  High-order 32 bits          */
+    MOV     $X86_MSR_IA32_FS_BASE , %RCX                                ;/*  Specify FS_BASE to write    */
+    WRMSR                                                               ;/*  Write %EDX:%EAX to the MSR  */
+#endif
+
+    MOV     0(%R12) , %RAX                                              ;/*  RAX = 当前TCB的 REG_CTX 地址*/
 
     RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archTaskCtxSwitch)
@@ -118,6 +132,13 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
+#if LW_CFG_X64_FAST_TCB_CUR > 0
+    MOVL    0(%RDI) , %EAX                                              ;/*  Low-order 32 bits           */
+    MOVL    4(%RDI) , %EDX                                              ;/*  High-order 32 bits          */
+    MOV     $X86_MSR_IA32_FS_BASE , %RCX                                ;/*  Specify FS_BASE to write    */
+    WRMSR                                                               ;/*  Write %EDX:%EAX to the MSR  */
+#endif
+
     MOV     0(%RDI) , %RAX                                              ;/*  RAX = 当前TCB的 REG_CTX 地址*/
 
     RESTORE_REGS                                                        ;/*  恢复所有寄存器              */

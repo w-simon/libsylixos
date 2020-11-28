@@ -128,8 +128,10 @@ static const CHAR   cTargetSystem[] = \
 *********************************************************************************************************/
 #define GDB_REG_INDEX_GREG(n)   (n)                                     /*  32 ¸öÍ¨ÓÃÄ¿µÄ¼Ä´æÆ÷         */
 #define GDB_REG_INDEX_PSR       89                                      /*  ´¦ÀíÆ÷×´Ì¬¼Ä´æÆ÷            */
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
 #define GDB_REG_INDEX_LO        37                                      /*  ³ýÊýµÍÎ»¼Ä´æÆ÷              */
 #define GDB_REG_INDEX_HI        36                                      /*  ³ýÊý¸ßÎ»¼Ä´æÆ÷              */
+#endif
 #define GDB_REG_INDEX_PC        72                                      /*  ³ÌÐò¼ÆÊýÆ÷¼Ä´æÆ÷            */
 #define GDB_REG_INDEX_FP(n)     (40 + (n))                              /*  32 ¸ö¸¡µãÊý¾Ý¼Ä´æÆ÷         */
 #define GDB_REG_INDEX_FPCR      (121)                                   /*  ¸¡µã¿ØÖÆ¼Ä´æÆ÷              */
@@ -213,8 +215,10 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
     pregset->regArr[GDB_REG_INDEX_GREG(30)].GDBRA_ulValue = regctx.REG_ulReg[30];
     pregset->regArr[GDB_REG_INDEX_GREG(31)].GDBRA_ulValue = regctx.REG_ulReg[31];
     pregset->regArr[GDB_REG_INDEX_PSR].GDBRA_ulValue      = regctx.REG_ulPsr;
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue       = regctx.REG_ulLo;
     pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue       = regctx.REG_ulHi;
+#endif
     pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue       = regctx.REG_ulPc;
 
     pregset->regArr[GDB_REG_INDEX_FP( 0)].GDBRA_ulValue  = fpuctx.FPUCTX_uiDreg[ 0].val32[0];
@@ -306,8 +310,10 @@ INT  archGdbRegsSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
     regctx.REG_ulReg[30] = pregset->regArr[GDB_REG_INDEX_GREG(30)].GDBRA_ulValue;
     regctx.REG_ulReg[31] = pregset->regArr[GDB_REG_INDEX_GREG(31)].GDBRA_ulValue;
     regctx.REG_ulPsr     = pregset->regArr[GDB_REG_INDEX_PSR].GDBRA_ulValue;
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     regctx.REG_ulLo      = pregset->regArr[GDB_REG_INDEX_LO].GDBRA_ulValue;
     regctx.REG_ulHi      = pregset->regArr[GDB_REG_INDEX_HI].GDBRA_ulValue;
+#endif
     regctx.REG_ulPc      = pregset->regArr[GDB_REG_INDEX_PC].GDBRA_ulValue;
   
     API_DtraceSetRegs(pvDtrace, ulThread, &regctx);

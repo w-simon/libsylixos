@@ -191,6 +191,12 @@ VOID    archMpuInit(CPCHAR  pcMachineName, const CSKY_MPU_REGION  mpuregion[]);
 *********************************************************************************************************/
 
 #if LW_CFG_SMP_EN > 0
+VOID    archSpinBypass(VOID);
+VOID    archSpinWork(VOID);
+
+#define __ARCH_SPIN_BYPASS  archSpinBypass
+#define __ARCH_SPIN_WORK    archSpinWork
+
 VOID    archSpinInit(spinlock_t  *psl);
 VOID    archSpinDelay(VOID);
 VOID    archSpinNotify(VOID);

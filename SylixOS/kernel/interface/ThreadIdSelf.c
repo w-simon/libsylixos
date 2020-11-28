@@ -66,16 +66,25 @@ LW_OBJECT_HANDLE  API_ThreadIdSelf (VOID)
 LW_API
 LW_OBJECT_HANDLE  API_ThreadIdSelfFast (VOID)
 {
-#if LW_CFG_ARM64_FAST_TCB_CUR > 0
+#if (defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_FAST_TCB_CUR > 0))
     REGISTER PLW_CLASS_TCB   ptcbCur asm("x18");                        /*  x18 saved current tcb       */
 
+    return  (ptcbCur->TCB_ulId);
+
+#elif (defined(LW_CFG_CPU_ARCH_X86) && (LW_CFG_X64_FAST_TCB_CUR > 0))
+    REGISTER LW_OBJECT_HANDLE  ulId;
+
+    __asm__ __volatile__("movq %%fs:%P1, %q0"
+                         : "=r" (ulId)
+                         : "i" (offsetof(LW_CLASS_TCB, TCB_ulId)));
+    return  (ulId);
 #else
     REGISTER PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR_SAFE(ptcbCur);
-#endif
 
     return  (ptcbCur->TCB_ulId);
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: API_ThreadTcbSelf
@@ -117,16 +126,26 @@ PLW_CLASS_TCB  API_ThreadTcbSelf (VOID)
 LW_API
 PLW_CLASS_TCB  API_ThreadTcbSelfFast (VOID)
 {
-#if LW_CFG_ARM64_FAST_TCB_CUR > 0
+#if (defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_FAST_TCB_CUR > 0))
     REGISTER PLW_CLASS_TCB   ptcbCur asm("x18");                        /*  x18 saved current tcb       */
 
+    return  (ptcbCur);
+
+#elif (defined(LW_CFG_CPU_ARCH_X86) && (LW_CFG_X64_FAST_TCB_CUR > 0))
+    REGISTER UINT16  usIndex;
+
+    __asm__ __volatile__("movw %%fs:%P1, %q0"
+                         : "=r" (usIndex)
+                         : "i" (offsetof(LW_CLASS_TCB, TCB_usIndex)));
+
+    return  (_K_ptcbTCBIdTable[usIndex]);
 #else
     REGISTER PLW_CLASS_TCB   ptcbCur;
 
     LW_TCB_GET_CUR_SAFE(ptcbCur);
-#endif
 
     return  (ptcbCur);
+#endif
 }
 /*********************************************************************************************************
 ** 函数名称: API_ThreadIdInter
