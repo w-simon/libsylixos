@@ -116,13 +116,14 @@ $(target)_LINKFLAGS := $(LOCAL_LINKFLAGS)
 #*********************************************************************************************************
 # Define some useful variables
 #*********************************************************************************************************
-$(target)_USE_CXX         := $(LOCAL_USE_CXX)
-$(target)_USE_CXX_EXCEPT  := $(LOCAL_USE_CXX_EXCEPT)
-$(target)_USE_GCOV        := $(LOCAL_USE_GCOV)
-$(target)_USE_OMP         := $(LOCAL_USE_OMP)
-$(target)_USE_EXTENSION   := $(LOCAL_USE_EXTENSION)
+$(target)_USE_CXX         := $(strip $(LOCAL_USE_CXX))
+$(target)_USE_CXX_EXCEPT  := $(strip $(LOCAL_USE_CXX_EXCEPT))
+$(target)_USE_GCOV        := $(strip $(LOCAL_USE_GCOV))
+$(target)_USE_OMP         := $(strip $(LOCAL_USE_OMP))
+$(target)_USE_EXTENSION   := $(strip $(LOCAL_USE_EXTENSION))
+$(target)_USE_SHORT_CMD   := $(strip $(LOCAL_USE_SHORT_CMD))
 
-$(target)_NO_UNDEF_SYM    := $(LOCAL_NO_UNDEF_SYM)
+$(target)_NO_UNDEF_SYM    := $(strip $(LOCAL_NO_UNDEF_SYM))
 
 $(target)_PRE_LINK_CMD    := $(LOCAL_PRE_LINK_CMD)
 $(target)_POST_LINK_CMD   := $(LOCAL_POST_LINK_CMD)
@@ -131,12 +132,30 @@ $(target)_PRE_STRIP_CMD   := $(LOCAL_PRE_STRIP_CMD)
 $(target)_POST_STRIP_CMD  := $(LOCAL_POST_STRIP_CMD)
 
 $(target)_DEPEND_TARGET   := $(LOCAL_DEPEND_TARGET)
-$(target)_SHARED_LIB_ONLY := $(LOCAL_SHARED_LIB_ONLY)
+$(target)_SHARED_LIB_ONLY := $(strip $(LOCAL_SHARED_LIB_ONLY))
 
 ifeq ($($(target)_USE_CXX), yes)
 $(target)_LD := $(CXX_LD)
 else
 $(target)_LD := $(C_LD)
+endif
+
+#*********************************************************************************************************
+# Objects list file and objects flags
+#*********************************************************************************************************
+ifeq ($(ARCH), c6x)
+$(target)_OBJS_LIST_FILE := 
+$(target)_OBJS_FLAGS := $($(target)_OBJS)
+else
+ifeq ($($(target)_USE_SHORT_CMD), yes)
+$(target)_OBJS_LIST_FILE := $(OBJPATH)/$(target)/objects.lst
+$(call generate-list-file,$($(target)_OBJS),$($(target)_OBJS_LIST_FILE))
+
+$(target)_OBJS_FLAGS := @$($(target)_OBJS_LIST_FILE)
+else
+$(target)_OBJS_LIST_FILE := 
+$(target)_OBJS_FLAGS := $($(target)_OBJS)
+endif
 endif
 
 #*********************************************************************************************************

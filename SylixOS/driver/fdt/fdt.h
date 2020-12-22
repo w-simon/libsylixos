@@ -1,5 +1,5 @@
-#ifndef _FDT_H
-#define _FDT_H
+#ifndef FDT_H
+#define FDT_H
 /*
  * libfdt - Flat Device Tree manipulation
  * Copyright (C) 2006 David Gibson, IBM Corporation.
@@ -54,12 +54,21 @@
 
 #ifndef __ASSEMBLY__
 
+/*
+ *  fdt_header 分为 version1、version2、version3、version16、version17 几种类型
+ *   FDT_V1_SIZE 表示 version1 的大小，7 个 fdt32_t 类型；
+ *   FDT_V2_SIZE 为 FDT_V1_SIZE + 1 个 fdt32_t 类型；
+ *   FDT_V3_SIZE 为 FDT_V2_SIZE + 1 个 fdt32_t 类型；
+ *   FDT_V16_SIZE 与 FDT_V3_SIZE 相同；
+ *   FDT_V17_SIZE 为 FDT_V16_SIZE + 1 个 fdt32_t 类型；
+ */
+
 struct fdt_header {
 	fdt32_t magic;			 /* magic word FDT_MAGIC */
 	fdt32_t totalsize;		 /* total size of DT block */
 	fdt32_t off_dt_struct;		 /* offset to structure */
 	fdt32_t off_dt_strings;		 /* offset to strings */
-	fdt32_t off_mem_rsvmap;		 /* offset to memory reserve map */
+	fdt32_t off_mem_rsvmap;		 /* offset to memory reserve map */  // dtb 中内存保留块偏移地址
 	fdt32_t version;		 /* format version */
 	fdt32_t last_comp_version;	 /* last compatible version */
 
@@ -73,7 +82,7 @@ struct fdt_header {
 	fdt32_t size_dt_struct;		 /* size of the structure block */
 };
 
-struct fdt_reserve_entry {
+struct fdt_reserve_entry {  // 保留区域的入口、大小
 	fdt64_t address;
 	fdt64_t size;
 };
@@ -108,4 +117,4 @@ struct fdt_property {
 #define FDT_V16_SIZE	FDT_V3_SIZE
 #define FDT_V17_SIZE	(FDT_V16_SIZE + sizeof(fdt32_t))
 
-#endif /* _FDT_H */
+#endif /* FDT_H */

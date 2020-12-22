@@ -84,7 +84,7 @@ $(target)_STRIP_KO := $(OUTPATH)/strip/$(LOCAL_TARGET_NAME)
 #*********************************************************************************************************
 # Make archive object files
 #*********************************************************************************************************
-$($(target)_KO): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_KO): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(__LD) $(__CPUFLAGS) $(ARCH_KO_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@

@@ -284,7 +284,7 @@ static VOID  __pppOsThread (ppp_pcb *pcb)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static u32_t  __pppOsOutput (ppp_pcb *pcb, u8_t *data, u32_t len, void *ctx)
+static u32_t  __pppOsOutput (ppp_pcb *pcb, const void *data, u32_t len, void *ctx)
 {
     PPP_CTX_PRIV   *pctxp = (PPP_CTX_PRIV *)ctx;
     u32_t           uiRet;

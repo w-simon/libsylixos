@@ -127,7 +127,7 @@ LOCAL_LD_SCRIPT_NT := $(LOCAL_LD_SCRIPT) config.ld
 # Link object files
 #*********************************************************************************************************
 ifeq ($(ARCH), c6x)
-$($(target)_IMG): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_IMG): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(__LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) --abi=eabi -z --dynamic --trampolines=off --dsbt_size=64 -o $@ $(LOCAL_LD_SCRIPT) $(__OBJS) $(__LIBRARIES) 
@@ -140,7 +140,7 @@ $($(target)_IMG): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		$(__POST_LINK_CMD)
 else
 ifeq ($($(target)_USE_EXTENSION), yes)
-$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@echo Link $@ first time
 			@rm -f $@
 			$(__PRE_LINK_CMD)
@@ -167,7 +167,7 @@ $($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TAR
 			$(__LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) -nostdlib $(addprefix -T, $<) -o $@ $(__OBJS) $(BSP_CERT_OBJ) $(__LIBRARIES)
 			$(__POST_LINK_CMD)
 else
-$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(CPP) $(__CPUFLAGS) -E -P $(__DSYMBOL) config.ld -o config.lds

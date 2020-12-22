@@ -1183,6 +1183,11 @@ VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
         LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
         break;
         
+    case IIR_BUSY:
+        GET_REG(psiochan, USR);
+        LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
+        break;
+
     default:
         SET_REG(psiochan, IER, psiochan->ier);                          /*  update ier                  */
         LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);

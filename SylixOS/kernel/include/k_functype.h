@@ -28,6 +28,7 @@
 
 #ifdef __cplusplus
 typedef INT         (*FUNCPTR)(...);                                    /*  function returning int      */
+typedef UINT        (*UINTFUNCPTR)(...);                                /*  function returning uint     */
 typedef off_t       (*OFFTFUNCPTR)(...);                                /*  function returning off_t    */
 typedef size_t      (*SIZETFUNCPTR)(...);                               /*  function returning size_t   */
 typedef ssize_t     (*SSIZETFUNCPTR)(...);                              /*  function returning ssize_t  */
@@ -39,6 +40,7 @@ typedef BOOL        (*BOOLFUNCPTR)(...);                                /*  func
 
 #else
 typedef INT         (*FUNCPTR)();                                       /*  function returning int      */
+typedef UINT        (*UINTFUNCPTR)();                                   /*  function returning uint     */
 typedef off_t       (*OFFTFUNCPTR)();                                   /*  function returning off_t    */
 typedef size_t      (*SIZETFUNCPTR)();                                  /*  function returning size_t   */
 typedef ssize_t     (*SSIZETFUNCPTR)();                                 /*  function returning ssize_t  */

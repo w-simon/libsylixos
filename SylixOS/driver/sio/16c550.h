@@ -41,6 +41,7 @@
 #define LSR     0x05                                            /* line status register                 */
 #define MSR     0x06                                            /* modem status register                */
 #define SCR     0x07                                            /* scratch register                     */
+#define USR     0x1f                                            /* uart status register                 */
 
 #define BAUD_LO(uart_freq, baud)  ((uart_freq / (16 * baud)) & 0xff)
 #define BAUD_HI(uart_freq, baud)  (((uart_freq / (16 * baud)) & 0xff00) >> 8)
@@ -90,6 +91,7 @@
 #define IIR_THRE    0x02                                        /* transmit holding register empty      */
 #define TxFIFO_INT  IIR_THRE
 #define IIR_MSTAT   0x00                                        /* modem status                         */
+#define IIR_BUSY    0x07                                        /* busy detect                          */
 #define IIR_TIMEOUT 0x0c                                        /* char receive timeout                 */
 
 /*********************************************************************************************************

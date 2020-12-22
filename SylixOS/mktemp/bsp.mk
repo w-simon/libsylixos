@@ -129,7 +129,7 @@ LOCAL_LD_SCRIPT_NT := $(LOCAL_LD_SCRIPT) config.ld
 # Link object files
 #*********************************************************************************************************
 ifeq ($(ARCH), c6x)
-$($(target)_IMG): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_IMG): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(__LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) --abi=eabi -z --dynamic --trampolines=off --dsbt_size=64 -o $@ $(LOCAL_LD_SCRIPT) $(__OBJS) $(__LIBRARIES) 
@@ -141,7 +141,7 @@ $($(target)_IMG): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@_nm.txt $@_dis.txt
 		$(__POST_LINK_CMD)
 else
-$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(CPP) $(__CPUFLAGS) -E -P $(__DSYMBOL) config.ld -o config.lds

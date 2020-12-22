@@ -41,8 +41,8 @@ void  dlmalloc_abort(void);
 /* use dl prefix */
 #define USE_DL_PREFIX           1
 
-/* big page size */
-#define malloc_getpagesize      ((size_t)16U * (size_t)1024U)
+/* Use system page size */
+#define malloc_getpagesize      getpagesize()
 
 /* Use the supplied emulation of sbrk */
 #define MORECORE                dlmalloc_sbrk

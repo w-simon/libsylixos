@@ -105,7 +105,7 @@ LOCAL_LD_SCRIPT_NT := $(LOCAL_LD_SCRIPT) config.ld
 #*********************************************************************************************************
 # Link object files
 #*********************************************************************************************************
-$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET) SylixOSBSPSymbol.ld
+$($(target)_IMG): $(LOCAL_LD_SCRIPT_NT) $($(target)_OBJS) $($(target)_DEPEND_TARGET) SylixOSBSPSymbol.ld $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(CPP) $(__CPUFLAGS) -E -P $(__DSYMBOL) config.ld -o config.lds

@@ -1651,7 +1651,7 @@ VOID  __tshellNetInit (VOID)
     "    ipqos ipv6 0   (disable IPv6 QoS support)\n");
     
     API_TShellKeywordAdd("iftcpaf", __tshellIfTcpaf);
-    API_TShellFormatAdd("iftcpaf", " [ifname] [tcpaf (2~127)]");
+    API_TShellFormatAdd("iftcpaf", " [ifname] [tcpaf (1~127)]");
     API_TShellHelpAdd("iftcpaf", "Set/Get TCP ACK Frequency for net interface\n"
     "eg. iftcpaf lo0    (get 'lo0' TCP ACK Frequency setting)\n"
     "    iftcpaf en1 4  (set 'en1' TCP ACK Frequency to 4)\n");

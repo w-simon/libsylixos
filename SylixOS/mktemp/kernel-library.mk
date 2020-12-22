@@ -60,7 +60,7 @@ $(target)_A := $(OUTPATH)/$(LOCAL_TARGET_NAME)
 #*********************************************************************************************************
 # Make archive object files
 #*********************************************************************************************************
-$($(target)_A): $($(target)_OBJS)
+$($(target)_A): $($(target)_OBJS) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(__OBJS)

@@ -1174,7 +1174,7 @@ u32_t  sio_tryread (sio_fd_t  fd, u8_t *buffer, u32_t  num)
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-u32_t  sio_write (sio_fd_t  fd, u8_t *buffer, u32_t  num)
+u32_t  sio_write (sio_fd_t  fd, const u8_t *buffer, u32_t  num)
 {
     ssize_t  ssWriteNum;
     

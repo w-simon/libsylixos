@@ -658,6 +658,8 @@ SylixOS/arch/csky/mm/cskyCache.c \
 SylixOS/arch/csky/mm/cache/cskyCache.c \
 SylixOS/arch/csky/mm/cache/cskyCacheAsm.S \
 SylixOS/arch/csky/mm/cache/ck803/cskyCacheCK803.c \
+SylixOS/arch/csky/mm/cache/l2/cskyL2.c \
+SylixOS/arch/csky/mm/cache/l2/cskyL2CK860.c \
 SylixOS/arch/csky/mm/cskyMmu.c \
 SylixOS/arch/csky/mm/mmu/cskyMmu.c \
 SylixOS/arch/csky/mm/mmu/cskyMmuAsm.S \
@@ -1807,6 +1809,7 @@ SylixOS/system/device/ahci/ahciShow.c \
 SylixOS/system/device/ahci/ahciSmart.c \
 SylixOS/system/device/ata/ata.c \
 SylixOS/system/device/ata/ataLib.c \
+SylixOS/system/device/base/baseDrvLib.c \
 SylixOS/system/device/block/blockIo.c \
 SylixOS/system/device/block/blockRaw.c \
 SylixOS/system/device/block/ramDisk.c \
@@ -1814,6 +1817,12 @@ SylixOS/system/device/bmsg/bmsgDev.c \
 SylixOS/system/device/bmsg/bmsgfd.c \
 SylixOS/system/device/buzzer/buzzer.c \
 SylixOS/system/device/can/can.c \
+SylixOS/system/device/clock/clock.c \
+SylixOS/system/device/clock/clockDivider.c \
+SylixOS/system/device/clock/clockFixedFactor.c \
+SylixOS/system/device/clock/clockFixedRate.c \
+SylixOS/system/device/clock/clockGate.c \
+SylixOS/system/device/clock/clockMux.c \
 SylixOS/system/device/dma/dma.c \
 SylixOS/system/device/dma/dmaLib.c \
 SylixOS/system/device/eventfd/eventfdDev.c \
@@ -1823,7 +1832,11 @@ SylixOS/system/device/graph/gmemDev.c \
 SylixOS/system/device/hstimerfd/hstimerfdDev.c \
 SylixOS/system/device/hwrtc/hwrtc.c \
 SylixOS/system/device/i2c/i2cLib.c \
+SylixOS/system/device/i2c/i2cLibDevTree.c \
+SylixOS/system/device/irqctrl/irqCtrlDev.c \
 SylixOS/system/device/mem/memDev.c \
+SylixOS/system/device/mii/mdioLib.c \
+SylixOS/system/device/mii/phyDev.c \
 SylixOS/system/device/mii/miiDev.c \
 SylixOS/system/device/nvme/nvme.c \
 SylixOS/system/device/nvme/nvmeCtrl.c \
@@ -1846,8 +1859,13 @@ SylixOS/system/device/pci/pciProc.c \
 SylixOS/system/device/pci/pciScan.c \
 SylixOS/system/device/pci/pciShow.c \
 SylixOS/system/device/pci/pciVpd.c \
+SylixOS/system/device/pinctrl/pinConfig.c \
+SylixOS/system/device/pinctrl/pinCtrl.c \
+SylixOS/system/device/pinctrl/pinCtrlDev.c \
+SylixOS/system/device/pinctrl/pinMux.c \
 SylixOS/system/device/pipe/pipe.c \
 SylixOS/system/device/pipe/pipeLib.c \
+SylixOS/system/device/platform/platform.c \
 SylixOS/system/device/pty/pty.c \
 SylixOS/system/device/pty/ptyDevice.c \
 SylixOS/system/device/pty/ptyHost.c \
@@ -1869,6 +1887,7 @@ SylixOS/system/device/semfd/semfd.c \
 SylixOS/system/device/semfd/semfdDev.c \
 SylixOS/system/device/shm/shm.c \
 SylixOS/system/device/spi/spiLib.c \
+SylixOS/system/device/spi/spiLibDevTree.c \
 SylixOS/system/device/spipe/spipe.c \
 SylixOS/system/device/spipe/spipeLib.c \
 SylixOS/system/device/ty/termios.c \
@@ -1940,6 +1959,34 @@ SylixOS/cplusplus/cppRtLib/cppRtBegin.cpp \
 SylixOS/cplusplus/cppRtLib/cppRtEnd.cpp \
 SylixOS/cplusplus/cppRtLib/cppSupLib.cpp
 
+#*********************************************************************************************************
+# Device Tree source
+#*********************************************************************************************************
+DEVTREE_SRCS = \
+SylixOS/devtree/devtreeDev.c \
+SylixOS/devtree/devtreeIrq.c \
+SylixOS/devtree/devtreeClock.c \
+SylixOS/devtree/devtreeGpio.c \
+SylixOS/devtree/devtreeHighLevel.c \
+SylixOS/devtree/devtreeLowLevel.c \
+SylixOS/devtree/devtreeLib.c \
+SylixOS/devtree/devtreeMdio.c \
+SylixOS/devtree/devtreeI2c.c \
+SylixOS/devtree/devtreeSpi.c \
+SylixOS/devtree/devtreePhandle.c \
+SylixOS/devtree/devtreeProperty.c \
+SylixOS/driver/fdt/fdtdec_common.c \
+SylixOS/driver/fdt/fdtdec.c \
+SylixOS/driver/fdt/fdt_addresses.c \
+SylixOS/driver/fdt/fdt_empty_tree.c \
+SylixOS/driver/fdt/fdt_overlay.c \
+SylixOS/driver/fdt/fdt_ro.c \
+SylixOS/driver/fdt/fdt_rw.c \
+SylixOS/driver/fdt/fdt_strerror.c \
+SylixOS/driver/fdt/fdt_sw.c \
+SylixOS/driver/fdt/fdt_wip.c \
+SylixOS/driver/fdt/fdt.c
+
 LOCAL_SRCS := $(APPL_SRCS)
 LOCAL_SRCS += $(DEBUG_SRCS)
 LOCAL_SRCS += $(DRV_SRCS)
@@ -1957,6 +2004,7 @@ LOCAL_SRCS += $(SYMBOL_SRCS)
 LOCAL_SRCS += $(SYS_SRCS)
 LOCAL_SRCS += $(SYSPERF_SRCS)
 LOCAL_SRCS += $(CPP_SRCS)
+LOCAL_SRCS += $(DEVTREE_SRCS)
 
 #*********************************************************************************************************
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")

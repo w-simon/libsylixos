@@ -112,6 +112,20 @@
 #include "../SylixOS/system/device/semfd/semfdDev.h"                    /*  semfd 设备                  */
 #include "../SylixOS/system/device/eventfd/eventfdDev.h"                /*  eventfd 设备                */
 /*********************************************************************************************************
+  设备树相关的设备驱动模型
+*********************************************************************************************************/
+#ifdef   __SYLIXOS_DEVTREE_DRV
+#include "../SylixOS/system/device/base/baseDrvLib.h"                   /*  设备驱动框架                */
+#include "../SylixOS/system/device/platform/platform.h"                 /*  平台设备驱动框架            */
+#include "../SylixOS/system/device/clock/clock.h"                       /*  系统时钟框架                */
+#include "../SylixOS/system/device/irqctrl/irqCtrlDev.h"                /*  中断控制器驱动框架          */
+#include "../SylixOS/system/device/pinctrl/pinCtrl.h"                   /*  引脚控制框架                */
+#include "../SylixOS/system/device/mii/mdioLib.h"                       /*  mdio 驱动接口               */
+#include "../SylixOS/system/device/mii/phyDev.h"                        /*  mii phy 设备接口            */
+#include "../SylixOS/system/device/i2c/i2cLibDevTree.h"                 /*  I2C 驱动框架                */
+#include "../SylixOS/system/device/spi/spiLibDevTree.h"                 /*  SPI 驱动框架                */
+#endif                                                                  /*  __SYLIXOS_DEVTREE_DRV       */
+/*********************************************************************************************************
   ATA 总线及其设备驱动模型
 *********************************************************************************************************/
 #ifdef   __SYLIXOS_ATA_DRV

@@ -60,7 +60,7 @@ $(target)_A := $(OUTPATH)/$(LOCAL_TARGET_NAME)
 #*********************************************************************************************************
 # Make archive object files
 #*********************************************************************************************************
-$($(target)_A): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_A): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		$(__PRE_LINK_CMD)
 		$(__POST_LINK_CMD)
 		$(__PRE_STRIP_CMD)

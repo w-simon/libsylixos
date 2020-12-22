@@ -159,21 +159,85 @@ typedef struct lw_pmd_funcs {
 typedef LW_PMD_FUNCS    *PLW_PMD_FUNCS;
 
 #endif                                                                  /*  LW_CFG_POWERM_EN            */
+
+/*********************************************************************************************************
+  设备树
+*********************************************************************************************************/
+#if LW_CFG_DEVTREE_EN > 0
+
+typedef struct devtree_prop {
+    CPCHAR                        DTP_pcName;                           /*  属性名称                    */
+    INT                           DTP_iLength;                          /*  属性长度                    */
+    PVOID                         DTP_pvValue;                          /*  属性值                      */
+    struct devtree_prop          *DTP_pdtpNext;                         /*  指向下一个属性的指针        */
+} LW_DEVTREE_PROPERTY;
+typedef LW_DEVTREE_PROPERTY      *PLW_DEVTREE_PROPERTY;
+
+typedef struct devtree_node {
+    CPCHAR                        DTN_pcName;                           /*  设备树节点名称              */
+    CPCHAR                        DTN_pcType;
+    UINT32                        DTN_uiHandle;                         /*  设备树节点的句柄值          */
+    CPCHAR                        DTN_pcFullName;
+    PLW_DEVTREE_PROPERTY          DTN_pdtpproperties;                   /*  设备树节点的属性            */
+    PLW_DEVTREE_PROPERTY          DTN_pdtpdeadpros;
+    struct devtree_node          *DTN_pdtnparent;                       /*  父节点                      */
+    struct devtree_node          *DTN_pdtnchild;                        /*  孩子节点                    */
+    struct devtree_node          *DTN_pdtnsibling;                      /*  兄弟节点                    */
+    ULONG                         DTN_ulFlags;
+    PVOID                         DTN_pvData;                           /*  会在最后开辟 FullName 内存  */
+} LW_DEVTREE_NODE;
+typedef LW_DEVTREE_NODE          *PLW_DEVTREE_NODE;
+
+#define MAX_PHANDLE_ARGS            16
+typedef struct devtree_phandle_args {
+    PLW_DEVTREE_NODE              DTPH_pdtnDev;
+    INT                           DTPH_iArgsCount;
+    UINT32                        DTPH_uiArgs[MAX_PHANDLE_ARGS];
+} LW_DEVTREE_PHANDLE_ARGS;
+typedef LW_DEVTREE_PHANDLE_ARGS  *PLW_DEVTREE_PHANDLE_ARGS;
+
+typedef struct devtree_table_item {
+    CHAR                          DTITEM_cName[32];
+    CHAR                          DTITEM_cType[32];
+    CHAR                          DTITEM_cCompatible[128];
+    CPVOID                        DTITEM_pvData;
+} LW_DEVTREE_TABLE_ITEM;
+typedef LW_DEVTREE_TABLE_ITEM     LW_DEVTREE_TABLE;
+typedef LW_DEVTREE_TABLE_ITEM    *PLW_DEVTREE_TABLE;
+
+typedef struct dev_resource {
+    union {
+        struct {
+            addr_t                DEVRES_ulStart;                       /*  IO 地址资源的起始地址       */
+            addr_t                DEVRES_ulEnd;                         /*  IO 地址资源的结束地址       */
+        } iomem;
+
+        struct {
+            ULONG                 DEVRES_ulIrq;                         /*  中断资源的中断号            */
+            ULONG                 DEVRES_ulFlags;                       /*  中断资源的中断类型          */
+        } irq;
+    };
+    CPCHAR                        DEVRES_pcName;                        /*  资源的名称                  */
+} LW_DEV_RESOURCE;
+typedef LW_DEV_RESOURCE          *PLW_DEV_RESOURCE;
+
+#endif                                                                  /*  LW_CFG_DEVTREE_EN           */
+
 /*********************************************************************************************************
   设备头
 *********************************************************************************************************/
 
 typedef struct {
-    LW_LIST_LINE               DEVHDR_lineManage;                       /*  设备头管理链表              */
-    UINT16                     DEVHDR_usDrvNum;                         /*  主设备号                    */
-    UINT16                     DEVHDR_usDevNum;                         /*  子设备号                    */
-    PCHAR                      DEVHDR_pcName;                           /*  设备名称                    */
-    UCHAR                      DEVHDR_ucType;                           /*  设备 dirent d_type          */
-    atomic_t                   DEVHDR_atomicOpenNum;                    /*  打开的次数                  */
-    PVOID                      DEVHDR_pvReserve;                        /*  保留                        */
+    LW_LIST_LINE                  DEVHDR_lineManage;                    /*  设备头管理链表              */
+    UINT16                        DEVHDR_usDrvNum;                      /*  主设备号                    */
+    UINT16                        DEVHDR_usDevNum;                      /*  子设备号                    */
+    PCHAR                         DEVHDR_pcName;                        /*  设备名称                    */
+    UCHAR                         DEVHDR_ucType;                        /*  设备 dirent d_type          */
+    atomic_t                      DEVHDR_atomicOpenNum;                 /*  打开的次数                  */
+    PVOID                         DEVHDR_pvReserve;                     /*  保留                        */
 } LW_DEV_HDR;
-typedef LW_DEV_HDR            *PLW_DEV_HDR;
-typedef LW_DEV_HDR             DEV_HDR;
+typedef LW_DEV_HDR               *PLW_DEV_HDR;
+typedef LW_DEV_HDR                DEV_HDR;
 
 #define LW_DEV_MAKE_STDEV(hdr)  \
         (((dev_t)((PLW_DEV_HDR)(hdr))->DEVHDR_usDrvNum << 16) | ((PLW_DEV_HDR)(hdr))->DEVHDR_usDevNum)

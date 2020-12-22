@@ -616,7 +616,8 @@ char * netif_index_to_name(u8_t idx, char *name);
 struct netif* netif_get_by_index(u8_t idx);
 
 #ifdef SYLIXOS /* SylixOS Add these function */
-#define LWIP_NETIF_TCP_ACK_FREQ_MIN 2
+#define LWIP_NETIF_TCP_ACK_FREQ_MIN 1
+#define LWIP_NETIF_TCP_ACK_FREQ_DEF 2
 #define LWIP_NETIF_TCP_ACK_FREQ_MAX 127
 
 #define netif_set_tcp_ack_freq(netif, tcpaf)    ((netif)->tcp_ack_freq = tcpaf)

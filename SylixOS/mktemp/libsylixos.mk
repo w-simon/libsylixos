@@ -82,6 +82,7 @@ OBJS_SYMBOL  := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename
 OBJS_SYS     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SYS_SRCS))))
 OBJS_SYSPERF := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(SYSPERF_SRCS))))
 OBJS_CPP     := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(CPP_SRCS))))
+OBJS_DEVTREE := $(addprefix $(OBJPATH)/libsylixos.a/, $(addsuffix .o, $(basename $(DEVTREE_SRCS))))
 
 #*********************************************************************************************************
 # Make archive object files
@@ -107,6 +108,7 @@ $($(target)_A): $($(target)_OBJS)
 		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_SYS)
 		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_SYSPERF)
 		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_CPP)
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(OBJS_DEVTREE)
 		$(__POST_LINK_CMD)
 
 #*********************************************************************************************************
@@ -124,7 +126,7 @@ else
 $(OUTPATH)/symbol.c: $($(target)_A)
 		@rm -f $@
 		cp SylixOS/hosttools/makesymbol/Makefile $(OUTDIR)
-		cp SylixOS/hosttools/makesymbol/makesymbol.bat $(OUTDIR)
+		cp SylixOS/hosttools/makesymbol/makesymbol.exe $(OUTDIR)
 		cp SylixOS/hosttools/makesymbol/makesymbol.sh $(OUTDIR)
 		cp SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
 		make -C $(OUTDIR)

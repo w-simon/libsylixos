@@ -122,7 +122,7 @@ $(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_PIC_M) $(TOOLCHAIN_LINK_PIC_GCC)
 # Link object files
 #*********************************************************************************************************
 ifeq ($(ARCH), c6x)
-$($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
@@ -134,7 +134,7 @@ $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@_nm.txt $@_dis.txt
 		$(__POST_LINK_CMD)
 else ifeq ($(findstring mips,$(ARCH))_$($(target)_NO_UNDEF_SYM), mips_yes)
-$($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		@$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(TOOLCHAIN_NO_UNDEF_SYM_FLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@.tmp
@@ -142,7 +142,7 @@ $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
 		$(__POST_LINK_CMD)
 else
-$($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@

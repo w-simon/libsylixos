@@ -111,7 +111,7 @@ $(target)_DEPEND_LIB += $(TOOLCHAIN_LINK_PIC_M) $(TOOLCHAIN_LINK_PIC_GCC)
 # Link object files
 #*********************************************************************************************************
 ifeq ($(ARCH), c6x)
-$($(target)_SO): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_SO): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
@@ -123,7 +123,7 @@ $($(target)_SO): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
 		@rm -f $@_nm.txt $@_dis.txt
 		$(__POST_LINK_CMD)
 else
-$($(target)_SO): $($(target)_OBJS) $($(target)_DEPEND_TARGET)
+$($(target)_SO): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
 		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@ 
@@ -143,9 +143,9 @@ $($(target)_STRIP_SO): $($(target)_SO)
 #*********************************************************************************************************
 # Make archive object files
 #*********************************************************************************************************
-$($(target)_A): $($(target)_OBJS)
+$($(target)_A): $($(target)_OBJS) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
-		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $^
+		$(AR) $(TOOLCHAIN_AR_FLAGS) $@ $(__AR_SO_OBJS)
 
 #*********************************************************************************************************
 # Add targets
