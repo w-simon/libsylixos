@@ -170,6 +170,10 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
     switch (uiExcClass) {
 
     case EXC_UNKNOWN_REASON:
+        abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_UNDEF;               /*  指令错误                    */
+        break;
+
     case EXC_TRAP_WFI_WFE:
     case EXC_EL3:
         abtInfo.VMABT_uiMethod = 0;
@@ -225,6 +229,12 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
 
     case EXC_DATA_ABORT_LO:
     case EXC_DATA_ABORT:
+        if (uiExcISS == 0x21) {
+            abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+            abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_BUS;             /*  非对齐访问错误              */
+            break;
+        }
+
         ulAbortAddr            = arm64MmuAbtFaultAddr();
         abtInfo.VMABT_uiMethod = (uiExcISS & 0x40) ? LW_VMM_ABORT_METHOD_WRITE : LW_VMM_ABORT_METHOD_READ;
         abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_MAP;                 /*  数据错误                    */

@@ -29,8 +29,9 @@
 *********************************************************************************************************/
 
 #if LW_CFG_LWIP_TCP_SIG_EN > 0
-#include "tcpsig/tcp_md5.h"
+#include "tcpext/tcp_md5.h"
 #endif
+#include "tcpext/tcp_isn.h"
 #if LW_CFG_NET_MROUTER > 0
 #include "netinet/in.h"
 #include "netinet/ip_mroute.h"

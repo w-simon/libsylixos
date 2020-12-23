@@ -667,7 +667,9 @@ SylixOS/arch/csky/mm/cskyMpu.c \
 SylixOS/arch/csky/mm/mpu/cskyMpu.c \
 SylixOS/arch/csky/mpcore/cskyMpCoreAsm.S \
 SylixOS/arch/csky/mpcore/cskySpinlock.c \
-SylixOS/arch/csky/param/cskyParam.c
+SylixOS/arch/csky/param/cskyParam.c \
+SylixOS/vpmpdm/arch/csky/memcpy.S \
+SylixOS/vpmpdm/arch/csky/memset.S
 
 #*********************************************************************************************************
 # Buildin internal application source
@@ -1614,7 +1616,8 @@ SylixOS/net/lwip/src/netif/radio/null_rdc.c \
 SylixOS/net/lwip/src/netif/radio/simple_crypt.c \
 SylixOS/net/lwip/src/netif/radio/tdma_mac.c \
 SylixOS/net/lwip/src/netif/radio/xmac_rdc.c \
-SylixOS/net/lwip/tcpsig/tcp_md5.c \
+SylixOS/net/lwip/tcpext/tcp_isn.c \
+SylixOS/net/lwip/tcpext/tcp_md5.c \
 SylixOS/net/lwip/tools/ftp/lwip_ftp.c \
 SylixOS/net/lwip/tools/ftp/lwip_ftpd.c \
 SylixOS/net/lwip/tools/hosttable/lwip_hosttable.c \
@@ -2176,7 +2179,7 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/sparc/fpu/vfp/sparcVfpAsm.o: ./SylixOS/arch
 endif
 
 #*********************************************************************************************************
-# compile C-SKY FPU source files
+# compile C-SKY FPU and memory function source files
 #*********************************************************************************************************
 ifeq ($(ARCH), csky)
 CSKY_FPU_ASFLAGS = -mhard-float
@@ -2188,7 +2191,32 @@ $(OBJPATH)/libsylixos.a/SylixOS/arch/csky/fpu/fpu/cskyVfpAsm.o: ./SylixOS/arch/c
 			mkdir -p "$(dir $(__DEP))"; fi
 		$(AS) $(CSKY_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -c $< -o $@
 
-endif	
+$(OBJPATH)/libsylixos.a/SylixOS/vpmpdm/arch/csky/memcpy.o: ./SylixOS/vpmpdm/arch/csky/memcpy.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(CSKY_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -Dmemcpy=archMemcpy -Dmemmove=archMemmove -c $< -o $@
+
+$(OBJPATH)/libsylixos.a/SylixOS/vpmpdm/arch/csky/memset.o: ./SylixOS/vpmpdm/arch/csky/memset.S
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(AS) $(CSKY_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -Dmemset=archMemset -c $< -o $@
+endif
+
+#*********************************************************************************************************
+# compile lib_memset.c with '-fno-builtin' parameter, avoid lib_memset function call memset function
+#*********************************************************************************************************
+ifneq ($(ARCH), c6x)
+$(OBJPATH)/libsylixos.a/SylixOS/lib/libc/string/lib_memset.o: ./SylixOS/lib/libc/string/lib_memset.c
+		@if [ ! -d "$(dir $@)" ]; then \
+			mkdir -p "$(dir $@)"; fi
+		@if [ ! -d "$(dir $(__DEP))" ]; then \
+			mkdir -p "$(dir $(__DEP))"; fi
+		$(CC) $($(__TARGET)_CFLAGS) -fno-builtin -MMD -MP -MF $(__DEP) -c $< -o $@
+endif
 
 include $(LIBSYLIXOS_MK)
 

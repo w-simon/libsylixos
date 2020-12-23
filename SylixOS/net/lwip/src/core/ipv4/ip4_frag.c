@@ -525,7 +525,11 @@ ip4_reass(struct pbuf *p)
   offset = IPH_OFFSET_BYTES(fraghdr);
   len = lwip_ntohs(IPH_LEN(fraghdr));
   hlen = IPH_HL_BYTES(fraghdr);
+#ifdef SYLIXOS /* SylixOS Reject 0-length fragments */
+  if (hlen >= len) {
+#else
   if (hlen > len) {
+#endif
     /* invalid datagram */
     goto nullreturn;
   }

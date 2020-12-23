@@ -301,7 +301,11 @@ ip6_reass(struct pbuf *p)
   LWIP_ASSERT("not a valid pbuf (ip6_input check missing?)", hdrdiff >= IP6_HLEN);
   hdrdiff -= IP6_HLEN;
   hdrdiff += IP6_FRAG_HLEN;
+#ifdef SYLIXOS /* SylixOS Reject 0-length fragments */
+  if (hdrdiff >= len) {
+#else
   if (hdrdiff > len) {
+#endif
     IP6_FRAG_STATS_INC(ip6_frag.proterr);
     goto nullreturn;
   }

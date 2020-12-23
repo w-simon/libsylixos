@@ -60,6 +60,7 @@
 #if LW_CFG_NET_EN > 0
 #include "lwip_config.h"
 #include "lwip_fix.h"
+#include "lwip_hook.h"
 #include "lwip/debug.h"
 #include "lwip/def.h"
 #include "lwip/sys.h"
@@ -85,6 +86,7 @@
 #include "netif/ppp/pppapi.h"
 #endif                                                                  /*  PPP_SUPPORT > 0 ||          */
                                                                         /*  PPPOE_SUPPORT > 0           */
+#include "sys/random.h"
 /*********************************************************************************************************
   版本判断 (警告!!! 低版本 lwip 系统将不再支持)
 *********************************************************************************************************/
@@ -117,7 +119,14 @@ static void sys_thread_sem_fini(LW_OBJECT_HANDLE  id);
 *********************************************************************************************************/
 void  sys_init (void)
 {
+    u8_t   iv[16];
+    time_t now;
+
     LW_SPIN_INIT(&_G_slcaLwip.SLCA_sl);                                 /*  初始化网络关键区域自旋锁    */
+
+    lib_time(&now);
+    getrandom(iv, sizeof(iv), GRND_NONBLOCK);
+    tcp_isn_init(&now, iv);                                             /*  初始化 TCP ISN 生成器       */
 
 #if LW_CFG_NET_SAFE > 0
 #if LW_CFG_NET_SAFE_LAZY == 0

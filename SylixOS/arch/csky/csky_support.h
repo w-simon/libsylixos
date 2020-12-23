@@ -42,8 +42,14 @@
 *********************************************************************************************************/
 
 #define __ARCH_KERNEL_PARAM         archKernelParam
+#define __ARCH_MEMCPY               archMemcpy
+#define __ARCH_MEMMOVE              archMemmove
+#define __ARCH_MEMSET               archMemset
 
 VOID    archKernelParam(CPCHAR  pcParam);
+PVOID   archMemcpy(PVOID   pvDest, CPVOID  pvSrc, size_t  stCount);
+PVOID   archMemmove(PVOID  pvDest, CPVOID  pvSrc, size_t  stCount);
+PVOID   archMemset(PVOID   pvDest, INT  iC, size_t  stCount);
 
 /*********************************************************************************************************
   C-SKY ´¦ÀíÆ÷¶ÏÑÔ

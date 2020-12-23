@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2020-12-23: han.hui
+    加入 RFC6528 安全标准支持.
+
     2020-10-04: han.hui
     加入 sys/random.h 支持.
 

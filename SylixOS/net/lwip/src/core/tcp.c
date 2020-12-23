@@ -2328,12 +2328,17 @@ tcp_pcb_remove(struct tcp_pcb **pcblist, struct tcp_pcb *pcb)
 u32_t
 tcp_next_iss(struct tcp_pcb *pcb)
 {
+  static u32_t iss = 6510;
 #ifdef LWIP_HOOK_TCP_ISN
   LWIP_ASSERT("tcp_next_iss: invalid pcb", pcb != NULL);
+#ifdef SYLIXOS /* Loopback network trust */
+  if (ip_addr_isloopback(&pcb->local_ip) && ip_addr_isloopback(&pcb->remote_ip)) {
+    iss += tcp_ticks; /* Fast get trust link iss */
+    return iss;
+  }
+#endif /* SYLIXOS */
   return LWIP_HOOK_TCP_ISN(&pcb->local_ip, pcb->local_port, &pcb->remote_ip, pcb->remote_port);
 #else /* LWIP_HOOK_TCP_ISN */
-  static u32_t iss = 6510;
-
   LWIP_ASSERT("tcp_next_iss: invalid pcb", pcb != NULL);
   LWIP_UNUSED_ARG(pcb);
 

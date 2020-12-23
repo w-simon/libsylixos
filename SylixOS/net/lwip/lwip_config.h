@@ -111,7 +111,9 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define PBUF_POOL_SIZE                  LW_CFG_LWIP_NUM_POOLS           /*  pool num                    */
 #define PBUF_POOL_BUFSIZE               LW_CFG_LWIP_POOL_SIZE           /*  pool block size             */
 
-#if MEM_SIZE >= (1 * LW_CFG_MB_SIZE)
+#if MEM_SIZE >= (2 * LW_CFG_MB_SIZE)
+#define MEMP_NUM_REASSDATA              1024
+#elif MEM_SIZE >= (1 * LW_CFG_MB_SIZE)
 #define MEMP_NUM_REASSDATA              512                             /*  同时进行重组的 IP 数据包    */
 #elif MEM_SIZE >= (512 * LW_CFG_KB_SIZE)
 #define MEMP_NUM_REASSDATA              256
@@ -740,6 +742,12 @@ extern INT  __inetHostTableGetItem(CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr,
 *********************************************************************************************************/
 
 #define LWIP_HOOK_FILENAME          "network/arch/hook.h"               /*  hook 声明                   */
+
+/*********************************************************************************************************
+  lwip tcp hook
+*********************************************************************************************************/
+
+#define LWIP_HOOK_TCP_ISN           tcp_isn_hook
 
 /*********************************************************************************************************
   lwip ip route hook
