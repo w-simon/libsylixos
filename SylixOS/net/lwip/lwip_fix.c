@@ -110,6 +110,22 @@ static void sys_thread_sem_init(LW_OBJECT_HANDLE  id);
 static void sys_thread_sem_fini(LW_OBJECT_HANDLE  id);
 #endif                                                                  /*  LW_CFG_NET_SAFE > 0         */
 /*********************************************************************************************************
+** 函数名称: sys_tcp_isn_key_update
+** 功能描述: TCP ISN key 升级
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+void  sys_tcp_isn_key_update (void)
+{
+    u8_t iv[16];
+
+    getrandom(iv, sizeof(iv), GRND_NONBLOCK);
+
+    tcp_isn_skey(iv);                                                   /*  初始化 TCP ISN 生成器       */
+}
+/*********************************************************************************************************
 ** 函数名称: sys_init
 ** 功能描述: 系统接口初始化
 ** 输　入  : NONE
@@ -119,14 +135,9 @@ static void sys_thread_sem_fini(LW_OBJECT_HANDLE  id);
 *********************************************************************************************************/
 void  sys_init (void)
 {
-    u8_t   iv[16];
-    time_t now;
-
     LW_SPIN_INIT(&_G_slcaLwip.SLCA_sl);                                 /*  初始化网络关键区域自旋锁    */
 
-    lib_time(&now);
-    getrandom(iv, sizeof(iv), GRND_NONBLOCK);
-    tcp_isn_init(&now, iv);                                             /*  初始化 TCP ISN 生成器       */
+    sys_tcp_isn_key_update();
 
 #if LW_CFG_NET_SAFE > 0
 #if LW_CFG_NET_SAFE_LAZY == 0

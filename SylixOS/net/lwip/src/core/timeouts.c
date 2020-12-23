@@ -113,6 +113,9 @@ const struct lwip_cyclic_timer lwip_cyclic_timers[] = {
   {DHCP6_TIMER_MSECS, HANDLER(dhcp6_tmr)},
 #endif /* LWIP_IPV6_DHCP6 */
 #endif /* LWIP_IPV6 */
+#ifdef SYLIXOS /* SylixOS Add TCP ISN key update cyclic timer */
+  {TCP_ISN_KEY_INTERVAL, HANDLER(sys_tcp_isn_key_update)},
+#endif /* SYLIXOS */
 };
 const int lwip_num_cyclic_timers = LWIP_ARRAYSIZE(lwip_cyclic_timers);
 

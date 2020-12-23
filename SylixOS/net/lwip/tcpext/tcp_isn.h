@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-void  tcp_isn_init(time_t *boot_time, const u8_t *secret_16_bytes);
+void  tcp_isn_skey(const u8_t *secret_16_bytes);
 u32_t tcp_isn_hook(const ip_addr_t *local_ip, u16_t local_port,
                    const ip_addr_t *remote_ip, u16_t remote_port);
 

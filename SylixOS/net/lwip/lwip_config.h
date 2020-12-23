@@ -237,7 +237,7 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
   timeouts (default + 10, aodv, lowpan ...)
 *********************************************************************************************************/
 
-#define MEMP_NUM_SYS_TIMEOUT            (LWIP_NUM_SYS_TIMEOUT_INTERNAL + 11 + LW_CFG_NET_FLOWCTL_EN + \
+#define MEMP_NUM_SYS_TIMEOUT            (LWIP_NUM_SYS_TIMEOUT_INTERNAL + 12 + LW_CFG_NET_FLOWCTL_EN + \
                                          (LW_CFG_NET_MROUTER * 2))
 
 #define MEMP_NUM_NETBUF                 LW_CFG_LWIP_NUM_NETBUF
@@ -404,6 +404,12 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define TCP_SND_BUF                     LWIP_MIN(LW_CFG_LWIP_TCP_SND, 0xffff)
 #define TCP_RCV_SCALE                   LW_CFG_LWIP_TCP_SCALE
 #define TCP_WND_UPDATE_THRESHOLD        (pcb->if_wnd >> 1)              /*  1/2 window size             */
+
+/*********************************************************************************************************
+  TCP ISN
+*********************************************************************************************************/
+
+#define TCP_ISN_KEY_INTERVAL            (5 * 60 * 1000)                 /*  Update key per 5 min        */
 
 /*********************************************************************************************************
   TCP Other

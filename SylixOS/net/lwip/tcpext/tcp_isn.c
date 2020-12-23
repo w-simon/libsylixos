@@ -80,24 +80,16 @@
 #include "mbedtls/md5.h"
 
 static u8_t input[64];
-static u32_t base_time;
 
 /**
- * Initialize the TCP ISN module, with the boot time and a secret.
+ * Set the TCP ISN module secret key.
  *
- * @param boot_time Wall clock boot time of the system, in seconds.
  * @param secret_16_bytes A 16-byte secret used to randomize the TCP ISNs.
  */
 void
-tcp_isn_init(time_t *boot_time, const u8_t *secret_16_bytes)
+tcp_isn_skey(const u8_t *secret_16_bytes)
 {
-  /* Initialize the input buffer with the secret and trailing zeroes. */
-  memset(input, 0, sizeof(input));
-
   MEMCPY(&input[36], secret_16_bytes, 16);
-
-  /* Save the boot time in 4-us units. Overflow is no problem here. */
-  base_time = (u32_t)(*boot_time * 250000);
 }
 
 /**
@@ -114,6 +106,7 @@ tcp_isn_hook(const ip_addr_t *local_ip, u16_t local_port,
     const ip_addr_t *remote_ip, u16_t remote_port)
 {
   mbedtls_md5_context ctx;
+  struct timespec timestamp;
   u8_t output[16];
   u32_t isn;
 
@@ -169,8 +162,11 @@ tcp_isn_hook(const ip_addr_t *local_ip, u16_t local_port,
   /* Arbitrarily take the first 32 bits from the generated hash. */
   MEMCPY(&isn, output, sizeof(isn));
 
+  /* Get current time */
+  lib_clock_gettime(CLOCK_MONOTONIC, &timestamp);
+
   /* Add the current time in 4-microsecond units. */
-  return isn + base_time + sys_now() * 250;
+  return isn + (u32_t)(timestamp.tv_sec * 4000000) + (timestamp.tv_nsec / 4000);
 }
 
 #endif /* LWIP_HOOK_TCP_ISN */
