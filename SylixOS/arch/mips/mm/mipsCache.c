@@ -47,7 +47,8 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
 
     mipsCpuProbe(pcMachineName);                                        /*  MIPS CPU Ì½²â               */
 
-    if ((_G_uiMipsCpuType == CPU_LOONGSON3) ||                          /*  Loongson-3x/2G/2H           */
+    if ((_G_uiMipsCpuType == CPU_LOONGSON3)      ||                     /*  Loongson-3x/2G/2H           */
+        (_G_uiMipsCpuType == CPU_LOONGSON3_COMP) ||
         (_G_uiMipsCpuType == CPU_LOONGSON2K)) {                         /*  Loongson-2K                 */
         mipsCacheLs3xInit(pcacheop, uiInstruction, uiData, pcMachineName);
 
@@ -76,7 +77,8 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
 {
     mipsCpuProbe(pcMachineName);                                        /*  MIPS CPU Ì½²â               */
 
-    if ((_G_uiMipsCpuType == CPU_LOONGSON3) ||                          /*  Loongson-3x/2G/2H           */
+    if ((_G_uiMipsCpuType == CPU_LOONGSON3)      ||                     /*  Loongson-3x/2G/2H           */
+        (_G_uiMipsCpuType == CPU_LOONGSON3_COMP) ||
         (_G_uiMipsCpuType == CPU_LOONGSON2K)) {                         /*  Loongson-2K                 */
         mipsCacheLs3xReset(pcMachineName);
 

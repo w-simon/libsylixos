@@ -84,6 +84,7 @@ static VOID  mipsPCacheProbe (VOID)
         break;
 
     case CPU_LOONGSON3:
+    case CPU_LOONGSON3_COMP:
     case CPU_LOONGSON2K:
     case CPU_CETC_HR2:
         uiConfig1 = mipsCp0Config1Read();
@@ -212,6 +213,7 @@ static VOID  mipsVCacheProbe (VOID)
     _G_VCache.CACHE_bPresent = LW_FALSE;
 
     if ((_G_uiMipsCpuType != CPU_LOONGSON3) &&                          /*  Loongson-3x/2G/2H           */
+        (_G_uiMipsCpuType != CPU_LOONGSON3_COMP) &&
         (_G_uiMipsCpuType != CPU_LOONGSON2K)) {                         /*  Loongson-2K                 */
         return;
     }
@@ -358,6 +360,7 @@ static VOID  mipsSCacheSetup (VOID)
         break;
 
     case CPU_LOONGSON3:
+    case CPU_LOONGSON3_COMP:
     case CPU_LOONGSON2K:
     case CPU_CETC_HR2:
         loongson3SCacheInit();
@@ -453,6 +456,7 @@ VOID  mipsCacheProbe (CPCHAR  pcMachineName)
         break;
 
     case CPU_LOONGSON3:                                                 /*  Loongson-2G/2H/3x           */
+    case CPU_LOONGSON3_COMP:
     case CPU_LOONGSON2K:                                                /*  Loongson-2K                 */
     case CPU_CETC_HR2:                                                  /*  CETC-HR2                    */
         _G_bHaveTagHi = LW_TRUE;

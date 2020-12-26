@@ -222,6 +222,11 @@ VOID  ls3xCacheFlushAll (VOID)
     mipsCpuProbe(MIPS_MACHINE_LS3X);                                    /*  MIPS CPU Ì½²â               */
     mipsCacheProbe(MIPS_MACHINE_LS3X);                                  /*  CACHE Ì½²â                  */
 
+    if (_G_uiMipsPridImp == PRID_REV_LOONGSON3A_R4_0) {
+        ls3aR2CacheFlushAll();
+        return;
+    }
+
     switch (_G_uiMipsPridRev) {
 
     case PRID_REV_LOONGSON3A_R2:

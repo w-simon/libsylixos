@@ -81,6 +81,10 @@ static VOID  mispCpuProbeLegacy (VOID)
         _G_uiMipsCpuType = CPU_LOONGSON1;
         break;
 
+    case PRID_REV_LOONGSON3A_R4_0:                                      /*  ÓÃ REV ½øÐÐÅÐ¶Ï             */
+        _G_uiMipsCpuType = CPU_LOONGSON3_COMP;                          /*  Loongson-3A4000             */
+        break;
+
     case PRID_IMP_CETC_HR2:                                             /*  CETC-HR2                    */
         _G_uiMipsCpuType = CPU_CETC_HR2;
         break;

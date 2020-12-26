@@ -82,6 +82,7 @@ VOID  mipsMmuInvalidateMicroTLB (VOID)
         break;
 
     case CPU_LOONGSON3:
+    case CPU_LOONGSON3_COMP:
         mipsCp0DiagWrite((LOONGSON_DIAG_DTLB) |                         /*  GS464E 才有 DTLB, GS464 没有*/
                          (LOONGSON_DIAG_ITLB));                         /*  无效 ITLB DTLB              */
         break;
@@ -226,6 +227,7 @@ static INT  mipsMmuGlobalInit (CPCHAR  pcMachineName)
     }
 
     if ((_G_uiMipsCpuType == CPU_LOONGSON3) ||                          /*  Loongson-3x/2G/2H           */
+        (_G_uiMipsCpuType == CPU_LOONGSON3_COMP) ||
         (_G_uiMipsCpuType == CPU_LOONGSON2K)) {                         /*  Loongson-2K                 */
         UINT32  uiGSConfig = mipsCp0GSConfigRead();
         uiGSConfig &= ~(1 <<  3);                                       /*  Store 操作也进行硬件自动预取*/
@@ -370,6 +372,7 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
     case CPU_LOONGSON1:
     case CPU_LOONGSON2:
     case CPU_LOONGSON3:
+    case CPU_LOONGSON3_COMP:
     case CPU_LOONGSON2K:
         _G_bMmuHasXI             = LW_TRUE;                             /*  有执行阻止位                */
         _G_uiMmuEntryLoUnCache   = 0x2;                                 /*  非高速缓存                  */
