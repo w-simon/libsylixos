@@ -105,7 +105,7 @@ INT  timer_create_internal (clockid_t  clockid, struct sigevent *sigeventT,
                             timer_t *ptimer, ULONG  ulOption)
 {
 #if LW_CFG_PTIMER_AUTO_DEL_EN > 0
-    static BOOL         bIsInstallHook = LW_FALSE;
+    static INT          iIsInstallHook = 0;
 #endif                                                                  /*  LW_CFG_PTIMER_AUTO_DEL_EN   */
 
     LW_OBJECT_HANDLE    ulTimer;
@@ -135,7 +135,7 @@ INT  timer_create_internal (clockid_t  clockid, struct sigevent *sigeventT,
     }
     
 #if LW_CFG_PTIMER_AUTO_DEL_EN > 0
-    API_ThreadOnce(&bIsInstallHook, __ptimerHookInstall);               /*  安装回调                    */
+    API_ThreadOnce(&iIsInstallHook, __ptimerHookInstall);               /*  安装回调                    */
 #endif                                                                  /*  LW_CFG_PTIMER_AUTO_DEL_EN   */
     
     __KERNEL_ENTER();                                                   /*  进入内核                    */

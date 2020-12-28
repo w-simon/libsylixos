@@ -107,8 +107,11 @@ ULONG  API_ThreadWakeupEx (LW_OBJECT_HANDLE  ulId, BOOL  bWithInfPend)
 #if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
             if (ptcb->TCB_pesnPtr) {
                 _EventSetUnQueue(ptcb->TCB_pesnPtr);
-            }
+            } else
 #endif                                                                  /*  (LW_CFG_EVENTSET_EN > 0) && */
+            if (__VUTEX_IS_WAITING(ptcb)) {                             /*  等待变量条件                */
+                _VutexUnQueue(ptcb);
+            }
         }
     }
     

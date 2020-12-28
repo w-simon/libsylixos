@@ -50,6 +50,7 @@
             修正不合理的函数命名.
 2014.05.13  加入对进程内线程链表的支持.
 2014.07.26  加入对 GDB 变量的初始化.
+2020.12.27  使用新的 ONCE 回收算法.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -285,6 +286,8 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     ptcb->TCB_uiStatusChangeReq = 0;
     ptcb->TCB_ulStopNesting     = 0ul;
     
+    _VutexInitCtx(ptcb);                                                /*  VUTEX 初始化                */
+
 #if (LW_CFG_DEVICE_EN > 0)                                              /*  设备管理                    */
     ptcb->TCB_pvIoEnv = LW_NULL;                                        /*  默认使用全局 io 环境        */
     
@@ -421,9 +424,9 @@ ULONG  _TCBBuildExt (PLW_CLASS_TCB  ptcb)
 #if LW_CFG_THREAD_EXT_EN > 0
     REGISTER __PLW_THREAD_EXT  ptex = &ptcb->TCB_texExt;
     
-    ptex->TEX_pbOnce         = LW_NULL;
-    ptex->TEX_ulMutex        = 0ul;                                     /*  暂时不需要内部互斥量        */
-    ptex->TEX_pmonoCurHeader = LW_NULL;
+    ptex->TEX_ulMutex         = 0ul;                                    /*  暂时不需要内部互斥量        */
+    ptex->TEX_pmonoOnceHeader = LW_NULL;
+    ptex->TEX_pmonoCurHeader  = LW_NULL;
 #endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
 
     return  (ERROR_NONE);
@@ -439,12 +442,21 @@ ULONG  _TCBBuildExt (PLW_CLASS_TCB  ptcb)
 VOID  _TCBDestroyExt (PLW_CLASS_TCB  ptcb)
 {
 #if LW_CFG_THREAD_EXT_EN > 0
-    REGISTER __PLW_THREAD_EXT   ptex = &ptcb->TCB_texExt;
+    REGISTER __PLW_THREAD_EXT    ptex = &ptcb->TCB_texExt;
+    REGISTER __PLW_CLEANUP_ONCE  pcur;
+             atomic_t           *patomic;
     
-    if (ptex->TEX_pbOnce) {
-        *(ptex->TEX_pbOnce) = LW_FALSE;                                 /*  未完成的 once 操作          */
-        ptex->TEX_pbOnce = LW_NULL;
+    while (ptex->TEX_pmonoOnceHeader) {
+        pcur = (__PLW_CLEANUP_ONCE)(ptex->TEX_pmonoOnceHeader);         /*  第一个元素                  */
+        _list_mono_next(&ptex->TEX_pmonoOnceHeader);
+
+        patomic = (atomic_t *)pcur->CUO_piOnce;
+        __LW_ATOMIC_SET(0, patomic);                                    /*  未完成的 once 操作          */
+        API_VutexPost(pcur->CUO_piOnce,
+                      __ARCH_INT_MAX, LW_OPTION_VUTEX_LOCAL);           /*  唤醒等待完成的任务          */
+        __KHEAP_FREE(pcur);                                             /*  释放                        */
     }
+
     if (ptex->TEX_ulMutex) {                                            /*  是否需要删除互斥量          */
         API_SemaphoreMDelete(&ptex->TEX_ulMutex);
     }

@@ -46,9 +46,9 @@ extern "C" {
   pthread once & cancel
 *********************************************************************************************************/
 
-typedef BOOL                pthread_once_t;
+typedef INT                 pthread_once_t;
 
-#define PTHREAD_ONCE_INIT   LW_FALSE
+#define PTHREAD_ONCE_INIT   0
 
 #ifndef PTHREAD_CANCEL_ASYNCHRONOUS
 #define PTHREAD_CANCEL_ASYNCHRONOUS         LW_THREAD_CANCEL_ASYNCHRONOUS

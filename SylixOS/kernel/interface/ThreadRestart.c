@@ -128,6 +128,10 @@ static ULONG  __threadRestart (PLW_CLASS_TCB          ptcb,
     }
 #endif
     
+    if (__VUTEX_IS_WAITING(ptcb)) {                                     /*  等待变量条件                */
+        _VutexUnQueue(ptcb);                                            /*  解变量等待                  */
+    }
+
 #if LW_CFG_SMP_EN > 0
     if (ptcb->TCB_ptcbWaitStatus ||
         ptcb->TCB_plineStatusReqHeader) {                               /*  正在请求其他线程改变状态    */

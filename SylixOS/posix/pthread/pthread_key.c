@@ -65,7 +65,7 @@ static LW_LIST_RING_HEADER  _G_pringKeyHeader;                          /*  所有
 /*********************************************************************************************************
   协程删除回调函数声明
 *********************************************************************************************************/
-static BOOL  _G_bKeyDelHookAdd = LW_FALSE;
+static INT   _G_iKeyDelHookAdd = 0;
 static VOID  __pthreadDataDeleteByThread(LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal, PLW_CLASS_TCB  ptcbDel);
 /*********************************************************************************************************
 ** 函数名称: __pthreadKeyOnce
@@ -336,7 +336,7 @@ int  pthread_key_create (pthread_key_t  *pkey, void (*fdestructor)(void *))
         return  (EINVAL);
     }
     
-    API_ThreadOnce(&_G_bKeyDelHookAdd, __pthreadKeyOnce);               /*  安装线程删除回调            */
+    API_ThreadOnce(&_G_iKeyDelHookAdd, __pthreadKeyOnce);               /*  安装线程删除回调            */
     
     pkeyn = (__PX_KEY_NODE *)__SHEAP_ALLOC(sizeof(__PX_KEY_NODE));      /*  创建节点内存                */
     if (pkeyn == LW_NULL) {

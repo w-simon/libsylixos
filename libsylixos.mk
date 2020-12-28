@@ -1205,7 +1205,9 @@ SylixOS/kernel/vmm/vmmIo.c \
 SylixOS/kernel/vmm/vmmMalloc.c \
 SylixOS/kernel/vmm/vmmMmap.c \
 SylixOS/kernel/vmm/vmmStack.c \
-SylixOS/kernel/vmm/vmmSwap.c
+SylixOS/kernel/vmm/vmmSwap.c \
+SylixOS/kernel/vutex/vutex.c \
+SylixOS/kernel/vutex/vutexLib.c
 
 #*********************************************************************************************************
 # Buildin library source

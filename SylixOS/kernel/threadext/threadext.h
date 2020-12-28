@@ -41,8 +41,8 @@
   API
 *********************************************************************************************************/
 
-LW_API INT      API_ThreadOnce(BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine);
-LW_API INT      API_ThreadOnce2(BOOL  *pbOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg);
+LW_API INT      API_ThreadOnce(INT  *piOnce, VOIDFUNCPTR  pfuncRoutine);
+LW_API INT      API_ThreadOnce2(INT  *piOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg);
 
 LW_API ULONG    API_ThreadCleanupPush(VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg);
 LW_API ULONG    API_ThreadCleanupPushEx(LW_OBJECT_HANDLE  ulId, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg);

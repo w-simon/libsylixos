@@ -38,7 +38,7 @@ typedef LW_TSYNC_NODE  *PLW_TSYNC_NODE;
   全局变量
 *********************************************************************************************************/
 static PLW_LIST_LINE    _G_plineTSyncHeader = LW_NULL;                  /*  链表头                      */
-static BOOL             _G_bTSyncOnce       = LW_FALSE;
+static INT              _G_iTSyncOnce       = 0;
 /*********************************************************************************************************
   背景线程属性
 *********************************************************************************************************/
@@ -114,7 +114,7 @@ INT  API_TSyncAdd (VOIDFUNCPTR  pfuncSync, PVOID  pvArg)
         return  (PX_ERROR);
     }
 
-    API_ThreadOnce(&_G_bTSyncOnce, __tsyncInit);                        /*  创建 t_sync 任务            */
+    API_ThreadOnce(&_G_iTSyncOnce, __tsyncInit);                        /*  创建 t_sync 任务            */
 
     ptsync = (PLW_TSYNC_NODE)__SHEAP_ALLOC(sizeof(LW_TSYNC_NODE));
     if (!ptsync) {

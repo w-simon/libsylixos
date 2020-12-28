@@ -132,6 +132,10 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     }
 #endif
 
+    if (__VUTEX_IS_WAITING(ptcbDel)) {                                  /*  等待变量条件                */
+        _VutexUnQueue(ptcbDel);                                         /*  解变量等待                  */
+    }
+
 #if LW_CFG_SMP_EN > 0
     if (ptcbDel->TCB_ptcbWaitStatus ||
         ptcbDel->TCB_plineStatusReqHeader) {                            /*  正在请求其他线程改变状态    */

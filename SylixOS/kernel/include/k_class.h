@@ -399,8 +399,14 @@ typedef struct {
 typedef __LW_CLEANUP_ROUTINE    *__PLW_CLEANUP_ROUTINE;
 
 typedef struct {
-    BOOL                 *TEX_pbOnce;                                   /*  正在执行的 once 操作        */
+    LW_LIST_MONO          CUO_monoNext;                                 /*  单链表下一个节点            */
+    INT                  *CUO_piOnce;                                   /*  once 变量                   */
+} __LW_CLEANUP_ONCE;
+typedef __LW_CLEANUP_ONCE    *__PLW_CLEANUP_ONCE;
+
+typedef struct {
     LW_OBJECT_HANDLE      TEX_ulMutex;                                  /*  互斥量                      */
+    PLW_LIST_MONO         TEX_pmonoOnceHeader;                          /*  正在执行的 once 操作        */
     PLW_LIST_MONO         TEX_pmonoCurHeader;                           /*  cleanup node header         */
 } __LW_THREAD_EXT;
 typedef __LW_THREAD_EXT  *__PLW_THREAD_EXT;
@@ -452,6 +458,19 @@ typedef struct {
 } LW_SHELL_CONTEXT;
 typedef LW_SHELL_CONTEXT *PLW_SHELL_CONTEXT;
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+
+/*********************************************************************************************************
+  VUTEX 上下文
+*********************************************************************************************************/
+
+typedef struct {
+    LW_LIST_LINE          VUTEX_lineVutex;                              /*  等待链                      */
+    INT                   VUTEX_iFlags;                                 /*  等待 flags                  */
+    INT32                 VUTEX_iVutexExpect;                           /*  期望的数值                  */
+    UINT32                VUTEX_uiVutexHash;                            /*  等待变量 HASH index         */
+    phys_addr_t           VUTEX_phyaddrVutex;                           /*  等待的变量                  */
+} LW_VUTEX_CONTEXT;
+typedef LW_VUTEX_CONTEXT *PLW_VUTEX_CONTEXT;
 
 /*********************************************************************************************************
   线程控制块
@@ -635,6 +654,16 @@ typedef struct __lw_tcb {
 #if (LW_CFG_SMP_EN == 0) && (LW_CFG_THREAD_PRIVATE_VARS_EN > 0) && (LW_CFG_MAX_THREAD_GLB_VARS > 0)
     PLW_LIST_LINE         TCB_plinePrivateVars;                         /*  全局变量私有化线表          */
 #endif
+
+/*********************************************************************************************************
+  VUTEX
+*********************************************************************************************************/
+
+    LW_VUTEX_CONTEXT      TCB_vutex;                                    /*  VUTEX 上下文                */
+
+/*********************************************************************************************************
+  NAME
+*********************************************************************************************************/
 
     CHAR                  TCB_cThreadName[LW_CFG_OBJECT_NAME_SIZE];     /*  线程名                      */
 

@@ -53,7 +53,7 @@
 
 #define __SYLIXOS_MAJOR_VER     2
 #define __SYLIXOS_MINOR_VER     1
-#define __SYLIXOS_PATCH_VER     1
+#define __SYLIXOS_PATCH_VER     2
 #define __SYLIXOS_PATCH_PAD     0
 
 /*********************************************************************************************************
@@ -292,6 +292,7 @@ __attribute__((weak)) char      __sylixos_version[] = __SYLIXOS_VERSTR;
   内部 API 函数声明 
 *********************************************************************************************************/
 #include "../SylixOS/kernel/include/k_api.h"
+#include "../SylixOS/kernel/vutex/vutex.h"
 #include "../SylixOS/kernel/threadext/threadext.h"
 /*********************************************************************************************************
   内核事件监控器
