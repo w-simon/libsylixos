@@ -137,7 +137,7 @@ INT  API_ThreadOnce (INT  *piOnce, VOIDFUNCPTR  pfuncRoutine)
         case __THREAD_ONCE_STATUS_NONE:                                 /*  可以尝试初始化              */
             iValue = __LW_ATOMIC_CAS(patomic,
                                      __THREAD_ONCE_STATUS_NONE,
-                                     __THREAD_ONCE_STATUS_DOWN);
+                                     __THREAD_ONCE_STATUS_INIT);
             break;
 
         default:                                                        /*  状态错误                    */
@@ -203,7 +203,7 @@ INT  API_ThreadOnce2 (INT  *piOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg)
         case __THREAD_ONCE_STATUS_NONE:                                 /*  可以尝试初始化              */
             iValue = __LW_ATOMIC_CAS(patomic,
                                      __THREAD_ONCE_STATUS_NONE,
-                                     __THREAD_ONCE_STATUS_DOWN);
+                                     __THREAD_ONCE_STATUS_INIT);
             break;
 
         default:                                                        /*  状态错误                    */
