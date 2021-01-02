@@ -423,8 +423,14 @@
 #define Lw_Vutex_Pend                           API_VutexPend
 #define Lw_Vutex_Wait                           API_VutexPend
 
+#define Lw_Vutex_PendEx                         API_VutexPendEx
+#define Lw_Vutex_WaitEx                         API_VutexPendEx
+
 #define Lw_Vutex_Post                           API_VutexPost
 #define Lw_Vutex_Wake                           API_VutexPost
+
+#define Lw_Vutex_PostEx                         API_VutexPostEx
+#define Lw_Vutex_WakeEx                         API_VutexPostEx
 
 /*********************************************************************************************************
   TIME

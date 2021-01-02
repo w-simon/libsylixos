@@ -400,12 +400,7 @@ VOID           _MsgQueueMsgLen(PLW_CLASS_MSGQUEUE  pmsgqueue, size_t  *pstMsgLen
 VOID           _VutexInitCtx(PLW_CLASS_TCB  ptcb);
 VOID           _VutexUnQueue(PLW_CLASS_TCB  ptcb);
 
-/*********************************************************************************************************
-  VUTEX µÈ´ýÅÐ¶Ï
-*********************************************************************************************************/
-
-#define __VUTEX_IS_GLOBAL(ptcb)     (ptcb->TCB_vutex.VUTEX_iFlags & LW_OPTION_VUTEX_GLOBAL)
-#define __VUTEX_IS_WAITING(ptcb)    (ptcb->TCB_vutex.VUTEX_phyaddrVutex != LW_PHY_ADDR_INVALID)
+#define __VUTEX_IS_WAITING(ptcb)    ((ptcb)->TCB_vutex.VUTEX_phyaddr != LW_PHY_ADDR_INVALID)
 
 /*********************************************************************************************************
   ¹¹½¨¾ä±ú

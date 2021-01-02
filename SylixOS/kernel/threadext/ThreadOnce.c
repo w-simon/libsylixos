@@ -130,7 +130,6 @@ INT  API_ThreadOnce (INT  *piOnce, VOIDFUNCPTR  pfuncRoutine)
         case __THREAD_ONCE_STATUS_INIT:                                 /*  正在被其他任务执行          */
             API_VutexPend(piOnce,
                           __THREAD_ONCE_STATUS_DOWN,
-                          LW_OPTION_VUTEX_LOCAL,
                           LW_OPTION_WAIT_INFINITE);                     /*  等待初始化执行完毕          */
             continue;
 
@@ -155,9 +154,9 @@ INT  API_ThreadOnce (INT  *piOnce, VOIDFUNCPTR  pfuncRoutine)
         __threadOnceCleanPop();                                         /*  删除回收点                  */
     }
     
-    __LW_ATOMIC_SET(__THREAD_ONCE_STATUS_DOWN, patomic);                /*  执行完毕                    */
-
-    API_VutexPost(piOnce, __ARCH_INT_MAX, LW_OPTION_VUTEX_LOCAL);       /*  唤醒等待的任务              */
+    API_VutexPostEx(piOnce,
+                    __THREAD_ONCE_STATUS_DOWN,
+                    LW_OPTION_VUTEX_FLAG_WAKEALL);                      /*  执行完毕, 唤醒等待的任务    */
 
     return  (ERROR_NONE);
 }
@@ -196,7 +195,6 @@ INT  API_ThreadOnce2 (INT  *piOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg)
         case __THREAD_ONCE_STATUS_INIT:                                 /*  正在被其他任务执行          */
             API_VutexPend(piOnce,
                           __THREAD_ONCE_STATUS_DOWN,
-                          LW_OPTION_VUTEX_LOCAL,
                           LW_OPTION_WAIT_INFINITE);                     /*  等待初始化执行完毕          */
             continue;
 
@@ -221,9 +219,9 @@ INT  API_ThreadOnce2 (INT  *piOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg)
         __threadOnceCleanPop();                                         /*  删除回收点                  */
     }
     
-    __LW_ATOMIC_SET(__THREAD_ONCE_STATUS_DOWN, patomic);                /*  执行完毕                    */
-
-    API_VutexPost(piOnce, __ARCH_INT_MAX, LW_OPTION_VUTEX_LOCAL);       /*  唤醒等待的任务              */
+    API_VutexPostEx(piOnce,
+                    __THREAD_ONCE_STATUS_DOWN,
+                    LW_OPTION_VUTEX_FLAG_WAKEALL);                      /*  执行完毕, 唤醒等待的任务    */
 
     return  (ERROR_NONE);
 }

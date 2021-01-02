@@ -24,14 +24,17 @@
 
 /*********************************************************************************************************
   API
-
-  只有 iFlags 相同, 才表示同一变量,
-  仅对进程内多任务生效, 可以使用 LW_OPTION_VUTEX_LOCAL, Vutex 工作速度快, 不进行地址映射转换.
-  对整个系统生效, 可以使用 LW_OPTION_VUTEX_GLOBAL, Vutex 将保存对应的物理地址关系, 可跨进程等待.
 *********************************************************************************************************/
 
-LW_API INT  API_VutexPend(INT  *piVar, INT  iExpect, INT  iFlags, ULONG  ulTimeout);
-LW_API INT  API_VutexPost(INT  *piVar, INT  iValue, INT  iFlags);
+LW_API INT  API_VutexPend(INT  *piVar, INT  iDesired, ULONG  ulTimeout);
+LW_API INT  API_VutexPost(INT  *piVar, INT  iValue);
+
+/*********************************************************************************************************
+  带有比较条件与选项的等待与唤醒
+*********************************************************************************************************/
+
+LW_API INT  API_VutexPendEx(INT  *piVar, INT  iCompare, INT  iDesired, ULONG  ulTimeout);
+LW_API INT  API_VutexPostEx(INT  *piVar, INT  iValue, INT  iFlags);
 
 #endif                                                                  /*  __VUTEX_H                   */
 /*********************************************************************************************************

@@ -452,8 +452,7 @@ VOID  _TCBDestroyExt (PLW_CLASS_TCB  ptcb)
 
         patomic = (atomic_t *)pcur->CUO_piOnce;
         __LW_ATOMIC_SET(0, patomic);                                    /*  未完成的 once 操作          */
-        API_VutexPost(pcur->CUO_piOnce,
-                      __ARCH_INT_MAX, LW_OPTION_VUTEX_LOCAL);           /*  唤醒等待完成的任务          */
+        API_VutexPost(pcur->CUO_piOnce, __ARCH_INT_MAX);                /*  唤醒等待完成的任务          */
         __KHEAP_FREE(pcur);                                             /*  释放                        */
     }
 

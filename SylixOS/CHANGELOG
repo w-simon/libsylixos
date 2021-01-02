@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2021-01-01: han.hui
+    加入 fastlock 库, 现实用户态非严格顺序的快速 pthread mutex cond semaphore 实现.
+
     2020-12-26: han.hui
     加入 Vutex 支持, 类似 Linux Futex.
 

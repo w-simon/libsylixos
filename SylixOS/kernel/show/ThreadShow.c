@@ -121,7 +121,7 @@ VOID    API_ThreadShowEx (pid_t  pid)
             pcPendType = "MSGQ";
         
         } else if (tcbdesc.TCBD_usStatus & LW_THREAD_STATUS_VUTEX) {    /*  等待变量条件                */
-            pcPendType = "VUTEX";
+            pcPendType = "VUTX";
 
         } else if (tcbdesc.TCBD_usStatus & LW_THREAD_STATUS_JOIN) {     /*  等待其他线程                */
             pcPendType = "JOIN";
@@ -285,6 +285,11 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
                 break;
             }
             
+        } else if (__VUTEX_IS_WAITING(ptcb)) {                          /*  等待 vutex 变量             */
+            ulEvent = ptcb->TCB_vutex.VUTEX_phyaddr;
+            lib_itoa(ptcb->TCB_vutex.VUTEX_iDesired, cEventName, 10);
+            ulOwner = LW_OBJECT_HANDLE_INVALID;
+
 #if (LW_CFG_EVENTSET_EN > 0) && (LW_CFG_MAX_EVENTSETS > 0)
         } else if (ptcb->TCB_pesnPtr) {                                 /*  等待事件标志组              */
             pes     = (PLW_CLASS_EVENTSET)ptcb->TCB_pesnPtr->EVENTSETNODE_pesEventSet;
@@ -333,7 +338,7 @@ VOID    API_ThreadPendShowEx (pid_t  pid)
             pcPendType = "MSGQ";
         
         } else if (tcbdesc.TCBD_usStatus & LW_THREAD_STATUS_VUTEX) {    /*  等待变量条件                */
-            pcPendType = "VUTEX";
+            pcPendType = "VUTX";
 
         } else if (tcbdesc.TCBD_usStatus & LW_THREAD_STATUS_JOIN) {     /*  等待其他线程                */
             pcPendType = "JOIN";

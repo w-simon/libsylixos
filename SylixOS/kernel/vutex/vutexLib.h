@@ -26,8 +26,10 @@
   ÄÚ²¿º¯Êý
 *********************************************************************************************************/
 
-VOID  _VutexWaitQueue(PLW_CLASS_TCB  ptcbCur, phys_addr_t  phyaddr, INT32  iExpect, INT  iFlags);
-VOID  _VutexWakeQueue(PLW_CLASS_TCB  ptcbCur, phys_addr_t  phyaddr, INT32  iValue, INT  iFlags);
+BOOL  _VutexWakeIsAll(PLW_CLASS_TCB  ptcb);
+BOOL  _VutexWakeIsMatch(INT  iValue, INT  iCompare, INT  iDesired);
+INT   _VutexWakeQueue(phys_addr_t  phyaddr, INT32  iValue, INT  iFlags);
+VOID  _VutexWaitQueue(PLW_CLASS_TCB  ptcbCur, phys_addr_t  phyaddr, INT32  iDesired, INT  iCompare);
 
 #endif                                                                  /*  __VUTEXLIB_H                */
 /*********************************************************************************************************

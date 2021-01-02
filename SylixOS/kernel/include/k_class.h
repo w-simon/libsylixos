@@ -464,11 +464,12 @@ typedef LW_SHELL_CONTEXT *PLW_SHELL_CONTEXT;
 *********************************************************************************************************/
 
 typedef struct {
-    LW_LIST_LINE          VUTEX_lineVutex;                              /*  等待链                      */
-    INT                   VUTEX_iFlags;                                 /*  等待 flags                  */
-    INT32                 VUTEX_iVutexExpect;                           /*  期望的数值                  */
-    UINT32                VUTEX_uiVutexHash;                            /*  等待变量 HASH index         */
-    phys_addr_t           VUTEX_phyaddrVutex;                           /*  等待的变量                  */
+    LW_LIST_LINE          VUTEX_lineWait;                               /*  等待链                      */
+    BOOL                  VUTEX_bWakeAll;                               /*  WakeAll 唤醒                */
+    INT                   VUTEX_iCompare;                               /*  比较方法                    */
+    INT32                 VUTEX_iDesired;                               /*  期望的数值                  */
+    UINT32                VUTEX_uiHash;                                 /*  等待变量 HASH index         */
+    phys_addr_t           VUTEX_phyaddr;                                /*  等待的变量                  */
 } LW_VUTEX_CONTEXT;
 typedef LW_VUTEX_CONTEXT *PLW_VUTEX_CONTEXT;
 

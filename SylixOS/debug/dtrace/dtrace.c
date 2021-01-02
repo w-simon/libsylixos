@@ -1236,7 +1236,7 @@ ULONG  API_DtraceThreadExtraInfo (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread,
         pcPendType = "MSGQ";
     
     } else if (tcbdesc.TCBD_usStatus & LW_THREAD_STATUS_VUTEX) {        /*  等待变量条件                */
-        pcPendType = "VUTEX";
+        pcPendType = "VUTX";
 
     } else if (tcbdesc.TCBD_usStatus & LW_THREAD_STATUS_JOIN) {         /*  等待其他线程                */
         pcPendType = "JOIN";
