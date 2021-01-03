@@ -379,7 +379,7 @@ void  pthread_exit (void *status)
 LW_API 
 pthread_t  pthread_self (void)
 {
-    return  (API_ThreadIdSelf());
+    return  (API_ThreadIdSelfFast());
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: pthread_yield
@@ -393,7 +393,7 @@ pthread_t  pthread_self (void)
 LW_API 
 int  pthread_yield (void)
 {
-    API_ThreadYield(API_ThreadIdSelf());
+    API_ThreadYield(API_ThreadIdSelfFast());
     
     return  (ERROR_NONE);
 }

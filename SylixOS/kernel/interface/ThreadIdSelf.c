@@ -40,15 +40,36 @@
 LW_API
 LW_OBJECT_HANDLE  API_ThreadIdSelf (VOID)
 {
+    PLW_CLASS_CPU   pcpuCur;
     PLW_CLASS_TCB   ptcbCur;
     
-    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
+#if LW_CFG_SMP_EN > 0
+    INTREG          iregInterLevel;
+
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
+
+    pcpuCur = LW_CPU_GET_CUR();
+    if (pcpuCur->CPU_ulInterNesting) {
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
         _ErrorHandle(ERROR_KERNEL_IN_ISR);
-        return  (0);
+        return  (LW_OBJECT_HANDLE_INVALID);
+    }
+
+    ptcbCur = pcpuCur->CPU_ptcbTCBCur;                                  /*  当前线程                    */
+
+    KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
+
+#else                                                                   /*  LW_CFG_SMP_EN > 0           */
+    pcpuCur = LW_CPU_GET_CUR();
+    if (pcpuCur->CPU_ulInterNesting) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
+        return  (LW_OBJECT_HANDLE_INVALID);
     }
     
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
+    ptcbCur = pcpuCur->CPU_ptcbTCBCur;                                  /*  当前线程                    */
+#endif                                                                  /*  LW_CFG_SMP_EN == 0          */
     
     return  (ptcbCur->TCB_ulId);
 }
@@ -100,15 +121,36 @@ LW_OBJECT_HANDLE  API_ThreadIdSelfFast (VOID)
 LW_API  
 PLW_CLASS_TCB  API_ThreadTcbSelf (VOID)
 {
+    PLW_CLASS_CPU   pcpuCur;
     PLW_CLASS_TCB   ptcbCur;
 
-    if (LW_CPU_GET_CUR_NESTING()) {                                     /*  不能在中断中调用            */
+#if LW_CFG_SMP_EN > 0
+    INTREG          iregInterLevel;
+
+    iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
+
+    pcpuCur = LW_CPU_GET_CUR();
+    if (pcpuCur->CPU_ulInterNesting) {
+        KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
         _ErrorHandle(ERROR_KERNEL_IN_ISR);
-        return  (LW_NULL);
+        return  (LW_OBJECT_HANDLE_INVALID);
     }
-    
-    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    ptcbCur = pcpuCur->CPU_ptcbTCBCur;                                  /*  当前线程                    */
+
+    KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
+
+#else                                                                   /*  LW_CFG_SMP_EN > 0           */
+    pcpuCur = LW_CPU_GET_CUR();
+    if (pcpuCur->CPU_ulInterNesting) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "called from ISR.\r\n");
+        _ErrorHandle(ERROR_KERNEL_IN_ISR);
+        return  (LW_OBJECT_HANDLE_INVALID);
+    }
+
+    ptcbCur = pcpuCur->CPU_ptcbTCBCur;                                  /*  当前线程                    */
+#endif                                                                  /*  LW_CFG_SMP_EN == 0          */
     
     return  (ptcbCur);
 }
