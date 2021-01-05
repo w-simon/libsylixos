@@ -23,15 +23,29 @@
 /*********************************************************************************************************
   宏定义
 *********************************************************************************************************/
-#define LW_VUTEX_ALIGN_LOG      3
 #define LW_VUTEX_HASH_SIZE      1024
 #define LW_VUTEX_HASH_MASK      0x3ff
-#define LW_VUTEX_HASH_INDEX(a)  (((a) >> LW_VUTEX_ALIGN_LOG) & LW_VUTEX_HASH_MASK)
+#define LW_VUTEX_HASH_INDEX(a)  _VutexHash(a)
 /*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
 static LW_LIST_LINE_HEADER   _k_plineVutexHashHeader[LW_VUTEX_HASH_SIZE];
 static PLW_LIST_LINE         _k_plineVutexOp;
+/*********************************************************************************************************
+** 函数名称: _VutexHash
+** 功能描述: 计算 vutex hash 值
+** 输　入  : phyaddr   物理地址
+** 输　出  : hash index
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_INLINE static UINT32  _VutexHash (phys_addr_t  phyaddr)
+{
+             UINT32  uiTemp  = (UINT32)(phyaddr >> 2);
+    REGISTER UINT8  *pucTemp = (UINT8 *)&uiTemp;
+
+    return  ((pucTemp[0] + pucTemp[1] + pucTemp[2] + pucTemp[3]) & LW_VUTEX_HASH_MASK);
+}
 /*********************************************************************************************************
 ** 函数名称: _VutexWakeIsMatch
 ** 功能描述: 判断条件是否匹配
@@ -50,6 +64,12 @@ BOOL  _VutexWakeIsMatch (INT  iValue, INT  iCompare, INT  iDesired)
 
     case LW_OPTION_VUTEX_EQU:
         if (iValue == iDesired) {
+            bMatch = LW_TRUE;
+        }
+        break;
+
+    case LW_OPTION_VUTEX_NOT_EQU:
+        if (iValue != iDesired) {
             bMatch = LW_TRUE;
         }
         break;
@@ -79,13 +99,19 @@ BOOL  _VutexWakeIsMatch (INT  iValue, INT  iCompare, INT  iDesired)
         break;
 
     case LW_OPTION_VUTEX_AND:
-        if (iValue & iDesired) {
+        if ((iValue & iDesired) == iDesired) {
             bMatch = LW_TRUE;
         }
         break;
 
-    case LW_OPTION_VUTEX_NAND:
-        if (~iValue & iDesired) {
+    case LW_OPTION_VUTEX_NOT:
+        if ((iValue & iDesired) == 0) {
+            bMatch = LW_TRUE;
+        }
+        break;
+
+    case LW_OPTION_VUTEX_OR:
+        if (iValue & iDesired) {
             bMatch = LW_TRUE;
         }
         break;

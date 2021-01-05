@@ -269,13 +269,15 @@
   VUTEX OPTIONS
 *********************************************************************************************************/
                                                                         /*  判断条件                    */
-#define LW_OPTION_VUTEX_EQU                        0                    /*  ==                          */
-#define LW_OPTION_VUTEX_LESS                       1                    /*  <                           */
-#define LW_OPTION_VUTEX_LESS_EQU                   2                    /*  <=                          */
-#define LW_OPTION_VUTEX_GREATER                    3                    /*  >                           */
-#define LW_OPTION_VUTEX_GREATER_EQU                4                    /*  >=                          */
-#define LW_OPTION_VUTEX_AND                        5                    /*  &                           */
-#define LW_OPTION_VUTEX_NAND                       6                    /*  &~                          */
+#define LW_OPTION_VUTEX_EQU                        0                    /*  value == desired            */
+#define LW_OPTION_VUTEX_NOT_EQU                    1                    /*  value != desired            */
+#define LW_OPTION_VUTEX_LESS                       2                    /*  value <  desired            */
+#define LW_OPTION_VUTEX_LESS_EQU                   3                    /*  value <= desired            */
+#define LW_OPTION_VUTEX_GREATER                    4                    /*  value >  desired            */
+#define LW_OPTION_VUTEX_GREATER_EQU                5                    /*  value >= desired            */
+#define LW_OPTION_VUTEX_AND                        6                    /*  (value & desired) == desired*/
+#define LW_OPTION_VUTEX_NOT                        8                    /*  (value & desired) == 0      */
+#define LW_OPTION_VUTEX_OR                         7                    /*  (value & desired) != 0      */
 
                                                                         /*  PostEx Flags                */
 #define LW_OPTION_VUTEX_FLAG_WAKEALL               0x0001               /*  全部唤醒                    */

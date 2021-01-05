@@ -171,6 +171,7 @@
 
 #ifdef __SYLIXOS_KERNEL
 #define LW_ACCESS_ONCE(type, x)     (*(volatile type *)&(x))
+#define LW_ACCESS_ONCE_PTR(type, x) (*(volatile type *)(x))
 #endif
 
 #endif                                                                  /*  __K_VALUE_H                 */

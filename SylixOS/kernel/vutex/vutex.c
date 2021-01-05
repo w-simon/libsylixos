@@ -30,8 +30,8 @@
 ** 函数名称: API_VutexPendEx
 ** 功能描述: 等待一个变量到达某个值 (带有条件)
 ** 输　入  : piVar     等待的变量地址
-**           iDesired  期望的数值
 **           iCompare  比较方法
+**           iDesired  期望的数值
 **           ulTimeout 等待时间
 ** 输　出  : ERROR or 0: 被真实的等待值激活, 1: 被 WAKEALL 激活.
 ** 全局变量:
@@ -60,7 +60,8 @@ INT  API_VutexPendEx (INT  *piVar, INT  iCompare, INT  iDesired, ULONG  ulTimeou
     }
 
 __wait_again:
-    if (_VutexWakeIsMatch(*piVar, iCompare, iDesired)) {                /*  是否已经满足条件            */
+    if (_VutexWakeIsMatch(LW_ACCESS_ONCE_PTR(INT, piVar),
+                          iCompare, iDesired)) {                        /*  是否已经满足条件            */
         return  (ERROR_NONE);
 
     } else if (ulTimeout == LW_OPTION_NOT_WAIT) {                       /*  不等待                      */
@@ -69,7 +70,8 @@ __wait_again:
     }
 
     __KERNEL_ENTER();                                                   /*  进入内核                    */
-    if (_VutexWakeIsMatch(*piVar, iCompare, iDesired)) {
+    if (_VutexWakeIsMatch(LW_ACCESS_ONCE_PTR(INT, piVar),
+                          iCompare, iDesired)) {                        /*  在次确认是否已经满足条件    */
         __KERNEL_EXIT();
         return  (ERROR_NONE);
     }
@@ -171,14 +173,14 @@ INT  API_VutexPostEx (INT  *piVar, INT  iValue, INT  iFlags)
     }
 
     if (LW_VUTEX_POST_CHECK_VALUE(iFlags)) {
-        if (*(volatile INT *)piVar == iValue) {                         /*  非全部唤醒且值已经相同      */
+        if (LW_ACCESS_ONCE_PTR(INT, piVar) == iValue) {                 /*  非全部唤醒且值已经相同      */
             return  (ERROR_NONE);
         }
     }
 
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     if (LW_VUTEX_POST_CHECK_VALUE(iFlags)) {
-        if (*(volatile INT *)piVar == iValue) {
+        if (LW_ACCESS_ONCE_PTR(INT, piVar) == iValue) {
             __KERNEL_EXIT();
             return  (ERROR_NONE);                                       /*  非全部唤醒且值已经相同      */
         }
@@ -200,7 +202,7 @@ INT  API_VutexPostEx (INT  *piVar, INT  iValue, INT  iFlags)
     }
 
     if (!(iFlags & LW_OPTION_VUTEX_FLAG_DONTSET)) {                     /*  仅唤醒                      */
-        *(volatile INT *)piVar = iValue;
+        LW_ACCESS_ONCE_PTR(INT, piVar) = iValue;
         KN_SMP_WMB();
     }
 
