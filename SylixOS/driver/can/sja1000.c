@@ -694,14 +694,41 @@ static INT sja1000Ioctl (SJA1000_CHAN *pcanchan, INT  cmd, LONG arg)
 *********************************************************************************************************/
 VOID sja1000Isr (SJA1000_CHAN *pcanchan)
 {
-    int i;
-    volatile UINT8   ir, temp;
-    SJA1000_FRAME   frame;
-    CAN_FRAME   canframe;
+    int            i;
+    INTREG         intreg;
+    volatile UINT8 ir, temp;
+    SJA1000_FRAME  frame;
+    CAN_FRAME      canframe;
 
     ir = GET_REG(pcanchan, IR);
-    if (ir & IR_BEI) {                                                  /* bus error int                */
+    if (ir & IR_EI) {                                                   /* error int                    */
         pcanchan->pcbSetBusState(pcanchan->pvSetBusStateArg, CAN_DEV_BUS_OFF);
+        return;
+    }
+
+    if (ir & IR_BEI) {                                                  /* bus error int                */
+        if (GET_REG(pcanchan, MOD) & MOD_RM) {
+            pcanchan->pcbSetBusState(pcanchan->pvSetBusStateArg,
+                                     CAN_DEV_BUS_ERROR_NONE);
+
+            intreg = KN_INT_DISABLE();
+
+            sja1000InitChip(pcanchan);
+            sja1000SetMode(pcanchan, MOD_RM, 0);                        /* goto normal mode             */
+
+            KN_INT_ENABLE(intreg);
+
+            /*
+             * if have data in send queue, start transmit
+             */
+            sja1000TxStartup(pcanchan);
+
+        } else {                                                        /* normal mode                  */
+            /*
+             * The controller will continue to record the number of errors,
+             * more than 255 will generate IR_EI error.
+             */
+        }
         return;
     }
 
