@@ -36,9 +36,6 @@
 *********************************************************************************************************/
 static spinlock_t       _G_slRandLock;                                  /*  中断信息自旋锁              */
 static struct timespec  _G_tvLastInt;                                   /*  最后一次中断时间戳          */
-#if LW_CFG_CPU_INT_HOOK_EN > 0
-static INT64            _G_i64IntCounter;                               /*  中断计数器                  */
-#endif                                                                  /*  LW_CFG_CPU_INT_HOOK_EN > 0  */
 static LW_OBJECT_HANDLE _G_hRandSelMutex;                               /*  select list mutex           */
 /*********************************************************************************************************
 ** 函数名称: __randInterHook
@@ -59,8 +56,7 @@ static VOID __randInterHook (ULONG  ulVector, ULONG  ulNesting)
     
     if (LW_IVEC_GET_FLAG(ulVector) & LW_IRQ_FLAG_SAMPLE_RAND) {         /*  需要更新随机数种子          */
         LW_SPIN_LOCK_QUICK(&_G_slRandLock, &iregInterLevel);
-        _G_tvLastInt = _K_tvTODCurrent;                                 /*  仅仅是种子, 不需要加时间锁  */
-        _G_i64IntCounter++;
+        _G_tvLastInt.tv_nsec = _K_tvTODCurrent.tv_nsec;                 /*  仅仅是种子, 不需要加时间锁  */
         LW_SPIN_UNLOCK_QUICK(&_G_slRandLock, iregInterLevel);
     }
 }
@@ -116,6 +112,9 @@ LONG  __randOpen (PLW_RAND_DEV  pranddev, PCHAR  pcName, INT  iFlags, INT  iMode
 #if LW_CFG_CPU_INT_HOOK_EN > 0
     if (LW_DEV_INC_USE_COUNT(&pranddev->RANDDEV_devhdr) == 1) {
         API_SystemHookAdd(__randInterHook, LW_OPTION_CPU_INT_EXIT);     /*  创建中断hook                */
+        if (_G_tvLastInt.tv_sec == 0) {
+            lib_clock_gettime(CLOCK_REALTIME, &_G_tvLastInt);           /*  初始值                      */
+        }
     }
 #else
     (VOID)pranddev;

@@ -36,6 +36,7 @@
 *********************************************************************************************************/
 #define COMMAND_SET(pcanchan, command)          SET_REG(pcanchan, CMR, command)
 #define OUTPUT_MODE_SET(pcanchan, omodevalue)   SET_REG(pcanchan, OCR, omodevalue)
+#define EWL_SET(pcanchan, ewlvalue)             SET_REG(pcanchan, EWL, ewlvalue)
 /*********************************************************************************************************
   sja1000 frame
 *********************************************************************************************************/
@@ -456,9 +457,10 @@ static VOID sja1000InitChip (SJA1000_CHAN *pcanchan)
     sja1000SetBaud(pcanchan, pcanchan->baud);
     sja1000SetDiv(pcanchan, 0, 1);
     sja1000SetClock(pcanchan, 0, 0);
+    EWL_SET(pcanchan, 0x60);                                            /* error warning threshold value*/
     OUTPUT_MODE_SET(pcanchan, 0x1A);
                                                                         /* enable interrupt             */
-    sja1000SetInt(pcanchan, (IER_RIE | IER_TIR | IER_BEIE | IER_DOIE), 1);
+    sja1000SetInt(pcanchan, (IER_RIE | IER_TIR | IER_BEIE | IER_DOIE | IER_EIR), 1);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: sja1000TxStartup
@@ -726,7 +728,8 @@ VOID sja1000Isr (SJA1000_CHAN *pcanchan)
         } else {                                                        /* normal mode                  */
             /*
              * The controller will continue to record the number of errors,
-             * more than 255 will generate IR_EI error.
+             * more than EWL value will generate IR_EI error,
+             * then update bus status and wait for reset.
              */
         }
         return;

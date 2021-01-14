@@ -183,12 +183,12 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
             if (pifreq->ifr_flags & IFF_PROMISC) {
                 pnetif->flags2 |= NETIF_FLAG2_PROMISC;
             } else {
-                pnetif->flags2 |= ~NETIF_FLAG2_PROMISC;
+                pnetif->flags2 &= ~NETIF_FLAG2_PROMISC;
             }
             if (pifreq->ifr_flags & IFF_ALLMULTI) {
                 pnetif->flags2 |= NETIF_FLAG2_ALLMULTI;
             } else {
-                pnetif->flags2 |= ~NETIF_FLAG2_ALLMULTI;
+                pnetif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
             }
             if (pifreq->ifr_flags & IFF_UP) {
                 netifapi_netif_set_up(pnetif);

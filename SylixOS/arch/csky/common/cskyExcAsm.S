@@ -189,6 +189,89 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     MACRO_END()
 
 ;/*********************************************************************************************************
+;  快速中断入口宏
+;*********************************************************************************************************/
+
+MACRO_DEF(FAST_INT_ENTRY  handle)
+    MTCR        SP , SS1                                                ;/*  SS1 暂存异常前 SP           */
+    MFCR        SP , SS0                                                ;/*  SP = 异常临时栈             */
+
+    SUBI        SP , ARCH_REG_CTX_SIZE                                  ;/*  在临时堆栈开辟上下文保存区  */
+
+    STM         R0-R31 , (SP)
+
+    MFCR        R18 , FPC                                               ;/*  FPC 代替 PC 保存            */
+    ST.W        R18 , (SP , XPC)
+
+    MFCR        R18 , FPSR                                              ;/*  FPSR 代替 PSR 保存          */
+    ST.W        R18 , (SP , XPSR)
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
+    MFLO        R18                                                     ;/*  保存 LO 寄存器              */
+    ST.W        R18 , (SP , XLO)
+
+    MFHI        R18                                                     ;/*  保存 HI 寄存器              */
+    ST.W        R18 , (SP , XHI)
+#endif
+    MFCR        R18 , CR<4, 15>                                         ;/*  保存 MEH 寄存器             */
+    ST.W        R18 , (SP , XMEH)
+
+    MFCR        R18 , SS1                                               ;/*  读出异常前 SP               */
+#ifdef __CSKYABIV2__
+    ST.W        R18 , (SP , XGREG(14))                                  ;/*  保存异常前 SP               */
+#else
+    ST.W        R18 , (SP , XGREG(0))
+#endif
+
+    ;/*
+    ; * API_InterEnter(寄存器上下文)
+    ; */
+    MOV         A0 , SP
+    JSRI        API_InterEnter
+
+    CMPNEI      A0 , 1
+    BT          3f
+
+    ;/*
+    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
+    ; */
+    JSRI        API_InterStackBaseGet
+    MOV         SP , A0
+
+    ;/*
+    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
+    ; */
+    JSRI        API_ThreadTcbInter
+    MOV         A1 , A0
+
+2:
+	PSRCLR      FE
+    ;/*
+    ; * handle(vector, 寄存器上下文)
+    ; */
+    JSRI        \handle
+    ;/*
+    ; * API_InterExitFastInt()
+    ; * 如果没有发生中断嵌套, 则 API_InterExitFastInt 会调用 archFiqCtxLoad 函数
+    ; */
+    JSRI        API_InterExitFastInt
+
+    ;/*
+    ; * 来到这里, 说明发生了中断嵌套
+    ; */
+    MOV         A1 , SP
+    RESTORE_REGS_FAST_INT
+
+3:
+    ;/*
+    ; * 不是第一次进入中断
+    ; */
+    MFCR        SP , SS1                                                ;/*  异常前 SP                   */
+    SUBI        SP , ARCH_REG_CTX_SIZE
+    MOV         A1 , SP
+    BR          2b
+    MACRO_END()
+
+;/*********************************************************************************************************
 ;  未对齐访问异常入口函数
 ;*********************************************************************************************************/
 
@@ -273,8 +356,7 @@ FUNC_DEF(archAutoIntEntry)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archFastAutoIntEntry)
-    JSRI            archFastAutoIntHandle
-    RFI
+    FAST_INT_ENTRY  archFastAutoIntHandle
     FUNC_END(archFastAutoIntEntry)
 
 ;/*********************************************************************************************************

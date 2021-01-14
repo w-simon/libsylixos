@@ -88,6 +88,7 @@ VOID        archCrtCtxSwitch(PLW_CLASS_CPU  pcpuSw);
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 
 VOID        archIntCtxLoad(PLW_CLASS_CPU  pcpuSw);
+VOID        archFastIntCtxLoad(PLW_CLASS_CPU  pcpuSw);
 VOID        archSigCtxLoad(const ARCH_REG_CTX  *pregctx);
 
 VOID        archIntCtxSaveReg(PLW_CLASS_CPU  pcpu,
@@ -339,6 +340,7 @@ INT     bspCpuExcHook(PLW_CLASS_TCB   ptcb,
 *********************************************************************************************************/
 
 VOID    bspIntInit(VOID);
+VOID    bspFastIntHandle(ULONG  ulVector);
 VOID    bspIntHandle(ULONG  ulVector);
 
 UINT32  bspIntInitEnableStatus(VOID);

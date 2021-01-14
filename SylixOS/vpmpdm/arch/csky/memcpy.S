@@ -11,10 +11,9 @@
  * memcpy implement.
  */
 	.text
-        .align 4
-        .global memcpy
-        .type   memcpy, @function
-memcpy:
+	.align 4
+	.type   __memcpy, @function
+__memcpy:
 	/* Test if len less than 4 bytes.  */
 	mov	r12, r0
 	cmplti	r2, 4
@@ -112,19 +111,22 @@ memcpy:
 	/* Check whether the src is aligned.  */
 	br	.L_dest_aligned
 
-	.size memcpy,.-memcpy
+	.size __memcpy,.-__memcpy
 
 /*
- * memmove implement.
+ * memcpy and memmove implement.
  */
 	.text
+	.global memcpy
 	.global memmove
-	.type memmove,%function
+	.type   memcpy, @function
+	.type   memmove,@function
 	.align 4
+memcpy:
 memmove:
 	subu	r3, r0, r1
 	cmphs	r3, r2
-	bt	memcpy
+	bt	__memcpy
 
 	mov	r12, r0
 	addu	r0, r0, r2
@@ -219,4 +221,6 @@ memmove:
 	bt	.L_copy_by_byte_m
 	/* Check whether the src is aligned.  */
 	br	.L_dest_aligned_m
-.size memmove,.-memmove
+	
+	.size memmove,.-memmove
+	.size memcpy,.-memcpy

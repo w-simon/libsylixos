@@ -92,6 +92,17 @@ LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
     }
 }
 /*********************************************************************************************************
+** 函数名称: bspFastIntHandle
+** 功能描述: 快速中断处理
+** 输　入  : ulVector  中断向量
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_WEAK VOID  bspFastIntHandle (ULONG  ulVector)
+{
+}
+/*********************************************************************************************************
 ** 函数名称: archFastAutoIntHandle
 ** 功能描述: 快速中断
 ** 输　入  : ulVector  中断向量
@@ -100,9 +111,9 @@ LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-LW_WEAK VOID  archFastAutoIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
+VOID  archFastAutoIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 {
-    bspIntHandle(ulVector);
+    bspFastIntHandle(ulVector);
 }
 /*********************************************************************************************************
 ** 函数名称: archAutoIntHandle

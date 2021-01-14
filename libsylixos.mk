@@ -2198,14 +2198,14 @@ $(OBJPATH)/libsylixos.a/SylixOS/vpmpdm/arch/csky/memcpy.o: ./SylixOS/vpmpdm/arch
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $(CSKY_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -Dmemcpy=archMemcpy -Dmemmove=archMemmove -c $< -o $@
+		$(AS) $($(__TARGET)_ASFLAGS) -MMD -MP -MF $(__DEP) -Dmemcpy=archMemcpy -Dmemmove=archMemmove -c $< -o $@
 
 $(OBJPATH)/libsylixos.a/SylixOS/vpmpdm/arch/csky/memset.o: ./SylixOS/vpmpdm/arch/csky/memset.S
 		@if [ ! -d "$(dir $@)" ]; then \
 			mkdir -p "$(dir $@)"; fi
 		@if [ ! -d "$(dir $(__DEP))" ]; then \
 			mkdir -p "$(dir $(__DEP))"; fi
-		$(AS) $(CSKY_FPU_ASFLAGS) $($(__TARGET)_ASFLAGS_WITHOUT_FPUFLAGS) -MMD -MP -MF $(__DEP) -Dmemset=archMemset -c $< -o $@
+		$(AS) $($(__TARGET)_ASFLAGS) -MMD -MP -MF $(__DEP) -Dmemset=archMemset -c $< -o $@
 endif
 
 #*********************************************************************************************************

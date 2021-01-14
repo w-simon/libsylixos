@@ -292,6 +292,53 @@ typedef UINT16                      CSKY_INSTRUCTION;
 #define M_L2CACHE_CFG_RFE       (0x1 << S_L2CACHE_CFG_RFE)              /*  数据访问读分配使能位        */
 #define S_L2CACHE_CFG_RFE       0
 
+/*********************************************************************************************************
+  C-SKY 异常向量表
+*********************************************************************************************************/
+
+#define VEC_RESET       0
+#define VEC_ALIGN       1
+#define VEC_ACCESS      2
+#define VEC_ZERODIV     3
+#define VEC_ILLEGAL     4
+#define VEC_PRIV        5
+#define VEC_TRACE       6
+#define VEC_BREAKPOINT  7
+#define VEC_UNRECOVER   8
+#define VEC_SOFTRESET   9
+#define VEC_AUTOVEC     10
+#define VEC_FAUTOVEC    11
+#define VEC_HWACCEL     12
+
+#define VEC_TLBFATAL    13
+#define VEC_TLBMISS     14
+#define VEC_TLBMODIFIED 15
+
+#define VEC_SYS         16
+#define VEC_TRAP0       16
+#define VEC_TRAP1       17
+#define VEC_TRAP2       18
+#define VEC_TRAP3       19
+
+#define VEC_TLBINVALIDL 20
+#define VEC_TLBINVALIDS 21
+
+#define VEC_PRFL        29
+#define VEC_FPE         30
+
+#define VEC_USER        32
+
+#define VEC_INT1        33
+#define VEC_INT2        34
+#define VEC_INT3        35
+#define VEC_INT4        36
+#define VEC_INT5        37
+#define VEC_INT6        38
+#define VEC_INT7        39
+#define VEC_INT8        40
+
+#define VEC_MAX         255
+
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
                                                                         /*  __ASSEMBLY__                */
 #endif                                                                  /*  __CSKY_ARCH_DEF_H           */

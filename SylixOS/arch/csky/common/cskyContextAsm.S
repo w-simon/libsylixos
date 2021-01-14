@@ -48,6 +48,7 @@
     EXPORT_LABEL(archCrtCtxSwitch)
 #endif
     EXPORT_LABEL(archIntCtxLoad)
+    EXPORT_LABEL(archFastIntCtxLoad)
     EXPORT_LABEL(archSigCtxLoad)
 
 ;/*********************************************************************************************************
@@ -121,6 +122,17 @@ FUNC_DEF(archIntCtxLoad)
 
     RESTORE_REGS                                                        ;/*  恢复任务寄存器              */
     FUNC_END(archIntCtxLoad)
+
+;/*********************************************************************************************************
+;  快速中断返回时, 线程装载
+;  参数为当前 CPU 控制块, 即 A0 为当前 CPU 控制块指针
+;*********************************************************************************************************/
+
+FUNC_DEF(archFastIntCtxLoad)
+    LD.W        A1 , (A0 , 0)                                           ;/*  获取当前 TCB 的 REG_CTX 地址*/
+
+    RESTORE_REGS_FAST_INT                                               ;/*  恢复任务寄存器              */
+    FUNC_END(archFastIntCtxLoad)
 
 ;/*********************************************************************************************************
 ;  信号上下文返回

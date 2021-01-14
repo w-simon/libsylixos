@@ -367,7 +367,7 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
     }
 
     /*
-     *  ·ÖÅäMSI-XÃèÊö·û
+     *  ·ÖÅä MSI-X ÃèÊö·û
      */
     hCtrl->NVMECTRL_pvIntHandle = __SHEAP_ZALLOC(sizeof(PCI_MSI_DESC) * uiIrqNum);
     if (!hCtrl->NVMECTRL_pvIntHandle) {                                 /* ·ÖÅäÃèÊö·ûÊ§°Ü               */
