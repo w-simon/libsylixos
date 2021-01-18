@@ -514,6 +514,9 @@ alloc_socket(struct netconn *newconn, int accepted)
       sockets[i].errevent   = 0;
 #ifdef SYLIXOS /* SylixOS Add socket file for event */
       sockets[i].file = NULL;
+#if LW_CFG_CPU_ATOMIC_EN > 0
+      sockets[i].recv_gate.counter = LWIP_SOCK_RECV_GATE_IDLE;
+#endif /* LW_CFG_CPU_ATOMIC_EN */
 #endif /* SYLIXOS */
 #endif /* LWIP_SOCKET_SELECT || LWIP_SOCKET_POLL */
       return i + LWIP_SOCKET_OFFSET;
@@ -1006,6 +1009,19 @@ lwip_recv_tcp(struct lwip_sock *sock, void *mem, size_t len, int flags)
     apiflags |= NETCONN_DONTBLOCK;
   }
 
+#if defined(SYLIXOS) && LW_CFG_CPU_ATOMIC_EN > 0 /* SylixOS Fixed parallel read bug */
+  /* If multiple threads read a same socket at the same time,
+   * there will be a race error
+   */
+  if (__LW_ATOMIC_CAS(&sock->recv_gate,
+                      LWIP_SOCK_RECV_GATE_IDLE,
+                      LWIP_SOCK_RECV_GATE_BUSY) != LWIP_SOCK_RECV_GATE_IDLE) {
+    LWIP_PLATFORM_DIAG(("[NET] Risk: multi-task competition reading the same TCP socket!\n"));
+    sock_set_errno(sock, EWOULDBLOCK);
+    return -1;
+  }
+#endif /* SYLIXOS && LW_CFG_CPU_ATOMIC_EN */
+
   do {
     struct pbuf *p;
     err_t err;
@@ -1023,6 +1039,10 @@ lwip_recv_tcp(struct lwip_sock *sock, void *mem, size_t len, int flags)
                                   err, (void *)p));
 
       if (err != ERR_OK) {
+#if defined(SYLIXOS) && LW_CFG_CPU_ATOMIC_EN > 0 /* SylixOS Fixed parallel read bug */
+        __LW_ATOMIC_SET(LWIP_SOCK_RECV_GATE_IDLE, &sock->recv_gate);
+#endif /* SYLIXOS && LW_CFG_CPU_ATOMIC_EN */
+
         if (recvd > 0) {
           /* already received data, return that (this trusts in getting the same error from
              netconn layer again next time netconn_recv is called) */
@@ -1084,6 +1104,11 @@ lwip_recv_tcp(struct lwip_sock *sock, void *mem, size_t len, int flags)
     apiflags |= NETCONN_DONTBLOCK | NETCONN_NOFIN;
     /* @todo: do we need to support peeking more than one pbuf? */
   } while ((recv_left > 0) && !(flags & MSG_PEEK));
+
+#if defined(SYLIXOS) && LW_CFG_CPU_ATOMIC_EN > 0 /* SylixOS Fixed parallel read bug */
+  __LW_ATOMIC_SET(LWIP_SOCK_RECV_GATE_IDLE, &sock->recv_gate);
+#endif /* SYLIXOS && LW_CFG_CPU_ATOMIC_EN */
+
 lwip_recv_tcp_done:
   if ((recvd > 0) && !(flags & MSG_PEEK)) {
     /* ensure window update after copying all data */
@@ -1178,6 +1203,18 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
     apiflags = 0;
   }
 
+#if defined(SYLIXOS) && LW_CFG_CPU_ATOMIC_EN > 0 /* SylixOS Fixed parallel read bug */
+  /* If multiple threads read a same socket at the same time,
+   * there will be a race error
+   */
+  if (__LW_ATOMIC_CAS(&sock->recv_gate,
+                      LWIP_SOCK_RECV_GATE_IDLE,
+                      LWIP_SOCK_RECV_GATE_BUSY) != LWIP_SOCK_RECV_GATE_IDLE) {
+    LWIP_PLATFORM_DIAG(("[NET] Risk: multi-task competition reading the same UDP/RAW socket!\n"));
+    return ERR_WOULDBLOCK;
+  }
+#endif /* SYLIXOS && LW_CFG_CPU_ATOMIC_EN */
+
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom_udp_raw[UDP/RAW]: top sock->lastdata=%p\n", (void *)sock->lastdata.netbuf));
   /* Check if there is data left from the last recv operation. */
   buf = sock->lastdata.netbuf;
@@ -1189,6 +1226,10 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
                                 err, (void *)buf));
 
     if (err != ERR_OK) {
+#if defined(SYLIXOS) && LW_CFG_CPU_ATOMIC_EN > 0 /* SylixOS Fixed parallel read bug */
+      __LW_ATOMIC_SET(LWIP_SOCK_RECV_GATE_IDLE, &sock->recv_gate);
+#endif /* SYLIXOS && LW_CFG_CPU_ATOMIC_EN */
+
       return err;
     }
     LWIP_ASSERT("buf != NULL", buf != NULL);
@@ -1300,6 +1341,11 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
     sock->lastdata.netbuf = NULL;
     netbuf_delete(buf);
   }
+
+#if defined(SYLIXOS) && LW_CFG_CPU_ATOMIC_EN > 0 /* SylixOS Fixed parallel read bug */
+  __LW_ATOMIC_SET(LWIP_SOCK_RECV_GATE_IDLE, &sock->recv_gate);
+#endif /* SYLIXOS && LW_CFG_CPU_ATOMIC_EN */
+
   if (datagram_len) {
     *datagram_len = buflen;
   }

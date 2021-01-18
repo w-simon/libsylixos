@@ -82,6 +82,11 @@ struct lwip_sock {
   SELWAIT_T select_waiting;
 #ifdef SYLIXOS /* SylixOS Add socket file for event */
   void *file;
+#if LW_CFG_CPU_ATOMIC_EN > 0
+  atomic_t recv_gate;
+#define LWIP_SOCK_RECV_GATE_IDLE  0
+#define LWIP_SOCK_RECV_GATE_BUSY  1
+#endif /* LW_CFG_CPU_ATOMIC_EN */
 #endif /* SYLIXOS */
 #endif /* LWIP_SOCKET_SELECT || LWIP_SOCKET_POLL */
 #if LWIP_NETCONN_FULLDUPLEX

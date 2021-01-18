@@ -74,10 +74,14 @@ static VOIDFUNCPTR              _G_pfuncSymbolTraverseHook = LW_NULL;
 /*********************************************************************************************************
   不可以倒出的符号
 *********************************************************************************************************/
+#if LW_CFG_NET_WIRELESS_EN == 0
+
 static const PCHAR              _G_pcSymHoldBack[] = {
     "pbuf_alloc",
     "pbuf_alloced_custom"
 };
+
+#endif                                                                  /*  !LW_CFG_NET_WIRELESS_EN     */
 /*********************************************************************************************************
 ** 函数名称: __symbolFindHookSet
 ** 功能描述: 设置查找回调函数.
@@ -274,9 +278,11 @@ INT  API_SymbolAddStatic (PLW_SYMBOL  psymbol, INT  iNum)
     }
     __LW_SYMBOL_UNLOCK();                                               /*  解锁符号表                  */
     
+#if LW_CFG_NET_WIRELESS_EN == 0
     for (i = 0; i < ARRAY_SIZE(_G_pcSymHoldBack); i++) {
         API_SymbolDelete(_G_pcSymHoldBack[i], LW_SYMBOL_FLAG_XEN);
     }
+#endif                                                                  /*  !LW_CFG_NET_WIRELESS_EN     */
     
     return  (ERROR_NONE);
 }

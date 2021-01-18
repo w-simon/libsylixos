@@ -801,8 +801,10 @@ tcp_bind(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port)
           /* Omit checking for the same port if both pcbs have REUSEADDR set.
              For SO_REUSEADDR, the duplicate-check for a 5-tuple is done in
              tcp_connect. */
+          /* SylixOS Fixed here TCP REUSEADDR only reuse active pcb's address not listen */
           if (!ip_get_option(pcb, SOF_REUSEADDR) ||
-              !ip_get_option(cpcb, SOF_REUSEADDR))
+              !ip_get_option(cpcb, SOF_REUSEADDR) ||
+              (i == TCB_LIST_LISTEN_INDEX))
 #endif /* SO_REUSE */
           {
             /* @todo: check accept_any_ip_version */
@@ -974,7 +976,7 @@ tcp_listen_with_backlog_and_err(struct tcp_pcb *pcb, u8_t backlog, err_t *err)
   lpcb->state = LISTEN;
   lpcb->prio = pcb->prio;
   lpcb->so_options = pcb->so_options;
-  lpcb->netif_idx = NETIF_NO_INDEX;
+  lpcb->netif_idx = pcb->netif_idx; /* SylixOS Fixed here inherit network interface binding */
   lpcb->ttl = pcb->ttl;
   lpcb->tos = pcb->tos;
 #if LWIP_IPV4 && LWIP_IPV6

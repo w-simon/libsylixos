@@ -57,7 +57,7 @@
 #define NETBRIDGE_MAC_CACHE_SHIFT   (5) /* default 32 mac address cache for each ethernet port */
 #define NETBRIDGE_MAC_CACHE_SIZE    (1 << NETBRIDGE_MAC_CACHE_SHIFT)
 #define NETBRIDGE_MAC_CACHE_MASK    (NETBRIDGE_MAC_CACHE_SIZE - 1)
-#define NETBRIDGE_MAC_CACHE_TTL     (50) /* default time to live is (s) */
+#define NETBRIDGE_MAC_CACHE_TTL     (60) /* default time to live is (s) */
 
 /* net bridge mac hash */
 typedef struct netbr_mcache {
@@ -90,6 +90,13 @@ static UINT8 netbr_zeroaddr[ETH_ALEN] = { 0, 0, 0, 0, 0, 0 };
 #define NETBR_LOCK(netbr)   sys_mutex_lock(&((netbr)->lock))
 #define NETBR_UNLOCK(netbr) sys_mutex_unlock(&((netbr)->lock))
 
+/* calculate mac key */
+LW_INLINE static int  netbr_mac_key (UINT8 *mac)
+{
+  register int sum = mac[0] + mac[1] + mac[2] + mac[3] + mac[4] + mac[5];
+  return (sum & NETBRIDGE_MAC_CACHE_MASK);
+}
+
 /* net bridge transmit
    'netdev' is net bridge device */
 static int  netbr_transmit (struct netdev *netdev, struct pbuf *p)
@@ -107,11 +114,11 @@ static int  netbr_transmit (struct netdev *netdev, struct pbuf *p)
   if (!(eh->h_dest[0] & 1)) { /* not broadcast */
     for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
       netbr_eth = (netbr_eth_t *)pline;
-      key = (eh->h_dest[ETH_ALEN - 1] & NETBRIDGE_MAC_CACHE_MASK);
-      mac = &netbr_eth->mcache[key];
-      if (mac->ttl && !lib_memcmp(mac->mac, eh->h_dest, ETH_ALEN)) {
-        found = 1; /* found mac cache */
-        if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+      if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+        key = netbr_mac_key(eh->h_dest);
+        mac = &netbr_eth->mcache[key];
+        if (mac->ttl && !lib_memcmp(mac->mac, eh->h_dest, ETH_ALEN)) {
+          found = 1; /* found mac cache */
           netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send packet to all port with mac address in cache */
         }
       }
@@ -158,6 +165,7 @@ static int netbr_rxmode (struct netdev *netdev, int flags)
 static err_t  netbr_input (struct pbuf *p, struct netif *netif)
 {
   int found, key, pppoe = 0;
+  struct pbuf *q;
   netdev_t *netdev = (netdev_t *)(netif->state); /* sub ethernet device */
   netbr_eth_t *netbr_eth = (netbr_eth_t *)netif->ext_eth;
   netdev_t *netdev_br = netbr_eth->netdev_br; /* bridge device */
@@ -221,7 +229,7 @@ to_br:
   }
   
   /* update mac cache */
-  key = (eh->src.addr[ETH_ALEN - 1] & NETBRIDGE_MAC_CACHE_MASK);
+  key = netbr_mac_key(eh->src.addr);
   mac = &netbr_eth->mcache[key];
   
   SYS_ARCH_PROTECT(lev);
@@ -230,8 +238,14 @@ to_br:
   SYS_ARCH_UNPROTECT(lev);
   
   if (eh->dest.addr[0] & 1) {  /* broadcast */
+    q = pbuf_clone(PBUF_RAW, PBUF_POOL, p);
+    if (!q) {
+      netdev_linkinfo_memerr_inc(&netbr->netdev_br);
+      goto input_p;
+    }
+
 #if ETH_PAD_SIZE
-    pbuf_header(p, -ETH_PAD_SIZE);
+    pbuf_header(q, -ETH_PAD_SIZE);
 #endif
 
     NETBR_LOCK(netbr);
@@ -239,37 +253,42 @@ to_br:
       netbr_eth = (netbr_eth_t *)pline;
       if (netbr_eth->netdev != netdev) {
         if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
-          netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send to all ports */
+          netbr_eth->netdev->drv->transmit(netbr_eth->netdev, q); /* send to all ports */
         }
       }
     }
     NETBR_UNLOCK(netbr);
-    
-#if ETH_PAD_SIZE
-    pbuf_header(p, ETH_PAD_SIZE);
-#endif
-    goto input_p;
+
+    pbuf_free(q);
   
   } else {  /* unicast */
-    if (!lib_memcmp(eh->dest.addr, netdev_br->hwaddr, ETH_ALEN)) { /* to me? */
-      goto input_p;
+    if (lib_memcmp(eh->dest.addr, netdev_br->hwaddr, ETH_ALEN)) { /* not for me, forward! */
+      if (netif_br->flags2 & NETIF_FLAG2_PROMISC) { /* bridge port is promisc? */
+        q = pbuf_clone(PBUF_RAW, PBUF_POOL, p);
+        if (!q) {
+          netdev_linkinfo_memerr_inc(&netbr->netdev_br);
+          goto input_p;
+        }
+      } else {
+        q = p;
+      }
 
-    } else {  /* forward */
 #if ETH_PAD_SIZE
-      pbuf_header(p, -ETH_PAD_SIZE);
+      pbuf_header(q, -ETH_PAD_SIZE);
 #endif
+
       found = 0;
       
       NETBR_LOCK(netbr);
       for (pline = netbr->eth_list; pline != NULL; pline = _list_line_get_next(pline)) {
         netbr_eth = (netbr_eth_t *)pline;
         if (netbr_eth->netdev != netdev) {
-          key = (eh->dest.addr[ETH_ALEN - 1] & NETBRIDGE_MAC_CACHE_MASK);
-          mac = &netbr_eth->mcache[key];
-          if (mac->ttl && !lib_memcmp(mac->mac, eh->dest.addr, ETH_ALEN)) {
-            found = 1;
-            if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
-              netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send packet to all port with mac address in cache */
+          if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
+            key = netbr_mac_key(eh->dest.addr);
+            mac = &netbr_eth->mcache[key];
+            if (mac->ttl && !lib_memcmp(mac->mac, eh->dest.addr, ETH_ALEN)) {
+              found = 1;
+              netbr_eth->netdev->drv->transmit(netbr_eth->netdev, q); /* send packet to all port with mac address in cache */
             }
           }
         }
@@ -280,22 +299,19 @@ to_br:
           netbr_eth = (netbr_eth_t *)pline;
           if (netbr_eth->netdev != netdev) { /* not me */
             if (netbr_eth->netdev->if_flags & IFF_RUNNING) { /* is linkup ? */
-              netbr_eth->netdev->drv->transmit(netbr_eth->netdev, p); /* send to all ports */
+              netbr_eth->netdev->drv->transmit(netbr_eth->netdev, q); /* send to all ports */
             }
           }
         }
       }
       NETBR_UNLOCK(netbr);
-      
-#if ETH_PAD_SIZE
-      pbuf_header(p, ETH_PAD_SIZE);
-#endif
-      if (netif_br->flags2 & NETIF_FLAG2_PROMISC) { /* bridge port is promisc? */
-        goto input_p;
+
+      if (q != p) {
+        pbuf_free(q);
+      } else {
+        pbuf_free(p);
+        return (ERR_OK);
       }
-      
-      pbuf_free(p);
-      return (ERR_OK);
     }
   }
   
