@@ -94,9 +94,11 @@ PLW_FD_NODE  API_IosFdNodeAdd (LW_LIST_LINE_HEADER  *pplineHeader,
     }
     lib_bzero(pfdnode, sizeof(LW_FD_NODE));
     
-    pfdnode->FDNODE_ulSem = API_SemaphoreBCreate("fd_node_lock", LW_TRUE, 
+    pfdnode->FDNODE_ulSem = API_SemaphoreMCreate("fd_node_lock", LW_PRIO_DEF_CEILING,
                                                  LW_OPTION_OBJECT_GLOBAL |
-                                                 LW_OPTION_WAIT_PRIORITY, LW_NULL);
+                                                 LW_OPTION_WAIT_PRIORITY |
+                                                 LW_OPTION_DELETE_SAFE |
+                                                 LW_OPTION_INHERIT_PRIORITY, LW_NULL);
     if (pfdnode->FDNODE_ulSem == LW_OBJECT_HANDLE_INVALID) {
         __SHEAP_FREE(pfdnode);
         return  (LW_NULL);
@@ -158,7 +160,7 @@ INT  API_IosFdNodeDec (LW_LIST_LINE_HEADER  *pplineHeader,
     _List_Line_Del(&pfdnode->FDNODE_lineManage,
                    pplineHeader);
     
-    API_SemaphoreBDelete(&pfdnode->FDNODE_ulSem);
+    API_SemaphoreMDelete(&pfdnode->FDNODE_ulSem);
     
     if (bRemove) {
         *bRemove = pfdnode->FDNODE_bRemove;

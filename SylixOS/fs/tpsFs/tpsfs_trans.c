@@ -170,6 +170,12 @@ PTPS_TRANS  tpsFsTransAllocAndInit (PTPS_SUPER_BLOCK psb)
         return  (LW_NULL);
     }
 
+    if ((ptrans->TRANS_iStatus != TPS_TRANS_STATUS_COMPLETE) &&
+        (ptrans->TRANS_pdata->TD_uiSecAreaCnt > 0)) {                   /*  上个事务未完成，进入异常态  */
+        psb->SB_uiFlags |= TPS_TRANS_FAULT;
+        return  (LW_NULL);
+    }
+
     ptrans->TRANS_ui64SerialNum          = ptranssb->TSP_ui64SerialNum;
     ptrans->TRANS_uiDataSecNum           = ptranssb->TSP_ui64DataCurSec;
     ptrans->TRANS_uiDataSecCnt           = 0;

@@ -87,13 +87,13 @@ static LW_INLINE INT  archAtomicCas (atomic_t  *v, INT  iOld, INT  iNew)
         "1: ldxr   %w[oldval], %[v]                  \n"
         "   eor    %w[tmp],    %w[oldval], %w[old]   \n"
         "   cbnz   %w[tmp],    2f                    \n"
-        "   stlxr  %w[tmp],    %w[new], %[v]         \n"
+        "   stlxr  %w[tmp],    %w[newval], %[v]      \n"
         "   cbnz   %w[tmp],    1b                    \n"
         "   dmb ish                                  \n"
         "2:"
         : [tmp] "=&r" (lTemp),  [oldval] "=&r" (lOldVal),
           [v] "+Q" (v->counter)
-        : [old] "Lr" (lOld), [new] "r" (lNew)
+        : [old] "Lr" (lOld), [newval] "r" (lNew)
         : "memory");
 
     return  ((INT)lOldVal);
@@ -110,13 +110,13 @@ static LW_INLINE addr_t  archAtomicAddrCas (volatile addr_t *p, addr_t  ulOld, a
         "1: ldxr   %[oldval], %[v]                  \n"
         "   eor    %[tmp],    %[oldval], %[old]     \n"
         "   cbnz   %[tmp],    2f                    \n"
-        "   stlxr  %w[tmp],   %[new], %[v]          \n"
+        "   stlxr  %w[tmp],   %[newval], %[v]       \n"
         "   cbnz   %w[tmp],   1b                    \n"
         "   dmb ish                                 \n"
         "2:"
         : [tmp] "=&r" (ulTemp),  [oldval] "=&r" (ulOldVal),
           [v] "+Q" (*p)
-        : [old] "Lr" (ulOld), [new] "r" (ulNew)
+        : [old] "Lr" (ulOld), [newval] "r" (ulNew)
         : "memory");
 
     return  (ulOldVal);
@@ -185,13 +185,13 @@ static LW_INLINE INT64  archAtomic64Cas (atomic64_t  *v, INT64  i64Old, INT64  i
         "1: ldxr   %[oldval], %[v]                  \n"
         "   eor    %[tmp],    %[oldval], %[old]     \n"
         "   cbnz   %[tmp],    2f                    \n"
-        "   stlxr  %w[tmp],   %[new], %[v]          \n"
+        "   stlxr  %w[tmp],   %[newval], %[v]       \n"
         "   cbnz   %w[tmp],   1b                    \n"
         "   dmb ish                                 \n"
         "2:"
         : [tmp] "=&r" (i64Temp),  [oldval] "=&r" (i64OldVal),
           [v] "+Q" (v->counter)
-        : [old] "Lr" (i64Old), [new] "r" (i64New)
+        : [old] "Lr" (i64Old), [newval] "r" (i64New)
         : "memory");
 
     return  (i64OldVal);

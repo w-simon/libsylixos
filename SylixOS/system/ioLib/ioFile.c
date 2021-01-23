@@ -1346,6 +1346,8 @@ INT  API_IosFdRefDec (INT  iFd)
         
         MONITOR_EVT_INT1(MONITOR_EVENT_ID_IO, MONITOR_EVENT_IO_CLOSE, iFd, LW_NULL);
         
+        LW_THREAD_SAFE();                                               /*  进入安全状态, 防止关闭过程  */
+                                                                        /*  当前任务被删除              */
         if (pfdentry->FDENTRY_ulCounter == 0) {                         /*  没有描述符引用此 fd_entry   */
             if (pfdentry->FDENTRY_state == FDSTAT_SYNC) {
                 pfdentry->FDENTRY_state =  FDSTAT_REQCLOSE;
@@ -1367,7 +1369,9 @@ INT  API_IosFdRefDec (INT  iFd)
             
             _FdLockfClearFdEntry(pfdentry, __PROC_GET_PID_CUR());       /*  回收记录锁                  */
         }
-    
+
+        LW_THREAD_UNSAFE();                                             /*  退出安全状态                */
+
     } else {
         _IosUnlock();                                                   /*  退出 IO 临界区              */
     }
@@ -1414,6 +1418,9 @@ INT  API_IosFdEntryReclaim (PLW_FD_ENTRY  pfdentry, ULONG  ulRefDec, pid_t  pid)
         } else if (bCallFunc) {
             pfdentry->FDENTRY_state = FDSTAT_CLOSING;                   /*  准备调用驱动 close 函数     */
         }
+
+        LW_THREAD_SAFE();                                               /*  进入安全状态, 防止关闭过程  */
+                                                                        /*  当前任务被删除              */
         _IosUnlock();                                                   /*  退出 IO 临界区              */
         
         _FdLockfClearFdEntry(pfdentry, pid);                            /*  回收指定进程创建的记录锁    */
@@ -1426,6 +1433,8 @@ INT  API_IosFdEntryReclaim (PLW_FD_ENTRY  pfdentry, ULONG  ulRefDec, pid_t  pid)
             _IosFileClose(pfdentry);
         }
         _IosFileDelete(pfdentry);
+
+        LW_THREAD_UNSAFE();                                             /*  退出安全状态                */
     }
     
     return  (iErrCode);

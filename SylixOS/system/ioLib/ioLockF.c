@@ -78,6 +78,11 @@ typedef struct {
 typedef LW_LOCKF_CLEANUP    *PLW_LOCKF_CLEANUP;
 static LW_LOCKF_CLEANUP      _G_lfcTable[LW_CFG_MAX_THREADS];
 /*********************************************************************************************************
+  fdnode lock / unlock
+*********************************************************************************************************/
+#define FDNODE_LOCK(pfdnode)      API_SemaphoreMPend((pfdnode)->FDNODE_ulSem, LW_OPTION_WAIT_INFINITE)
+#define FDNODE_UNLOCK(pfdnode)    API_SemaphoreMPost((pfdnode)->FDNODE_ulSem)
+/*********************************************************************************************************
 ** 函数名称: __fdLockfPrint
 ** 功能描述: 打印一个 lock file 节点.
 ** 输　入  : pcMsg         前缀信息
@@ -329,8 +334,9 @@ VOID  __fdLockfCleanupHook (PLW_CLASS_TCB  ptcbDel)
         return;
     }
     
-    if (API_SemaphoreBPend(plfc->LFC_pfdnode->FDNODE_ulSem, LW_OPTION_WAIT_INFINITE)) {
+    if (FDNODE_LOCK(plfc->LFC_pfdnode)) {
         goto    __out;
+
     } else {
         /*
          * Is blocking ?
@@ -338,7 +344,7 @@ VOID  __fdLockfCleanupHook (PLW_CLASS_TCB  ptcbDel)
         if ((pfdlockfBlock = plfc->LFC_pfdlockf->FDLOCK_pfdlockNext) != LW_NULL) {
             __fdLockfUnblock(plfc->LFC_pfdlockf, pfdlockfBlock, plfc->LFC_pfdnode);
         }
-        API_SemaphoreBPost(plfc->LFC_pfdnode->FDNODE_ulSem);
+        FDNODE_UNLOCK(plfc->LFC_pfdnode);
     }
     
 __out:
@@ -774,7 +780,7 @@ static INT  __fdLockfSetLock (PLW_FD_LOCKF  pfdlockfLock,
          */
         __fdLockfCleanupSet(pfdlockfLock, *ppfdlockfSpare, pfdnode);
         
-        API_SemaphoreBPost(pfdnode->FDNODE_ulSem);
+        FDNODE_UNLOCK(pfdnode);
         
         __THREAD_CANCEL_POINT();                                        /*  测试取消点                  */
         
@@ -785,7 +791,7 @@ static INT  __fdLockfSetLock (PLW_FD_LOCKF  pfdlockfLock,
          */
         __fdLockfCleanupSet(LW_NULL, LW_NULL, LW_NULL);
         
-        if (API_SemaphoreBPend(pfdnode->FDNODE_ulSem, LW_OPTION_WAIT_INFINITE)) {
+        if (FDNODE_LOCK(pfdnode)) {
             __fdLockfDelete(pfdlockfLock);
             return  (EBADF);
         }
@@ -1039,7 +1045,7 @@ static INT  __fdLockfAdvLock (PLW_FD_NODE   pfdnode,
         return  (ENOLCK);
     }
     
-    API_SemaphoreBPend(pfdnode->FDNODE_ulSem, LW_OPTION_WAIT_INFINITE);
+    FDNODE_LOCK(pfdnode);
     
     /*
      * Avoid the common case of unlocking when inode has no locks.
@@ -1089,7 +1095,7 @@ static INT  __fdLockfAdvLock (PLW_FD_NODE   pfdnode,
     }
     
 __lock_done:
-    API_SemaphoreBPost(pfdnode->FDNODE_ulSem);
+    FDNODE_UNLOCK(pfdnode);
     __fdLockfDelete(pfdlockfLock);
     __fdLockfDelete(pfdlockfSpare);
     
@@ -1108,7 +1114,7 @@ static VOID  __fdLockAbortAdvLocks (PLW_FD_NODE  pfdnode)
     PLW_FD_LOCKF    pfdlockf, pfdlockfDel, pfdlockfBlock;
     PLW_LIST_LINE   plineTmp;
     
-    API_SemaphoreBPend(pfdnode->FDNODE_ulSem, LW_OPTION_WAIT_INFINITE);
+    FDNODE_LOCK(pfdnode);
     
     pfdlockf = pfdnode->FDNODE_pfdlockHead;
     while (pfdlockf) {
@@ -1130,7 +1136,7 @@ static VOID  __fdLockAbortAdvLocks (PLW_FD_NODE  pfdnode)
     
     pfdnode->FDNODE_pfdlockHead = LW_NULL;
     
-    API_SemaphoreBPost(pfdnode->FDNODE_ulSem);
+    FDNODE_UNLOCK(pfdnode);
 }
 /*********************************************************************************************************
 ** 函数名称: _FdLockfIoctl
@@ -1291,12 +1297,12 @@ INT  _FdLockfClearFdEntry (PLW_FD_ENTRY  pfdentry, pid_t  pid)
         return  (PX_ERROR);
     }
     
-    API_SemaphoreBPend(pfdnode->FDNODE_ulSem, LW_OPTION_WAIT_INFINITE);
+    FDNODE_LOCK(pfdnode);
     if (pfdnode->FDNODE_pfdlockHead == LW_NULL) {                       /*  no lock in fd_node          */
-        API_SemaphoreBPost(pfdnode->FDNODE_ulSem);
+        FDNODE_UNLOCK(pfdnode);
         return  (ERROR_NONE);                                           /*  不存在任何记录锁            */
     }
-    API_SemaphoreBPost(pfdnode->FDNODE_ulSem);
+    FDNODE_UNLOCK(pfdnode);
     
     return  (_FdLockfProc(pfdentry, LOCK_UN, pid));                     /*  移除与本进程相关的锁        */
 }

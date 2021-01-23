@@ -171,8 +171,13 @@ FUNC_DEF(archTaskCtxCopy)
     ADDI        A0 , (8 * ARCH_REG_SIZE)
     ADDI        A1 , (8 * ARCH_REG_SIZE)
     
+#if !defined(__SYLIXOS_CSKY_ARCH_CK860__)
     LDM         R18-R23 , (A1)
     STM         R18-R23 , (A0)
+#else
+    LDM         R18-R21 , (A1)
+    STM         R18-R21 , (A0)
+#endif
     RTS
     FUNC_END(archTaskCtxCopy)
     

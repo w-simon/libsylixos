@@ -488,6 +488,7 @@ TPS_RESULT  tpsFsCloseInode (PTPS_INODE pinode)
                 ppinodeIter = &((*ppinodeIter)->IND_pnext);
             }
 
+            pinode->IND_uiMagic = 0;                                    /* 设置无效掩码防止上层野指针   */
             for (i = 0; i < TPS_BN_POOL_SIZE; i++) {                    /* 释放节点缓冲池               */
                 if (pinode->IND_pBNPool[i] != LW_NULL) {
                     TPS_FREE(pinode->IND_pBNPool[i]);
@@ -610,7 +611,8 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
             ppinodeIter = &((*ppinodeIter)->IND_pnext);
         }
 
-        pinode->IND_bDeleted        = LW_TRUE;
+        pinode->IND_uiMagic  = 0;                                       /* 无效掩码防止操作已删除文件   */
+        pinode->IND_bDeleted = LW_TRUE;
     }
 
     pucBuff = pinode->IND_pucBuff;

@@ -118,7 +118,8 @@ static INT _IoOpen (PCHAR            pcName,
              PLW_IO_ENV     pioeDef;
     
     REGISTER LONG           lValue;
-    REGISTER INT            iFd = (PX_ERROR);
+    REGISTER INT            iFd   = PX_ERROR;
+             BOOL           bSafe = LW_FALSE;
     
              CHAR           cFullFileName[MAX_FILENAME_LENGTH];
              
@@ -163,6 +164,9 @@ static INT _IoOpen (PCHAR            pcName,
         goto    __error_handle;
     }
     
+    LW_THREAD_SAFE();                                                   /*  进入安全状态, 防止打开过程  */
+    bSafe = LW_TRUE;                                                    /*  当前任务被删除              */
+
     iFd = iosFdNew(pdevhdrHdr, cFullFileName, PX_ERROR, iFlag);         /*  此时就确定了文件描述符名    */
     if (iFd == PX_ERROR) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "file can not create.\r\n");
@@ -205,13 +209,16 @@ static INT _IoOpen (PCHAR            pcName,
             goto    __error_handle;
         }
     }
-
+                                                                        /*  设置文件描述符              */
     if (iosFdSet(iFd, pdevhdrHdr, lValue, iFlag, FDSTAT_OK) != ERROR_NONE) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "file can not config.\r\n");
         ulError   = API_GetLastError();
         iErrLevel = 3;
         goto    __error_handle;
     }
+
+    LW_THREAD_UNSAFE();                                                 /*  退出安全状态                */
+    bSafe = LW_FALSE;
 
     if (iLinkCount) {                                                   /*  内部存在符号链接            */
         if (iosFdRealName(iFd, cFullFileName)) {
@@ -256,11 +263,8 @@ static INT _IoOpen (PCHAR            pcName,
     return  (iFd);
     
 __error_handle:
-    if ((iErrLevel > 2) && (iFlag & O_CREAT)) {
-        /*
-         *  这里目前不应该删除这个文件. 
-         *  iosDelete(pdevhdrHdr, cFullFileName);
-         */
+    if (bSafe) {
+        LW_THREAD_UNSAFE();
     }
     if (iErrLevel > 1) {
         iosFdFree(iFd);
@@ -489,8 +493,11 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
         return  (PX_ERROR);
     }
     
+    LW_THREAD_SAFE();                                                   /*  进入安全状态, 防止打开过程  */
+                                                                        /*  当前任务被删除              */
     pfdentry = _IosFileNew(pdevhdrHdr, cFullFileName);                  /*  创建一个临时的 fd_entry     */
     if (pfdentry == LW_NULL) {
+        LW_THREAD_UNSAFE();                                             /*  退出安全状态                */
         close(iFd);
         return  (PX_ERROR);
     }
@@ -504,6 +511,7 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
         } else {
             if (iLinkCount++ > _S_iIoMaxLinkLevels) {                   /*  链接文件层数太多            */
                 _IosFileDelete(pfdentry);
+                LW_THREAD_UNSAFE();                                     /*  退出安全状态                */
                 close(iFd);
                 _ErrorHandle(ELOOP);
                 return  (PX_ERROR);
@@ -515,6 +523,7 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
          */
         if (ioFullFileNameGet(cFullFileName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
             _IosFileDelete(pfdentry);
+            LW_THREAD_UNSAFE();                                         /*  退出安全状态                */
             close(iFd);
             _ErrorHandle(EXDEV);
             return  (PX_ERROR);
@@ -527,6 +536,8 @@ INT  rename (CPCHAR       pcOldName, CPCHAR       pcNewName)
     }
     
     _IosFileDelete(pfdentry);                                           /*  删除临时的 fd_entry         */
+
+    LW_THREAD_UNSAFE();                                                 /*  退出安全状态                */
 
     if (_PathBuildLink(cFullFileName, MAX_FILENAME_LENGTH, 
                        LW_NULL, LW_NULL,

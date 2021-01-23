@@ -71,8 +71,11 @@ INT  symlink (CPCHAR  pcLinkDst, CPCHAR  pcSymPath)
         return  (PX_ERROR);
     }
     
+    LW_THREAD_SAFE();                                                   /*  进入安全状态, 防止打开过程  */
+                                                                        /*  当前任务被删除              */
     pfdentry = _IosFileNew(pdevhdrHdr, cFullFileName);                  /*  创建一个临时的 fd_entry     */
     if (pfdentry == LW_NULL) {
+        LW_THREAD_UNSAFE();                                             /*  退出安全状态                */
         return  (PX_ERROR);
     }
     
@@ -80,6 +83,7 @@ INT  symlink (CPCHAR  pcLinkDst, CPCHAR  pcSymPath)
         lValue = iosOpen(pdevhdrHdr, cFullFileName, O_RDONLY, 0);
         if (lValue == FOLLOW_LINK_FILE) {                               /*  已经存在连接文件            */
             _IosFileDelete(pfdentry);
+            LW_THREAD_UNSAFE();                                         /*  退出安全状态                */
             _ErrorHandle(EEXIST);
             return  (PX_ERROR);
         
@@ -89,6 +93,7 @@ INT  symlink (CPCHAR  pcLinkDst, CPCHAR  pcSymPath)
         } else {
             if (iLinkCount++ > _S_iIoMaxLinkLevels) {                   /*  链接文件层数太多            */
                 _IosFileDelete(pfdentry);
+                LW_THREAD_UNSAFE();                                     /*  退出安全状态                */
                 _ErrorHandle(ELOOP);
                 return  (PX_ERROR);
             }
@@ -99,6 +104,7 @@ INT  symlink (CPCHAR  pcLinkDst, CPCHAR  pcSymPath)
          */
         if (ioFullFileNameGet(cFullFileName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
             _IosFileDelete(pfdentry);
+            LW_THREAD_UNSAFE();                                         /*  退出安全状态                */
             _ErrorHandle(EXDEV);
             return  (PX_ERROR);
         }
@@ -111,6 +117,8 @@ INT  symlink (CPCHAR  pcLinkDst, CPCHAR  pcSymPath)
     
     _IosFileDelete(pfdentry);                                           /*  删除临时的 fd_entry         */
     
+    LW_THREAD_UNSAFE();                                                 /*  退出安全状态                */
+
     iRet = iosSymlink(pdevhdrHdr, cFullFileName, pcLinkDst);
     
     if (iRet == ERROR_NONE) {
@@ -171,8 +179,11 @@ ssize_t  readlink (CPCHAR  pcSymPath, PCHAR  pcLinkDst, size_t  stMaxSize)
     }
     lib_strlcpy(pcLastTimeName, cFullFileName, MAX_FILENAME_LENGTH);
     
+    LW_THREAD_SAFE();                                                   /*  进入安全状态, 防止打开过程  */
+                                                                        /*  当前任务被删除              */
     pfdentry = _IosFileNew(pdevhdrHdr, cFullFileName);                  /*  创建一个临时的 fd_entry     */
     if (pfdentry == LW_NULL) {
+        LW_THREAD_UNSAFE();                                             /*  退出安全状态                */
         __SHEAP_FREE(pcLastTimeName);
         return  (PX_ERROR);
     }
@@ -185,6 +196,7 @@ ssize_t  readlink (CPCHAR  pcSymPath, PCHAR  pcLinkDst, size_t  stMaxSize)
         } else {
             if (iLinkCount++ > _S_iIoMaxLinkLevels) {                   /*  链接文件层数太多            */
                 _IosFileDelete(pfdentry);
+                LW_THREAD_UNSAFE();                                     /*  退出安全状态                */
                 __SHEAP_FREE(pcLastTimeName);
                 _ErrorHandle(ELOOP);
                 return  (PX_ERROR);
@@ -196,6 +208,7 @@ ssize_t  readlink (CPCHAR  pcSymPath, PCHAR  pcLinkDst, size_t  stMaxSize)
          */
         if (ioFullFileNameGet(cFullFileName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
             _IosFileDelete(pfdentry);
+            LW_THREAD_UNSAFE();                                         /*  退出安全状态                */
             __SHEAP_FREE(pcLastTimeName);
             _ErrorHandle(EXDEV);
             return  (PX_ERROR);
@@ -210,6 +223,8 @@ ssize_t  readlink (CPCHAR  pcSymPath, PCHAR  pcLinkDst, size_t  stMaxSize)
     
     _IosFileDelete(pfdentry);                                           /*  删除临时的 fd_entry         */
     
+    LW_THREAD_UNSAFE();                                                 /*  退出安全状态                */
+
     sstRet = iosReadlink(pdevhdrHdr, pcLastTimeName, pcLinkDst, stMaxSize);
     
     __SHEAP_FREE(pcLastTimeName);

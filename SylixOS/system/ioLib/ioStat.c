@@ -298,8 +298,11 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
     }
     lib_strlcpy(pcLastTimeName, cFullFileName, MAX_FILENAME_LENGTH);
     
+    LW_THREAD_SAFE();                                                   /*  进入安全状态, 防止打开过程  */
+                                                                        /*  当前任务被删除              */
     pfdentry = _IosFileNew(pdevhdrHdr, cFullFileName);                  /*  创建一个临时的 fd_entry     */
     if (pfdentry == LW_NULL) {
+        LW_THREAD_UNSAFE();                                             /*  退出安全状态                */
         __SHEAP_FREE(pcLastTimeName);
         return  (PX_ERROR);
     }
@@ -312,6 +315,7 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
         } else {
             if (iLinkCount++ > _S_iIoMaxLinkLevels) {                   /*  链接文件层数太多            */
                 _IosFileDelete(pfdentry);
+                LW_THREAD_UNSAFE();                                     /*  退出安全状态                */
                 __SHEAP_FREE(pcLastTimeName);
                 _ErrorHandle(ELOOP);
                 return  (PX_ERROR);
@@ -323,6 +327,7 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
          */
         if (ioFullFileNameGet(cFullFileName, &pdevhdrHdr, cFullFileName) != ERROR_NONE) {
             _IosFileDelete(pfdentry);
+            LW_THREAD_UNSAFE();                                         /*  退出安全状态                */
             __SHEAP_FREE(pcLastTimeName);
             _ErrorHandle(EXDEV);
             return  (PX_ERROR);
@@ -337,6 +342,8 @@ INT  lstat (CPCHAR  pcName, struct stat *pstat)
     
     _IosFileDelete(pfdentry);                                           /*  删除临时的 fd_entry         */
     
+    LW_THREAD_UNSAFE();                                                 /*  退出安全状态                */
+
     iError = API_IosLstat(pdevhdrHdr, pcLastTimeName, pstat);
     
     __SHEAP_FREE(pcLastTimeName);

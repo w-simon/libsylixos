@@ -37,6 +37,23 @@
 #include "tpsfs_dir.h"
 #include "tpsfs.h"
 /*********************************************************************************************************
+** 函数名称: __tpsfsCheckInode
+** 功能描述: 检查inode有效性
+** 输　入  : pinode           inode指针
+** 输　出  : BOOL
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static BOOL  __tpsfsCheckInode (PTPS_INODE  pinode)
+{
+    if (pinode->IND_bDeleted || (pinode->IND_uiMagic != TPS_MAGIC_INODE) ||
+        (pinode->IND_uiOpenCnt == 0) || (pinode->IND_uiRefCnt == 0)) {
+        return  (LW_FALSE);
+    }
+
+    return  (LW_TRUE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tpsFsCheckFileName
 ** 功能描述: 检查文件名操作
 ** 输　入  : pcName           文件名
@@ -741,6 +758,10 @@ errno_t  tpsFsRead (PTPS_INODE   pinode,
         return  (EINVAL);
     }
 
+    if (!__tpsfsCheckInode(pinode)) {
+        return  (EINVAL);
+    }
+
     if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
         return  (EIO);
     }
@@ -783,6 +804,10 @@ errno_t  tpsFsWrite (PTPS_INODE  pinode,
     *pszRet = 0;
 
     if ((LW_NULL == pinode) || (LW_NULL == pucBuff)) {
+        return  (EINVAL);
+    }
+
+    if (!__tpsfsCheckInode(pinode)) {
         return  (EINVAL);
     }
 
@@ -835,6 +860,13 @@ errno_t  tpsFsClose (PTPS_INODE pinode)
         return  (EINVAL);
     }
 
+    if (!__tpsfsCheckInode(pinode)) {
+        if (pinode->IND_uiOpenCnt > 0) {
+            tpsFsCloseInode(pinode);
+        }
+        return  (EINVAL);
+    }
+
     if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
         return  (EIO);
     }
@@ -869,6 +901,10 @@ errno_t  tpsFsFlushHead (PTPS_INODE pinode)
     PTPS_TRANS  ptrans  = LW_NULL;
 
     if (LW_NULL == pinode) {
+        return  (EINVAL);
+    }
+
+    if (!__tpsfsCheckInode(pinode)) {
         return  (EINVAL);
     }
 
@@ -908,6 +944,10 @@ errno_t  tpsFsTrunc (PTPS_INODE pinode, TPS_SIZE_T szNewSize)
     TPS_RESULT  tpsres  = TPS_ERR_NONE;
 
     if (LW_NULL == pinode) {
+        return  (EINVAL);
+    }
+
+    if (!__tpsfsCheckInode(pinode)) {
         return  (EINVAL);
     }
 
@@ -992,6 +1032,10 @@ errno_t  tpsFsReadDir (PTPS_INODE pinodeDir, BOOL bInHash, TPS_OFF_T off, PTPS_E
         return  (EINVAL);
     }
 
+    if (!__tpsfsCheckInode(pinodeDir)) {
+        return  (EINVAL);
+    }
+
     if (pinodeDir->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {             /* 事务处理出错                 */
         return  (EIO);
     }
@@ -1017,6 +1061,10 @@ errno_t  tpsFsReadDir (PTPS_INODE pinodeDir, BOOL bInHash, TPS_OFF_T off, PTPS_E
 errno_t  tpsFsSync (PTPS_INODE pinode)
 {
     if (LW_NULL == pinode) {
+        return  (EINVAL);
+    }
+
+    if (!__tpsfsCheckInode(pinode)) {
         return  (EINVAL);
     }
 
@@ -1196,6 +1244,10 @@ TPS_SIZE_T  tpsFsGetSize (PTPS_INODE pinode)
         return  (0);
     }
 
+    if (!__tpsfsCheckInode(pinode)) {
+        return  (0);
+    }
+
     return  (pinode->IND_szData);
 }
 /*********************************************************************************************************
@@ -1209,6 +1261,10 @@ TPS_SIZE_T  tpsFsGetSize (PTPS_INODE pinode)
 INT  tpsFsGetmod (PTPS_INODE pinode)
 {
     if (LW_NULL == pinode) {
+        return  (0);
+    }
+
+    if (!__tpsfsCheckInode(pinode)) {
         return  (0);
     }
 
@@ -1226,6 +1282,10 @@ INT  tpsFsGetmod (PTPS_INODE pinode)
 errno_t  tpsFsChmod (PTPS_INODE pinode, INT iMode)
 {
     if (LW_NULL == pinode) {
+        return  (EINVAL);
+    }
+
+    if (!__tpsfsCheckInode(pinode)) {
         return  (EINVAL);
     }
 
@@ -1258,6 +1318,10 @@ errno_t  tpsFsChown (PTPS_INODE pinode, uid_t uid, gid_t gid)
         return  (EINVAL);
     }
 
+    if (!__tpsfsCheckInode(pinode)) {
+        return  (EINVAL);
+    }
+
     if (pinode->IND_psb->SB_uiFlags & TPS_TRANS_FAULT) {                /* 事务处理出错                 */
         return  (EIO);
     }
@@ -1280,6 +1344,10 @@ errno_t  tpsFsChown (PTPS_INODE pinode, uid_t uid, gid_t gid)
 errno_t  tpsFsChtime (PTPS_INODE pinode, struct utimbuf  *utim)
 {
     if (LW_NULL == pinode) {
+        return  (EINVAL);
+    }
+
+    if (!__tpsfsCheckInode(pinode)) {
         return  (EINVAL);
     }
 
