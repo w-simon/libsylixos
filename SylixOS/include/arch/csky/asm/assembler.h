@@ -48,7 +48,6 @@
 
 #define FUNC_DEF(func)                  \
         .align      4;                  \
-        .type   func, %function;        \
 func:
 
 #define FUNC_END(func)                  \
