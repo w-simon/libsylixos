@@ -35,6 +35,7 @@ LOCAL_TARGET_NAME := libfastlock.so
 LOCAL_SRCS := \
 SylixOS/posix/fastlock/cond.c \
 SylixOS/posix/fastlock/mutex.c \
+SylixOS/posix/fastlock/rwlock.c \
 SylixOS/posix/fastlock/semaphore.c 
 
 #*********************************************************************************************************

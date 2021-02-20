@@ -619,6 +619,11 @@ static INT sio16c550Hup (SIO16C550_CHAN *psiochan)
 {
     INTREG  intreg;
 
+    /*
+     * make sure the UART transmitter has completely drained
+     */
+    while (!(GET_REG(psiochan, LSR) & LSR_TEMT));
+
     LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
 
     psiochan->mcr &= (~(MCR_RTS | MCR_DTR));
