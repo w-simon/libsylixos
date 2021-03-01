@@ -611,7 +611,6 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
             ppinodeIter = &((*ppinodeIter)->IND_pnext);
         }
 
-        pinode->IND_uiMagic  = 0;                                       /* 无效掩码防止操作已删除文件   */
         pinode->IND_bDeleted = LW_TRUE;
     }
 
