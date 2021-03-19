@@ -52,6 +52,8 @@ LW_API ULONG          API_IosDrvRemove(INT  iDrvNum, BOOL  bForceClose);/*  卸载
 
 LW_API ULONG          API_IosDrvGetType(INT  iDrvNum, INT  *piType);    /*  获取驱动程序类型            */
 
+LW_API ULONG          API_IosDrvGetFeatures(INT  iDrvNum, INT  *piFeatures);
+
 LW_API INT            API_IosDevFileAbnormal(PLW_DEV_HDR    pdevhdrHdr);/*  设备相关文件转为异常模式    */
 
 LW_API ULONG          API_IosDevAdd(PLW_DEV_HDR    pdevhdrHdr,
@@ -153,6 +155,7 @@ LW_API PCHAR                 API_IoGetDrvDescription(INT  iDrvNum);
 #define iosDrvInstallEx2                         API_IosDrvInstallEx2
 #define iosDrvRemove                             API_IosDrvRemove
 #define iosDrvGetType                            API_IosDrvGetType
+#define iosDrvGetFeatures                        API_IosDrvGetFeatures
 
 #define iosDevAdd                                API_IosDevAdd
 #define iosDevAddEx                              API_IosDevAddEx

@@ -62,6 +62,7 @@
 #include "ttinyShellReadline.h"
 #include "ttinyShellSysCmd.h"
 #include "ttinyShellSysVar.h"
+#include "ttinyString.h"
 #include "../SylixOS/shell/ttinyVar/ttinyVarLib.h"
 #include "../SylixOS/shell/extLib/ttinyShellExtCmd.h"
 #include "../SylixOS/shell/fsLib/ttinyShellFsCmd.h"
@@ -849,14 +850,17 @@ LW_API
 INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3], 
                        BOOL  bIsJoin, LW_OBJECT_HANDLE *pulSh)
 {
-    INT     iRet;
-    INT     iError;
-    INT     iFdArray[3];
-    BOOL    bClosedArray[3];
+    INT                 iRet;
+    INT                 iError;
+    INT                 iFdArray[3];
+    BOOL                bClosedArray[3];
+    CHAR                cKeyword[LW_CFG_SHELL_MAX_KEYWORDLEN + 1];      /*  关键字                      */
+    PCHAR               pcParam = LW_NULL;                              /*  指向第一个参数的指针        */
+    __PTSHELL_KEYWORD   pskwNode = LW_NULL;
     
-    CHAR    cCommand[LW_CFG_SHELL_MAX_COMMANDLEN + 1];
-    size_t  stStrLen = lib_strnlen(pcCommandExec, LW_CFG_SHELL_MAX_COMMANDLEN + 1);
-    BOOL    bNeedAsyn;
+    CHAR                cCommand[LW_CFG_SHELL_MAX_COMMANDLEN + 1];
+    size_t              stStrLen = lib_strnlen(pcCommandExec, LW_CFG_SHELL_MAX_COMMANDLEN + 1);
+    BOOL                bNeedAsyn;
     
     if ((stStrLen > LW_CFG_SHELL_MAX_COMMANDLEN - 1) || (stStrLen < 1)) {
         _ErrorHandle(EINVAL);
@@ -908,6 +912,10 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
             bIsJoin = LW_FALSE;
         }
         
+        if (ERROR_NONE == __tshellStrKeyword(cCommand, cKeyword, &pcParam)) {
+            __tshellKeywordFind(cKeyword, &pskwNode);                   /*  查找关键字                   */
+        }
+
     } else {                                                            /*  内核中调用                   */
         if (iFd == LW_NULL) {
             LW_OBJECT_HANDLE  ulMe = API_ThreadIdSelf();
@@ -925,8 +933,8 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
         }
     }
     
-    iError = __tshellBgCreateEx(iFd, bClosed, cCommand, lib_strlen(cCommand), 
-                                0ul, bIsJoin, 0, pulSh, &iRet);
+    iError = __tshellBgCreateEx(iFd, bClosed, cCommand, lib_strlen(cCommand),
+                                pskwNode ? pskwNode->SK_ulOption : 0ul, bIsJoin, 0, pulSh, &iRet);
     if (iError < 0) {                                                   /*  背景创建失败                */
         /*
          *  运行失败, 则关闭内核中需要关闭的文件

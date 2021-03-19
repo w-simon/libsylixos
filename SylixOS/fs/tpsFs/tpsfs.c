@@ -46,8 +46,7 @@
 *********************************************************************************************************/
 static BOOL  __tpsfsCheckInode (PTPS_INODE  pinode)
 {
-    if (pinode->IND_bDeleted || (pinode->IND_uiMagic != TPS_MAGIC_INODE) ||
-        (pinode->IND_uiOpenCnt == 0) || (pinode->IND_uiRefCnt == 0)) {
+    if ((pinode->IND_uiMagic != TPS_MAGIC_INODE) || (pinode->IND_uiOpenCnt == 0)) {
         return  (LW_FALSE);
     }
 
@@ -1212,18 +1211,27 @@ VOID  tpsFsStatfs (PTPS_SUPER_BLOCK  psb, struct statfs *pstatfs)
     pstatfs->f_fsid.val[0] = (int32_t)psb->SB_ui64Generation;
     pstatfs->f_fsid.val[1] = 0;
 
+    if (psb->SB_pinodeDeleted) {
+        pstatfs->f_bfree += tpsFsBtreeGetBlkCnt(psb->SB_pinodeDeleted);
+        pstatfs->f_bfree++;
+    }
+
     /*
      * 统计已删除节点列表
      */
     inum = psb->SB_inumDeleted;
+
     while (inum != 0) {
         pinode = tpsFsOpenInode(psb, inum);
         if (LW_NULL == pinode) {
             break;
         }
 
-        pstatfs->f_bfree += pinode->IND_blkCnt;
-        pstatfs->f_bfree++;                                             /* inode所占用的块              */
+        if (pinode->IND_uiOpenCnt == 1) {                               /* 只计算已删除且未打开的文件   */
+            pstatfs->f_bfree += tpsFsBtreeGetBlkCnt(pinode);
+            pstatfs->f_bfree++;                                         /* inode所占用的块              */
+        }
+
         inum = pinode->IND_inumDeleted;
         tpsFsClose(pinode);
     }

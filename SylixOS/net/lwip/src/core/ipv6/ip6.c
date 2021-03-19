@@ -1126,6 +1126,10 @@ options_done:
   ip_data.current_next_proto = *nexth;
 #endif /* SYLIXOS */
 
+#if LWIP_RAW
+  /* p points to IPv6 header again for raw_input. */
+  pbuf_add_header_force(p, hlen_tot);
+
 #ifdef SYLIXOS /* SylixOS Add this hook */
   if (lwip_ip_hook(IP_HOOK_V6, IP_HT_LOCAL_IN, p, inp, NULL)) {
     pbuf_free(p);
@@ -1142,9 +1146,6 @@ options_done:
   }
 #endif /* LW_CFG_NET_MROUTER > 0 */
 
-#if LWIP_RAW
-  /* p points to IPv6 header again for raw_input. */
-  pbuf_add_header_force(p, hlen_tot);
   /* raw input did not eat the packet? */
   raw_status = raw_input(p, inp);
   if (raw_status != RAW_INPUT_EATEN)

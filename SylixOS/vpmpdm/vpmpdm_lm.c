@@ -21,6 +21,7 @@
 char *ip4addr_ntoa (const ip4_addr_t *addr)
 {
     static char str[INET_ADDRSTRLEN];
+
     return  (ip4addr_ntoa_r(addr, str, INET_ADDRSTRLEN));
 }
 
@@ -29,7 +30,7 @@ char *ip4addr_ntoa (const ip4_addr_t *addr)
  */
 char *inet_ntoa (struct in_addr addr)
 {
-    return  (ip4addr_ntoa((const ip4_addr_t*)&(addr)));
+    return  (ip4addr_ntoa((const ip4_addr_t *)&(addr)));
 }
 
 #if LWIP_IPV6
@@ -39,6 +40,7 @@ char *inet_ntoa (struct in_addr addr)
 char *ip6addr_ntoa (const ip6_addr_t *addr)
 {
     static char str[INET6_ADDRSTRLEN];
+
     return  (ip6addr_ntoa_r(addr, str, INET6_ADDRSTRLEN));
 }
 
@@ -47,7 +49,11 @@ char *ip6addr_ntoa (const ip6_addr_t *addr)
  */
 char *inet6_ntoa (struct in6_addr addr)
 {
-    return  (ip6addr_ntoa((const ip6_addr_t*)&(addr)));
+    ip6_addr_t addr6;
+
+    inet6_addr_to_ip6addr(&addr6, &addr);
+
+    return  (ip6addr_ntoa(&addr6));
 }
 #endif /* LWIP_IPV6 */
 

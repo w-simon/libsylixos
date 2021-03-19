@@ -135,6 +135,7 @@ static ssize_t  __tpsFsReadlink(PTPS_VOLUME   ptpsvol,
                                 PCHAR         pcLinkDst,
                                 size_t        stMaxSize);
 static INT      __tpsFsSync(PLW_FD_ENTRY   pfdentry, BOOL  bFlushCache);
+static INT      __tpsFsFeatures(INT  *piFeatures);
 /*********************************************************************************************************
   文件系统创建函数
 *********************************************************************************************************/
@@ -407,6 +408,7 @@ INT  API_TpsFsDrvInstall (VOID)
     fileop.fo_ioctl    = __tpsFsIoctl;
     fileop.fo_symlink  = __tpsFsSymlink;
     fileop.fo_readlink = __tpsFsReadlink;
+    fileop.fo_features = __tpsFsFeatures;
 
     _G_iTpsDrvNum = iosDrvInstallEx2(&fileop, LW_DRV_TYPE_NEW_1);       /*  使用 NEW_1 型设备驱动       */
 
@@ -2363,6 +2365,20 @@ static INT  __tpsFsIoctl (PLW_FD_ENTRY  pfdentry,
     }
 
     return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: __tpsFsFeatures
+** 功能描述: TPS FS 获取文件系统特性
+** 输　入  : piFeatures     特性
+** 输　出  : OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tpsFsFeatures (INT  *piFeatures)
+{
+    *piFeatures = LW_DRV_FEATURE_UNLINK_ON_OPEN;
+
+    return  (ERROR_NONE);
 }
 
 #endif                                                                  /*  LW_CFG_TPSFS_EN > 0         */

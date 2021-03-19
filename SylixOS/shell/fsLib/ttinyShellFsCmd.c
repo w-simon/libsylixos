@@ -2389,7 +2389,7 @@ VOID  __tshellFsCmdInit (VOID)
     API_TShellFormatAdd("mkfs", " media name");
     API_TShellHelpAdd("mkfs", "make a fs format in a disk(format disk).\n");
     
-    API_TShellKeywordAdd("shfile", __tshellFsCmdShfile);
+    API_TShellKeywordAddEx("shfile", __tshellFsCmdShfile, LW_OPTION_KEYWORD_INHERIT);
     API_TShellFormatAdd("shfile", " shell file");
     API_TShellHelpAdd("shfile", "execute a shell file.\n");
     

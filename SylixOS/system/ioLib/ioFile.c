@@ -988,7 +988,8 @@ INT  API_IosFdUnlink (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
 {
     REGISTER PLW_FD_ENTRY    pfdentry;
     REGISTER PLW_LIST_LINE   plineFdEntry;
-             
+
+             INT             iFeatures;
              size_t          stDevNameLen;
              CHAR            cUnlinkName[MAX_FILENAME_LENGTH];
              
@@ -1020,9 +1021,15 @@ INT  API_IosFdUnlink (PLW_DEV_HDR  pdevhdrHdr, CPCHAR  pcName)
                         return  (1);                                    /*  文件被锁定, 不能删除        */
                     
                     } else {
-                        pfdnode->FDNODE_bRemove = LW_TRUE;              /*  最后一次关闭文件需要删除    */
-                        _IosUnlock();                                   /*  退出 IO 临界区              */
-                        return  (ERROR_NONE);                           /*  fdnode 只一个, 可以直接退出 */
+                        if (API_IosDrvGetFeatures(pfdentry->FDENTRY_pdevhdrHdr->DEVHDR_usDrvNum,
+                                                  &iFeatures)) {
+                            iFeatures = 0;
+                        }                                               /*  检查文件系统特性            */
+                        if (!(iFeatures & LW_DRV_FEATURE_UNLINK_ON_OPEN)) {
+                            pfdnode->FDNODE_bRemove = LW_TRUE;          /*  最后一次关闭文件需要删除    */
+                            _IosUnlock();                               /*  退出 IO 临界区              */
+                            return  (ERROR_NONE);                       /*  fdnode 只一个, 可以直接退出 */
+                        }
                     }
                 
                 } else {

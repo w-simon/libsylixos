@@ -778,11 +778,11 @@ static INT __canIoctl (__CAN_DEV  *pcanDev, INT  iCmd, LONG  lArg)
             break;
 
         case FIOWFLUSH:
-            __canFlushRd(pcanport);                                     /*  清空写缓冲区                */
+            __canFlushWrt(pcanport);                                    /*  清空写缓冲区                */
             break;
 
         case FIORFLUSH:
-            __canFlushWrt(pcanport);                                    /*  清空读缓冲区                */
+            __canFlushRd(pcanport);                                     /*  清空读缓冲区                */
             break;
 
         case FIOFSTATGET:                                               /*  获得文件属性                */

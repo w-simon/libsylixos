@@ -1538,7 +1538,7 @@ in_addr_t  inet_addr (const char *cp)
 }
 /*********************************************************************************************************
 ** 函数名称: inet_aton
-** 功能描述: ip4addr_aton(cp, (ip4_addr_t*)addr)
+** 功能描述: ip4addr_aton(cp, (ip4_addr_t *)addr)
 ** 输　入  :
 ** 输　出  :
 ** 全局变量:
@@ -1547,11 +1547,11 @@ in_addr_t  inet_addr (const char *cp)
 *********************************************************************************************************/
 int  inet_aton (const char *cp, struct in_addr *addr)
 {
-    return  (ip4addr_aton(cp, (ip4_addr_t*)addr));
+    return  (ip4addr_aton(cp, (ip4_addr_t *)addr));
 }
 /*********************************************************************************************************
 ** 函数名称: inet_ntoa
-** 功能描述: ip4addr_ntoa((const ip4_addr_t*)&(addr))
+** 功能描述: ip4addr_ntoa((const ip4_addr_t *)&(addr))
 ** 输　入  :
 ** 输　出  :
 ** 全局变量:
@@ -1560,11 +1560,11 @@ int  inet_aton (const char *cp, struct in_addr *addr)
 *********************************************************************************************************/
 char  *inet_ntoa (struct in_addr addr)
 {
-    return  (ip4addr_ntoa((const ip4_addr_t*)&(addr)));
+    return  (ip4addr_ntoa((const ip4_addr_t *)&(addr)));
 }
 /*********************************************************************************************************
 ** 函数名称: inet_ntoa_r
-** 功能描述: ip4addr_ntoa_r((const ip4_addr_t*)&(addr), buf, buflen)
+** 功能描述: ip4addr_ntoa_r((const ip4_addr_t *)&(addr), buf, buflen)
 ** 输　入  :
 ** 输　出  :
 ** 全局变量:
@@ -1573,11 +1573,11 @@ char  *inet_ntoa (struct in_addr addr)
 *********************************************************************************************************/
 char  *inet_ntoa_r (struct in_addr addr, char *buf, int buflen)
 {
-    return  (ip4addr_ntoa_r((const ip4_addr_t*)&(addr), buf, buflen));
+    return  (ip4addr_ntoa_r((const ip4_addr_t *)&(addr), buf, buflen));
 }
 /*********************************************************************************************************
 ** 函数名称: inet6_aton
-** 功能描述: ip6addr_aton(cp, (ip6_addr_t*)addr)
+** 功能描述: ip6addr_aton(cp, (ip6_addr_t *)addr)
 ** 输　入  :
 ** 输　出  :
 ** 全局变量:
@@ -1588,11 +1588,19 @@ char  *inet_ntoa_r (struct in_addr addr, char *buf, int buflen)
 
 int  inet6_aton (const char *cp, struct in6_addr *addr)
 {
-    return  (ip6addr_aton(cp, (ip6_addr_t*)addr));
+    int        ret;
+    ip6_addr_t addr6;
+
+    ret = ip6addr_aton(cp, &addr6);
+    if (ret) {
+        inet6_addr_from_ip6addr(addr, &addr6);
+    }
+
+    return  (ret);
 }
 /*********************************************************************************************************
 ** 函数名称: inet6_ntoa
-** 功能描述: ip6addr_ntoa((const ip6_addr_t*)&(addr))
+** 功能描述: ip6addr_ntoa((const ip6_addr_t *)&(addr))
 ** 输　入  :
 ** 输　出  :
 ** 全局变量:
@@ -1601,11 +1609,15 @@ int  inet6_aton (const char *cp, struct in6_addr *addr)
 *********************************************************************************************************/
 char  *inet6_ntoa (struct in6_addr addr)
 {
-    return  (ip6addr_ntoa((const ip6_addr_t*)&(addr)));
+    ip6_addr_t addr6;
+
+    inet6_addr_to_ip6addr(&addr6, &addr);
+
+    return  (ip6addr_ntoa(&addr6));
 }
 /*********************************************************************************************************
 ** 函数名称: inet6_ntoa_r
-** 功能描述: ip6addr_ntoa_r((const ip6_addr_t*)&(addr), buf, buflen)
+** 功能描述: ip6addr_ntoa_r((const ip6_addr_t *)&(addr), buf, buflen)
 ** 输　入  :
 ** 输　出  :
 ** 全局变量:
@@ -1614,7 +1626,11 @@ char  *inet6_ntoa (struct in6_addr addr)
 *********************************************************************************************************/
 char  *inet6_ntoa_r (struct in6_addr addr, char *buf, int buflen)
 {
-    return  (ip6addr_ntoa_r((const ip6_addr_t*)&(addr), buf, buflen));
+    ip6_addr_t addr6;
+
+    inet6_addr_to_ip6addr(&addr6, &addr);
+
+    return  (ip6addr_ntoa_r(&addr6, buf, buflen));
 }
 
 #endif                                                                  /*  LWIP_IPV6                   */

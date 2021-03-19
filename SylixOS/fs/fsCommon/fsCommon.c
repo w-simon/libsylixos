@@ -251,7 +251,7 @@ UINT  __fsDiskLinkCounterGet (PLW_BLK_DEV  pblkd)
 INT  __fsCheckFileName (CPCHAR  pcName)
 {
 #ifndef __LW_FILE_ERROR_NAME_STR
-#define __LW_FILE_ERROR_NAME_STR        "\\*?<>:\"|\t\r\n"              /*  不能包含在文件内的字符      */
+#define __LW_FILE_ERROR_NAME_STR        "\\*?<>\"|\t\r\n"               /*  不能包含在文件内的字符      */
 #endif                                                                  /*  __LW_FILE_ERROR_NAME_STR    */
 
     REGISTER PCHAR  pcTemp;

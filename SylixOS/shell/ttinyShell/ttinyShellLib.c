@@ -1113,6 +1113,10 @@ INT    __tshellBgCreateEx (INT               iFd[3],
     }
 #endif
     
+    if (ulKeywordOpt & LW_OPTION_KEYWORD_INHERIT) {
+        ulTaskOpt &= ~LW_OPTION_OBJECT_GLOBAL;
+    }
+
     API_ThreadAttrBuild(&threadattrTShell,
                         _G_stShellStackSize,                            /*  shell ∂—’ª¥Û–°              */
                         LW_PRIO_T_SHELL,

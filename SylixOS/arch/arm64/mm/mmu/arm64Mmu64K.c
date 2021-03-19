@@ -188,12 +188,13 @@ static INT  arm64MmuFlags2Attr (ULONG   ulFlag,
     }
 
     if (ulFlag & LW_VMM_FLAG_EXECABLE) {
-        *pucXN = 0x1;
+        *pucXN  = 0x0;
+        *pucPXN = 0x0;
     } else {
-        *pucXN = 0x0;
+        *pucXN  = 0x1;
+        *pucPXN = 0x1;
     }
     
-    *pucPXN = 0x0;
     *pucSH  = VMSA_S;
     *pucNS  = 0x0;
     *pucCon = 0x0;
@@ -261,7 +262,7 @@ static INT  arm64MmuAttr2Flags (UINT8  ucGuard,
         break;
     }
 
-    if (ucXN == 0x1) {
+    if (ucXN == 0x0) {
         *pulFlag |= LW_VMM_FLAG_EXECABLE;
     }
 

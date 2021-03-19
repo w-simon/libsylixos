@@ -449,6 +449,10 @@ int  netbr_add_dev (const char *brdev, int brindex, const char *sub, int sub_is_
   if (memcmp(netdev_br->hwaddr, netbr_zeroaddr, ETH_ALEN) == 0) {
     MEMCPY(netdev_br->hwaddr, netdev->hwaddr, ETH_ALEN); /* use this port mac address */
     MEMCPY(netif_br->hwaddr, netdev->hwaddr, ETH_ALEN);
+
+#if LWIP_IPV6
+    netif_create_ip6_linklocal_address(netif_br, 1);
+#endif
   }
   
   NETBR_LOCK(netbr);

@@ -58,6 +58,8 @@
                                                                         /*  在另外一个任务上下文中执行  */
                                                                         
 #define LW_OPTION_KEYWORD_STK_MAIN      0x00000004                      /*  背景执行 shell 进程主线程   */
+
+#define LW_OPTION_KEYWORD_INHERIT       0x00000008                      /*  此命令继承进程控制块        */
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
                                                                         
 #endif                                                                  /*  __TTINY_SHELL_OPTION_H      */

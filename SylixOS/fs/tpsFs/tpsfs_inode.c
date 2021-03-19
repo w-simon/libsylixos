@@ -122,33 +122,57 @@ static TPS_RESULT  __tpsFsGetFromFreeList (PTPS_TRANS        ptrans,
                                            TPS_IBLK         *blkAllocStart,
                                            TPS_IBLK         *blkAllocCnt)
 {
-    if (psb->SB_pinodeDeleted == LW_NULL) {
-        if (psb->SB_inumDeleted != 0) {
-            psb->SB_pinodeDeleted = tpsFsOpenInode(psb, psb->SB_inumDeleted);
+    TPS_INUM   inum       = psb->SB_inumDeleted;
+    TPS_INUM   inumPrev   = 0;
+    PTPS_INODE pinodePrev = LW_NULL;
+
+    if (!psb->SB_pinodeDeleted) {
+        while (inum != 0) {
+            psb->SB_pinodeDeleted = tpsFsOpenInode(psb, inum);
+            if (!psb->SB_pinodeDeleted) {
+                break;
+            }
+
+            if (psb->SB_pinodeDeleted->IND_uiOpenCnt == 1) {            /* 从已删除且未打开的文件分配  */
+                break;
+            }
+
+            inumPrev = inum;
+            inum     = psb->SB_pinodeDeleted->IND_inumDeleted;
+            tpsFsCloseInode(psb->SB_pinodeDeleted);
+            psb->SB_pinodeDeleted = LW_NULL;
         }
     }
 
-    if (psb->SB_pinodeDeleted == LW_NULL) {
+    if (!psb->SB_pinodeDeleted) {
         return  (TPS_ERR_INODE_OPEN);
     }
 
-    if (tpsFsBtreeTrunc(ptrans, psb->SB_pinodeDeleted,
-                        (blkCnt > psb->SB_pinodeDeleted->IND_blkCnt ? 0 :
-                                (psb->SB_pinodeDeleted->IND_blkCnt - blkCnt)),
-                        blkAllocStart, blkAllocCnt) != TPS_ERR_NONE) {
-        return  (TPS_ERR_BTREE_ALLOC);
+    if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeDeleted,
+                           MAX_BLK_NUM, blkCnt,
+                           blkAllocStart, blkAllocCnt) != TPS_ERR_NONE) {
+        (*blkAllocCnt) = 0;
     }
 
-    psb->SB_pinodeDeleted->IND_blkCnt -= (*blkAllocCnt);
-
-    if (psb->SB_pinodeDeleted->IND_blkCnt <= 0) {
+    if (tpsFsBtreeBlkCnt(psb->SB_pinodeDeleted) <= 0) {
         tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
                           psb->SB_pinodeDeleted->IND_inum,
                           psb->SB_pinodeDeleted->IND_inum,
                           1, LW_FALSE);
 
-        psb->SB_inumDeleted = psb->SB_pinodeDeleted->IND_inumDeleted;
-        tpsFsFlushSuperBlock(ptrans, psb);
+        if (psb->SB_inumDeleted == psb->SB_pinodeDeleted->IND_inum) {
+            psb->SB_inumDeleted = psb->SB_pinodeDeleted->IND_inumDeleted;
+            tpsFsFlushSuperBlock(ptrans, psb);
+
+        } else {
+            pinodePrev = tpsFsOpenInode(psb, inumPrev);
+            if (pinodePrev) {
+                pinodePrev->IND_inumDeleted = psb->SB_pinodeDeleted->IND_inumDeleted;
+                pinodePrev->IND_bDirty      = LW_TRUE;
+                tpsFsFlushInodeHead(ptrans, pinodePrev);
+                tpsFsCloseInode(pinodePrev);
+            }
+        }
 
         tpsFsCloseInode(psb->SB_pinodeDeleted);
         psb->SB_pinodeDeleted = LW_NULL;
@@ -174,14 +198,17 @@ static TPS_RESULT  __tpsFsInodeAddToFreeList (PTPS_TRANS         ptrans,
                                               PTPS_SUPER_BLOCK   psb,
                                               PTPS_INODE         pinode)
 {
-    if (psb->SB_pinodeDeleted != LW_NULL) {
+    if (psb->SB_pinodeDeleted) {
         pinode->IND_inumDeleted = psb->SB_pinodeDeleted->IND_inumDeleted;
+        pinode->IND_bDirty      = LW_TRUE;
         tpsFsFlushInodeHead(ptrans, pinode);
         psb->SB_pinodeDeleted->IND_inumDeleted = pinode->IND_inum;
+        psb->SB_pinodeDeleted->IND_bDirty      = LW_TRUE;
         tpsFsFlushInodeHead(ptrans, psb->SB_pinodeDeleted);
     
     } else {
         pinode->IND_inumDeleted = psb->SB_inumDeleted;
+        pinode->IND_bDirty      = LW_TRUE;
         tpsFsFlushInodeHead(ptrans, pinode);
         psb->SB_inumDeleted = pinode->IND_inum;
         tpsFsFlushSuperBlock(ptrans, psb);
@@ -554,7 +581,6 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
 {
     PTPS_SUPER_BLOCK    psb          = LW_NULL;
     PUCHAR              pucBuff      = LW_NULL;
-    PTPS_INODE         *ppinodeIter  = LW_NULL;
     TPS_RESULT          tpsres       = TPS_ERR_NONE;
 
     if ((ptrans == LW_NULL) || (pinode == LW_NULL)) {
@@ -585,7 +611,7 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
             }
         }
 
-        if (tpsFsBtreeGetLevel(pinode) > 0) {
+        if (tpsFsBtreeGetLevel(pinode) > 0 || (pinode->IND_uiOpenCnt > 1)) {
             __tpsFsInodeAddToFreeList(ptrans, psb, pinode);
         } else {
             tpsres = tpsFsTruncInode(ptrans, pinode, 0);
@@ -599,16 +625,6 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
                                   1, LW_FALSE) != TPS_ERR_NONE) {
                 return  (TPS_ERR_BTREE_INSERT);
             }
-        }
-
-        ppinodeIter = &psb->SB_pinodeOpenList;
-        while (*ppinodeIter) {                                          /* 从列表移除，防止再次被打开   */
-            if ((*ppinodeIter) == pinode) {
-                (*ppinodeIter) = (*ppinodeIter)->IND_pnext;
-                psb->SB_uiInodeOpenCnt--;
-                break;
-            }
-            ppinodeIter = &((*ppinodeIter)->IND_pnext);
         }
 
         pinode->IND_bDeleted = LW_TRUE;

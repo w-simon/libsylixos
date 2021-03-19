@@ -16,6 +16,9 @@
 
 #include "ptmalloc3_sylixos.h"
 
+/* Abort hook */
+static void (*abort_hook)(void) = NULL;
+
 /*
  * sbrk lock
  */
@@ -89,9 +92,20 @@ __re_try:
  */
 void  ptmalloc_abort (void)
 {
+    if (abort_hook) {
+        abort_hook();
+    }
     fprintf(stderr, "ptmalloc abort!\n");
     API_BacktraceShow(STD_ERR, 100);
     lib_abort();
+}
+
+/*
+ * ptmalloc_abort hook set
+ */
+void  ptmalloc_abort_hook (void (*hook)(void))
+{
+    abort_hook = hook;
 }
 
 #endif /* LW_CFG_VP_HEAP_ALGORITHM == 3 */

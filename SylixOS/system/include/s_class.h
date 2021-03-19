@@ -313,9 +313,12 @@ typedef struct {
     INT                        DEVENTRY_iType;                          /*  设备驱动类型                */
     
     UINT16                     DEVENTRY_usDevNum;                       /*  子设备号分配池              */
+    UINT16                     DEVENTRY_usFeatures;                     /*  拥有哪些特性                */
     LW_DRV_LICENSE             DEVENTRY_drvlicLicense;                  /*  驱动程序许可证              */
 } LW_DEV_ENTRY;
 typedef LW_DEV_ENTRY          *PLW_DEV_ENTRY;
+
+#define LW_DRV_FEATURE_UNLINK_ON_OPEN   (1 << 0)                        /*  允许删除被打开的文件        */
 
 /*********************************************************************************************************
   设备文件操作控制块
@@ -351,7 +354,8 @@ typedef struct file_operations {
     int                       (*fo_mmap)();                             /*  DEVENTRY_pfuncDevMmap       */
     int                       (*fo_unmap)();                            /*  DEVENTRY_pfuncDevUnmmap     */
     
-    ULONG                       fo_pad[16];                             /*  reserve                     */
+    int                       (*fo_features)();                         /*  Get drv features            */
+    ULONG                       fo_pad[15];                             /*  reserve                     */
 } FILE_OPERATIONS;
 typedef FILE_OPERATIONS        *PFILE_OPERATIONS;
 

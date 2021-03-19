@@ -142,9 +142,10 @@ INT  API_IosDrvInstall (LONGFUNCPTR    pfuncCreate,
         return  (PX_ERROR);
     }
     
-    pdeventry->DEVENTRY_bInUse   = LW_TRUE;                             /*  填写驱动程序表              */
-    pdeventry->DEVENTRY_iType    = LW_DRV_TYPE_ORIG;                    /*  默认为 VxWorks 兼容驱动     */
-    pdeventry->DEVENTRY_usDevNum = 0;
+    pdeventry->DEVENTRY_bInUse     = LW_TRUE;                           /*  填写驱动程序表              */
+    pdeventry->DEVENTRY_iType      = LW_DRV_TYPE_ORIG;                  /*  默认为 VxWorks 兼容驱动     */
+    pdeventry->DEVENTRY_usDevNum   = 0;
+    pdeventry->DEVENTRY_usFeatures = 0;
     
     pdeventry->DEVENTRY_pfuncDevCreate = pfuncCreate;
     pdeventry->DEVENTRY_pfuncDevDelete = pfuncDelete;
@@ -170,7 +171,7 @@ INT  API_IosDrvInstall (LONGFUNCPTR    pfuncCreate,
     pdeventry->DEVENTRY_drvlicLicense.DRVLIC_pcLicense     = LW_NULL;   /*  清空许可证信息              */
     pdeventry->DEVENTRY_drvlicLicense.DRVLIC_pcAuthor      = LW_NULL;
     pdeventry->DEVENTRY_drvlicLicense.DRVLIC_pcDescription = LW_NULL;
-    
+
     _IosUnlock();                                                       /*  退出 IO 临界区              */
     
     return  (iDrvNum);
@@ -213,9 +214,10 @@ INT  API_IosDrvInstallEx (struct file_operations  *pfileop)
         return  (PX_ERROR);
     }
     
-    pdeventry->DEVENTRY_bInUse   = LW_TRUE;                             /*  填写驱动程序表              */
-    pdeventry->DEVENTRY_iType    = LW_DRV_TYPE_ORIG;                    /*  默认为 VxWorks 兼容驱动     */
-    pdeventry->DEVENTRY_usDevNum = 0;
+    pdeventry->DEVENTRY_bInUse     = LW_TRUE;                           /*  填写驱动程序表              */
+    pdeventry->DEVENTRY_iType      = LW_DRV_TYPE_ORIG;                  /*  默认为 VxWorks 兼容驱动     */
+    pdeventry->DEVENTRY_usDevNum   = 0;
+    pdeventry->DEVENTRY_usFeatures = 0;
     
     pdeventry->DEVENTRY_pfuncDevCreate  = pfileop->fo_create;
     pdeventry->DEVENTRY_pfuncDevDelete  = pfileop->fo_release;
@@ -263,6 +265,7 @@ INT  API_IosDrvInstallEx2 (struct file_operations  *pfileop, INT  iType)
 {
     REGISTER PLW_DEV_ENTRY    pdeventry = LW_NULL;
     REGISTER INT              iDrvNum;
+             INT              iFeatures;
     
     if (!pfileop) {                                                     /*  参数错误                    */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "file_operations invalidate.\r\n");
@@ -292,9 +295,10 @@ INT  API_IosDrvInstallEx2 (struct file_operations  *pfileop, INT  iType)
         return  (PX_ERROR);
     }
     
-    pdeventry->DEVENTRY_bInUse   = LW_TRUE;                             /*  填写驱动程序表              */
-    pdeventry->DEVENTRY_iType    = iType;
-    pdeventry->DEVENTRY_usDevNum = 0;
+    pdeventry->DEVENTRY_bInUse     = LW_TRUE;                           /*  填写驱动程序表              */
+    pdeventry->DEVENTRY_iType      = iType;
+    pdeventry->DEVENTRY_usDevNum   = 0;
+    pdeventry->DEVENTRY_usFeatures = 0;
     
     pdeventry->DEVENTRY_pfuncDevCreate  = pfileop->fo_create;
     pdeventry->DEVENTRY_pfuncDevDelete  = pfileop->fo_release;
@@ -320,6 +324,12 @@ INT  API_IosDrvInstallEx2 (struct file_operations  *pfileop, INT  iType)
     pdeventry->DEVENTRY_drvlicLicense.DRVLIC_pcAuthor      = LW_NULL;
     pdeventry->DEVENTRY_drvlicLicense.DRVLIC_pcDescription = LW_NULL;
     
+    if ((iType == LW_DRV_TYPE_NEW_1) && pfileop->fo_features) {         /*  特性探测                    */
+        if (pfileop->fo_features(&iFeatures) == ERROR_NONE) {
+            pdeventry->DEVENTRY_usFeatures = (UINT16)iFeatures;
+        }
+    }
+
     _IosUnlock();                                                       /*  退出 IO 临界区              */
     
     return  (iDrvNum);
@@ -425,6 +435,34 @@ ULONG  API_IosDrvGetType (INT  iDrvNum, INT  *piType)
         *piType = pdeventry->DEVENTRY_iType;
     }
     
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_IosDrvGetFeatures
+** 功能描述: 获得设备驱动程序扩展特性
+** 输　入  :
+**           iDrvNum                      驱动程序索引号
+**           iFeatures                    驱动扩展特性
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_IosDrvGetFeatures (INT  iDrvNum, INT  *piFeatures)
+{
+    REGISTER PLW_DEV_ENTRY  pdeventry = &_S_deventryTbl[iDrvNum];
+
+    if (iDrvNum >= LW_CFG_MAX_DRIVERS) {                                /*  允许获取 null 驱动          */
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "no driver.\r\n");
+        _ErrorHandle(ERROR_IO_NO_DRIVER);
+        return  (ERROR_IO_NO_DRIVER);
+    }
+
+    if (piFeatures && pdeventry->DEVENTRY_bInUse) {
+        *piFeatures = pdeventry->DEVENTRY_usFeatures;
+    }
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
