@@ -454,8 +454,6 @@ snmpv3_reset_user_table(void)
   snmpv3_set_user_priv_algo("sylixos", SNMP_V3_PRIV_ALGO_DES);
   snmpv3_set_user_priv_key("sylixos", "sylixos_snmp");
 
-  fclose(fp);
-
   USER_UNLOCK();
   return 0;
 }

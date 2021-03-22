@@ -1442,8 +1442,7 @@ INT ataDrvInit (ATA_DRV_HANDLE  hCtrlDrv, UINT  uiCtrl, ATA_CTRL_CFG_HANDLE  hCt
     ULONG                       ulSyncTimeoutLoop;
 
     if ((!hCtrlDrv) || (uiCtrl >= hCtrlDrv->ATADRV_uiCtrlNum) || (!hCtrlCfg)) {
-        ATA_LOG(ATA_LOG_ERR,
-                "drv handle %p ctrl %d [0 - %d].\r\n", hCtrlDrv, uiCtrl, hCtrlDrv->ATADRV_uiCtrlNum);
+        ATA_LOG(ATA_LOG_ERR, "drv handle invalid.\r\n");
         return  (PX_ERROR);
     }
 

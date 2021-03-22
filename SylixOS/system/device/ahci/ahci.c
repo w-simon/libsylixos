@@ -2618,8 +2618,7 @@ static PLW_BLK_DEV  __ahciBlkDevCreate (AHCI_CTRL_HANDLE  hCtrl,
     ULONG               ulDcParallel  = LW_FALSE;                       /* CACHE 是否使能并行操作       */
 
     if (!hCtrl) {                                                       /* 控制器句柄无效               */
-        AHCI_LOG(AHCI_LOG_ERR, "invalid ctrl handle ctrl %d port %d.\r\n",
-                 hCtrl->AHCICTRL_uiIndex, uiDrive);
+        AHCI_LOG(AHCI_LOG_ERR, "ctrl handle invalid.\r\n");
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
@@ -2815,8 +2814,7 @@ static INT  __ahciDiskConfig (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, CPCHAR  cp
     AHCI_DRIVE_HANDLE   hDrive;                                         /* 驱动器句柄                   */
 
     if (!hCtrl) {                                                       /* 控制器句柄无效               */
-        AHCI_LOG(AHCI_LOG_ERR, "invalid ctrl handle ctrl %d port %d.\r\n",
-                 hCtrl->AHCICTRL_uiIndex, uiDrive);
+        AHCI_LOG(AHCI_LOG_ERR, "ctrl handle invalid.\r\n");
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

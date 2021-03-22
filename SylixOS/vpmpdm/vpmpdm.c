@@ -103,7 +103,9 @@ typedef struct exit_node {
 /*
  *  vprocess context
  */
-#define MAX_MEM_BLKS 16
+#ifndef MAX_MEM_BLKS
+#define MAX_MEM_BLKS 32
+#endif
 
 typedef struct vp_ctx {
     LW_OBJECT_HANDLE  locker; /* vpmpdm lock */

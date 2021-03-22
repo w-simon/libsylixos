@@ -100,6 +100,9 @@ static PCI_DEV_ID_HANDLE __pciDevMatchId(PCI_DEV_HANDLE hDevHandle, PCI_DEV_ID_H
 /*********************************************************************************************************
   PCI 尺寸单位名称
 *********************************************************************************************************/
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x)   (sizeof(x) / sizeof((x)[0]))
+#endif
 static CPCHAR  _G_pcPciSizeNameSuffix[5] = {"", "K", "M", "G", "T"};
 /*********************************************************************************************************
 ** 函数名称: __tshellPciCmdCtrl
@@ -168,7 +171,7 @@ CPCHAR  API_PciSizeNameGet (pci_size_t stSize)
         return  (_G_pcPciSizeNameSuffix[i]);
     }
 
-    for (i = 0; i < (sizeof(_G_pcPciSizeNameSuffix) / sizeof(_G_pcPciSizeNameSuffix) - 1); i++) {
+    for (i = 0; i < (ARRAY_SIZE(_G_pcPciSizeNameSuffix) - 1); i++) {
         if (stSize % 1024) {
             break;
         }
@@ -196,7 +199,7 @@ pci_size_t  API_PciSizeNumGet (pci_size_t stSize)
         return  (0);
     }
 
-    for (i = 0; i < (sizeof(_G_pcPciSizeNameSuffix) / sizeof(_G_pcPciSizeNameSuffix[0]) - 1); i++) {
+    for (i = 0; i < (ARRAY_SIZE(_G_pcPciSizeNameSuffix) - 1); i++) {
         if (stSize % 1024) {
             break;
         }

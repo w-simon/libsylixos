@@ -402,13 +402,18 @@ INT  API_AhciSmartLogSectorWrite (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive, AHCI_C
     INT                     iRet;                                       /* 操作结果                     */
     AHCI_DRIVE_HANDLE       hDrive;                                     /* 驱动器句柄                   */
 
+    if (!hCtrl || !hCmd) {                                              /* 控制器或命令句柄无效         */
+        AHCI_LOG(AHCI_LOG_ERR, "ctrl or cmd handle invalid.\r\n");
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     AHCI_LOG(AHCI_LOG_PRT, "ctrl %d drive %d smart log sector set.\r\n", hCtrl->AHCICTRL_uiIndex,uiDrive);
 
     hDrive = &hCtrl->AHCICTRL_hDrive[uiDrive];                          /* 获得驱动器句柄               */
     if ((!hCtrl->AHCICTRL_bInstalled) ||
         (!hCtrl->AHCICTRL_bDrvInstalled) ||
         (hDrive->AHCIDRIVE_ucState != AHCI_DEV_OK) ||
-        (!hCmd) ||
         (hCmd->AHCICMD_ulDataLen > hDrive->AHCIDRIVE_ulByteSector)) {
         AHCI_LOG(AHCI_LOG_ERR,
                  "ctrl %d drive %d ata smart log sector set"
