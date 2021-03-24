@@ -121,9 +121,13 @@ ULONG  API_SemaphoreMDelete (LW_OBJECT_HANDLE  *pulId)
     pevent->EVENT_pvTcbOwn = LW_NULL;
     
     if (ptcb) {
-        ucPriority = (UINT8)pevent->EVENT_ulMaxCounter;                 /*  获得原线程优先级            */
-        if (!LW_PRIO_IS_EQU(ucPriority, ptcb->TCB_ucPriority)) {        /*  拥有者优先级发生了变化      */
-            _SchedSetPrio(ptcb, ucPriority);                            /*  还原 优先级                 */
+        if (_K_ptcbTCBIdTable[ptcb->TCB_usIndex] == ptcb) {             /*  TCB 任务存在                */
+            ucPriority = (UINT8)pevent->EVENT_ulMaxCounter;             /*  获得原线程优先级            */
+            if (!LW_PRIO_IS_EQU(ucPriority, ptcb->TCB_ucPriority)) {    /*  拥有者优先级发生了变化      */
+                _SchedSetPrio(ptcb, ucPriority);                        /*  还原 优先级                 */
+            }
+        } else {
+            ptcb = LW_NULL;
         }
     }
     

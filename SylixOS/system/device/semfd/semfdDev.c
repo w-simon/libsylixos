@@ -857,16 +857,18 @@ static INT  _semfdSetFnode (PLW_SEMFD_FILE  psemfdfil, struct semfd_param *param
 ** 功能描述: semfd 获取文件缓存
 ** 输　入  : psemfdfil           semfd 文件
 **           param               信号量参数
+**           pulOwner            呼哧信号了拥有者
 ** 输　出  : < 0 表示错误
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  _semfdGetFnode (PLW_SEMFD_FILE  psemfdfil, struct semfd_param *param)
+static INT  _semfdGetFnode (PLW_SEMFD_FILE  psemfdfil, struct semfd_param *param, LW_OBJECT_HANDLE *pulOwner)
 {
-    BOOL    bValue     = LW_FALSE;
-    ULONG   ulValue    = 0;
-    ULONG   ulMaxValue = 0;
-    ULONG   ulOpt      = 0;
+    BOOL              bValue     = LW_FALSE;
+    ULONG             ulValue    = 0;
+    ULONG             ulMaxValue = 0;
+    ULONG             ulOpt      = 0;
+    LW_OBJECT_HANDLE  ulOwner    = LW_OBJECT_HANDLE_INVALID;
 
     if (!param) {
         _ErrorHandle(EINVAL);
@@ -902,11 +904,14 @@ static INT  _semfdGetFnode (PLW_SEMFD_FILE  psemfdfil, struct semfd_param *param
         break;
 
     case _OBJECT_SEM_M:
-        API_SemaphoreMStatus(psemfdfil->SEMFDF_pinode->SEMFDI_ulSem, &bValue, &ulOpt, LW_NULL);
+        API_SemaphoreMStatusEx(psemfdfil->SEMFDF_pinode->SEMFDI_ulSem, &bValue, &ulOpt, LW_NULL, &ulOwner);
         param->sem_type  = SEMFD_TYPE_MUTEX;
         param->sem_opts  = ulOpt;
         param->sem_value = (UINT32)bValue;
         param->sem_max   = 1;
+        if (pulOwner) {
+            *pulOwner = ulOwner;
+        }
         break;
 
     default:
@@ -1022,6 +1027,7 @@ static INT  _semfdSelect (PLW_SEMFD_FILE  psemfdfil, PLW_SEL_WAKEUPNODE  pselwun
 {
     PLW_SEMFD_INODE     psemfdinode;
     struct semfd_param  param;
+    LW_OBJECT_HANDLE    ulOwner = LW_OBJECT_HANDLE_INVALID;
 
     if (!pselwunNode) {
         _ErrorHandle(EINVAL);
@@ -1043,13 +1049,17 @@ static INT  _semfdSelect (PLW_SEMFD_FILE  psemfdfil, PLW_SEL_WAKEUPNODE  pselwun
     psemfdinode = psemfdfil->SEMFDF_pinode;
     SEL_WAKE_NODE_ADD(&psemfdinode->SEMFDI_selwulist, pselwunNode);
 
-    _semfdGetFnode(psemfdfil, &param);                                  /*  获取状态                    */
+    _semfdGetFnode(psemfdfil, &param, &ulOwner);                        /*  获取状态                    */
 
     switch (pselwunNode->SELWUN_seltypType) {
 
     case SELREAD:
         if (param.sem_value) {
             SEL_WAKE_UP(pselwunNode);
+        } else if (param.sem_type == SEMFD_TYPE_MUTEX) {
+            if (ulOwner == API_ThreadIdSelfFast()) {
+                SEL_WAKE_UP(pselwunNode);
+            }
         }
         break;
 
@@ -1131,7 +1141,7 @@ static INT  _semfdIoctl (PLW_SEMFD_FILE  psemfdfil,
         return  (_semfdFlushFnode(psemfdfil));
 
     case FIOSEMFDGET:
-        return  (_semfdGetFnode(psemfdfil, (struct semfd_param *)lArg));
+        return  (_semfdGetFnode(psemfdfil, (struct semfd_param *)lArg, LW_NULL));
 
     case FIOSEMFDSET:
         return  (_semfdSetFnode(psemfdfil, (struct semfd_param *)lArg));

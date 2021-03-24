@@ -121,6 +121,10 @@ ULONG  API_SemaphoreRWDelete (LW_OBJECT_HANDLE  *pulId)
     ptcb = (PLW_CLASS_TCB)pevent->EVENT_pvTcbOwn;                       /*  获得拥有者 TCB              */
     pevent->EVENT_pvTcbOwn = LW_NULL;
     
+    if (_K_ptcbTCBIdTable[ptcb->TCB_usIndex] != ptcb) {
+        ptcb = LW_NULL;                                                 /*  任务不存在                  */
+    }
+
     _Free_Event_Object(pevent);                                         /*  交还控制块                  */
     
     ulOptionTemp = pevent->EVENT_ulOption;                              /*  暂存选项                    */
