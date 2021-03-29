@@ -29,6 +29,7 @@
 2015.10.21  更新块设备操作接口.
 2016.03.23  ioctl, FIOTRIM 与 FIOSYNCMETA 命令需要转换为物理磁盘扇区号.
 2016.07.12  磁盘写操作加入一个文件系统层参数.
+2021.03.29  加入磁盘分区操作越界检查.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -92,6 +93,12 @@ physical HDD:                              |   HDD    |
 #define BLK_RESET(pblk)                 (pblk)->BLKD_pfuncBlkReset((pblk))
 #define BLK_IOCTL(pblk, cmd, arg)       (pblk)->BLKD_pfuncBlkIoctl((pblk), (cmd), (arg))
 /*********************************************************************************************************
+  扇区越界安全判断
+*********************************************************************************************************/
+#define OUT_OF_BOUNDS_CHECK(start, count, logic)    \
+        if (LW_UNLIKELY(((start) + (count)) > \
+            ((logic)->DPO_dpnEntry.DPN_ulStartSector + (logic)->DPO_dpnEntry.DPN_ulNSector)))
+/*********************************************************************************************************
 ** 函数名称: __logicDiskWrt
 ** 功能描述: 写单分区逻辑磁盘
 ** 输　入  : pdpoLogic         逻辑磁盘控制块
@@ -110,6 +117,13 @@ static INT  __logicDiskWrt (LW_DISKPART_OPERAT    *pdpoLogic,
                             UINT64                 u64FsKey)
 {
     ulStartSector += pdpoLogic->DPO_dpnEntry.DPN_ulStartSector;         /*  逻辑分区偏移量              */
+
+    OUT_OF_BOUNDS_CHECK(ulStartSector, ulSectorCount, pdpoLogic) {      /*  分区越界检查                */
+        _DebugFormat(__BUGMESSAGE_LEVEL, "Block write out of part bounds, start: %ul count: %ul\r\n",
+                     ulStartSector, ulSectorCount);
+        _ErrorHandle(EOVERFLOW);
+        return  (PX_ERROR);
+    }
     
     return  (pdpoLogic->DPT_pblkdDisk->BLKD_pfuncBlkWrt(pdpoLogic->DPT_pblkdDisk, 
                                                         pvBuffer,
@@ -135,6 +149,13 @@ static INT  __logicDiskRd (LW_DISKPART_OPERAT    *pdpoLogic,
 {
     ulStartSector += pdpoLogic->DPO_dpnEntry.DPN_ulStartSector;         /*  逻辑分区偏移量              */
     
+    OUT_OF_BOUNDS_CHECK(ulStartSector, ulSectorCount, pdpoLogic) {      /*  分区越界检查                */
+        _DebugFormat(__BUGMESSAGE_LEVEL, "Block read out of part bounds, start: %ul count: %ul\r\n",
+                     ulStartSector, ulSectorCount);
+        _ErrorHandle(EOVERFLOW);
+        return  (PX_ERROR);
+    }
+
     return  (pdpoLogic->DPT_pblkdDisk->BLKD_pfuncBlkRd(pdpoLogic->DPT_pblkdDisk, 
                                                        pvBuffer,
                                                        ulStartSector,
@@ -152,6 +173,7 @@ static INT  __logicDiskRd (LW_DISKPART_OPERAT    *pdpoLogic,
 *********************************************************************************************************/
 static INT  __logicDiskIoctl (LW_DISKPART_OPERAT    *pdpoLogic, INT  iCmd, LONG  lArg)
 {
+    ULONG            ulSectorCnt;
     LW_BLK_RANGE    *pblkrLogic, blkrPhy;
     LW_BLK_METADATA *pblkmLogic, blkmPhy;
 
@@ -164,6 +186,14 @@ static INT  __logicDiskIoctl (LW_DISKPART_OPERAT    *pdpoLogic, INT  iCmd, LONG 
                                    + pdpoLogic->DPO_dpnEntry.DPN_ulStartSector;
         blkrPhy.BLKR_ulEndSector   = pblkrLogic->BLKR_ulEndSector
                                    + pdpoLogic->DPO_dpnEntry.DPN_ulStartSector;
+        ulSectorCnt = blkrPhy.BLKR_ulEndSector - blkrPhy.BLKR_ulStartSector + 1;
+        OUT_OF_BOUNDS_CHECK(blkrPhy.BLKR_ulStartSector,
+                            ulSectorCnt, pdpoLogic) {                   /*  分区越界检查                */
+            _DebugFormat(__BUGMESSAGE_LEVEL, "Block TRIM/SYNCMETA out of part bounds, start: %ul count: %ul\r\n",
+                         blkrPhy.BLKR_ulStartSector, ulSectorCnt);
+            _ErrorHandle(EOVERFLOW);
+            return  (PX_ERROR);
+        }
         return  (pdpoLogic->DPT_pblkdDisk->BLKD_pfuncBlkIoctl(pdpoLogic->DPT_pblkdDisk, 
                                                               iCmd,
                                                               &blkrPhy));
@@ -175,6 +205,13 @@ static INT  __logicDiskIoctl (LW_DISKPART_OPERAT    *pdpoLogic, INT  iCmd, LONG 
         blkmPhy.BLKM_ulSectorCnt   = pblkmLogic->BLKM_ulSectorCnt;
         blkmPhy.BLKM_ulStartSector = pblkmLogic->BLKM_ulStartSector
                                    + pdpoLogic->DPO_dpnEntry.DPN_ulStartSector;
+        OUT_OF_BOUNDS_CHECK(blkmPhy.BLKM_ulStartSector,
+                            blkmPhy.BLKM_ulSectorCnt, pdpoLogic) {      /*  分区越界检查                */
+            _DebugFormat(__BUGMESSAGE_LEVEL, "Block RDMETA/WRMETA out of part bounds, start: %ul count: %ul\r\n",
+                         blkmPhy.BLKM_ulStartSector, blkmPhy.BLKM_ulSectorCnt);
+            _ErrorHandle(EOVERFLOW);
+            return  (PX_ERROR);
+        }
         return  (pdpoLogic->DPT_pblkdDisk->BLKD_pfuncBlkIoctl(pdpoLogic->DPT_pblkdDisk,
                                                               iCmd,
                                                               &blkmPhy));
