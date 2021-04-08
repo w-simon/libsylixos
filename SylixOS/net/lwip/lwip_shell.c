@@ -708,6 +708,7 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
             }
 
             if (lib_strcmp(ppcArgV[2], "dns") == 0 && iArgC > 4) {      /*  设置网卡 DNS                */
+#if LW_CFG_LWIP_DNS_SWITCH > 0
                 INT     iDnsIndex = 0;
 
                 sscanf(ppcArgV[3], "%d", &iDnsIndex);
@@ -722,7 +723,11 @@ static INT  __tshellIfconfig (INT  iArgC, PCHAR  *ppcArgV)
                     return  (-ERROR_TSHELL_EPARAM);
                 }
                 netifapi_netif_set_dns(netif, (u8_t)iDnsIndex, &ipaddr);/*  设置 DNS                    */
-
+#else                                                                   /*  LW_CFG_LWIP_DNS_SWITCH == 0 */
+                fprintf(stderr, "no support switch dns.\n");
+                LWIP_IF_LIST_UNLOCK();
+                return  (-ERROR_TSHELL_EPARAM);
+#endif                                                                  /*  LW_CFG_LWIP_DNS_SWITCH > 0  */
             } else {
                 for (iIndex = 2; iIndex < (iArgC - 1); iIndex += 2) {   /*  连续设置参数                */
                     if (inet_aton(ppcArgV[iIndex + 1], &inaddr) == 0) { /*  获得 IP 地址                */

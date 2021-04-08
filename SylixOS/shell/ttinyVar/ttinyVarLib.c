@@ -431,16 +431,16 @@ INT   __tshellVarDup (PVOID (*pfuncMalloc)(size_t stSize), PCHAR  ppcEvn[], ULON
 *********************************************************************************************************/
 INT  __tshellVarSave (CPCHAR  pcFileName)
 {
-             FILE                *pfile;
+             INT                  iFd;
     REGISTER PLW_LIST_LINE        plineNode;
     REGISTER __PTSHELL_VAR        pskvNode;                             /*  变量节点                    */
     
-    pfile = fopen(pcFileName, "w");
-    if (pfile == LW_NULL) {
+    iFd = open(pcFileName, O_CREAT | O_TRUNC | O_WRONLY, 0644);
+    if (iFd < ERROR_NONE) {
         return  (PX_ERROR);
     }
     
-    fprintf(pfile, "#sylixos environment variables profile.\n");
+    fdprintf(iFd, "#sylixos environment variables profile.\n");
     __TTINY_SHELL_LOCK();                                               /*  互斥访问                    */
     for (plineNode  = _G_plineTSVarHeader;
          plineNode != LW_NULL;
@@ -460,11 +460,12 @@ INT  __tshellVarSave (CPCHAR  pcFileName)
         /*
          *  TODO:这里没有判断变量的值中含有 " 的情况.
          */
-        fprintf(pfile, "%s=\"%s\"\n", pskvNode->SV_pcVarName, pskvNode->SV_pcVarValue);
+        fdprintf(iFd, "%s=\"%s\"\n", pskvNode->SV_pcVarName, pskvNode->SV_pcVarValue);
     }
     __TTINY_SHELL_UNLOCK();                                             /*  释放资源                    */
     
-    fclose(pfile);
+    fsync(iFd);                                                         /*  关键文件, 执行一次同步      */
+    close(iFd);
     
     return  (ERROR_NONE);
 }

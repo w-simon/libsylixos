@@ -77,6 +77,8 @@
 
 #ifdef LWIP_HOOK_TCP_ISN
 
+#ifndef __SYLIXOS_LITE
+
 #include "mbedtls/md5.h"
 
 static u8_t input[64];
@@ -168,5 +170,46 @@ tcp_isn_hook(const ip_addr_t *local_ip, u16_t local_port,
   /* Add the current time in 4-microsecond units. */
   return isn + (u32_t)(timestamp.tv_sec * 4000000) + (timestamp.tv_nsec / 4000);
 }
+
+#else /* defined(__SYLIXOS_LITE) */
+
+#include "lwip/priv/tcp_priv.h"
+
+/**
+ * Set the TCP ISN module secret key.
+ *
+ * @param secret_16_bytes A 16-byte secret used to randomize the TCP ISNs.
+ */
+void
+tcp_isn_skey(const u8_t *secret_16_bytes)
+{
+  LWIP_UNUSED_ARG(secret_16_bytes);
+}
+
+/**
+ * Hook to generate an Initial Sequence Number (ISN) for a new TCP connection.
+ *
+ * @param local_ip The local IP address.
+ * @param local_port The local port number, in host-byte order.
+ * @param remote_ip The remote IP address.
+ * @param remote_port The remote port number, in host-byte order.
+ * @return The ISN to use for the new TCP connection.
+ */
+u32_t
+tcp_isn_hook(const ip_addr_t *local_ip, u16_t local_port,
+    const ip_addr_t *remote_ip, u16_t remote_port)
+{
+  static u32_t iss = 6510;
+
+  LWIP_UNUSED_ARG(local_ip);
+  LWIP_UNUSED_ARG(local_port);
+  LWIP_UNUSED_ARG(remote_ip);
+  LWIP_UNUSED_ARG(remote_port);
+
+  iss += tcp_ticks;
+  return iss;
+}
+
+#endif /* !defined(__SYLIXOS_LITE) */
 
 #endif /* LWIP_HOOK_TCP_ISN */
