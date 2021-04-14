@@ -904,7 +904,7 @@ static void emulate_load_store_insn(ARCH_REG_CTX *regs,
 #endif
 #if LW_CFG_CPU_FPU_EN > 0
     PLW_CLASS_TCB  ptcbCur;
-    ARCH_FPU_CTX  *pFpuCtx;
+    ARCH_FPU_CTX   fpuCtx;
 #if LW_CFG_MIPS_HAS_MSA_INSTR > 0
 	union fpureg *fpr;
 	enum msa_2b_fmt df;
@@ -1236,25 +1236,21 @@ static void emulate_load_store_insn(ARCH_REG_CTX *regs,
 	case sdc1_op:
 	case cop1x_op:
 #if LW_CFG_CPU_FPU_EN > 0
-	    LW_NONSCHED_MODE_PROC(
-	        LW_TCB_GET_CUR(ptcbCur);
-	        pFpuCtx = ptcbCur->TCB_pvStackFP;
-	        __ARCH_FPU_ENABLE();
-	        __ARCH_FPU_SAVE(pFpuCtx);                                   /*  保存当前 FPU CTX            */
-	    );
+	    /*
+	     * API_VmmAbortIsrEx 函数已经将 FPU 上下文保存到 TCB_pvStackFP 指向的 FPU 上下文
+	     */
+	    LW_TCB_GET_CUR_SAFE(ptcbCur);
 
-		res = fpu_emulator_cop1Handler(regs, pFpuCtx, 1, &fault_addr);
+	    lib_memcpy(&fpuCtx, ptcbCur->TCB_pvStackFP, sizeof(ARCH_FPU_CTX));
+
+		res = fpu_emulator_cop1Handler(regs, &fpuCtx, 1, &fault_addr);
 		if (res) {
-	        LW_NONSCHED_MODE_PROC(
-	            __ARCH_FPU_DISABLE();
-	        );
 	        goto sigill;
 		}
 
         LW_NONSCHED_MODE_PROC(
-            __ARCH_FPU_RESTORE(pFpuCtx);                                /*  恢复当前 FPU CTX            */
-            __ARCH_FPU_DISABLE();
-        );
+            __ARCH_FPU_RESTORE(&fpuCtx);                                /*  恢复当前 FPU CTX, 不必担心  */
+        );                                                              /*  与 TCB_pvStackFP 不一致     */
 #else
         goto sigill;
         break;
@@ -1277,44 +1273,18 @@ static void emulate_load_store_insn(ARCH_REG_CTX *regs,
             if (!access_ok(VERIFY_READ, addr, sizeof(*fpr)))
                 goto sigbus;
 
-            LW_NONSCHED_MODE_PROC(
-                LW_TCB_GET_CUR(ptcbCur);
-                pFpuCtx = ptcbCur->TCB_pvStackFP;
-                __ARCH_FPU_ENABLE();
-                __ARCH_FPU_SAVE(pFpuCtx);                               /*  保存当前 FPU CTX            */
-            );
-
-            fpr = &pFpuCtx->FPUCTX_reg[wd];
-
+            fpr = &fpuCtx.FPUCTX_reg[wd];
             lib_memcpy(fpr, addr, sizeof(*fpr));
             write_msa_wr(wd, fpr, df);
-
-            LW_NONSCHED_MODE_PROC(
-                __ARCH_FPU_RESTORE(pFpuCtx);                            /*  恢复当前 FPU CTX            */
-                __ARCH_FPU_DISABLE();
-            );
             break;
 
         case msa_st_op:
             if (!access_ok(VERIFY_WRITE, addr, sizeof(*fpr)))
                 goto sigbus;
 
-            LW_NONSCHED_MODE_PROC(
-                LW_TCB_GET_CUR(ptcbCur);
-                pFpuCtx = ptcbCur->TCB_pvStackFP;
-                __ARCH_FPU_ENABLE();
-                __ARCH_FPU_SAVE(pFpuCtx);                               /*  保存当前 FPU CTX            */
-            );
-
-            fpr = &pFpuCtx->FPUCTX_reg[wd];
-
+            fpr = &fpuCtx.FPUCTX_reg[wd];
             read_msa_wr(wd, fpr, df);
             lib_memcpy(addr, fpr, sizeof(*fpr));
-
-            LW_NONSCHED_MODE_PROC(
-                __ARCH_FPU_RESTORE(pFpuCtx);                            /*  恢复当前 FPU CTX            */
-                __ARCH_FPU_DISABLE();
-            );
             break;
 
         default:

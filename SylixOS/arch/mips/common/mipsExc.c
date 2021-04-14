@@ -490,22 +490,27 @@ static VOID  archResvInstHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
+**
+** 注  意  : 此函数工作在任务上下文，而非中断上下文
 *********************************************************************************************************/
 static VOID  archFloatPointUnImplHandle (PLW_VMM_ABORT_CTX  pabtctx)
 {
-    PLW_CLASS_TCB  ptcbCur;
-    ARCH_FPU_CTX  *pFpuCtx;
+    PLW_CLASS_TCB  ptcbCur = pabtctx->ABTCTX_ptcb;
+    ARCH_FPU_CTX   fpuCtx;
     INT            iSignal;
 
-    LW_NONSCHED_MODE_PROC(
-        LW_TCB_GET_CUR(ptcbCur);
-        pFpuCtx = ptcbCur->TCB_pvStackFP;
-        __ARCH_FPU_ENABLE();
-        __ARCH_FPU_SAVE(pFpuCtx);                                       /*  保存当前 FPU CTX            */
-    );
+    /*
+     * API_VmmAbortIsrEx 函数已经将 FPU 上下文保存到 TCB_pvStackFP 指向的 FPU 上下文
+     */
+    lib_memcpy(&fpuCtx, ptcbCur->TCB_pvStackFP, sizeof(ARCH_FPU_CTX));
+
+    /*
+     * 使用 FPUCTX_ulReserve[0] 记录 FPU 指令模拟 FPU 上下文
+     */
+    ptcbCur->TCB_fpuctxContext.FPUCTX_ulReserve[0] = (ULONG)&fpuCtx;
 
     iSignal = fpu_emulator_cop1Handler(&pabtctx->ABTCTX_archRegCtx,     /*  FPU 模拟                    */
-                                       pFpuCtx,
+                                       &fpuCtx,
                                        LW_TRUE,
                                        (PVOID *)&pabtctx->ABTCTX_ulAbortAddr);
     switch (iSignal) {
@@ -513,8 +518,8 @@ static VOID  archFloatPointUnImplHandle (PLW_VMM_ABORT_CTX  pabtctx)
     case 0:                                                             /*  成功模拟                    */
         pabtctx->ABTCTX_abtInfo.VMABT_uiType = LW_VMM_ABORT_TYPE_NOINFO;
         LW_NONSCHED_MODE_PROC(
-            __ARCH_FPU_RESTORE(pFpuCtx);                                /*  恢复当前 FPU CTX            */
-        );
+            __ARCH_FPU_RESTORE(&fpuCtx);                                /*  恢复当前 FPU CTX, 不必担心  */
+        );                                                              /*  与 TCB_pvStackFP 不一致     */
         break;
 
     case SIGILL:                                                        /*  未定义指令                  */
@@ -538,10 +543,9 @@ static VOID  archFloatPointUnImplHandle (PLW_VMM_ABORT_CTX  pabtctx)
         break;
     }
 
-    LW_NONSCHED_MODE_PROC(
-       __ARCH_FPU_DISABLE();
-    );
-
+    /*
+     * 异常处理返回, 不会再用 TCB_pvStackFP 恢复当前 FPU CTX
+     */
     API_VmmAbortReturn(pabtctx);
 }
 /*********************************************************************************************************

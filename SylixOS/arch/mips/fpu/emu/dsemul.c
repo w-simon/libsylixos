@@ -99,7 +99,7 @@ int mips_dsemul(ARCH_REG_CTX *regs, mips_instruction ir,
 	pr_debug("dsemul 0x%08lx cont at 0x%08lx\n", regs->cp0_epc, cont_pc);
 
 	/* Allocate a frame if we don't already have one */
-    LW_TCB_GET_CUR(ptcbCur);
+	LW_TCB_GET_CUR_SAFE(ptcbCur);
 	fr = archFpuEmuFrameGet(ptcbCur);
 
 	/* Retrieve the appropriately encoded break instruction */

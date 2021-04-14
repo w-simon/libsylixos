@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * cp1emu.c: a MIPS coprocessor 1 (FPU) instruction emulator
  *
@@ -6,19 +7,6 @@
  *
  * Kevin D. Kissell, kevink@mips.com and Carsten Langgaard, carstenl@mips.com
  * Copyright (C) 2000  MIPS Technologies, Inc.
- *
- *  This program is free software; you can distribute it and/or modify it
- *  under the terms of the GNU General Public License (Version 2) as
- *  published by the Free Software Foundation.
- *
- *  This program is distributed in the hope it will be useful, but WITHOUT
- *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- *  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- *  for more details.
- *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA.
  *
  * A complete emulator for MIPS coprocessor 1 instructions.  This is
  * required for #float(switch) or #float(trap), where it catches all
@@ -462,7 +450,7 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 					regs->cp0_epc + dec_insn.pc_inc +
 					dec_insn.next_pc_inc;
 			}
-			/* Fall through */
+			fallthrough;
 		case jr_op:
 			/* For R6, JR already emulated in jalr_op */
 			if (NO_R6EMU && insn.r_format.func == jr_op)
@@ -482,10 +470,11 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 			regs->regs[31] = regs->cp0_epc +
 				dec_insn.pc_inc +
 				dec_insn.next_pc_inc;
-			/* Fall through */
+			fallthrough;
 		case bltzl_op:
 			if (NO_R6EMU)
 				break;
+			fallthrough;
 		case bltz_op:
 			if ((long)regs->regs[insn.i_format.rs] < 0)
 				*contpc = regs->cp0_epc +
@@ -505,10 +494,11 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 			regs->regs[31] = regs->cp0_epc +
 				dec_insn.pc_inc +
 				dec_insn.next_pc_inc;
-			/* Fall through */
+			fallthrough;
 		case bgezl_op:
 			if (NO_R6EMU)
 				break;
+			fallthrough;
 		case bgez_op:
 			if ((long)regs->regs[insn.i_format.rs] >= 0)
 				*contpc = regs->cp0_epc +
@@ -523,11 +513,12 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 		break;
 	case jalx_op:
 		set_isa16_mode(bit);
+		fallthrough;
 	case jal_op:
 		regs->regs[31] = regs->cp0_epc +
 			dec_insn.pc_inc +
 			dec_insn.next_pc_inc;
-		/* Fall through */
+		fallthrough;
 	case j_op:
 		*contpc = regs->cp0_epc + dec_insn.pc_inc;
 		*contpc >>= 28;
@@ -539,6 +530,7 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 	case beql_op:
 		if (NO_R6EMU)
 			break;
+		fallthrough;
 	case beq_op:
 		if (regs->regs[insn.i_format.rs] ==
 		    regs->regs[insn.i_format.rt])
@@ -553,6 +545,7 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 	case bnel_op:
 		if (NO_R6EMU)
 			break;
+		fallthrough;
 	case bne_op:
 		if (regs->regs[insn.i_format.rs] !=
 		    regs->regs[insn.i_format.rt])
@@ -567,6 +560,7 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 	case blezl_op:
 		if (!insn.i_format.rt && NO_R6EMU)
 			break;
+		fallthrough;
 	case blez_op:
 
 		/*
@@ -604,6 +598,7 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 	case bgtzl_op:
 		if (!insn.i_format.rt && NO_R6EMU)
 			break;
+		fallthrough;
 	case bgtz_op:
 		/*
 		 * Compact branches for R6 for the
@@ -740,7 +735,8 @@ int isBranchInstr(ARCH_REG_CTX *regs, struct mm_decoded_insn dec_insn,
 
 			return 1;
 		}
-		/* R2/R6 compatible cop1 instruction. Fall through */
+		/* R2/R6 compatible cop1 instruction */
+		fallthrough;
 	case cop2_op:
 	case cop1x_op:
 		if (insn.i_format.rs == bc_op) {
@@ -1227,7 +1223,8 @@ emul:
 			if (!cpu_has_mips_r6 || delay_slot(xcp))
 				return SIGILL;
 
-			cond = likely = 0;
+			likely = 0;
+			cond = 0;
 			fpr = &GET_CUR_THREAD_FPU_FPR[MIPSInst_RT(ir)];
 			bit0 = get_fpr32(fpr, 0) & 0x1;
 			switch (MIPSInst_RS(ir)) {
@@ -1257,14 +1254,14 @@ emul:
 			case bcfl_op:
 				if (cpu_has_mips_2_3_4_5_r)
 					likely = 1;
-				/* Fall through */
+				fallthrough;
 			case bcf_op:
 				cond = !cond;
 				break;
 			case bctl_op:
 				if (cpu_has_mips_2_3_4_5_r)
 					likely = 1;
-				/* Fall through */
+				fallthrough;
 			case bct_op:
 				break;
 			}
@@ -1390,7 +1387,8 @@ branch_common:
 				return SIGILL;
 
 			/* a real fpu computation instruction */
-			if ((sig = fpu_emu(xcp, ctx, ir)))
+			sig = fpu_emu(xcp, ctx, ir);
+			if (sig)
 				return sig;
 		}
 		break;
@@ -1553,16 +1551,28 @@ static int fpux_emu(ARCH_REG_CTX *xcp, ARCH_FPU_CTX *ctx,
 			break;
 
 		case madd_s_op:
-			handler = fpemu_sp_madd;
+			if (cpu_has_mac2008_only)
+				handler = ieee754sp_madd;
+			else
+				handler = fpemu_sp_madd;
 			goto scoptop;
 		case msub_s_op:
-			handler = fpemu_sp_msub;
+			if (cpu_has_mac2008_only)
+				handler = ieee754sp_msub;
+			else
+				handler = fpemu_sp_msub;
 			goto scoptop;
 		case nmadd_s_op:
-			handler = fpemu_sp_nmadd;
+			if (cpu_has_mac2008_only)
+				handler = ieee754sp_nmadd;
+			else
+				handler = fpemu_sp_nmadd;
 			goto scoptop;
 		case nmsub_s_op:
-			handler = fpemu_sp_nmsub;
+			if (cpu_has_mac2008_only)
+				handler = ieee754sp_nmsub;
+			else
+				handler = fpemu_sp_nmsub;
 			goto scoptop;
 
 		      scoptop:
@@ -1649,15 +1659,27 @@ static int fpux_emu(ARCH_REG_CTX *xcp, ARCH_FPU_CTX *ctx,
 			break;
 
 		case madd_d_op:
-			handler = fpemu_dp_madd;
+			if (cpu_has_mac2008_only)
+				handler = ieee754dp_madd;
+			else
+				handler = fpemu_dp_madd;
 			goto dcoptop;
 		case msub_d_op:
-			handler = fpemu_dp_msub;
+			if (cpu_has_mac2008_only)
+				handler = ieee754dp_msub;
+			else
+				handler = fpemu_dp_msub;
 			goto dcoptop;
 		case nmadd_d_op:
-			handler = fpemu_dp_nmadd;
+			if (cpu_has_mac2008_only)
+				handler = ieee754dp_nmadd;
+			else
+				handler = fpemu_dp_nmadd;
 			goto dcoptop;
 		case nmsub_d_op:
+			if (cpu_has_mac2008_only)
+				handler = ieee754dp_nmsub;
+			else
 			handler = fpemu_dp_nmsub;
 			goto dcoptop;
 
@@ -2857,6 +2879,15 @@ int fpu_emulator_cop1Handler(ARCH_REG_CTX *xcp, ARCH_FPU_CTX *ctx,
 	u16 instr[4];
 	u16 *instr_ptr;
 	int sig = 0;
+
+#ifndef SYLIXOS
+	/*
+	 * Initialize context if it hasn't been used already, otherwise ensure
+	 * it has been saved to struct thread_struct.
+	 */
+	if (!init_fp_ctx(current))
+		lose_fpu(1);
+#endif
 
 	oldepc = xcp->cp0_epc;
 	do {

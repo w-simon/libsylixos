@@ -893,6 +893,13 @@ INT  __tshellRestartEx (LW_OBJECT_HANDLE  ulThread, BOOL  bNeedAuthen)
 #endif                                                                  /*  LW_CFG_SIGNAL_EN > 0        */
         iMsg = API_IoTaskStdGet(ulThread, STD_OUT);
         if (iMsg >= 0) {
+            /*
+             * telnet 终端启动的应用有可能快速打印造成 pty 设备缓冲区满, 如果 Ctrl-C 杀死应用,
+             * 将由 t_ptyproc 线程(t_ptyproc 线程负责将 pty 设备缓冲区的数据读出并释放写同步信号量)
+             * 调用此函数重启 t_shell 线程, fdprintf 函数将可能阻塞在 pty 设备的写同步信号量,
+             * 造成 telnet 假死, 所以调用 fdprintf 函数打印信息前清除 PTY 缓存所有数据
+             */
+            ioctl(iMsg, FIOFLUSH);                                      /*  清除 PTY 缓存所有数据       */
             fdprintf(iMsg, "[sh]Warning: Program is killed (SIGKILL) by shell.\n"
                            "    Restart SylixOS is recommended!\n");
         }

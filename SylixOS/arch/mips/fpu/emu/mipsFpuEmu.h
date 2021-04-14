@@ -170,7 +170,7 @@ do {                                    \
 } while (0)
 
 #else
-#define MIPS_FPU_EMU_INC_STATS(M)           do { } while (0)
+#define MIPS_FPU_EMU_INC_STATS(M)       do { } while (0)
 #endif                                                                  /*  CONFIG_DEBUG_FPU_EMU        */
 
 extern int     fpu_emulator_cop1Handler(ARCH_REG_CTX *xcp, ARCH_FPU_CTX *ctx,

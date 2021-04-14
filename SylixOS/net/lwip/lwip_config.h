@@ -111,25 +111,8 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define PBUF_POOL_SIZE                  LW_CFG_LWIP_NUM_POOLS           /*  pool num                    */
 #define PBUF_POOL_BUFSIZE               LW_CFG_LWIP_POOL_SIZE           /*  pool block size             */
 
-#if MEM_SIZE >= (2 * LW_CFG_MB_SIZE)
-#define MEMP_NUM_REASSDATA              1024
-#elif MEM_SIZE >= (1 * LW_CFG_MB_SIZE)
-#define MEMP_NUM_REASSDATA              512                             /*  同时进行重组的 IP 数据包    */
-#elif MEM_SIZE >= (512 * LW_CFG_KB_SIZE)
-#define MEMP_NUM_REASSDATA              256
-#elif MEM_SIZE >= (256 * LW_CFG_KB_SIZE)
-#define MEMP_NUM_REASSDATA              128
-#elif MEM_SIZE >= (128 * LW_CFG_KB_SIZE)
-#define MEMP_NUM_REASSDATA              64
-#else
-#define MEMP_NUM_REASSDATA              16
-#endif                                                                  /*  MEM_SIZE >= ...             */
-
-#if LW_CFG_LWIP_TX_SINGLE_PBUF > 0
-#define MEMP_NUM_FRAG_PBUF              16
-#else
-#define MEMP_NUM_FRAG_PBUF              MEMP_NUM_REASSDATA              /*  !TX_SINGLE_PBUF 分片数量    */
-#endif
+#define MEMP_NUM_REASSDATA              (LW_CFG_LWIP_NUM_POOLS / 4)     /*  同时重组的分片数            */
+#define MEMP_NUM_FRAG_PBUF              (LW_CFG_LWIP_NUM_POOLS / 2)     /*  同时进行分片的分片数        */
 
 /*********************************************************************************************************
   Memory method
@@ -192,7 +175,8 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define IP_FORWARD                      LW_CFG_NET_ROUTER               /*  是否允许 IP 转发            */
 #define IP_REASSEMBLY                   LW_CFG_LWIP_IPFRAG
 #define IP_FRAG                         LW_CFG_LWIP_IPFRAG
-#define IP_REASS_MAX_PBUFS              MEMP_NUM_REASSDATA
+
+#define IP_REASS_MAX_PBUFS              (LW_CFG_LWIP_NUM_POOLS / 2)
 #define IP_REASS_MAXAGE                 LW_CFG_LWIP_IP_REASS_MAXAGE
 
 #define IP_SOF_BROADCAST                1                               /*  Use the SOF_BROADCAST       */

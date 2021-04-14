@@ -1310,8 +1310,6 @@ INT  _TyIRd (TY_DEV_ID  ptyDev, CHAR   cInchar)
         (ptyDev->TYDEV_pfuncCtrlC != LW_NULL))) {                       /*  是否需要进行 ABORT 处理     */
         
         LW_SPIN_UNLOCK_QUICK(&ptyDev->TYDEV_slLock, iregInterLevel);    /*  解锁 spinlock 打开中断      */
-        
-        _TyFlush(ptyDev);                                               /*  清除缓冲区                  */
 
         if (ptyDev->TYDEV_pfuncCtrlC) {
             ptyDev->TYDEV_pfuncCtrlC(ptyDev->TYDEV_pvArgCtrlC);

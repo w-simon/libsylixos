@@ -657,6 +657,7 @@ static INT sja1000Ioctl (SJA1000_CHAN *pcanchan, INT  cmd, LONG arg)
 
         intreg = KN_INT_DISABLE();
 
+        sja1000SetMode(pcanchan, MOD_RM, 1);
         sja1000InitChip(pcanchan);
         sja1000SetMode(pcanchan, MOD_RM, 0);                            /* goto normal mode             */
 
