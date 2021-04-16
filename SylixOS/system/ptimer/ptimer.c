@@ -131,6 +131,7 @@ INT  timer_create_internal (clockid_t  clockid, struct sigevent *sigeventT,
     ulTimer = API_TimerCreate("posix_tmr", 
                               LW_OPTION_ITIMER | ulOption, LW_NULL);    /*  创建普通定时器              */
     if (ulTimer == LW_OBJECT_HANDLE_INVALID) {
+        _ErrorHandle(EAGAIN);
         return  (PX_ERROR);
     }
     
