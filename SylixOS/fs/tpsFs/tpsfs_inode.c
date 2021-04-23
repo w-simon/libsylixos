@@ -109,8 +109,8 @@ static BOOL  __tpsFsInodeUnserial (PTPS_INODE pinode, PUCHAR pucBuff, UINT uiSiz
 **           ptrans             事务
 **           psb                超级块指针
 **           blkKey             键值
-**           blkAllocStart      返回分配得到的起始块
-**           blkAllocCnt        返回分配得到的块数量
+**           pblkAllocStart      返回分配得到的起始块
+**           pblkAllocCnt        返回分配得到的块数量
 ** 输　出  : 成功：0  失败：ERROR
 ** 全局变量:
 ** 调用模块:
@@ -119,11 +119,10 @@ static TPS_RESULT  __tpsFsGetFromFreeList (PTPS_TRANS        ptrans,
                                            PTPS_SUPER_BLOCK  psb,
                                            TPS_IBLK          blkKey,
                                            TPS_IBLK          blkCnt,
-                                           TPS_IBLK         *blkAllocStart,
-                                           TPS_IBLK         *blkAllocCnt)
+                                           TPS_IBLK         *pblkAllocStart,
+                                           TPS_IBLK         *pblkAllocCnt)
 {
     TPS_INUM   inum       = psb->SB_inumDeleted;
-    TPS_INUM   inumPrev   = 0;
     PTPS_INODE pinodePrev = LW_NULL;
 
     if (!psb->SB_pinodeDeleted) {
@@ -133,12 +132,11 @@ static TPS_RESULT  __tpsFsGetFromFreeList (PTPS_TRANS        ptrans,
                 break;
             }
 
-            if (psb->SB_pinodeDeleted->IND_uiOpenCnt == 1) {            /* 从已删除且未打开的文件分配  */
+            if (psb->SB_pinodeDeleted->IND_uiOpenCnt == 1) {             /* 从已删除且未打开的文件分配  */
                 break;
             }
 
-            inumPrev = inum;
-            inum     = psb->SB_pinodeDeleted->IND_inumDeleted;
+            inum = psb->SB_pinodeDeleted->IND_inumDeleted;
             tpsFsCloseInode(psb->SB_pinodeDeleted);
             psb->SB_pinodeDeleted = LW_NULL;
         }
@@ -150,39 +148,64 @@ static TPS_RESULT  __tpsFsGetFromFreeList (PTPS_TRANS        ptrans,
 
     if (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeDeleted,
                            MAX_BLK_NUM, blkCnt,
-                           blkAllocStart, blkAllocCnt) != TPS_ERR_NONE) {
-        (*blkAllocCnt) = 0;
+                           pblkAllocStart, pblkAllocCnt) == TPS_ERR_NONE) {
+        return  (TPS_ERR_NONE);
     }
 
     if (tpsFsBtreeBlkCnt(psb->SB_pinodeDeleted) <= 0) {
-        tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
-                          psb->SB_pinodeDeleted->IND_inum,
-                          psb->SB_pinodeDeleted->IND_inum,
-                          1, LW_FALSE);
 
-        if (psb->SB_inumDeleted == psb->SB_pinodeDeleted->IND_inum) {
+        if (LW_NULL != psb->SB_pinodeDeleted->IND_pinodeHash) {         /* 分配目录哈希节点             */
+            (*pblkAllocStart) = psb->SB_pinodeDeleted->IND_inumHash;
+            (*pblkAllocCnt)   = 1;
+
+            psb->SB_pinodeDeleted->IND_inumHash = 0;
+            psb->SB_pinodeDeleted->IND_iType    = 0;
+            tpsFsFlushInodeHead(ptrans, psb->SB_pinodeDeleted);
+            tpsFsCloseInode(psb->SB_pinodeDeleted->IND_pinodeHash);
+            psb->SB_pinodeDeleted->IND_pinodeHash = LW_NULL;
+
+            return  (TPS_ERR_NONE);
+        }
+
+        (*pblkAllocStart) = psb->SB_pinodeDeleted->IND_inum;            /* 分配节点本身                 */
+        (*pblkAllocCnt)   = 1;
+
+        if (psb->SB_inumDeleted == psb->SB_pinodeDeleted->IND_inum) {   /* 将节点从已删除inode列表移除  */
             psb->SB_inumDeleted = psb->SB_pinodeDeleted->IND_inumDeleted;
             tpsFsFlushSuperBlock(ptrans, psb);
 
         } else {
-            pinodePrev = tpsFsOpenInode(psb, inumPrev);
-            if (pinodePrev) {
-                pinodePrev->IND_inumDeleted = psb->SB_pinodeDeleted->IND_inumDeleted;
-                pinodePrev->IND_bDirty      = LW_TRUE;
-                tpsFsFlushInodeHead(ptrans, pinodePrev);
+            inum = psb->SB_inumDeleted;
+            while (inum != 0) {
+                pinodePrev = tpsFsOpenInode(psb, inum);
+                if (!pinodePrev) {
+                    break;
+                }
+
+                if (pinodePrev->IND_inumDeleted == psb->SB_pinodeDeleted->IND_inum) {
+                    pinodePrev->IND_inumDeleted = psb->SB_pinodeDeleted->IND_inumDeleted;
+                    pinodePrev->IND_bDirty      = LW_TRUE;
+                    tpsFsFlushInodeHead(ptrans, pinodePrev);
+                    tpsFsCloseInode(pinodePrev);
+                    break;
+                }
+
+                inum = pinodePrev->IND_inumDeleted;
                 tpsFsCloseInode(pinodePrev);
+            }
+
+            if ((!pinodePrev) || (inum == 0)) {
+                return  (TPS_ERR_UNEXPECT);
             }
         }
 
         tpsFsCloseInode(psb->SB_pinodeDeleted);
         psb->SB_pinodeDeleted = LW_NULL;
-    }
+        return  (TPS_ERR_NONE);
 
-    if ((*blkAllocCnt) == 0) {
-        return  (TPS_ERR_BTREE_DISK_SPACE);
+    } else {
+        return  (TPS_ERR_BTREE_ALLOC);
     }
-
-    return  (TPS_ERR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __tpsFsInodeAddToFreeList
@@ -235,15 +258,21 @@ TPS_RESULT  tpsFsInodeAllocBlk (PTPS_TRANS          ptrans,
                                 TPS_IBLK           *pblkAllocStart,
                                 TPS_IBLK           *pblkAllocCnt)
 {
-    if (__tpsFsGetFromFreeList(ptrans, psb, 0, blkCnt,
-                               pblkAllocStart, pblkAllocCnt) == TPS_ERR_NONE) {
+    TPS_RESULT tpsres;
+
+    tpsres = __tpsFsGetFromFreeList(ptrans, psb, 0, blkCnt, pblkAllocStart, pblkAllocCnt);
+    if (tpsres == TPS_ERR_NONE) {
         return  (TPS_ERR_NONE);
-    } else {
+
+    } else if (tpsres == TPS_ERR_INODE_OPEN) {
         /*
          *  MAX_BLK_NUM 参数使得程序更大概率运行B+树算法最佳路径
          */
         return  (tpsFsBtreeAllocBlk(ptrans, psb->SB_pinodeSpaceMng,
                                     MAX_BLK_NUM, blkCnt, pblkAllocStart, pblkAllocCnt));
+
+    } else {
+        return  (TPS_ERR_BTREE_ALLOC);
     }
 }
 /*********************************************************************************************************
@@ -602,13 +631,6 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
                 pinode->IND_uiRefCnt++;
                 return  (TPS_ERR_INODE_HASHNOEMPTY);
             }
-
-            if (tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
-                              pinode->IND_inumHash, pinode->IND_inumHash,
-                              1, LW_FALSE) != TPS_ERR_NONE) {
-                pinode->IND_uiRefCnt++;
-                return  (TPS_ERR_BTREE_INSERT);
-            }
         }
 
         if (tpsFsBtreeGetLevel(pinode) > 0 || (pinode->IND_uiOpenCnt > 1)) {
@@ -624,6 +646,14 @@ TPS_RESULT  tpsFsInodeDelRef (PTPS_TRANS ptrans, PTPS_INODE pinode)
                                   pinode->IND_inum, pinode->IND_inum,
                                   1, LW_FALSE) != TPS_ERR_NONE) {
                 return  (TPS_ERR_BTREE_INSERT);
+            }
+
+            if (LW_NULL != pinode->IND_pinodeHash) {
+                if (tpsFsBtreeFreeBlk(ptrans, psb->SB_pinodeSpaceMng,
+                                      pinode->IND_inumHash, pinode->IND_inumHash,
+                                      1, LW_FALSE) != TPS_ERR_NONE) {
+                    return  (TPS_ERR_BTREE_INSERT);
+                }
             }
         }
 

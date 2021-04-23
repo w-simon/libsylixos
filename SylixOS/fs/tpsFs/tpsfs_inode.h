@@ -140,6 +140,8 @@ TPS_RESULT tpsFsFlushInodeHead(PTPS_TRANS ptrans, PTPS_INODE pinode);
 TPS_RESULT tpsFsInodeSync(PTPS_INODE pinode);
                                                                         /* flush³¬¼¶¿é                  */
 TPS_RESULT tpsFsFlushSuperBlock(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb);
+                                                                        /* »Ø¹ö³¬¼¶¿é                  */
+TPS_RESULT tpsFsRollBackSuperBlock(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb);
                                                                         /* ·ÖÅä¿é                       */
 TPS_RESULT tpsFsInodeAllocBlk(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb,
                               TPS_IBLK blkKey, TPS_IBLK blkCnt,

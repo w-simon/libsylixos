@@ -437,6 +437,10 @@ TPS_RESULT  tpsFsCreateEntry (PTPS_TRANS    ptrans,
         return  (TPS_ERR_PARAM_NULL);
     }
 
+    if (pinodeDir->IND_bDeleted) {
+        return  (TPS_ERR_INODE_DELETED);
+    }
+
     uiEntryLen = sizeof(UINT32) + sizeof(TPS_INUM) + lib_strlen(pcFileName) + 1;
 
     if (pinodeDir->IND_pinodeHash &&
@@ -540,6 +544,10 @@ TPS_RESULT  tpsFsEntryRemove (PTPS_TRANS ptrans, PTPS_ENTRY pentry)
     pinodeDir = tpsFsOpenInode(pentry->ENTRY_psb, pentry->ENTRY_inumDir);
     if (LW_NULL == pinodeDir) {
         return  (TPS_ERR_INODE_OPEN);
+    }
+
+    if (pinodeDir->IND_bDeleted) {
+        return  (TPS_ERR_INODE_DELETED);
     }
 
     if (pentry->ENTRY_bInHash) {                                        /* entryдкhashБэжа              */

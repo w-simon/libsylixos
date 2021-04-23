@@ -100,7 +100,7 @@ TPS_RESULT  tpsFsBtreeTransInit (PTPS_SUPER_BLOCK psb)
     ptrans->TRANS_ui64Generation    = psb->SB_ui64Generation;
     ptrans->TRANS_ui64SerialNum     = 0;
     ptrans->TRANS_iType             = TPS_TRANS_TYPE_DATA;
-    ptrans->TRANS_iStatus           = TPS_TRANS_STATUS_INIT;
+    ptrans->TRANS_iStatus           = TPS_TRANS_STATUS_UNINIT;
     ptrans->TRANS_ui64Time          = 0;
     ptrans->TRANS_uiDataSecNum      = 0;
     ptrans->TRANS_uiDataSecCnt      = 0;
@@ -171,7 +171,7 @@ PTPS_TRANS  tpsFsTransAllocAndInit (PTPS_SUPER_BLOCK psb)
     }
 
     if ((ptrans->TRANS_iStatus != TPS_TRANS_STATUS_COMPLETE) &&
-        (ptrans->TRANS_pdata->TD_uiSecAreaCnt > 0)) {                   /*  上个事务未完成，进入异常态  */
+        (ptrans->TRANS_iStatus != TPS_TRANS_STATUS_UNINIT)) {           /*  上个事务未完成，进入异常态  */
         psb->SB_uiFlags |= TPS_TRANS_FAULT;
         return  (LW_NULL);
     }
@@ -208,6 +208,10 @@ TPS_RESULT  tpsFsTransRollBackAndFree (PTPS_TRANS ptrans)
     UINT64        ui64BpSecCnt;
     BOOL          bBpInvalid  = LW_FALSE;
 
+    if (psb->SB_uiFlags & TPS_TRANS_FAULT) {
+        return  (TPS_ERR_TRANS_ROLLBK_FAULT);
+    }
+
     /*
      * 计算块缓冲区起始扇区以及扇区数
      */
@@ -230,6 +234,13 @@ TPS_RESULT  tpsFsTransRollBackAndFree (PTPS_TRANS ptrans)
         if (max(ui64BpSecStart, ui64SecStart) <
             min((ui64SecStart + uiSecCnt), (ui64BpSecStart + ui64BpSecCnt))) {
             bBpInvalid = LW_TRUE;
+        }
+
+        if (ui64SecStart == 0) {                                        /* 回滚超级块                   */
+            if (tpsFsRollBackSuperBlock(ptrans, psb) != TPS_ERR_NONE) {
+                psb->SB_uiFlags |= TPS_TRANS_FAULT;
+                return  (TPS_ERR_TRANS_ROLLBK_FAULT);
+            }
         }
     }
 

@@ -511,6 +511,25 @@ TPS_RESULT tpsFsFlushSuperBlock (TPS_TRANS *ptrans, PTPS_SUPER_BLOCK psb)
 
     return  (TPS_ERR_NONE);
 }
+/*********************************************************************************************************
+** 函数名称: tpsFsRollBackSuperBlock
+** 功能描述: 回滚超级块
+** 输　入  : psb          超级块指针
+**           ptrans       事务指针
+** 输　出  : 成功返回0，失败返回错误码
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+TPS_RESULT tpsFsRollBackSuperBlock (TPS_TRANS *ptrans, PTPS_SUPER_BLOCK psb)
+{
+    if (psb->SB_dev->DEV_ReadSector(psb->SB_dev, psb->SB_pucSectorBuf, 0, 1) != 0) {
+        return  (TPS_ERR_READ_DEV);
+    }
+
+    __tpsFsSBUnserial(psb, psb->SB_pucSectorBuf,  psb->SB_uiSectorSize);
+
+    return  (TPS_ERR_NONE);
+}
 
 #endif                                                                  /*  LW_CFG_TPSFS_EN > 0         */
 /*********************************************************************************************************
