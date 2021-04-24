@@ -1174,6 +1174,38 @@ BOOL  tpsFsTransTrigerChk (PTPS_TRANS ptrans)
 
     return (ptrans->TRANS_pdata->TD_uiSecAreaCnt > TPS_TRANS_TRIGGERREA ? LW_TRUE : LW_FALSE);
 }
+/*********************************************************************************************************
+** 函数名称: tpsFsTransRangeChk
+** 功能描述: 判断事务中是否有区间和数据区间重叠，用于在文件写入时判断是否可以并行写入文件数据
+** 输　入  : ptrans           事务
+**           blkStart      数据区间起始块
+**           blkCnt        数据区间块数量
+** 输　出  : 返回LW_TRUE表示有重叠，否则表示无重叠
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  tpsFsTransRangeChk (PTPS_TRANS ptrans, TPS_IBLK blkStart, TPS_IBLK blkCnt)
+{
+    INT              i;
+    UINT64           ui64SecAreaStart;
+    UINT64           ui64SecAreaCnt;
+    PTPS_TRANS_DATA  ptrdata    = ptrans->TRANS_pdata;
+    PTPS_SUPER_BLOCK psb        = ptrans->TRANS_psb;
+    UINT64           ui64SecNum = (blkStart << psb->SB_uiBlkShift) >> psb->SB_uiSectorShift;
+    UINT64           ui64SecCnt = (blkCnt << psb->SB_uiBlkShift) >> psb->SB_uiSectorShift;
+
+    for (i = 0; i < ptrdata->TD_uiSecAreaCnt; i++) {                    /* 遍历扇区区间列表             */
+        ui64SecAreaStart = ptrdata->TD_secareaArr[i].TD_ui64SecStart;
+        ui64SecAreaCnt   = ptrdata->TD_secareaArr[i].TD_uiSecCnt;
+
+        if (max(ui64SecAreaStart, ui64SecNum) <
+            min((ui64SecAreaStart + ui64SecAreaCnt), (ui64SecNum + ui64SecCnt))) {
+            return  (LW_TRUE);
+        }
+    }
+
+    return  (LW_FALSE);
+}
 
 #endif                                                                  /*  LW_CFG_TPSFS_EN > 0         */
 /*********************************************************************************************************

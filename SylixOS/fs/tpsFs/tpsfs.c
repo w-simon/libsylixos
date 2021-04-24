@@ -826,7 +826,10 @@ errno_t  tpsFsWrite (PTPS_INODE  pinode,
 
         szWrite = tpsFsInodeWrite(ptrans, pinode, (off + (*pszRet)),
                                   (pucBuff + (*pszRet)), szLen, LW_FALSE);
-        if (szWrite <= 0) {
+        if (szWrite == (-TPS_ERR_TRANS_NEED_COMMIT)) {
+            szWrite = 0;
+
+        } else if (szWrite <= 0) {
             tpsFsTransRollBackAndFree(ptrans);
             iErr = (errno_t)(-szWrite);
             return  (iErr);

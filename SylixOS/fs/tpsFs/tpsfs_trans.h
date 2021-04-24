@@ -138,7 +138,10 @@ TPS_RESULT tpsFsTransRead(PTPS_SUPER_BLOCK psb, TPS_IBLK blk, UINT uiOff,
 TPS_RESULT tpsFsTransWrite(PTPS_TRANS ptrans, PTPS_SUPER_BLOCK psb,
                            TPS_IBLK blk, UINT uiOff,
                            PUCHAR pucBuff, size_t szLen);
-BOOL       tpsFsTransTrigerChk(PTPS_TRANS ptrans);                      /* 是否到达事务提交触发点       */
+                                                                        /* 是否到达事务提交触发点       */
+BOOL       tpsFsTransTrigerChk(PTPS_TRANS ptrans);
+                                                                        /* 是否有区间和数据区间重叠     */
+BOOL       tpsFsTransRangeChk(PTPS_TRANS ptrans, TPS_IBLK blkStart, TPS_IBLK blkCnt);
 
 #endif                                                                  /* LW_CFG_TPSFS_EN > 0          */
 #endif                                                                  /* __TPSFS_TRANS_H              */

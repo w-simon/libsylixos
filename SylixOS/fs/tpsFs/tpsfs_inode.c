@@ -160,6 +160,7 @@ static TPS_RESULT  __tpsFsGetFromFreeList (PTPS_TRANS        ptrans,
 
             psb->SB_pinodeDeleted->IND_inumHash = 0;
             psb->SB_pinodeDeleted->IND_iType    = 0;
+            psb->SB_pinodeDeleted->IND_bDirty   = LW_TRUE;
             tpsFsFlushInodeHead(ptrans, psb->SB_pinodeDeleted);
             tpsFsCloseInode(psb->SB_pinodeDeleted->IND_pinodeHash);
             psb->SB_pinodeDeleted->IND_pinodeHash = LW_NULL;
@@ -853,6 +854,7 @@ TPS_SIZE_T  tpsFsInodeWrite (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off
     TPS_SIZE_T          szCompleted = 0;
     TPS_SIZE_T          szWriteLen;
     TPS_OFF_T           offBlk;
+    BOOL                bNeedCommit = LW_FALSE;
 
     if ((pinode == LW_NULL) || (pucBuff == LW_NULL)) {
         return  (-EINVAL);
@@ -896,9 +898,17 @@ TPS_SIZE_T  tpsFsInodeWrite (PTPS_TRANS ptrans, PTPS_INODE pinode, TPS_OFF_T off
             return  (-EIO);
         }
 
+        if (tpsFsTransRangeChk(ptrans, blkPscStart, blkPscCnt)) {       /* 数据区间和事务区间重叠       */
+            bNeedCommit = LW_TRUE;
+        }
+
         if (tpsFsTransTrigerChk(ptrans)) {                              /* 避免一个事务中执行太多操作   */
             break;
         }
+    }
+
+    if (bNeedCommit) {
+        return  (-TPS_ERR_TRANS_NEED_COMMIT);
     }
 
     while (szLen > 0) {
