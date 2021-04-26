@@ -181,6 +181,7 @@ INT  timer_delete (timer_t  timer)
     
     ulError = API_TimerDelete(&ulTimer);
     if (ulError) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
@@ -214,6 +215,7 @@ INT  timer_gettime (timer_t  timer, struct itimerspec  *ptvTime)
     ulError = API_TimerStatus((LW_OBJECT_HANDLE)timer, &bIsRunning,
                               LW_NULL, &ulCounter, &ulInterval);        /*  获得定时器状态              */
     if (ulError) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
                     
@@ -371,6 +373,7 @@ INT  timer_settime (timer_t                  timer,
                                 LW_NULL, &ulCounter, &ulInterval, 
                                 &clockidTimer);                         /*  获得定时器状态              */
     if (ulError) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
@@ -441,6 +444,7 @@ INT  timer_settime (timer_t                  timer,
                                (PTIMER_CALLBACK_ROUTINE)__ptimerCallback,
                                (PVOID)ulTimer);
     if (ulError) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     

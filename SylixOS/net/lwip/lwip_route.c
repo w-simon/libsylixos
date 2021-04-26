@@ -1294,7 +1294,7 @@ VOID __tshellSrouteInit (VOID)
     "eg. sroute\n"
     "    sroute add 192.168.1.1 192.168.1.10 123.0.0.1 126.0.0.1 INC DEF dev en1\n"
     "       add source ip from 192.168.1.1 ~ 192.168.1.10 dest 123.0.0.1 ~ 126.0.0.1 route to en1 as default priority.\n\n"
-    "    sroute chg 192.168.1.1 192.168.1.10 0.0.0.0 0.0.0.0 EXC HIGH dev en2\n"
+    "    sroute chg 192.168.1.1 192.168.1.10 123.0.0.1 126.0.0.1 EXC HIGH dev en2\n"
     "       change source ip from 192.168.1.1 ~ 192.168.1.10 route to en2 as high priority.\n\n"
     "    sroute del 192.168.1.1 192.168.1.10 123.0.0.1 126.0.0.1\n"
     "       delete source ip from 192.168.1.1 ~ 192.168.1.10 dest 123.0.0.1 ~ 126.0.0.1 route\n\n");

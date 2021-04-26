@@ -602,8 +602,7 @@ int  pthread_setschedparam (pthread_t                  thread,
 /*********************************************************************************************************
 ** 函数名称: pthread_onec
 ** 功能描述: 线程安全的仅执行一次指定函数
-** 输　入  : thread        线程句柄
-**           once          onec_t参数
+** 输　入  : once          onec_t参数
 **           pfunc         函数指针
 ** 输　出  : ERROR or OK
 ** 全局变量: 

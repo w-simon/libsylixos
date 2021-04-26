@@ -337,6 +337,7 @@ static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
 {
     INT    iFd;
     PCHAR  pcDiv;
+    PCHAR  pcCurTty;
     ULONG  ulOption = LW_OPTION_TSHELL_VT100       | 
                       LW_OPTION_TSHELL_AUTHEN      | 
                       LW_OPTION_TSHELL_PROMPT_FULL | 
@@ -370,6 +371,13 @@ static INT  __tshellSysCmdShell (INT  iArgC, PCHAR  ppcArgV[])
         return  (PX_ERROR);
     }
     
+    pcCurTty = ttyname(STD_IN);
+    if (pcCurTty && !lib_strcmp(pcCurTty, ppcArgV[1])) {
+        fprintf(stderr, "can't create a new shell on current shell.\n");
+        close(iFd);
+        return  (PX_ERROR);
+    }
+
     if (pcDiv) {
         if (__tshellSetTtyOpt(iFd, pcDiv) < ERROR_NONE) {
             fprintf(stderr, "set tty option error.\n");
@@ -1521,7 +1529,6 @@ static INT  __tshellSysCmdAborts (INT  iArgC, PCHAR  ppcArgV[])
     
     return  (ERROR_NONE);
 }
-
 /*********************************************************************************************************
 ** 函数名称: __tshellSysCmdPageFaultLimit
 ** 功能描述: 系统命令 "pagefaultlimit"

@@ -452,7 +452,8 @@ VOID  _TCBDestroyExt (PLW_CLASS_TCB  ptcb)
 
         patomic = (atomic_t *)pcur->CUO_piOnce;
         __LW_ATOMIC_SET(0, patomic);                                    /*  未完成的 once 操作          */
-        API_VutexPost(pcur->CUO_piOnce, __ARCH_INT_MAX);                /*  唤醒等待完成的任务          */
+        API_VutexPostEx(pcur->CUO_piOnce,
+                        __ARCH_INT_MAX, LW_OPTION_VUTEX_FLAG_DONTSET);  /*  唤醒等待完成的任务          */
         __KHEAP_FREE(pcur);                                             /*  释放                        */
     }
 
@@ -483,7 +484,7 @@ VOID  _TCBCleanupPopExt (PLW_CLASS_TCB  ptcb)
         _list_mono_next(&ptex->TEX_pmonoCurHeader);
         KN_INT_ENABLE(iregInterLevel);                                  /*  打开中断                    */
         
-		LW_SOFUNC_PREPARE(pcur->CUR_pfuncClean);
+        LW_SOFUNC_PREPARE(pcur->CUR_pfuncClean);
         pcur->CUR_pfuncClean(pcur->CUR_pvArg);                          /*  执行销毁程序                */
         __KHEAP_FREE(pcur);                                             /*  释放                        */
     

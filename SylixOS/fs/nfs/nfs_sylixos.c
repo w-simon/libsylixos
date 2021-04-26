@@ -576,7 +576,7 @@ INT  API_NfsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
                              pnfsfs->NFSFS_cPath, PATH_MAX + 1)) {
         __SHEAP_FREE(pnfsfs);
         _DebugHandle(__ERRORMESSAGE_LEVEL, "host parse.\r\n");
-        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        _ErrorHandle(ERROR_IOS_DEVICE_NOT_FOUND);
         return  (PX_ERROR);
     }
     
@@ -655,7 +655,7 @@ INT  API_NfsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
     if (iosDevAddEx(&pnfsfs->NFSFS_devhdrHdr, pcName, _G_iNfsDrvNum, DT_DIR)
         != ERROR_NONE) {                                                /*  安装文件系统设备            */
         xdr_free((xdrproc_t)xdr_nfs_fh3, (char *)&pnfsfs->NFSFS_hRoot);
-        fprintf(stderr, "device add error.\n");
+        fprintf(stderr, "device add error %s.\r\n", lib_strerror(errno));
         goto    __error_handle;
     }
     
