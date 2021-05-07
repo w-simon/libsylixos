@@ -1152,12 +1152,12 @@ static INT __sdMemBlkWrt (__PSD_BLK_DEV   psdblkdevice,
         API_SdCoreDevSetBlkLenRaw(psdcoredevice, 1 << ucBlkLenBits);
     }
 
-    ulStartBlk += psdblkdevice->SDBLKDEV_ulSectorOff;
     if ((ulStartBlk + ulBlkCount) > psdblkdevice->SDBLKDEV_ulDiskNSector) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "block number out of range.\r\n");
         iError = PX_ERROR;
         goto    __error_handle;
     }
+    ulStartBlk += psdblkdevice->SDBLKDEV_ulSectorOff;
 
     if (psdblkdevice->SDBLKDEV_bNeedReCalcBlkCnt) {
         ulStartBlk = __sdMemBlkLogic2Phy(ulStartBlk, ucBlkLenBits);
@@ -1240,12 +1240,12 @@ static INT __sdMemBlkRd (__PSD_BLK_DEV   psdblkdevice,
         API_SdCoreDevSetBlkLenRaw(psdcoredevice, 1 << ucBlkLenBits);
     }
 
-    ulStartBlk += psdblkdevice->SDBLKDEV_ulSectorOff;
     if ((ulStartBlk + ulBlkCount) > psdblkdevice->SDBLKDEV_ulDiskNSector) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "block number is out of range.\r\n");
         iError = PX_ERROR;
         goto    __error_handle;
     }
+    ulStartBlk += psdblkdevice->SDBLKDEV_ulSectorOff;
 
     if (psdblkdevice->SDBLKDEV_bNeedReCalcBlkCnt) {
         ulStartBlk = __sdMemBlkLogic2Phy(ulStartBlk, ucBlkLenBits);
