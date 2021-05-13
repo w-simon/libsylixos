@@ -550,6 +550,10 @@ netconn_accept(struct netconn *conn, struct netconn **new_conn)
   API_MSG_VAR_FREE(msg);
 #endif /* TCP_LISTEN_BACKLOG */
 
+#ifdef SYLIXOS /* SylixOS Add property inheritance */
+  newconn->linger = conn->linger;
+#endif /* SYLIXOS */
+
   *new_conn = newconn;
   /* don't set conn->last_err: it's only ERR_OK, anyway */
   return ERR_OK;
