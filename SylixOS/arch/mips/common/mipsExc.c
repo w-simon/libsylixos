@@ -120,8 +120,8 @@ LW_WEAK VOID  archIntHandle (ULONG  ulVector, BOOL  bPreemptive)
 }
 /*********************************************************************************************************
 ** 函数名称: archCacheErrorHandle
-** 功能描述: Cache 错误处理
-** 输　入  : NONE
+** 功能描述: CACHE 错误处理
+** 输　入  : pregctx       寄存器上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:

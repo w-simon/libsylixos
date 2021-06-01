@@ -290,7 +290,7 @@ static INT moduleDelAndDestory (LW_LD_EXEC_MODULE *pmodule)
             moduleDestory(pmodTemp);
 
             if (pvproc->VP_ringModules) {
-			    pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
+                pmodTemp = _LIST_ENTRY(pringTemp, LW_LD_EXEC_MODULE, EMOD_ringModules);
             }
         }
 
@@ -994,8 +994,8 @@ PVOID  API_ModuleLoadEx (CPCHAR  pcFile,
         __moduleVpPatchInit(pmodule);
     }
 
-    if (ERROR_NONE != initArrayCall(pmodule)) {                         /*  调用c++初始化代码           */
-        pmodule->EMOD_pfuncExit = LW_NULL;                              /*  init函数失败时不调用exit    */
+    if (ERROR_NONE != initArrayCall(pmodule)) {                         /*  调用 c++ 初始化代码         */
+        pmodule->EMOD_pfuncExit = LW_NULL;                              /*  init 函数失败时不调用 exit  */
         fprintf(stderr, "[ld]Function module_init return not 0!\n");
         API_ModuleUnload(pmodule);
         errno = ERROR_LOADER_UNEXPECTED;
@@ -1065,7 +1065,7 @@ INT  API_ModuleUnload (PVOID  pvModule)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT API_ModuleFinish (PVOID pvVProc)
+INT  API_ModuleFinish (PVOID  pvVProc)
 {
     LW_LD_VPROC       *pvproc = (LW_LD_VPROC *)pvVProc;
     LW_LD_EXEC_MODULE *pmodule;
@@ -1091,7 +1091,7 @@ INT API_ModuleFinish (PVOID pvVProc)
 }
 /*********************************************************************************************************
 ** 函数名称: API_ModuleTerminal
-** 功能描述: 清空进程中已经加载的elf文件. (首先应该调用 API_ModuleFinish 才能待用此函数)
+** 功能描述: 清空进程中已经加载的 elf 文件. (首先应该调用 API_ModuleFinish 才能调用此函数)
 ** 输　入  : pvproc     进程控制块指针
 ** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
@@ -1099,7 +1099,7 @@ INT API_ModuleFinish (PVOID pvVProc)
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT API_ModuleTerminal (PVOID pvVProc)
+INT  API_ModuleTerminal (PVOID  pvVProc)
 {
     LW_LD_VPROC       *pvproc = (LW_LD_VPROC *)pvVProc;
     LW_LD_EXEC_MODULE *pmodule;
@@ -1120,7 +1120,7 @@ INT API_ModuleTerminal (PVOID pvVProc)
     LW_VP_UNLOCK(pmodule->EMOD_pvproc);
 
     moduleDelAndDestory(pmodule);
-    
+
     pvproc->VP_ringModules = LW_NULL;                                   /*  进程不再含有模块            */
 
     return  (ERROR_NONE);

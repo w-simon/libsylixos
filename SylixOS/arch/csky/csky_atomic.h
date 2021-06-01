@@ -61,6 +61,24 @@ static LW_INLINE INT  archAtomicGet (atomic_t  *v)
     return  (LW_ACCESS_ONCE(INT, v->counter));
 }
 
+static LW_INLINE INT  archAtomicNand (INT  i, atomic_t  *v)
+{
+    INT  iTemp, iResult;
+
+    __asm__ __volatile__(
+        "1: ldex.w      %0, (%3) \n"
+        "   and         %0, %2   \n"
+        "   not         %0       \n"
+        "   mov         %1, %0   \n"
+        "   stex.w      %0, (%3) \n"
+        "   bez         %0, 1b   \n"
+            : "=&r" (iTemp), "=&r" (iResult)
+            : "r" (i), "r"(&v->counter)
+            : "memory");
+
+    return  (iResult);
+}
+
 /*********************************************************************************************************
   atomic cas op
 *********************************************************************************************************/

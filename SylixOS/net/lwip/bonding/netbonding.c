@@ -617,7 +617,7 @@ static void  netbd_proc (void *arg)
             sub_is_ifname == 1: if name */
 int  netbd_add_dev (const char *bddev, int bdindex, const char *sub, int sub_is_ifname)
 {
-  int found, flags, need_up = 0;
+  int found, flags, need_up = 0, has_mac = 0;
   struct netif *netif;
   struct netif *netif_bd;
   netbd_t *netbd;
@@ -703,6 +703,8 @@ int  netbd_add_dev (const char *bddev, int bdindex, const char *sub, int sub_is_
   if (memcmp(netdev_bd->hwaddr, netbd_zeroaddr, ETH_ALEN) == 0) {
     MEMCPY(netdev_bd->hwaddr, netdev->hwaddr, ETH_ALEN); /* use this port mac address */
     MEMCPY(netif_bd->hwaddr, netdev->hwaddr, ETH_ALEN);
+  } else {
+    has_mac = 1;
   }
   
   MEMCPY(netbd_eth->old_hwaddr, netdev->hwaddr, ETH_ALEN); /* save old hwaddr */
@@ -712,7 +714,7 @@ int  netbd_add_dev (const char *bddev, int bdindex, const char *sub, int sub_is_
   netbd_eth->old_vlanid = netif->vlanid; /* use net bonding vlan id */
   netif->vlanid = netif_bd->vlanid;
   
-  if (!need_up) { /* not first sub device */
+  if (!need_up || has_mac) { /* not first sub device or bonding has mac */
     if (netif->ioctl) {
       ifreq.ifr_name[0] = 0;
       MEMCPY(ifreq.ifr_hwaddr.sa_data, netdev_bd->hwaddr, ETH_ALEN);

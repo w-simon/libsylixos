@@ -30,6 +30,7 @@
     EXPORT_LABEL(archAtomicAnd)
     EXPORT_LABEL(archAtomicOr)
     EXPORT_LABEL(archAtomicXor)
+    EXPORT_LABEL(archAtomicNand)
 
 #if LW_CFG_CPU_ATOMIC64_EN > 0
     EXPORT_LABEL(archAtomic64SetCx8)
@@ -83,6 +84,24 @@ LINE_LABEL(1)
     MOVL        %ECX , %EAX
     RET
     FUNC_END(archAtomicAnd)
+
+;/*********************************************************************************************************
+;  原子量与非
+;*********************************************************************************************************/
+
+FUNC_DEF(archAtomicNand)
+    MOVL        X86_SP_ARG2(%ESP) , %EDX                                ;/*  地址                        */
+    MOVL        (%EDX), %EAX                                            ;/*  旧值                        */
+LINE_LABEL(1)
+    MOVL        X86_SP_ARG1(%ESP) , %ECX                                ;/*  值                          */
+    ANDL        %EAX , %ECX
+    NOT         %ECX
+    LOCK
+    CMPXCHGL    %ECX, (%EDX)
+    JNZ         1b
+    MOVL        %ECX , %EAX
+    RET
+    FUNC_END(archAtomicNand)
 
 ;/*********************************************************************************************************
 ;  原子量或

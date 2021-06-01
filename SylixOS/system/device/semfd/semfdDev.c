@@ -857,7 +857,7 @@ static INT  _semfdSetFnode (PLW_SEMFD_FILE  psemfdfil, struct semfd_param *param
 ** 功能描述: semfd 获取文件缓存
 ** 输　入  : psemfdfil           semfd 文件
 **           param               信号量参数
-**           pulOwner            呼哧信号了拥有者
+**           pulOwner            互斥信号量拥有者
 ** 输　出  : < 0 表示错误
 ** 全局变量:
 ** 调用模块:

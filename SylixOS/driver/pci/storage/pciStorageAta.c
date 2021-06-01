@@ -275,19 +275,19 @@ static INT  pciStorageAtaCtrlQuirk (PCI_DEV_HANDLE       hPciDev,
 ** 函数名称: pciStorageAtaDevIdTblGet
 ** 功能描述: 获取设备列表
 ** 输　入  : phPciDevId     设备 ID 列表句柄缓冲区
-**           puiSzie        设备列表大小
+**           puiSize        设备列表大小
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  pciStorageAtaDevIdTblGet (PCI_DEV_ID_HANDLE  *phPciDevId, UINT32  *puiSzie)
+static INT  pciStorageAtaDevIdTblGet (PCI_DEV_ID_HANDLE  *phPciDevId, UINT32  *puiSize)
 {
-    if ((!phPciDevId) || (!puiSzie)) {
+    if ((!phPciDevId) || (!puiSize)) {
         return  (PX_ERROR);
     }
 
     *phPciDevId = (PCI_DEV_ID_HANDLE)pciStorageAtaIdTbl;
-    *puiSzie    = sizeof(pciStorageAtaIdTbl) / sizeof(PCI_DEV_ID_CB);
+    *puiSize    = sizeof(pciStorageAtaIdTbl) / sizeof(PCI_DEV_ID_CB);
 
     return (ERROR_NONE);
 }

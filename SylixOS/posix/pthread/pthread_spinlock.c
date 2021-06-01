@@ -220,7 +220,7 @@ int  pthread_spin_trylock_irq_np (pthread_spinlock_t  *pspinlock, pthread_int_t 
     }
 }
 
-#endif                                                                  /*  W_CFG_POSIXEX_EN > 0        */
+#endif                                                                  /*  LW_CFG_POSIXEX_EN > 0       */
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 /*********************************************************************************************************
   END

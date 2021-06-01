@@ -80,19 +80,19 @@ static irqreturn_t  pciNullDevIsr (PVOID  pvArg, ULONG  ulVector)
 ** 函数名称: pciNullDevIdTblGet
 ** 功能描述: 获取设备 ID 表的表头与表的大小
 ** 输　入  : hPciDevId      设备 ID 列表句柄缓冲区
-**           puiSzie        设备 ID 列表大小缓冲区
+**           puiSize        设备 ID 列表大小缓冲区
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  pciNullDevIdTblGet (PCI_DEV_ID_HANDLE *hPciDevId, UINT32 *puiSzie)
+static INT  pciNullDevIdTblGet (PCI_DEV_ID_HANDLE *hPciDevId, UINT32 *puiSize)
 {
-    if ((!hPciDevId) || (!puiSzie)) {                                   /*  参数无效                    */
+    if ((!hPciDevId) || (!puiSize)) {                                   /*  参数无效                    */
         return  (PX_ERROR);                                             /*  错误返回                    */
     }
 
     *hPciDevId = (PCI_DEV_ID_HANDLE)pciNullDrvIdTbl;                    /*  获取表头                    */
-    *puiSzie   = sizeof(pciNullDrvIdTbl) / sizeof(PCI_DEV_ID_CB);       /*  获取表的大小                */
+    *puiSize   = sizeof(pciNullDrvIdTbl) / sizeof(PCI_DEV_ID_CB);       /*  获取表的大小                */
 
     return  (ERROR_NONE);
 }

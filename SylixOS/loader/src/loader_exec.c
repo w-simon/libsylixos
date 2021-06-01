@@ -375,7 +375,7 @@ static INT  __processShell (PVOID  pvArg)
 }
 /*********************************************************************************************************
 ** 函数名称: __processStart
-** 功能描述: start a process shell (新的继承继承当前线程优先级和堆栈大小)
+** 功能描述: start a process shell (新的进程继承当前线程优先级和堆栈大小)
 ** 输　入  : mode          run mode
 **           psarg
 ** 输　出  : return code

@@ -10,7 +10,7 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: k_atomic.c
+** 文   件   名: k_atomic.h
 **
 ** 创   建   人: Han.Hui (韩辉)
 **
@@ -49,6 +49,11 @@ static LW_INLINE INT  __LW_ATOMIC_SUB (INT  iVal, atomic_t  *patomic)
 static LW_INLINE INT  __LW_ATOMIC_AND (INT  iVal, atomic_t  *patomic)
 {
     return  (archAtomicAnd(iVal, patomic));
+}
+
+static LW_INLINE INT  __LW_ATOMIC_NAND (INT  iVal, atomic_t  *patomic)
+{
+    return  (archAtomicNand(iVal, patomic));
 }
 
 static LW_INLINE INT  __LW_ATOMIC_OR (INT  iVal, atomic_t  *patomic)
@@ -139,6 +144,19 @@ static LW_INLINE INT  __LW_ATOMIC_AND (INT  iVal, atomic_t  *patomic)
     return  (iRet);
 }
 
+static LW_INLINE INT  __LW_ATOMIC_NAND (INT  iVal, atomic_t  *patomic)
+{
+             INTREG  iregInterLevel;
+    REGISTER INT     iRet;
+
+    __LW_ATOMIC_LOCK(iregInterLevel);
+    iRet = ~(patomic->counter & iVal);
+    patomic->counter = iRet;
+    __LW_ATOMIC_UNLOCK(iregInterLevel);
+
+    return  (iRet);
+}
+
 static LW_INLINE INT  __LW_ATOMIC_OR (INT  iVal, atomic_t  *patomic)
 {
              INTREG  iregInterLevel;
@@ -156,12 +174,12 @@ static LW_INLINE INT  __LW_ATOMIC_XOR (INT  iVal, atomic_t  *patomic)
 {
              INTREG  iregInterLevel;
     REGISTER INT     iRet;
-    
+
     __LW_ATOMIC_LOCK(iregInterLevel);
     iRet = patomic->counter ^ iVal;
     patomic->counter = iRet;
     __LW_ATOMIC_UNLOCK(iregInterLevel);
-    
+
     return  (iRet);
 }
 
@@ -241,6 +259,11 @@ static LW_INLINE INT64  __LW_ATOMIC64_SUB (INT64  i64Val, atomic64_t  *patomic64
 static LW_INLINE INT64  __LW_ATOMIC64_AND (INT64  i64Val, atomic64_t  *patomic64)
 {
     return  (archAtomic64And(i64Val, patomic64));
+}
+
+static LW_INLINE INT64  __LW_ATOMIC64_NAND (INT64  i64Val, atomic64_t  *patomic64)
+{
+    return  (archAtomic64Nand(i64Val, patomic64));
 }
 
 static LW_INLINE INT64  __LW_ATOMIC64_OR (INT64  i64Val, atomic64_t  *patomic64)
@@ -325,6 +348,19 @@ static LW_INLINE INT64  __LW_ATOMIC64_AND (INT64  i64Val, atomic64_t  *patomic64
     return  (i64Ret);
 }
 
+static LW_INLINE INT64  __LW_ATOMIC64_NAND (INT64  i64Val, atomic64_t  *patomic64)
+{
+             INTREG  iregInterLevel;
+    REGISTER INT64   i64Ret;
+
+    __LW_ATOMIC_LOCK(iregInterLevel);
+    i64Ret = ~(patomic64->counter & i64Val);
+    patomic64->counter = i64Ret;
+    __LW_ATOMIC_UNLOCK(iregInterLevel);
+
+    return  (i64Ret);
+}
+
 static LW_INLINE INT64  __LW_ATOMIC64_OR (INT64  i64Val, atomic64_t  *patomic64)
 {
              INTREG  iregInterLevel;
@@ -342,12 +378,12 @@ static LW_INLINE INT64  __LW_ATOMIC64_XOR (INT64  i64Val, atomic64_t  *patomic64
 {
              INTREG  iregInterLevel;
     REGISTER INT64   i64Ret;
-    
+
     __LW_ATOMIC_LOCK(iregInterLevel);
     i64Ret = patomic64->counter ^ i64Val;
     patomic64->counter = i64Ret;
     __LW_ATOMIC_UNLOCK(iregInterLevel);
-    
+
     return  (i64Ret);
 }
 
@@ -420,11 +456,6 @@ static LW_INLINE INT  __LW_ATOMIC_DEC (atomic_t  *patomic)
     return  (__LW_ATOMIC_SUB(1, patomic));
 }
 
-static LW_INLINE INT  __LW_ATOMIC_NAND (INT  iVal, atomic_t  *patomic)
-{
-    return  (__LW_ATOMIC_AND(~iVal, patomic));
-}
-
 static LW_INLINE INT64  __LW_ATOMIC64_INC (atomic64_t  *patomic64)
 {
     return  (__LW_ATOMIC64_ADD(1, patomic64));
@@ -433,11 +464,6 @@ static LW_INLINE INT64  __LW_ATOMIC64_INC (atomic64_t  *patomic64)
 static LW_INLINE INT64  __LW_ATOMIC64_DEC (atomic64_t  *patomic64)
 {
     return  (__LW_ATOMIC64_SUB(1, patomic64));
-}
-
-static LW_INLINE INT64  __LW_ATOMIC64_NAND (INT64  i64Val, atomic64_t  *patomic64)
-{
-    return  (__LW_ATOMIC64_AND(~i64Val, patomic64));
 }
 
 #endif                                                                  /*  __K_ATOMIC_H                */

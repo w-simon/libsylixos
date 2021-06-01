@@ -61,19 +61,19 @@ static INT  pciStorageNvmeHeaderQuirk (PCI_DEV_HANDLE  hPciDevHandle)
 ** 函数名称: pciNvmeDevIdTblGet
 ** 功能描述: 获取设备列表
 ** 输　入  : phPciDevId     设备 ID 列表句柄缓冲区
-**           puiSzie        设备列表大小
+**           puiSize        设备列表大小
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  pciNvmeDevIdTblGet (PCI_DEV_ID_HANDLE  *phPciDevId, UINT32  *puiSzie)
+static INT  pciNvmeDevIdTblGet (PCI_DEV_ID_HANDLE  *phPciDevId, UINT32  *puiSize)
 {
-    if ((!phPciDevId) || (!puiSzie)) {
+    if ((!phPciDevId) || (!puiSize)) {
         return  (PX_ERROR);
     }
 
     *phPciDevId = (PCI_DEV_ID_HANDLE)pciStorageNvmeIdTbl;
-    *puiSzie    = sizeof(pciStorageNvmeIdTbl) / sizeof(PCI_DEV_ID_CB);
+    *puiSize    = sizeof(pciStorageNvmeIdTbl) / sizeof(PCI_DEV_ID_CB);
 
     return  (ERROR_NONE);
 }
@@ -321,7 +321,7 @@ static INT  pciStorageNvmeVendorCtrlIntDisConnect (NVME_CTRL_HANDLE   hCtrl,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiIrqNum)
+static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT  uiIrqNum)
 {
     INT                     iRet;
     PCI_DEV_HANDLE          hPciDev;
@@ -329,7 +329,7 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
     phys_addr_t             paBaseAddr;
     PCI_RESOURCE_HANDLE     hResource;
 
-    hPciDev = (PCI_DEV_HANDLE)hCtrl->NVMECTRL_pvArg;                    /* 获取设备句柄                 */
+    hPciDev = (PCI_DEV_HANDLE)hCtrl->NVMECTRL_pvArg;                    /*  获取设备句柄                */
 
     API_PciDevConfigReadWord(hPciDev, PCI_DEVICE_ID, &usPciDevId);
     NVME_LOG(NVME_LOG_PRT, "ctrl name %s index %d unit %d for pci dev %d:%d.%d dev id 0x%04x.\r\n",
@@ -337,7 +337,7 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
              hPciDev->PCIDEV_iDevBus,
              hPciDev->PCIDEV_iDevDevice,
              hPciDev->PCIDEV_iDevFunction, usPciDevId);
-                                                                        /* 查找对应资源信息             */
+                                                                        /*  查找对应资源信息            */
     hResource = API_PciDevStdResourceGet(hPciDev, PCI_IORESOURCE_MEM, PCI_BAR_INDEX_0);
     if (!hResource) {
         NVME_LOG(NVME_LOG_ERR, "pci BAR index %d error.\r\n", PCI_BAR_INDEX_0);
@@ -352,7 +352,7 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
                  hCtrl->NVMECTRL_pvRegAddr,  hCtrl->NVMECTRL_stRegSize);
         return  (PX_ERROR);
     }
-    NVME_LOG(NVME_LOG_PRT, "nvme reg addr 0x%llx szie %llx.\r\n",
+    NVME_LOG(NVME_LOG_PRT, "nvme reg addr 0x%llx size %llx.\r\n",
              hCtrl->NVMECTRL_pvRegAddr, hCtrl->NVMECTRL_stRegSize);
 
     iRet = API_PciDevMasterEnable(hPciDev, LW_TRUE);                    /*  使能 Master 模式            */
@@ -370,7 +370,7 @@ static INT  pciStorageNvmeVendorCtrlReadyWork (NVME_CTRL_HANDLE  hCtrl, UINT uiI
      *  分配 MSI-X 描述符
      */
     hCtrl->NVMECTRL_pvIntHandle = __SHEAP_ZALLOC(sizeof(PCI_MSI_DESC) * uiIrqNum);
-    if (!hCtrl->NVMECTRL_pvIntHandle) {                                 /* 分配描述符失败               */
+    if (!hCtrl->NVMECTRL_pvIntHandle) {                                 /*  分配描述符失败              */
         goto    __msi_handle;
     }
 
@@ -409,7 +409,7 @@ __intx_handle:
      *  则 NVMe 设备本身必须支持 INTx 中断模式，购买设备时需确认。
      *  此时对 Msi 和 Msi-X 中断的处理会返回错误，但仍能在 INTx 中断模式下正常工作。
      */
-    iRet = API_PciDevMsiEnableSet(hPciDev, LW_FALSE);                   /* 可能会失败，不做处理         */
+    iRet = API_PciDevMsiEnableSet(hPciDev, LW_FALSE);                   /*  可能会失败，不做处理        */
     hCtrl->NVMECTRL_uiIntNum = 1;
     hCtrl->NVMECTRL_bMsix    = LW_FALSE;
 

@@ -71,8 +71,18 @@ FUNC_DEF(arm64CacheSetCSSELR)
 ;*********************************************************************************************************/
 
 FUNC_DEF(arm64ICacheEnable) 
+    MRS     X0  , SCTLR_EL1
+    AND     X0  , X0 , #(1 << 12)
+    CMP     X0  , #0
+    BEQ     do_icache_enable
+    RET
+
+LINE_LABEL(do_icache_enable)
     MOV     X13 , LR
     BL      arm64ICacheInvalidateAll
+
+    ARM_ISB()
+
     MRS     X0  , SCTLR_EL1
     ORR     X0  , X0,  #(1 << 12)
     MSR     SCTLR_EL1, X0
@@ -81,9 +91,23 @@ FUNC_DEF(arm64ICacheEnable)
     FUNC_END()
 
 FUNC_DEF(arm64DCacheEnable)
+    MRS     X0  , SCTLR_EL1
+    AND     X0  , X0 , #(1 << 2)
+    CMP     X0  , #0
+    BEQ     do_dcache_enable
+    RET
+
+LINE_LABEL(do_dcache_enable)
+    MOV     X13 , LR                                                    ;/*  记录返回地址                */
+    BL      arm64DCacheInvalidateAll
+
+    ARM_DSB()
+    ARM_ISB()
+
     MRS     X0 , SCTLR_EL1
     ORR     X0 , X0, #(1 << 2)
     MSR     SCTLR_EL1 , X0
+    MOV     LR  , X13
     RET
     FUNC_END()
 
@@ -140,6 +164,7 @@ MACRO_DEF(armDCacheV8Op  Op  Kstart  Kend   LineSize  Tmp)
 ;/*********************************************************************************************************
 ;  ARMv8 回写 部分 DCACHE      X0=void *start; X1=void *end; X2=cache line size
 ;*********************************************************************************************************/
+
 FUNC_DEF(arm64DCacheFlushPoU)
     armDCacheV8Op   CVAU  X0  X1  X2  X3
     FUNC_END()

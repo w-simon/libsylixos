@@ -172,7 +172,7 @@ static LW_LD_EXEC_SHARE *__ldExecShareFindByBase (PVOID  pvBase)
     }
 }
 /*********************************************************************************************************
-** 函数名称: __ldExecShareFindByBase
+** 函数名称: __ldExecShareFindByFile
 ** 功能描述: 通过文件信息查询共享段信息
 ** 输　入  : dev           设备
 **           ino64         ino64_t

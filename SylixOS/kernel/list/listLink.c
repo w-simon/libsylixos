@@ -252,7 +252,6 @@ VOID  _List_Line_Add_Right (PLW_LIST_LINE  plineNew, PLW_LIST_LINE  plineLeft)
 *********************************************************************************************************/
 VOID  _List_Line_Del (PLW_LIST_LINE  plineDel, LW_LIST_LINE_HEADER  *pplineHeader)
 {
-    
     if (plineDel->LINE_plistPrev == LW_NULL) {                          /*  ±íÍ·                        */
         *pplineHeader = plineDel->LINE_plistNext;
     } else {

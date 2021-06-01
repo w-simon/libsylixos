@@ -905,7 +905,7 @@ static INT  __tshellVProcShow (INT  iArgC, PCHAR  *ppcArgV)
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellLsmod
-** 功能描述: 系统命令 "ps"
+** 功能描述: 系统命令 "lsmod"
 ** 输　入  : iArgC         参数个数
 **           ppcArgV       参数表
 ** 输　出  : 0
@@ -1046,7 +1046,7 @@ VOID  API_LoaderInit (VOID)
     _G_ulExecShareLock = API_SemaphoreMCreate("execshare_lock", LW_PRIO_DEF_CEILING, LW_OPTION_WAIT_PRIORITY |
                                               LW_OPTION_INHERIT_PRIORITY | LW_OPTION_DELETE_SAFE |
                                               LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-#endif                                                                  /*  LW_CFG_VMM_EN > 0          */
+#endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 
     lib_bzero(&_G_vprocKernel, sizeof(_G_vprocKernel));
     

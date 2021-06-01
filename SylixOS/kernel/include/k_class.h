@@ -325,11 +325,11 @@ typedef LW_CLASS_MSGQUEUE   *PLW_CLASS_MSGQUEUE;
 
 typedef struct {
     ARCH_REG_CTX          COROUTINE_archRegCtx;                         /*  寄存器上下文                */
-    PLW_STACK             COROUTINE_pstkStackTop;                       /*  线程主堆栈栈顶              */
+    PLW_STACK             COROUTINE_pstkStackTop;                       /*  协程主堆栈栈顶              */
                                                                         /*  不包括 CRCB 堆栈区          */
-    PLW_STACK             COROUTINE_pstkStackBottom;                    /*  线程主堆栈栈底              */
+    PLW_STACK             COROUTINE_pstkStackBottom;                    /*  协程主堆栈栈底              */
                                                                         /*  不包括 CRCB 堆栈区          */
-    size_t                COROUTINE_stStackSize;                        /*  线程堆栈大小(单位：字)      */
+    size_t                COROUTINE_stStackSize;                        /*  协程堆栈大小(单位：字)      */
                                                                         /*  包括 CRCB 在内的所有堆栈    */
     PLW_STACK             COROUTINE_pstkStackLowAddr;                   /*  总堆栈最低地址              */
     

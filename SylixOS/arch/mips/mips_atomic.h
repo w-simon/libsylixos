@@ -65,6 +65,35 @@ ATOMIC_OP_RETURN(And,  &=,  and)
 ATOMIC_OP_RETURN(Or,   |=,  or)
 ATOMIC_OP_RETURN(Xor,  ^=,  xor)
 
+static LW_INLINE INT  archAtomicNand (INT  i, atomic_t  *v)
+{
+    INT  iTemp;
+    INT  iResult;
+
+    KN_SMP_MB_BEFORE_ATOMIC();
+
+    do {
+        __asm__ __volatile__(
+            "   .set    push                        \n"
+            "   .set    noreorder                   \n"
+            KN_WEAK_LLSC_MB
+            "   ll      %1, %2                      \n"
+            "   and     %0, %1, %3                  \n"
+            "   not     %0, %0                      \n"
+            "   sc      %0, %2                      \n"
+            "   .set    pop                         \n"
+            : "=&r" (iResult), "=&r" (iTemp),
+              "+R" (v->counter)
+            : "Ir" (i));
+    } while (!iResult);
+
+    iResult = ~(iTemp & i);
+
+    KN_SMP_MB_AFTER_ATOMIC();
+
+    return  (iResult);
+}
+
 static LW_INLINE VOID  archAtomicSet (INT  i, atomic_t  *v)
 {
 #if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || defined(_MIPS_ARCH_HR2)
@@ -208,6 +237,35 @@ ATOMIC64_OP_RETURN(Sub,  -=,  dsubu)
 ATOMIC64_OP_RETURN(And,  &=,  and)
 ATOMIC64_OP_RETURN(Or,   |=,  or)
 ATOMIC64_OP_RETURN(Xor,  ^=,  xor)
+
+static LW_INLINE INT64  archAtomic64Nand (INT64  i, atomic64_t  *v)
+{
+    INT64  i64Temp;
+    INT64  i64Result;
+
+    KN_SMP_MB_BEFORE_ATOMIC();
+
+    do {
+        __asm__ __volatile__(
+            "   .set    push                        \n"
+            "   .set    noreorder                   \n"
+            KN_WEAK_LLSC_MB
+            "   lld      %1, %2                     \n"
+            "   and      %0, %1, %3                 \n"
+            "   not      %0, %0                     \n"
+            "   scd      %0, %2                     \n"
+            "   .set    pop                         \n"
+            : "=&r" (i64Result), "=&r" (i64Temp),
+              "+R" (v->counter)
+            : "Ir" (i));
+    } while (!i64Result);
+
+    i64Result = ~(i64Temp & i);
+
+    KN_SMP_MB_AFTER_ATOMIC();
+
+    return  (i64Result);
+}
 
 static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
 {

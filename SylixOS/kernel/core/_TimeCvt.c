@@ -37,7 +37,7 @@ ULONG  (*_K_pfuncTimespecTimeoutTick)()   = __timespecTimeoutTickSimple;
 INT64  (*_K_pfuncTimespecTimeoutTick64)() = __timespecTimeoutTick64Simple;
 /*********************************************************************************************************
 ** 函数名称: __timespecToTickDiff
-** 功能描述: 计算两个时间点只差, 并转换为 tick
+** 功能描述: 计算两个时间点之差, 并转换为 tick
 ** 输　入  : ptvS, ptvE     时间点开始与结束
 ** 输　出  : tick
 ** 全局变量: 

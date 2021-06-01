@@ -41,6 +41,7 @@
 #define __DISK_PART_STARTSECTOR             0x8
 #define __DISK_PART_NSECTOR                 0xc
 #define __DISK_PART_OFFSEC                  2048
+#define __DISK_PART_MINSEC                  (__DISK_PART_OFFSEC + 128)
 /*********************************************************************************************************
 ** 函数名称: __oemFdisk
 ** 功能描述: 对 OEM 磁盘设备进行分区操作
@@ -69,7 +70,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
     UINT8            *pucSecBuf, *pucFillBuf;
     UINT8            *pucPartEntry;
     BOOL              bMaster = LW_FALSE;
-    ULONG             ulLeftSec;
+    ULONG             ulLeftSec, ulInvSec = ulTotalSec;
     ULONG             ulNSecPerMB = LW_CFG_MB_SIZE / ulSecSize;
     UINT64            u64Temp;
     UINT32            uiPSecNext;
@@ -78,20 +79,6 @@ static INT  __oemFdisk (INT                     iBlkFd,
     UINT              uiHdStart,  uiHdEnd;
     UINT              uiCylStart, uiCylEnd;
     UINT              uiSecStart, uiSecEnd;
-    
-    pucSecBuf = (UINT8 *)__SHEAP_ALLOC((size_t)ulSecSize << 1);
-    if (pucSecBuf == LW_NULL) {
-        _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
-        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
-        return  (PX_ERROR);
-    }
-    
-    pucFillBuf = pucSecBuf + ulSecSize;
-    lib_memset(pucFillBuf, 0xff, (size_t)ulSecSize);                    /*  用 0xff 填充扇区缓存        */
-    if (ulTotalSec > 2050) {
-        pwrite(iBlkFd, pucFillBuf, 
-               (size_t)ulSecSize, (2050 * (off_t)ulSecSize));           /*  去掉 Linux 文件系统信息     */
-    }
     
     ulTotalSec -= __DISK_PART_OFFSEC;                                   /*  有效的总扇区数              */
     uiPSecNext  = __DISK_PART_OFFSEC;
@@ -112,11 +99,30 @@ static INT  __oemFdisk (INT                     iBlkFd,
             uiPNSec[i] = (UINT32)u64Temp;
         }
 
-        uiPNSec[i]  = ROUND_DOWN(uiPNSec[i], (stAlign / ulSecSize));    /*  对齐的扇区个数              */
+        uiPNSec[i] = ROUND_DOWN(uiPNSec[i], (stAlign / ulSecSize));     /*  对齐的扇区个数              */
+        if (ulLeftSec < uiPNSec[i]) {                                   /*  分区越界                    */
+            _ErrorHandle(ENOSPC);
+            return  (PX_ERROR);
+        }
+
         ulLeftSec  -= uiPNSec[i];
         uiPSecNext += uiPNSec[i];
     }
-    
+
+    pucSecBuf = (UINT8 *)__SHEAP_ALLOC((size_t)ulSecSize << 1);
+    if (pucSecBuf == LW_NULL) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+
+    pucFillBuf = pucSecBuf + ulSecSize;
+    lib_memset(pucFillBuf, 0xff, (size_t)ulSecSize);                    /*  用 0xff 填充扇区缓存        */
+    if (ulInvSec > 2050) {
+        pwrite(iBlkFd, pucFillBuf,
+               (size_t)ulSecSize, (2050 * (off_t)ulSecSize));           /*  去掉 Linux 文件系统信息     */
+    }
+
     if (pread(iBlkFd, pucSecBuf, (size_t)ulSecSize, 0) != (ssize_t)ulSecSize) {
         __SHEAP_FREE(pucSecBuf);
         return  (PX_ERROR);
@@ -203,7 +209,6 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
     struct stat statGet;
     ULONG       ulSecSize;
     ULONG       ulTotalSec;
-    UINT8       ucTotalPct = 0;
 
     if (!pcBlkDev || !fdpPart || !uiNPart || (uiNPart > 4)) {
         _ErrorHandle(EINVAL);
@@ -239,7 +244,7 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
         return  (PX_ERROR);
     }
     
-    if (ulTotalSec < __DISK_PART_OFFSEC) {
+    if (ulTotalSec < __DISK_PART_MINSEC) {
         close(iBlkFd);
         _ErrorHandle(ENOSPC);
         return  (PX_ERROR);
@@ -255,34 +260,10 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
     }
 
     for (i = 0; i < uiNPart; i++) {
-        if (fdpPart[i].FDP_ucSzPct > 100) {                             /*  容量分配                    */
-            ULONG   ulNSecPerMB = LW_CFG_MB_SIZE / ulSecSize;
-            ULONG   ulPartNSec;
-            UINT8   ucSzPct;
-
-            if (!fdpPart[i].FDP_ulMBytes) {                             /*  容量信息错误                */
-                close(iBlkFd);
-                _ErrorHandle(EINVAL);
-                return  (PX_ERROR);
-            }
-
-            ulPartNSec  = fdpPart[i].FDP_ulMBytes * ulNSecPerMB;
-            ucSzPct     = ulPartNSec / (ulTotalSec / 100);
-            ucTotalPct += ucSzPct;
-
-        } else {                                                        /*  比例分配                    */
-            ucTotalPct += fdpPart[i].FDP_ucSzPct;
-            if (!fdpPart[i].FDP_ucSzPct) {
-                i++;
-                break;
-            }
+        if (fdpPart[i].FDP_ucSzPct == 0) {
+            i++;
+            break;
         }
-    }
-
-    if (ucTotalPct > 100) {
-        close(iBlkFd);
-        _ErrorHandle(ENOSPC);
-        return  (PX_ERROR);
     }
 
     uiNPart = i;

@@ -2055,7 +2055,9 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
         return  (-ERROR_TSHELL_EPARAM);
     }
 
-    printf("block device %s total size: %llu (MB)\n", pcBlkFile, (statGet.st_size >> 20));
+    printf("block device %s total size: %llu (MB), reserved: %lu (KB)\n",
+           pcBlkFile, (statGet.st_size >> 20),
+           statGet.st_blksize * 2048 / 1024);                           /*  保留了 2048 个扇区        */
 
 __input_num:
     printf("please input how many partition(s) you want to make (1 ~ 4) : ");

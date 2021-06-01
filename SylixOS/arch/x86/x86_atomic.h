@@ -37,11 +37,12 @@ static LW_INLINE INT  archAtomicGet (atomic_t  *v)
     return  (LW_ACCESS_ONCE(INT, v->counter));
 }
 
-INT  archAtomicAdd(INT  i, atomic_t  *v);
-INT  archAtomicSub(INT  i, atomic_t  *v);
-INT  archAtomicAnd(INT  i, atomic_t  *v);
-INT  archAtomicOr (INT  i, atomic_t  *v);
-INT  archAtomicXor(INT  i, atomic_t  *v);
+INT  archAtomicAdd(INT   i, atomic_t  *v);
+INT  archAtomicSub(INT   i, atomic_t  *v);
+INT  archAtomicAnd(INT   i, atomic_t  *v);
+INT  archAtomicOr(INT    i, atomic_t  *v);
+INT  archAtomicXor(INT   i, atomic_t  *v);
+INT  archAtomicNand(INT  i, atomic_t  *v);
 
 /*********************************************************************************************************
   atomic cas op
@@ -94,11 +95,12 @@ static LW_INLINE INT64  archAtomic64Get (atomic64_t  *v)
     return  (LW_ACCESS_ONCE(INT64, v->counter));
 }
 
-INT64  archAtomic64Add(INT64  i, atomic64_t  *v);
-INT64  archAtomic64Sub(INT64  i, atomic64_t  *v);
-INT64  archAtomic64And(INT64  i, atomic64_t  *v);
-INT64  archAtomic64Or (INT64  i, atomic64_t  *v);
-INT64  archAtomic64Xor(INT64  i, atomic64_t  *v);
+INT64  archAtomic64Add(INT64   i, atomic64_t  *v);
+INT64  archAtomic64Sub(INT64   i, atomic64_t  *v);
+INT64  archAtomic64And(INT64   i, atomic64_t  *v);
+INT64  archAtomic64Or(INT64    i, atomic64_t  *v);
+INT64  archAtomic64Xor(INT64   i, atomic64_t  *v);
+INT64  archAtomic64Nand(INT64  i, atomic64_t  *v);
 
 /*********************************************************************************************************
   atomic64 cas op
@@ -231,6 +233,17 @@ static LW_INLINE INT64  archAtomic64Xor(INT64  i, atomic64_t  *v)
     }
 
     return  (i64Temp ^ i);
+}
+
+static LW_INLINE INT64  archAtomic64Nand(INT64  i, atomic64_t  *v)
+{
+    INT64  i64Old, i64Temp = 0;
+
+    while ((i64Old = archAtomic64Cas(v, i64Temp, ~(i64Temp & i))) != i64Temp) {
+        i64Temp = i64Old;
+    }
+
+    return  (~(i64Temp & i));
 }
 
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT 32   */

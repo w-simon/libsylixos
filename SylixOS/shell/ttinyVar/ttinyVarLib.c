@@ -597,11 +597,12 @@ ULONG  __tshellVarGet (CPCHAR  pcVarName, PCHAR  *ppcVarValue)
 ** 功能描述: 设置一个变量的值
 ** 输　入  : pcVarName       变量名
 **           pcVarValue      变量的值
+**           iIsOverwrite    是否覆盖
 ** 输　出  : 错误代码
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-ULONG  __tshellVarSet (CPCHAR       pcVarName, CPCHAR       pcVarValue, INT  iIsOverwrite)
+ULONG  __tshellVarSet (CPCHAR  pcVarName, CPCHAR  pcVarValue, INT  iIsOverwrite)
 {
     REGISTER PLW_LIST_LINE        plineHash;
     REGISTER __PTSHELL_VAR        pskvNode = LW_NULL;                   /*  变量节点                    */

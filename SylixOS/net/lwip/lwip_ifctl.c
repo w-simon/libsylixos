@@ -824,7 +824,7 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFTCPWND:
     case SIOCGIFPFLAGS:
     case SIOCSIFPFLAGS:
-        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
+        LWIP_IF_LIST_LOCK(LW_TRUE);                                     /*  进入临界区 (独占)           */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;
@@ -1001,7 +1001,7 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
     case SIOCSIFHWADDR:
     case SIOCGIFPFLAGS:
     case SIOCSIFPFLAGS:
-        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  进入临界区                  */
+        LWIP_IF_LIST_LOCK(LW_TRUE);                                     /*  进入临界区 (独占)           */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
         break;

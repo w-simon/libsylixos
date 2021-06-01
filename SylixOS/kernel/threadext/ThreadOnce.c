@@ -113,7 +113,7 @@ INT  API_ThreadOnce (INT  *piOnce, VOIDFUNCPTR  pfuncRoutine)
     INT                iValue;
     atomic_t          *patomic;
 
-    if (!piOnce && !pfuncRoutine) {
+    if (!piOnce || !pfuncRoutine) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -178,7 +178,7 @@ INT  API_ThreadOnce2 (INT  *piOnce, VOIDFUNCPTR  pfuncRoutine, PVOID  pvArg)
     INT                iValue;
     atomic_t          *patomic;
 
-    if (!piOnce && !pfuncRoutine) {
+    if (!piOnce || !pfuncRoutine) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

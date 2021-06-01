@@ -225,7 +225,7 @@ MACRO_DEF(ARCH_INVALID_EXC_ENTRY type)
     BL      API_InterEnter
 
     ;/*
-    ; * 如果不是第一次进入中断, 跳转
+    ; * 如果不是第一次进入异常, 跳转
     ; */
     CMP     X0 , #1
     BNE     1f
@@ -263,14 +263,14 @@ MACRO_DEF(ARCH_INVALID_EXC_ENTRY type)
     BL      archInvalidExcHandle
 
     ;/*
-    ; * 来到这里, 说明发生了中断嵌套
+    ; * 来到这里, 说明发生了异常嵌套
     ; */
     MOV     X18 , SP
     RESTORE_BIG_REG_CTX                                                 ;/*  恢复所有寄存器              */
 
 1:
     ;/*
-    ; * 不是第一次进入中断
+    ; * 不是第一次进入异常
     ; */
     LDR     X0  , [SP, #XSP_OFFSET]                                     ;/*  获取异常前 SP               */
     SUB     X0  , X0 , ARCH_REG_CTX_SIZE                                ;/*  在异常堆栈开辟上下文保存区  */

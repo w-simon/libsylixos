@@ -49,6 +49,7 @@ ATOMIC_OP_RETURN(Sub,  -=,  subf)
 ATOMIC_OP_RETURN(And,  &=,  and)
 ATOMIC_OP_RETURN(Or,   |=,  or)
 ATOMIC_OP_RETURN(Xor,  ^=,  xor)
+ATOMIC_OP_RETURN(Nand, &~,  nand)
 
 static LW_INLINE INT  archAtomicGet (atomic_t  *v)
 {
@@ -159,6 +160,7 @@ ATOMIC64_OP_RETURN(Sub,  -=,  subf)
 ATOMIC64_OP_RETURN(And,  &=,  and)
 ATOMIC64_OP_RETURN(Or,   |=,  or)
 ATOMIC64_OP_RETURN(Xor,  ^=,  xor)
+ATOMIC64_OP_RETURN(Nand, &~,  nand)
 
 static LW_INLINE INT64  archAtomic64Get (atomic64_t  *v)
 {

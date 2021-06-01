@@ -85,7 +85,6 @@ extern void  netbd_sub_delete_hook(netdev_t *netdev);
 #define NETDEV_DOWN(netdev)                 if ((netdev)->drv->down) { (netdev)->drv->down((netdev)); }
 #define NETDEV_REMOVE(netdev)               if ((netdev)->drv->remove) { (netdev)->drv->remove((netdev)); }
 #define NETDEV_IOCTL(netdev, a, b)          if ((netdev)->drv->ioctl) { (netdev)->drv->ioctl((netdev), (a), (b)); }
-#define NETDEV_PROMISC(netdev, a, b)        if ((netdev)->drv->promisc) { (netdev)->drv->promisc((netdev), (a), (b)); }
 #define NETDEV_RXMODE(netdev, a)            if ((netdev)->drv->rxmode) { (netdev)->drv->rxmode((netdev), (a)); }
 #define NETDEV_TRANSMIT(netdev, a)          (netdev)->drv->transmit((netdev), (a))
 #define NETDEV_RECEIVE(netdev, input, a)    (netdev)->drv->receive((netdev), (input), (a))
@@ -205,9 +204,12 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
     mem_free(mac);
     netif_set_maddr_hook(netif, group, 0);
     
-    flags = netif_get_flags(netif);
-    if (!(flags & (IFF_PROMISC | IFF_ALLMULTI))) {
-      NETDEV_RXMODE(netdev, flags);
+    if (!netdev->mac_filter) {
+      flags = netif_get_flags(netif);
+      if (flags & IFF_ALLMULTI) {
+        NETDEV_RXMODE(netdev, flags & ~IFF_ALLMULTI);
+        netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+      }
     }
     
   } else {
@@ -231,8 +233,9 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
     netif_set_maddr_hook(netif, group, 1);
     
     flags = netif_get_flags(netif);
-    if (!(flags & (IFF_PROMISC | IFF_ALLMULTI))) {
-      NETDEV_RXMODE(netdev, flags);
+    if (!(flags & IFF_ALLMULTI)) {
+      NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
+      netif->flags2 |= NETIF_FLAG2_ALLMULTI;
     }
   }
   
@@ -283,9 +286,12 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
     mem_free(mac);
     netif_set_maddr6_hook(netif, group, 0);
     
-    flags = netif_get_flags(netif);
-    if (!(flags & (IFF_PROMISC | IFF_ALLMULTI))) {
-      NETDEV_RXMODE(netdev, flags);
+    if (!netdev->mac_filter) {
+      flags = netif_get_flags(netif);
+      if (flags & IFF_ALLMULTI) {
+        NETDEV_RXMODE(netdev, flags & ~IFF_ALLMULTI);
+        netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+      }
     }
     
   } else {
@@ -309,8 +315,9 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
     netif_set_maddr6_hook(netif, group, 1);
     
     flags = netif_get_flags(netif);
-    if (!(flags & (IFF_PROMISC | IFF_ALLMULTI))) {
-      NETDEV_RXMODE(netdev, flags);
+    if (!(flags & IFF_ALLMULTI)) {
+      NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
+      netif->flags2 |= NETIF_FLAG2_ALLMULTI;
     }
   }
   
@@ -1483,7 +1490,8 @@ int  netdev_macfilter_isempty (netdev_t *netdev)
   return (!netdev->mac_filter);
 }
 
-/* netdev mac filter cnt */
+/* netdev mac filter cnt.
+ * NOTICE: MUST use LWIP_IF_LIST_LOCK(LW_TRUE) lock */
 int  netdev_macfilter_count (netdev_t *netdev)
 {
   struct netdev_mac *ha;
@@ -1496,10 +1504,12 @@ int  netdev_macfilter_count (netdev_t *netdev)
   return (cnt);
 }
 
-/* netdev mac filter add a hwaddr and allow to recv */
+/* netdev mac filter add a hwaddr and allow to recv
+ * NOTICE: MUST use LWIP_IF_LIST_LOCK(LW_TRUE) lock */
 int  netdev_macfilter_add (netdev_t *netdev, const UINT8 hwaddr[])
 {
   struct netdev_mac *mac, *prev;
+  struct netif *netif;
   int type, flags;
   
   if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
@@ -1539,20 +1549,25 @@ int  netdev_macfilter_add (netdev_t *netdev, const UINT8 hwaddr[])
   mac->next = netdev->mac_filter;
   netdev->mac_filter = mac;
   
-  flags = netif_get_flags((struct netif *)(netdev->sys));
-  if (!(flags & (IFF_PROMISC | IFF_ALLMULTI)) || 
-      (type != NETDEV_MAC_TYPE_MULTICAST)) {
-    NETDEV_RXMODE(netdev, flags);
+  if (type == NETDEV_MAC_TYPE_MULTICAST) {
+    netif = (struct netif *)(netdev->sys);
+    flags = netif_get_flags(netif);
+    if (!(flags & IFF_ALLMULTI)) {
+      NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
+      netif->flags2 |= NETIF_FLAG2_ALLMULTI;
+    }
   }
   
   return (0);
 }
 
-/* netdev mac filter delete a hwaddr */
+/* netdev mac filter delete a hwaddr
+ * NOTICE: MUST use LWIP_IF_LIST_LOCK(LW_TRUE) lock */
 int  netdev_macfilter_delete (netdev_t *netdev, const UINT8 hwaddr[])
 {
   struct netdev_mac *mac, *prev;
-  int type, flags;
+  struct netif *netif;
+  int flags;
   
   if (netdev->net_type != NETDEV_TYPE_ETHERNET) {
     return (-1);
@@ -1575,13 +1590,15 @@ int  netdev_macfilter_delete (netdev_t *netdev, const UINT8 hwaddr[])
     netdev->mac_filter = mac->next;
   }
   
-  type = mac->type;
   mem_free(mac);
   
-  flags = netif_get_flags((struct netif *)(netdev->sys));
-  if (!(flags & (IFF_PROMISC | IFF_ALLMULTI)) || 
-      (type != NETDEV_MAC_TYPE_MULTICAST)) {
-    NETDEV_RXMODE(netdev, flags);
+  if (!netdev->mac_filter) {
+    netif = (struct netif *)(netdev->sys);
+    flags = netif_get_flags(netif);
+    if (flags & IFF_ALLMULTI) {
+      NETDEV_RXMODE(netdev, flags & ~IFF_ALLMULTI);
+      netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+    }
   }
   
   return (0);

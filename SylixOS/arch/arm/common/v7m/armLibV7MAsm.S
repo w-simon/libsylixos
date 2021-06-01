@@ -48,7 +48,6 @@
     EXPORT_LABEL(archIntDisable)
     EXPORT_LABEL(archIntEnable)
     EXPORT_LABEL(archIntEnableForce)
-    EXPORT_LABEL(archPageCopy)
     EXPORT_LABEL(archReboot)
     EXPORT_LABEL(archBogoMipsLoop)
 

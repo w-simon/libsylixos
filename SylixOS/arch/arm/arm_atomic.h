@@ -54,6 +54,27 @@ ATOMIC_OP_RETURN(And,  &=,  and)
 ATOMIC_OP_RETURN(Or,   |=,  orr)
 ATOMIC_OP_RETURN(Xor,  ^=,  eor)
 
+static LW_INLINE INT  archAtomicNand (INT  i, atomic_t  *v)
+{
+    ULONG   ulTemp;
+    INT     iResult;
+
+    ARM_PREFETCH_W(&v->counter);
+
+    __asm__ __volatile__(
+        "1: ldrex       %0, [%2]            \n"
+        "   and         %0, %0, %3          \n"
+        "   mvn         %0, %0              \n"
+        "   strex       %1, %0, [%2]        \n"
+        "   teq         %1, #0              \n"
+        "   bne         1b"
+            : "=&r" (iResult), "=&r" (ulTemp)
+            : "r" (&v->counter), "Ir" (i)
+            : "cc");
+
+    return  (iResult);
+}
+
 /*********************************************************************************************************
   On ARM, ordinary assignment (str instruction) doesn't clear the local
   strex/ldrex monitor on some implementations. The reason we can use it for
@@ -160,6 +181,29 @@ ATOMIC64_OP_RETURN(Sub,  -=,  subs, sbc)
 ATOMIC64_OP_RETURN(And,  &=,  and,  and)
 ATOMIC64_OP_RETURN(Or,   |=,  orr,  orr)
 ATOMIC64_OP_RETURN(Xor,  ^=,  eor,  eor)
+
+static LW_INLINE INT64  archAtomic64Nand (INT64  i, atomic64_t  *v)
+{
+    ULONG   ulTemp;
+    INT64   i64Result;
+
+    ARM_PREFETCH_W(&v->counter);
+
+    __asm__ __volatile__(
+        "1: ldrexd          %0, %H0, [%3]       \n"
+        "   and             %Q0, %Q0, %Q4       \n"
+        "   and             %R0, %R0, %R4       \n"
+        "   mvn             %Q0, %Q0            \n"
+        "   mvn             %R0, %R0            \n"
+        "   strexd          %1, %0, %H0, [%3]   \n"
+        "   teq             %1, #0              \n"
+        "   bne             1b"
+           : "=&r" (i64Result), "=&r" (ulTemp), "+Qo" (v->counter)
+           : "r" (&v->counter), "r" (i)
+           : "cc");
+
+    return  (i64Result);
+}
 
 /*********************************************************************************************************
   On ARM, ordinary assignment (str instruction) doesn't clear the local

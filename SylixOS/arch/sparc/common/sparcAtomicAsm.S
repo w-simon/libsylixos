@@ -34,20 +34,21 @@
     EXPORT_LABEL(archAtomicAnd)
     EXPORT_LABEL(archAtomicOr)
     EXPORT_LABEL(archAtomicXor)
+    EXPORT_LABEL(archAtomicNand)
 
 ;/*********************************************************************************************************
 ;  原子量操作并返回结果
 ;*********************************************************************************************************/
 
 #undef  ATOMIC_OP_RETURN
-#define ATOMIC_OP_RETURN(op)     	\
-1:  LD      [%o1], %g1;         	\
-    op      %g1, %o0, %g7;       	\
-    CASA    [%o1] 0xb, %g1, %g7;  	\
-    CMP     %g1, %g7;             	\
-    BNE     1b;                		\
-    NOP;                         	\
-    RETL;                      		\
+#define ATOMIC_OP_RETURN(op)            \
+1:  LD      [%o1], %g1;                 \
+    op      %g1, %o0, %g7;              \
+    CASA    [%o1] 0xb, %g1, %g7;        \
+    CMP     %g1, %g7;                   \
+    BNE     1b;                         \
+    NOP;                                \
+    RETL;                               \
     op      %g1, %o0, %o0;
 
 ;/*********************************************************************************************************
@@ -73,6 +74,23 @@ FUNC_DEF(archAtomicSub)
 FUNC_DEF(archAtomicAnd)
     ATOMIC_OP_RETURN(and)
     FUNC_END(archAtomicAnd)
+
+;/*********************************************************************************************************
+;  原子量与非
+;*********************************************************************************************************/
+
+FUNC_DEF(archAtomicNand)
+1:  LD      [%o1], %g1
+    AND     %g1, %o0, %g7
+    NOT     %g7
+    CASA    [%o1] 0xb, %g1, %g7
+    CMP     %g1, %g7
+    BNE     1b
+    NOP
+    AND     %g1, %o0, %o0
+    RETL
+    NOT     %o0
+    FUNC_END(archAtomicNand)
 
 ;/*********************************************************************************************************
 ;  原子量或

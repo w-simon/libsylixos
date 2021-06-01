@@ -43,7 +43,6 @@
     IMPORT_LABEL(API_InterEnter)
     IMPORT_LABEL(API_InterExit)
     IMPORT_LABEL(API_InterExitNoSched)
-    IMPORT_LABEL(archPendSvCtxSaveReg)
     IMPORT_LABEL(_CpuGetCur)
 
 #if LW_CFG_SMP_EN > 0

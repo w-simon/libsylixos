@@ -332,8 +332,8 @@ static LW_INLINE LW_PMD_TRANSENTRY  arm64MmuBuildPmdEntry (addr_t  ulBaseAddr,
 }
 /*********************************************************************************************************
 ** 函数名称: arm64MmuBuildPtentry
-** 功能描述: 生成一个二级描述符 (PTE 描述符)
-** 输　入  : uiBaseAddr              基地址     (页地址)
+** 功能描述: 生成一个三级描述符 (PTE 描述符)
+** 输　入  : ulBaseAddr              基地址     (页地址)
 **           ucGuard                 进行严格的权限检查
 **           ucXN                    可执行权限标志
 **           ucPXN                   特权可执行权限标志
@@ -345,7 +345,7 @@ static LW_INLINE LW_PMD_TRANSENTRY  arm64MmuBuildPmdEntry (addr_t  ulBaseAddr,
 **           ucNS                    Non-Secure 标志
 **           ucAIn                   Attribute Index
 **           ucType                  描述符类型
-** 输　出  : ERROR or OK
+** 输　出  : 三级描述符
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -507,7 +507,7 @@ static LW_PMD_TRANSENTRY *arm64MmuPmdOffset (LW_PGD_TRANSENTRY  *p_pgdentry, add
 /*********************************************************************************************************
 ** 函数名称: arm64MmuPteOffset
 ** 功能描述: 通过虚拟地址计算 PTE 项
-** 输　入  : p_pgdentry     pgd 入口地址
+** 输　入  : p_pmdentry     pmd 入口地址
 **           ulAddr         虚拟地址
 ** 输　出  : 对应的 PTE 表项地址
 ** 全局变量:

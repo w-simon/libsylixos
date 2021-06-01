@@ -46,6 +46,26 @@ ATOMIC_OP_RETURN(And, and, &,  i)
 ATOMIC_OP_RETURN(Or,  or,  |,  i)
 ATOMIC_OP_RETURN(Xor, xor, ^,  i)
 
+static LW_INLINE INT  archAtomicNand (INT  i, atomic_t  *v)
+{
+             INT    iResult;
+    REGISTER UINT   uiTemp;
+
+    __asm__ __volatile__ (
+        "0: lr.w    %0, %2              \n"
+        "   and     %0, %0, %z3         \n"
+        "   not     %0, %0              \n"
+        "   sc.w.rl %1, %0, %2          \n"
+        "   bnez    %1, 0b              \n"
+        "   fence   rw, rw              \n"
+        "1:                             \n"
+        : "=&r" (iResult), "=&r" (uiTemp), "+A" (v->counter)
+        : "rJ" (i)
+        : "memory");
+
+    return  (iResult);
+}
+
 static LW_INLINE VOID  archAtomicSet (INT  i, atomic_t  *v)
 {
     LW_ACCESS_ONCE(INT, v->counter) = i;
@@ -135,6 +155,26 @@ ATOMIC64_OP_RETURN(Sub, add, +, -i)
 ATOMIC64_OP_RETURN(And, and, &,  i)
 ATOMIC64_OP_RETURN(Or,  or,  |,  i)
 ATOMIC64_OP_RETURN(Xor, xor, ^,  i)
+
+static LW_INLINE INT64  archAtomic64Nand (INT64  i, atomic64_t  *v)
+{
+             INT64    i64Result;
+    REGISTER UINT     uiTemp;
+
+    __asm__ __volatile__ (
+        "0: lr.d    %0, %2              \n"
+        "   and     %0, %0, %z3         \n"
+        "   not     %0, %0              \n"
+        "   sc.d.rl %1, %0, %2          \n"
+        "   bnez    %1, 0b              \n"
+        "   fence   rw, rw              \n"
+        "1:                             \n"
+        : "=&r" (i64Result), "=&r" (uiTemp), "+A" (v->counter)
+        : "rJ" (i)
+        : "memory");
+
+    return  (i64Result);
+}
 
 static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
 {

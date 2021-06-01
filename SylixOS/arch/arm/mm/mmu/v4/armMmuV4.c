@@ -395,7 +395,7 @@ static LW_PMD_TRANSENTRY *armMmuPmdOffset (LW_PGD_TRANSENTRY  *p_pgdentry, addr_
 /*********************************************************************************************************
 ** 函数名称: armMmuPteOffset
 ** 功能描述: 通过虚拟地址计算 PMD 项
-** 输　入  : p_pgdentry     pgd 入口地址
+** 输　入  : p_pmdentry     pmd 入口地址
 **           ulAddr         虚拟地址
 ** 输　出  : 对应的 PMD 表项地址
 ** 全局变量: 

@@ -66,6 +66,7 @@
 2014.04.17  对重定向描述符的回收需要在内核 IO 环境中中进行.
 2017.07.19  执行完每条命令后使用 fpurge(stdin) 清除输入缓存.
 2018.12.13  有些命令必须使用强制内建命令.
+2021.05.25  重定向完成后, 需要清理标准文件的错误标志.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -405,6 +406,7 @@ static INT  __tshellWrapper (FUNCPTR  pfuncCommand, INT  iArgC, PCHAR  ppcArgV[]
     INT         iOldStd[3] = {PX_ERROR, PX_ERROR, PX_ERROR};
     INT         iRealArgc  = iArgC;
     INT         iRet       = PX_ERROR;
+    FILE       *pFile;
     
     LW_OBJECT_HANDLE  ulMe = API_ThreadIdSelf();
 
@@ -441,6 +443,10 @@ static INT  __tshellWrapper (FUNCPTR  pfuncCommand, INT  iArgC, PCHAR  ppcArgV[]
 __ret:
     for (i = 0; i < 3; i++) {                                           /*  还原旧的                    */
         API_IoTaskStdSet(ulMe, i, iOldStd[i]);
+        pFile = *lib_nlreent_stdfile(i);
+        if (pFile) {
+            clearerr(pFile);
+        }
     }
 
     for (i = 0; i < iPopCnt; i++) {
@@ -604,7 +610,7 @@ INT  __tshellExec (CPCHAR  pcCommandExec, VOIDFUNCPTR  pfuncHook)
     }
     
     /*
-     *  如果存在可执行文件则, 则优先运行文件.
+     *  如果存在可执行文件, 则优先运行文件.
      */
 #if LW_CFG_MODULELOADER_EN > 0                                          /*  如果存在文件, 则优先运行    */
     if (!__tshellIsResCmd(cKeyword)) {

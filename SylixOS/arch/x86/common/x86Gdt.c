@@ -25,7 +25,7 @@
   类型定义
 *********************************************************************************************************/
 /*********************************************************************************************************
-  The sructure of a segment descriptor.
+  The structure of a segment descriptor.
 
   @see Intel x86 doc, Vol 3, section 3.4.5, figure 3-8. For segment types, see section 3.5
 *********************************************************************************************************/
@@ -77,7 +77,7 @@ struct x86_gdt_register {
     /*
      * This is not exactly a "virtual" address, ie an adddress such as
      * those of instructions and data; this is a "linear" address, ie an
-     * address in the paged memory. However, in X86 we configure the
+     * address in the paged memory. However, in x86 we configure the
      * segmented memory as a "flat" space: the 0-4GB segment-based (ie
      * "virtual") addresses directly map to the 0-4GB paged memory (ie
      * "linear"), so that the "linear" addresses are numerically equal

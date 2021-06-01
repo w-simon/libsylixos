@@ -54,6 +54,27 @@ ATOMIC_OP_RETURN(And,  &=,  and)
 ATOMIC_OP_RETURN(Or,   |=,  orr)
 ATOMIC_OP_RETURN(Xor,  ^=,  eor)
 
+static LW_INLINE INT  archAtomicNand (INT  i, atomic_t  *v)
+{
+    ULONG   ulTemp;
+    INT     iResult;
+
+    ARM_PREFETCH_W(&v->counter);
+
+    __asm__ __volatile__(
+        "1: ldxr            %w0, %2         \n"
+        "   and             %w0, %w0, %w3   \n"
+        "   mvn             %w0, %w0        \n"
+        "   stlxr           %w1, %w0, %2    \n"
+        "   cbnz            %w1, 1b         \n"
+        "   dmb ish"
+            : "=&r" (iResult), "=&r" (ulTemp), "+Q" (v->counter)
+            : "Ir" (i)
+            : "memory");
+
+    return  (iResult);
+}
+
 /*********************************************************************************************************
   On ARM64, ordinary assignment (str instruction) doesn't clear the local
   strex/ldrex monitor on some implementations. The reason we can use it for
@@ -153,6 +174,27 @@ ATOMIC64_OP_RETURN(Sub,  -=,  sub)
 ATOMIC64_OP_RETURN(And,  &=,  and)
 ATOMIC64_OP_RETURN(Or,   |=,  orr)
 ATOMIC64_OP_RETURN(Xor,  ^=,  eor)
+
+static LW_INLINE INT64  archAtomic64Nand (INT64  i, atomic64_t  *v)
+{
+    ULONG   ulTemp;
+    INT64   i64Result;
+
+    ARM_PREFETCH_W(&v->counter);
+
+    __asm__ __volatile__(
+        "1: ldxr            %0, %2          \n"
+        "   and             %0, %0, %3      \n"
+        "   mvn             %0, %0          \n"
+        "   stlxr           %w1, %0, %2     \n"
+        "   cbnz            %w1, 1b         \n"
+        "   dmb ish"
+            : "=&r" (i64Result), "=&r" (ulTemp), "+Q" (v->counter)
+            : "Ir" (i)
+            : "memory");
+
+    return  (i64Result);
+}
 
 /*********************************************************************************************************
   On ARM, ordinary assignment (str instruction) doesn't clear the local

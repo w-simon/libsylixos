@@ -528,20 +528,20 @@ static INT  pciStorageSataHeaderQuirk (PCI_DEV_HANDLE  hPciDevHandle)
 ** 函数名称: pciStorageSataDevIdTblGet
 ** 功能描述: 获取设备列表
 ** 输　入  : phPciDevId     设备 ID 列表句柄缓冲区
-**           puiSzie        设备列表大小
+**           puiSize        设备列表大小
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static INT  pciStorageSataDevIdTblGet (PCI_DEV_ID_HANDLE *phPciDevId, UINT32 *puiSzie)
+static INT  pciStorageSataDevIdTblGet (PCI_DEV_ID_HANDLE *phPciDevId, UINT32 *puiSize)
 {
     if ((!phPciDevId) ||
-        (!puiSzie)) {
+        (!puiSize)) {
         return  (PX_ERROR);
     }
 
     *phPciDevId = (PCI_DEV_ID_HANDLE)pciStorageSataIdTbl;
-    *puiSzie    = sizeof(pciStorageSataIdTbl) / sizeof(PCI_DEV_ID_CB);
+    *puiSize    = sizeof(pciStorageSataIdTbl) / sizeof(PCI_DEV_ID_CB);
 
     return (ERROR_NONE);
 }
@@ -973,7 +973,7 @@ static INT  pciStorageSataVendorCtrlReadyWork (AHCI_CTRL_HANDLE  hCtrl)
                  hCtrl->AHCICTRL_pvRegAddr,  hCtrl->AHCICTRL_stRegSize);
         return  (PX_ERROR);
     }
-    AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx szie %llx.\r\n",
+    AHCI_LOG(AHCI_LOG_PRT, "ahci reg addr 0x%llx size %llx.\r\n",
              hCtrl->AHCICTRL_pvRegAddr, hCtrl->AHCICTRL_stRegSize);
 
     API_PciDevConfigReadWord(hPciDev,  PCI_STATUS,  &usStatus);

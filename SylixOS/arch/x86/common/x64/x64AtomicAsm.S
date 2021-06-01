@@ -28,12 +28,14 @@
     EXPORT_LABEL(archAtomicAdd)
     EXPORT_LABEL(archAtomicSub)
     EXPORT_LABEL(archAtomicAnd)
+    EXPORT_LABEL(archAtomicNand)
     EXPORT_LABEL(archAtomicOr)
     EXPORT_LABEL(archAtomicXor)
 
     EXPORT_LABEL(archAtomic64Add)
     EXPORT_LABEL(archAtomic64Sub)
     EXPORT_LABEL(archAtomic64And)
+    EXPORT_LABEL(archAtomic64Nand)
     EXPORT_LABEL(archAtomic64Or)
     EXPORT_LABEL(archAtomic64Xor)
 
@@ -77,6 +79,23 @@ LINE_LABEL(1)
     MOVL        %ECX , %EAX
     RET
     FUNC_END(archAtomicAnd)
+
+;/*********************************************************************************************************
+;  原子量与非
+;*********************************************************************************************************/
+
+FUNC_DEF(archAtomicNand)
+    MOVL        (%RSI), %EAX                                            ;/*  旧值                        */
+LINE_LABEL(1)
+    MOVL        %EDI , %ECX
+    ANDL        %EAX , %ECX
+    NOT         %ECX
+    LOCK
+    CMPXCHGL    %ECX, (%RSI)
+    JNZ         1b
+    MOVL        %ECX , %EAX
+    RET
+    FUNC_END(archAtomicNand)
 
 ;/*********************************************************************************************************
 ;  原子量或
@@ -150,6 +169,23 @@ LINE_LABEL(1)
     MOVQ        %RCX , %RAX
     RET
     FUNC_END(archAtomic64And)
+
+;/*********************************************************************************************************
+;  64 位原子量与非
+;*********************************************************************************************************/
+
+FUNC_DEF(archAtomic64Nand)
+    MOVQ        (%RSI), %RAX                                            ;/*  旧值                        */
+LINE_LABEL(1)
+    MOVQ        %RDI , %RCX
+    ANDQ        %RAX , %RCX
+    NOTQ        %RCX
+    LOCK
+    CMPXCHGQ    %RCX, (%RSI)
+    JNZ         1b
+    MOVQ        %RCX , %RAX
+    RET
+    FUNC_END(archAtomic64Nand)
 
 ;/*********************************************************************************************************
 ;  64 位原子量或

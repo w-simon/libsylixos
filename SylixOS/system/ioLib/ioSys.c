@@ -615,7 +615,7 @@ __again:                                                                /*  分配
     }
     
     pdevhdrHdr->DEVHDR_usDevNum = usDevNum;
-    __LW_DEV_NUMINIT(iDrvNum)   = usDevNum + 1;                         /*  添加如设备头链表            */
+    __LW_DEV_NUMINIT(iDrvNum)   = usDevNum + 1;                         /*  添加入设备头链表            */
     _List_Line_Add_Ahead(&pdevhdrHdr->DEVHDR_lineManage, &_S_plineDevHdrHeader);
     
     _IosUnlock();                                                       /*  退出 IO 临界区              */

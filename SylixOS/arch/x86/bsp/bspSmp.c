@@ -202,7 +202,7 @@ LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
     *(volatile UINT16 *)(WARM_RESET_VECTOR + 2) = (((addr_t)pulEntryAddr) >> 4);
 
     /*
-     * Initialze the BIOS shutdown code to be 0xa
+     * Initialize the BIOS shutdown code to be 0xa
      */
     /*
      * Selects shutdown status register

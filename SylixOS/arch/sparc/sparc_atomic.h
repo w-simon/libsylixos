@@ -35,6 +35,7 @@ ATOMIC_OP_RETURN(Sub)
 ATOMIC_OP_RETURN(And)
 ATOMIC_OP_RETURN(Or)
 ATOMIC_OP_RETURN(Xor)
+ATOMIC_OP_RETURN(Nand)
 
 static LW_INLINE VOID  archAtomicSet (INT  i, atomic_t  *v)
 {

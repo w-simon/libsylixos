@@ -155,7 +155,7 @@ VOIDFUNCPTR _K_pfuncHeapTraceFree;
 *********************************************************************************************************/
 #define __DEBUG_MEM_ERROR(caller, heap, error, addr)  \
         _DebugFormat(__ERRORMESSAGE_LEVEL, "\'%s\' heap %s memory is %s, address %p.\r\n",  \
-                     caller, heap, error, addr);
+                     caller, heap, error, addr)
 /*********************************************************************************************************
   需要内存越界检查
 *********************************************************************************************************/
@@ -763,7 +763,7 @@ PVOID  _HeapAllocate (PLW_CLASS_HEAP  pheap, size_t  stByteSize, CPCHAR  pcPurpo
     __heap_crossbord_mark(psegment);                                    /*  加入内存越界标志            */
     
     MONITOR_EVT_LONG4(MONITOR_EVENT_ID_REGION, MONITOR_EVENT_REGION_ALLOC,
-                      pheap, __HEAP_SEGMENT_DATA_PTR(psegment), 
+                      pheap, __HEAP_SEGMENT_DATA_PTR(psegment),
                       psegment->SEGMENT_stByteSize, sizeof(LW_STACK), pcPurpose);
     
     return  ((PVOID)__HEAP_SEGMENT_DATA_PTR(psegment));                 /*  返回分配的内存首地址        */
@@ -923,8 +923,8 @@ PVOID  _HeapAllocateAlign (PLW_CLASS_HEAP  pheap, size_t  stByteSize, size_t  st
     __heap_crossbord_mark(psegment);                                    /*  加入内存越界标志            */
     
     MONITOR_EVT_LONG4(MONITOR_EVENT_ID_REGION, MONITOR_EVENT_REGION_ALLOC,
-                      pheap, pcAlign, psegment->SEGMENT_stByteSize, 
-					  stAlign, pcPurpose);
+                      pheap, pcAlign, psegment->SEGMENT_stByteSize,
+                      stAlign, pcPurpose);
     
     return  (pcAlign);                                                  /*  返回分配的内存首地址        */
 }
