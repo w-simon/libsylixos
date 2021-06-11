@@ -284,6 +284,7 @@ int vnetdev_put (struct vnetdev *vnetdev, struct pbuf *p)
   struct netdev *netdev = &vnetdev->netdev;
   struct netif *netif = (struct netif *)netdev->sys;
   int mcast = ((UINT8 *)p->payload)[0] & 1;
+  u32_t length;
   
   if (!netif_is_link_up(netif)) {
     return (-1);
@@ -297,6 +298,7 @@ int vnetdev_put (struct vnetdev *vnetdev, struct pbuf *p)
 #endif
   }
   
+  length = p->tot_len;
   if (netif->input(p, netif)) {
     netdev_linkinfo_drop_inc(netdev);
     netdev_statinfo_discards_inc(netdev, LINK_INPUT);
@@ -304,7 +306,7 @@ int vnetdev_put (struct vnetdev *vnetdev, struct pbuf *p)
   }
   
   netdev_linkinfo_recv_inc(netdev);
-  netdev_statinfo_total_add(netdev, LINK_INPUT, p->tot_len);
+  netdev_statinfo_total_add(netdev, LINK_INPUT, length);
   if (mcast && (netdev->net_type == NETDEV_TYPE_ETHERNET)) {
     netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
   } else {

@@ -1339,7 +1339,7 @@ INT  API_IosIoctl (INT  iFd, INT  iCmd, LONG  lArg)
             if (iCmd == FIOUNSELECT) {                                  /*  这里可能是 unselect 之前关闭*/
                 return  (PX_ERROR);                                     /*  了文件, 不用打印错误        */
             }
-            _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor invalidate: %d.\r\n", iFd);
+            _DebugFormat(__ERRORMESSAGE_LEVEL, "file descriptor %d invalid! command: %u.\r\n", iFd, iCmd);
             _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
         }
         return  (PX_ERROR);

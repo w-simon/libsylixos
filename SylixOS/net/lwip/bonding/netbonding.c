@@ -462,6 +462,7 @@ static int netbd_rxmode (struct netdev *netdev, int flags)
 static err_t  netbd_input (struct pbuf *p, struct netif *netif)
 {
   int pppoe = 0;
+  u32_t length;
   netdev_t *netdev = (netdev_t *)(netif->state); /* sub ethernet device */
   netbd_eth_t *netbd_eth = (netbd_eth_t *)netif->ext_eth;
   netdev_t *netdev_bd = netbd_eth->netdev_bd; /* bonding device */
@@ -499,6 +500,7 @@ static err_t  netbd_input (struct pbuf *p, struct netif *netif)
     }
 
 to_sub:
+    length = p->tot_len - ETH_PAD_SIZE;
     if (netbd_eth->input(p, netif)) {
       netdev_linkinfo_drop_inc(netdev);
       netdev_statinfo_discards_inc(netdev, LINK_INPUT);
@@ -506,7 +508,7 @@ to_sub:
 
     } else {
       netdev_linkinfo_recv_inc(netdev);
-      netdev_statinfo_total_add(netdev, LINK_INPUT, (p->tot_len - ETH_PAD_SIZE));
+      netdev_statinfo_total_add(netdev, LINK_INPUT, length);
       if (mcast) {
         netdev_statinfo_mcasts_inc(netdev, LINK_INPUT);
       } else {
@@ -568,6 +570,7 @@ input: /* TODO: this function may be parallelization, and statistical variables 
     }
   }
 
+  length = p->tot_len - ETH_PAD_SIZE;
   if (netif_bd->input(p, netif_bd)) { /* send to our tcpip stack */
     netdev_linkinfo_drop_inc(netdev_bd);
     netdev_statinfo_discards_inc(netdev_bd, LINK_INPUT);
@@ -575,7 +578,7 @@ input: /* TODO: this function may be parallelization, and statistical variables 
     
   } else {
     netdev_linkinfo_recv_inc(netdev_bd);
-    netdev_statinfo_total_add(netdev_bd, LINK_INPUT, (p->tot_len - ETH_PAD_SIZE));
+    netdev_statinfo_total_add(netdev_bd, LINK_INPUT, length);
     if (mcast) {
       netdev_statinfo_mcasts_inc(netdev_bd, LINK_INPUT);
     } else {
