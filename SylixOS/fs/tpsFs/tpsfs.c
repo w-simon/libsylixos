@@ -1078,7 +1078,7 @@ errno_t  tpsFsSync (PTPS_INODE pinode)
         return  (EIO);
     }
 
-    return  (ERROR_NONE);
+    return  (tpsFsFlushHead(pinode));                                   /* 开启事务同步文件头           */
 }
 /*********************************************************************************************************
 ** 函数名称: tpsFsVolSync
@@ -1103,6 +1103,10 @@ errno_t  tpsFsVolSync (PTPS_SUPER_BLOCK psb)
                         0,
                         (size_t)(psb->SB_ui64DataBlkCnt << psb->SB_uiBlkShift)) != TPS_ERR_NONE) {
                                                                         /* 同步所有数据块               */
+        return  (EIO);
+    }
+
+    if (tpsFsFlushInodes(psb) != ERROR_NONE) {                          /* 同步所有文件头               */
         return  (EIO);
     }
 
@@ -1380,25 +1384,30 @@ errno_t  tpsFsChtime (PTPS_INODE pinode, struct utimbuf  *utim)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  tpsFsFlushInodes (PTPS_SUPER_BLOCK psb)
+errno_t  tpsFsFlushInodes (PTPS_SUPER_BLOCK psb)
 {
     PTPS_INODE  pinode = LW_NULL;
+    INT         iErr   = ERROR_NONE;
 
     if (LW_NULL == psb) {
-        return;
+        return  (EINVAL);
     }
 
     if (psb->SB_uiFlags & TPS_TRANS_FAULT) {                            /* 事务处理出错                 */
-        return;
+        return  (EIO);
     }
 
     pinode = psb->SB_pinodeOpenList;
     while (pinode) {
         if (pinode->IND_bDirty) {
-            tpsFsFlushHead(pinode);
+            if (tpsFsFlushHead(pinode) != TPS_ERR_NONE) {
+                iErr = EIO;
+            }
         }
         pinode = pinode->IND_pnext;
     }
+
+    return  (iErr);
 }
 
 #endif                                                                  /*  LW_CFG_TPSFS_EN > 0         */

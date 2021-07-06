@@ -94,7 +94,7 @@ errno_t     tpsFsChown(PTPS_INODE pinode, uid_t uid, gid_t gid);
                                                                         /* 修改文件时间                 */
 errno_t     tpsFsChtime(PTPS_INODE pinode, struct utimbuf  *utim);
                                                                         /* 回写脏inode节点              */
-VOID        tpsFsFlushInodes(PTPS_SUPER_BLOCK psb);
+errno_t     tpsFsFlushInodes(PTPS_SUPER_BLOCK psb);
 
 #ifdef __cplusplus 
 }
