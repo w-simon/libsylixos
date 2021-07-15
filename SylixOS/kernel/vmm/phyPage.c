@@ -434,7 +434,7 @@ VOID  __vmmPhysicalPageFreeAll (PLW_VMM_PAGE  pvmpageVirtual)
 VOID  __vmmPhysicalPageSetFlag (PLW_VMM_PAGE  pvmpage, ULONG  ulFlag, BOOL  bFlushTlb)
 {
     if (pvmpage->PAGE_ulMapPageAddr != PAGE_MAP_ADDR_INV) {
-        __vmmLibSetFlag(pvmpage->PAGE_ulMapPageAddr, 1, ulFlag, bFlushTlb);
+        __vmmLibSetFlag(pvmpage->PAGE_ulMapPageAddr, pvmpage->PAGE_ulCount, ulFlag, bFlushTlb);
         pvmpage->PAGE_ulFlags = ulFlag;
     }
 }
