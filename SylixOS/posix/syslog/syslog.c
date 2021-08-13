@@ -291,7 +291,7 @@ void  syslog (int priority, const char *message, ...)
     CHAR            cBuffer[LOG_DEFAULT_SIZE];
     size_t          stLen;
     
-    time_t          time;
+    time_t          timeNow;
     struct tm       tmBuf;
     
     va_list         valist;
@@ -311,8 +311,8 @@ void  syslog (int priority, const char *message, ...)
         priority |= _G_iSyslogFaci;
     }
     
-    time = lib_time(LW_NULL);
-    lib_localtime_r(&time, &tmBuf);                                     /*  RFC3164 is the local time   */
+    timeNow = lib_time(LW_NULL);
+    lib_localtime_r(&timeNow, &tmBuf);                                  /*  RFC3164 is the local time   */
     
     stLen = bnprintf(cBuffer, sizeof(cBuffer), 0, "<%d>", priority);    /*  ¥Ú”° priority               */
     stLen = bnprintf(cBuffer, sizeof(cBuffer), stLen, 
@@ -390,7 +390,7 @@ void  syslog_r (int priority, struct syslog_data *data, const char *message, ...
     CHAR            cBuffer[LOG_DEFAULT_SIZE];
     size_t          stLen;
     
-    time_t          time;
+    time_t          timeNow;
     struct tm       tmBuf;
     
     va_list         valist;
@@ -415,8 +415,8 @@ void  syslog_r (int priority, struct syslog_data *data, const char *message, ...
         priority |= data->log_fac;
     }
     
-    time = lib_time(LW_NULL);
-    lib_localtime_r(&time, &tmBuf);                                     /*  RFC3164 is the local time   */
+    timeNow = lib_time(LW_NULL);
+    lib_localtime_r(&timeNow, &tmBuf);                                  /*  RFC3164 is the local time   */
     
     stLen = bnprintf(cBuffer, sizeof(cBuffer), 0, "<%d>", priority);    /*  ¥Ú”° priority               */
     stLen = bnprintf(cBuffer, sizeof(cBuffer), stLen, 

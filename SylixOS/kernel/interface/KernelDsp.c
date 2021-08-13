@@ -35,8 +35,10 @@
 LW_API
 VOID  API_KernelDspPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcDspName)
 {
+    REGISTER PLW_CLASS_TCB       ptcb;
+             PLW_LIST_LINE       plineList;
 #if LW_CFG_INTER_DSP > 0
-    INT     i, j;
+             INT                 i, j;
 #endif                                                                  /*  LW_CFG_INTER_DSP > 0        */
     
     if (LW_SYS_STATUS_GET()) {
@@ -46,6 +48,16 @@ VOID  API_KernelDspPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcDspName)
 
     archDspPrimaryInit(pcMachineName, pcDspName);                       /*  初始化 DSP 单元             */
     
+    LW_CPU_DSP_INITED();                                                /*  标记 DSP 已经初始化         */
+
+    for (plineList  = _K_plineTCBHeader;
+         plineList != LW_NULL;
+         plineList  = _list_line_get_next(plineList)) {
+
+        ptcb = _LIST_ENTRY(plineList, LW_CLASS_TCB, TCB_lineManage);
+        __ARCH_DSP_CTX_INIT(ptcb->TCB_pvStackDSP);                      /*  初始化该任务 DSP 上下文     */
+    }
+
 #if LW_CFG_INTER_DSP > 0
     if (LW_KERN_DSP_EN_GET()) {                                         /*  中断状态允许使用 DSP        */
         __ARCH_DSP_ENABLE();                                            /*  这里需要在当前 DSP 上下文中 */

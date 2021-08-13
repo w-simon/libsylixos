@@ -218,6 +218,10 @@ void  *mmap (void  *pvAddr, size_t  stLen, int  iProt, int  iFlag, int  iFd, off
     }
     if (iFlag & MAP_ANONYMOUS) {
         iFd = PX_ERROR;
+
+    } else if (iFd < 0) {
+        errno = EBADF;
+        return  (MAP_FAILED);
     }
     
     if ((iFlag & MAP_SHARED) && ((iFlag & MAP_PRIVATE) == 0)) {
@@ -234,10 +238,10 @@ void  *mmap (void  *pvAddr, size_t  stLen, int  iProt, int  iFlag, int  iFd, off
     if ((iFlag & MAP_ANONYMOUS) && (pvAddr == LW_NULL)) {
         if (iFlag & MAP_CONTIG) {
             iFlags |= LW_VMM_PHY_PREALLOC;
-            ulFlag |= LW_VMM_FLAG_PHY_CONTINUOUS;                           /*  物理内存连续                */
+            ulFlag |= LW_VMM_FLAG_PHY_CONTINUOUS;                       /*  物理内存连续                */
 
         } else if (iFlag & MAP_PREALLOC) {
-            iFlags |= LW_VMM_PHY_PREALLOC;                                  /*  内存管理预分配              */
+            iFlags |= LW_VMM_PHY_PREALLOC;                              /*  内存管理预分配              */
         }
     }
 
@@ -347,7 +351,7 @@ int  msync (void  *pvAddr, size_t  stLen, int  iFlag)
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
-** 函数名称: shm_open
+** 函数名称: posix_madvise
 ** 功能描述: The posix_madvise() function shall advise the implementation on the expected behavior of the 
              application with respect to the data in the memory starting at address addr, and continuing 
              for len bytes. The implementation may use this information to optimize handling of the 
@@ -387,13 +391,18 @@ int  shm_open (const char *name, int oflag, mode_t mode)
         return  (PX_ERROR);
     }
     
+    if (lib_strnlen(name, NAME_MAX) >= NAME_MAX) {
+        errno = ENAMETOOLONG;
+        return  (PX_ERROR);
+    }
+
     if (name[0] == PX_ROOT) {
         lib_strlcat(cFullName, &name[1], MAX_FILENAME_LENGTH);
     } else {
         lib_strlcat(cFullName, name, MAX_FILENAME_LENGTH);
     }
     
-    return  (open(cFullName, oflag, mode));
+    return  (open(cFullName, oflag | O_CLOEXEC, mode));
 }
 /*********************************************************************************************************
 ** 函数名称: shm_unlink
@@ -414,6 +423,11 @@ int  shm_unlink (const char *name)
         return  (PX_ERROR);
     }
     
+    if (lib_strnlen(name, NAME_MAX) >= NAME_MAX) {
+        errno = ENAMETOOLONG;
+        return  (PX_ERROR);
+    }
+
     if (name[0] == PX_ROOT) {
         lib_strlcat(cFullName, &name[1], MAX_FILENAME_LENGTH);
     } else {

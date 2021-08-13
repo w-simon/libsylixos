@@ -400,7 +400,7 @@ INT  vprocDetach (pid_t  pid)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-LW_LD_VPROC *vprocCreate (CPCHAR  pcFile, ULONG ulExts)
+LW_LD_VPROC *vprocCreate (CPCHAR  pcFile, ULONG  ulExts)
 {
     static UINT  uiIndex = 0;
            CHAR  cVarValue[2];
@@ -1456,7 +1456,7 @@ static INT  vprocPatchVerCheck (LW_LD_VPROC *pvproc)
         _PathLastName(pmodTemp->EMOD_pcModulePath, &pcModuleName);
         if (lib_strcmp(pcModuleName, "libvpmpdm.so") == 0) {
             pmodule = pmodTemp;
-        	break;
+            break;
         }
     }
     LW_VP_UNLOCK(pvproc);
@@ -1555,11 +1555,11 @@ FUNCPTR  vprocGetMain (VOID)
 }
 /*********************************************************************************************************
 ** 函数名称: vprocRun
-** 功能描述: 加载并执行elf文件.
+** 功能描述: 加载并执行 elf 文件.
 ** 输　入  : pvproc           进程控制块
 **           pvpstop          是否等待调试器继续执行信号才能执行
 **           pcFile           文件路径
-**           pcEntry          入口函数名，如果为LW_NULL，表示不需要条用初始化函数
+**           pcEntry          入口函数名，如果为 LW_NULL，表示不需要条用初始化函数
 **           piRet            进程返回值
 **           iArgC            程序参数个数
 **           ppcArgV          程序参数数组
@@ -1611,11 +1611,11 @@ INT  vprocRun (LW_LD_VPROC      *pvproc,
      *  找不到入口函数"_start"，因此需要手动加载libvpmpdm.so
      */
     if (LW_NULL == pfunEntry) {
-		API_ModuleLoadEx("libvpmpdm.so", LW_OPTION_LOADER_SYM_GLOBAL,
-						 LW_NULL, LW_NULL,
-						 pcEntry, LW_NULL,
-						 pvproc);
-		pfunEntry = vprocGetEntry(pvproc);
+        API_ModuleLoadEx("libvpmpdm.so", LW_OPTION_LOADER_SYM_GLOBAL,
+                         LW_NULL, LW_NULL,
+                         pcEntry, LW_NULL,
+                         pvproc);
+        pfunEntry = vprocGetEntry(pvproc);
     }
 #endif
 

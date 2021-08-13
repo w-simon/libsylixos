@@ -146,7 +146,7 @@ extern VOID   __ARCH_CACHE_INIT(CACHE_MODE  uiInstruction, CACHE_MODE  uiData, C
                                            API º¯Êý
 *********************************************************************************************************/
 LW_API  
-LW_CACHE_OP *API_CacheGetLibBlock (VOID)
+LW_CACHE_OP  *API_CacheGetLibBlock (VOID)
 {
     return  (&_G_cacheopLib);
 }

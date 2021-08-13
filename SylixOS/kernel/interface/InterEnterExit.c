@@ -258,68 +258,6 @@ VOID    API_InterExit (VOID)
 #endif
 }
 /*********************************************************************************************************
-** 函数名称: API_InterExitFastInt
-** 功能描述: 内核 FIQ 中断出口函数 (在关中断的情况下被调用)
-** 输　入  : NONE
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-                                           API 函数
-*********************************************************************************************************/
-#if defined(LW_CFG_CPU_ARCH_CSKY)
-
-LW_API
-VOID    API_InterExitFastInt (VOID)
-{
-    PLW_CLASS_CPU  pcpu;
-
-    pcpu = LW_CPU_GET_CUR();
-
-#if LW_CFG_INTER_INFO > 0
-    if (pcpu->CPU_ulInterNestingMax < pcpu->CPU_ulInterNesting) {
-        pcpu->CPU_ulInterNestingMax = pcpu->CPU_ulInterNesting;
-    }
-#endif                                                                  /*  LW_CFG_INTER_INFO > 0       */
-
-    if (pcpu->CPU_ulInterNesting) {                                     /*  系统中断嵌套层数--          */
-        pcpu->CPU_ulInterNesting--;
-    }
-
-    if (pcpu->CPU_ulInterNesting) {                                     /*  查看系统是否在中断嵌套中    */
-#if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)                   /*  恢复上一等级中断 FPU CTX    */
-        if (LW_KERN_FPU_EN_GET()) {
-            __fpuInterExit(pcpu);
-        }
-#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-                                                                        /*  LW_CFG_INTER_FPU > 0        */
-#if (LW_CFG_CPU_DSP_EN > 0) && (LW_CFG_INTER_DSP > 0)                   /*  恢复上一等级中断 DSP CTX    */
-        if (LW_KERN_DSP_EN_GET()) {
-            __dspInterExit(pcpu);
-        }
-#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
-        return;                                                         /*  LW_CFG_INTER_DSP > 0        */
-    }
-
-    __KERNEL_SCHED_INT(pcpu);                                           /*  中断中的调度                */
-
-#if (LW_CFG_CPU_FPU_EN > 0) && (LW_CFG_INTER_FPU > 0)
-    if (LW_KERN_FPU_EN_GET()) {
-        __fpuInterExit(pcpu);
-    }
-#endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
-                                                                        /*  LW_CFG_INTER_FPU > 0        */
-#if (LW_CFG_CPU_DSP_EN > 0) && (LW_CFG_INTER_DSP > 0)
-    if (LW_KERN_DSP_EN_GET()) {
-        __dspInterExit(pcpu);
-    }
-#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
-                                                                        /*  LW_CFG_INTER_DSP > 0        */
-
-    archFastIntCtxLoad(pcpu);                                           /*  中断返回 (当前任务 CTX 加载)*/
-}
-
-#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
-/*********************************************************************************************************
 ** 函数名称: API_InterExitNoSched
 ** 功能描述: 内核中断出口函数 (在关中断的情况下被调用), 不进行任务调度, 供 ARMv7M 使用
 ** 输　入  : NONE

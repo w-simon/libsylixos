@@ -354,6 +354,33 @@ INT  API_DeviceTreeIsCompatible (PLW_DEVTREE_NODE  pdtnDev,
 
     return  (__deviceTreeIsCompatible(pdtnDev, pcCompat, LW_NULL, LW_NULL));
 }
+/*********************************************************************************************************
+** 函数名称: API_DeviceTreeDevGetMatchData
+** 功能描述: 设备树设备节点获取匹配表数据
+** 输　入  : pdevInstance     设备节点
+** 输　出  : 匹配表数据
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+PVOID  API_DeviceTreeDevGetMatchData (PLW_DEV_INSTANCE  pdevInstance)
+{
+    PLW_DEVTREE_TABLE  pdttMatch;
+
+    if (!pdevInstance) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
+
+    pdttMatch = __deviceTreeNodeMatch(pdevInstance->DEVHD_pdtnDev,
+                                      pdevInstance->DEVHD_pdrvinstance->DRVHD_pMatchTable);
+    if (!pdttMatch) {
+        return  (LW_NULL);
+    }
+
+    return  ((PVOID)pdttMatch->DTITEM_pvData);
+}
 
 #endif                                                                  /*  LW_CFG_DEVTREE_EN > 0       */
 /*********************************************************************************************************

@@ -242,7 +242,7 @@ VOID  archTaskCtxPrint (PVOID  pvBuffer, size_t  stSize, const ARCH_REG_CTX  *pr
         _PrintFormat("\r\n");
         _PrintFormat("RFLAGS = 0x%016qx\r\n", pregctx->REG_ulRFLAGS);
 
-        _PrintFormat("RIP = 0x%016qx\r\n",   pregctx->REG_ulRIP);
+        _PrintFormat("RIP = 0x%016qx\r\n", pregctx->REG_ulRIP);
 
         _PrintFormat("SS  = 0x%016qx  ",   pregctx->REG_ulSS);
         _PrintFormat("CS  = 0x%016qx\r\n", pregctx->REG_ulCS);

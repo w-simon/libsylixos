@@ -290,7 +290,7 @@ static VOID  __signalStkShowHandle (PLW_CLASS_TCB  ptcbCur, PLW_CLASS_SIGCTLMSG 
 *********************************************************************************************************/
 static VOID  __sigTaskCreateHook (LW_OBJECT_HANDLE  ulId)
 {
-    PLW_CLASS_TCB          ptcb = __GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId));
+    PLW_CLASS_TCB          ptcb    = __GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId));
     PLW_CLASS_SIGCONTEXT   psigctx = _signalGetCtx(ptcb);
     
 #if LW_CFG_MODULELOADER_EN > 0
@@ -993,7 +993,7 @@ INT  _sigPendGet (PLW_CLASS_SIGCONTEXT  psigctx, const sigset_t  *psigset, struc
 ** 调用模块: 
 ** 注  意  : 
 *********************************************************************************************************/
-static BOOL _sigPendRunSelf (VOID)
+static BOOL  _sigPendRunSelf (VOID)
 {
     PLW_CLASS_TCB           ptcbCur;
     PLW_CLASS_SIGCONTEXT    psigctx;

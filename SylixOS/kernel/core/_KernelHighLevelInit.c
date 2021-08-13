@@ -41,7 +41,7 @@ extern VOID _mpiInit(VOID);                                             /*  MPI 
 #endif                                                                  /*  LW_CFG_MPI_EN               */
 /*********************************************************************************************************
 ** 函数名称: _CreateIdleThread
-** 功能描述: 内核高层初始化
+** 功能描述: 建立空闲任务
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量: 
@@ -51,13 +51,13 @@ extern VOID _mpiInit(VOID);                                             /*  MPI 
 static VOID  _CreateIdleThread (VOID)
 {
 #if LW_CFG_SMP_EN > 0
-    REGISTER INT             i;
-             LW_CLASS_CPUSET cpuset;
+    REGISTER INT              i;
+             LW_CLASS_CPUSET  cpuset;
 #endif
 
-    LW_CLASS_THREADATTR     threadattr;
+    LW_CLASS_THREADATTR       threadattr;
     
-    threadattr.THREADATTR_pstkLowAddr     = LW_NULL;                  /*  系统自行分配堆栈            */
+    threadattr.THREADATTR_pstkLowAddr     = LW_NULL;                    /*  系统自行分配堆栈            */
     threadattr.THREADATTR_stGuardSize     = LW_CFG_THREAD_DEFAULT_GUARD_SIZE;
     threadattr.THREADATTR_stStackByteSize = LW_CFG_THREAD_IDLE_STK_SIZE;
     threadattr.THREADATTR_ucPriority      = LW_PRIO_IDLE;
@@ -79,7 +79,7 @@ static VOID  _CreateIdleThread (VOID)
         API_ThreadAttrSetArg(&threadattr, (PVOID)(ULONG)i);
         _K_ulIdleId[i] = API_ThreadInit(cIdle, _IdleThread, &threadattr, LW_NULL);
         _K_ptcbIdle[i] = _K_ptcbTCBIdTable[_ObjectGetIndex(_K_ulIdleId[i])];
-        _K_ptcbIdle[i]->TCB_ucSchedPolicy = LW_OPTION_SCHED_FIFO;       /* idle 必须是 FIFO 调度器      */
+        _K_ptcbIdle[i]->TCB_ucSchedPolicy = LW_OPTION_SCHED_FIFO;       /*  idle 必须是 FIFO 调度器     */
         
         LW_CPU_SET(i, &cpuset);                                         /*  锁定到指定 CPU              */
         _ThreadSetAffinity(_K_ptcbIdle[i], sizeof(LW_CLASS_CPUSET), &cpuset);
@@ -91,13 +91,13 @@ static VOID  _CreateIdleThread (VOID)
 #else
     _K_ulIdleId[0] = API_ThreadInit("t_idle", _IdleThread, &threadattr, LW_NULL);
     _K_ptcbIdle[0] = _K_ptcbTCBIdTable[_ObjectGetIndex(_K_ulIdleId[0])];
-    _K_ptcbIdle[0]->TCB_ucSchedPolicy = LW_OPTION_SCHED_FIFO;           /* idle 必须是 FIFO 调度器      */
+    _K_ptcbIdle[0]->TCB_ucSchedPolicy = LW_OPTION_SCHED_FIFO;           /*  idle 必须是 FIFO 调度器     */
     API_ThreadStart(_K_ulIdleId[0]);
-#endif                                                                  /* LW_CFG_SMP_EN > 0            */
+#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }
 /*********************************************************************************************************
 ** 函数名称: _CreateITimerThread
-** 功能描述: 内核高层初始化
+** 功能描述: 建立 ITIMER 任务
 ** 输　入  : NONE
 ** 输　出  : NONE
 ** 全局变量: 

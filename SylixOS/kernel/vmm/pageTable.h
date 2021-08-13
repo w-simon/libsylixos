@@ -387,8 +387,8 @@ static LW_INLINE  VOID  __vmm_pgd_free (LW_PGD_TRANSENTRY  *p_pgdentry)
 }
 
 static LW_INLINE LW_PMD_TRANSENTRY   *__vmm_pmd_alloc (PLW_MMU_CONTEXT    pmmuctx, 
-                                             LW_PGD_TRANSENTRY *p_pgdentry,
-                                             addr_t             ulAddr)
+                                                       LW_PGD_TRANSENTRY *p_pgdentry,
+                                                       addr_t             ulAddr)
 {
     if (__VMM_MMU_PGD_NONE(*p_pgdentry)) {
         return  (__VMM_MMU_PMD_ALLOC(pmmuctx, p_pgdentry, ulAddr));
@@ -404,8 +404,8 @@ static LW_INLINE VOID  __vmm_pmd_free (LW_PMD_TRANSENTRY  *p_pmdentry)
 
 #if LW_CFG_VMM_PAGE_4L_EN > 0                                           /*  LW_CFG_VMM_PAGE_4L_EN > 0   */
 static LW_INLINE LW_PTS_TRANSENTRY   *__vmm_pts_alloc (PLW_MMU_CONTEXT    pmmuctx, 
-                                             LW_PMD_TRANSENTRY *p_pmdentry,
-                                             addr_t             ulAddr)
+                                                       LW_PMD_TRANSENTRY *p_pmdentry,
+                                                       addr_t             ulAddr)
 {
     if (__VMM_MMU_PMD_NONE(*p_pmdentry)) {
         return  (__VMM_MMU_PTS_ALLOC(pmmuctx, p_pmdentry, ulAddr));
@@ -420,8 +420,8 @@ static LW_INLINE VOID  __vmm_pts_free (LW_PTS_TRANSENTRY  *p_ptsentry)
 }
 
 static LW_INLINE LW_PTE_TRANSENTRY   *__vmm_pte_alloc (PLW_MMU_CONTEXT    pmmuctx, 
-                                             LW_PTS_TRANSENTRY *p_ptsentry,
-                                             addr_t             ulAddr)
+                                                       LW_PTS_TRANSENTRY *p_ptsentry,
+                                                       addr_t             ulAddr)
 {
     if (__VMM_MMU_PTS_NONE(*p_ptsentry)) {
         return  (__VMM_MMU_PTE_ALLOC(pmmuctx, p_ptsentry, ulAddr));
@@ -432,8 +432,8 @@ static LW_INLINE LW_PTE_TRANSENTRY   *__vmm_pte_alloc (PLW_MMU_CONTEXT    pmmuct
 
 #else                                                                   /*  !LW_CFG_VMM_PAGE_4L_EN > 0  */
 static LW_INLINE LW_PTE_TRANSENTRY   *__vmm_pte_alloc (PLW_MMU_CONTEXT    pmmuctx, 
-                                             LW_PMD_TRANSENTRY *p_pmdentry,
-                                             addr_t             ulAddr)
+                                                       LW_PMD_TRANSENTRY *p_pmdentry,
+                                                       addr_t             ulAddr)
 {
     if (__VMM_MMU_PMD_NONE(*p_pmdentry)) {
         return  (__VMM_MMU_PTE_ALLOC(pmmuctx, p_pmdentry, ulAddr));

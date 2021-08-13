@@ -42,7 +42,7 @@ static LW_INLINE UINT16 _ObjectGetIndex (LW_OBJECT_ID    ulId)
 
 static LW_INLINE ULONG _ObjectGetNode (LW_OBJECT_ID    ulId)
 {
-	return  ((ULONG)((ulId >> 16) & 0x03ff));
+    return  ((ULONG)((ulId >> 16) & 0x03ff));
 }
 
 /*********************************************************************************************************

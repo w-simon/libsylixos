@@ -886,7 +886,10 @@ ssize_t  _TyWrite (TY_DEV_ID  ptyDev,
         LW_SPIN_LOCK_QUICK(&ptyDev->TYDEV_slLock, &iregInterLevel);     /*  锁定 spinlock 并关闭中断    */
         if (rngFreeBytes(ptyDev->TYDEV_vxringidWrBuf) > 0) {
             LW_SPIN_UNLOCK_QUICK(&ptyDev->TYDEV_slLock, iregInterLevel);/*  解锁 spinlock 打开中断      */
-            API_SemaphoreBPost(ptyDev->TYDEV_hWrtSyncSemB);             /*  缓冲区还有空间              */
+            ulError = API_SemaphoreBPost(ptyDev->TYDEV_hWrtSyncSemB);   /*  缓冲区还有空间              */
+            if (ulError == ERROR_EVENT_FULL) {
+                errno = ERROR_NONE;                                     /*  错误码清零                  */
+            }
         
         } else {
             LW_SPIN_UNLOCK_QUICK(&ptyDev->TYDEV_slLock, iregInterLevel);/*  解锁 spinlock 打开中断      */

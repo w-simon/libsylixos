@@ -40,6 +40,7 @@ struct __sdm_sdio_base {
     SDIO_INIT_DATA  SDMIOBASE_initdata;
     SDIO_DRV       *SDMIOBASE_psdiodrv;
     VOID           *SDMIOBASE_pvDevPriv;
+    BOOL            SDMIOBASE_bCustomSdio;
 };
 typedef struct __sdm_sdio_base  __SDM_SDIO_BASE;
 /*********************************************************************************************************
@@ -100,6 +101,8 @@ static INT   __sdiobaseDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, 
     SDIO_INIT_DATA    *psdioinitdata;
     SDIO_DRV          *psdiodrv;
     PLW_LIST_LINE      plineTmp;
+    BOOL               bCustomSdio;
+    LONG               lHostCfg;
     INT                iRet;
 
     psdiobase= (__SDM_SDIO_BASE *)__SHEAP_ALLOC(sizeof(__SDM_SDIO_BASE));
@@ -108,16 +111,32 @@ static INT   __sdiobaseDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, 
         return  (PX_ERROR);
     }
 
+    lib_memset(psdiobase, 0, sizeof(__SDM_SDIO_BASE));
+
+    API_SdmHostExtOptGet(psdcoredev, SDHOST_EXTOPT_CONFIG_FLAG_GET, (LONG)&lHostCfg);
+    if (lHostCfg & SDHOST_EXTOPT_CONFIG_CUSTOM_SDIO) {
+        bCustomSdio = LW_TRUE;
+    } else {
+        bCustomSdio = LW_FALSE;
+    }
+
+    psdiobase->SDMIOBASE_bCustomSdio = bCustomSdio;
+
     psdioinitdata = &psdiobase->SDMIOBASE_initdata;
     *ppvDevPriv   = (VOID *)psdiobase;
 
-    iRet = __sdiobasePreInit(psdioinitdata, psdcoredev);
-    if (iRet != ERROR_NONE) {
-        /*
-         * 如果预初始化失败, 说明不是一个 SDIO 设备, 无需进行
-         * 下面的 SDIO 设备驱动匹配工作
-         */
-        goto    __err;
+    if (!bCustomSdio) {
+        iRet = __sdiobasePreInit(psdioinitdata, psdcoredev);
+        if (iRet != ERROR_NONE) {
+            /*
+             * 如果预初始化失败, 说明不是一个 SDIO 设备, 无需进行
+             * 下面的 SDIO 设备驱动匹配工作
+             */
+            goto    __err;
+        }
+
+    } else {
+        psdioinitdata->INIT_psdcoredev = psdcoredev;
     }
 
     __sdmSdioDrvAccessRequest();
@@ -126,20 +145,23 @@ static INT   __sdiobaseDevCreate (SD_DRV *psddrv, PLW_SDCORE_DEVICE psdcoredev, 
          plineTmp  = _list_line_get_next(plineTmp)) {
 
         psdiodrv = _LIST_ENTRY(plineTmp, SDIO_DRV, SDIODRV_lineManage);
-        iRet = __sdiobaseDrvMatch(&psdioinitdata->INIT_psdiofuncTbl[0],
-                                  psdioinitdata->INIT_iFuncCnt + 1,
-                                  psdiodrv);
-        if (iRet != ERROR_NONE) {
-            /*
-             * 当前驱动匹配失败,匹配下一个
-             */
-            continue;
-        }
 
-        __sdiobaseMatchFuncIdSet(psdioinitdata,
-                                 &psdioinitdata->INIT_psdiofuncTbl[0],
-                                 psdioinitdata->INIT_iFuncCnt + 1,
-                                 psdiodrv);
+        if (!bCustomSdio) {
+            iRet = __sdiobaseDrvMatch(&psdioinitdata->INIT_psdiofuncTbl[0],
+                                      psdioinitdata->INIT_iFuncCnt + 1,
+                                      psdiodrv);
+            if (iRet != ERROR_NONE) {
+                /*
+                 * 当前驱动匹配失败,匹配下一个
+                 */
+                continue;
+            }
+
+            __sdiobaseMatchFuncIdSet(psdioinitdata,
+                                     &psdioinitdata->INIT_psdiofuncTbl[0],
+                                     psdioinitdata->INIT_iFuncCnt + 1,
+                                     psdiodrv);
+        }
 
         /*
          * 因为在接下来的具体驱动设备创建过程中可能会产生中断事件
@@ -194,10 +216,12 @@ static INT  __sdiobaseDevDelete (SD_DRV *psddrv,  VOID *pvDevPriv)
     psdioDrv = psdiobase->SDMIOBASE_psdiodrv;
     psdioDrv->SDIODRV_pfuncDevDelete(psdioDrv, psdiobase->SDMIOBASE_pvDevPriv);
 
-    psdiofunc = &psdiobase->SDMIOBASE_initdata.INIT_psdiofuncTbl[0];
-    for (i = 0; i < (psdiobase->SDMIOBASE_initdata.INIT_iFuncCnt + 1); i++) {
-        API_SdioCoreDevFuncClean(psdiofunc);
-        psdiofunc++;
+    if (!psdiobase->SDMIOBASE_bCustomSdio) {
+        psdiofunc = &psdiobase->SDMIOBASE_initdata.INIT_psdiofuncTbl[0];
+        for (i = 0; i < (psdiobase->SDMIOBASE_initdata.INIT_iFuncCnt + 1); i++) {
+            API_SdioCoreDevFuncClean(psdiofunc);
+            psdiofunc++;
+        }
     }
 
     __SHEAP_FREE(psdiobase);

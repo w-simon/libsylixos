@@ -32,6 +32,10 @@
 #include "arch/csky/fpu/fpu/cskyVfp.h"
 #endif
 /*********************************************************************************************************
+  异常向量表
+*********************************************************************************************************/
+extern ULONG  vector[];
+/*********************************************************************************************************
   C-SKY 体系架构
 *********************************************************************************************************/
 #if !defined(__SYLIXOS_CSKY_ARCH_CK803__)
@@ -103,17 +107,55 @@ LW_WEAK VOID  bspFastIntHandle (ULONG  ulVector)
 {
 }
 /*********************************************************************************************************
+** 函数名称: archFastVectorIntHandle
+** 功能描述: 快速向量中断
+** 输　入  : ulVector  中断向量
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archFastVectorIntHandle (ULONG  ulVector)
+{
+    PLW_CLASS_CPU  pcpu;
+
+    pcpu = LW_CPU_GET_CUR();
+    pcpu->CPU_ulInterNesting++;
+
+    bspFastIntHandle(ulVector);
+
+    pcpu->CPU_ulInterNesting--;
+}
+/*********************************************************************************************************
 ** 函数名称: archFastAutoIntHandle
-** 功能描述: 快速中断
+** 功能描述: 快速自动中断
+** 输　入  : ulVector  中断向量
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archFastAutoIntHandle (ULONG  ulVector)
+{
+    PLW_CLASS_CPU  pcpu;
+
+    pcpu = LW_CPU_GET_CUR();
+    pcpu->CPU_ulInterNesting++;
+
+    bspFastIntHandle(VEC_FAUTOVEC);
+
+    pcpu->CPU_ulInterNesting--;
+}
+/*********************************************************************************************************
+** 函数名称: archVectorIntHandle
+** 功能描述: 普通向量中断
 ** 输　入  : ulVector  中断向量
 **           pregctx   上下文
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  archFastAutoIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
+VOID  archVectorIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 {
-    bspFastIntHandle(ulVector);
+    bspIntHandle(ulVector);
 }
 /*********************************************************************************************************
 ** 函数名称: archAutoIntHandle
@@ -126,7 +168,44 @@ VOID  archFastAutoIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 *********************************************************************************************************/
 VOID  archAutoIntHandle (ULONG  ulVector, ARCH_REG_CTX  *pregctx)
 {
-    bspIntHandle(ulVector);
+    bspIntHandle(VEC_AUTOVEC);
+}
+/*********************************************************************************************************
+** 函数名称: archFastVectorIntClaim
+** 功能描述: 设置中断向量为快速中断
+**           快速中断向量号由硬件决定，当外设使用向量化的中断时，需调用此函数将目标中断向量声明为快速中断
+** 输　入  : ulVector      中断向量号
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  archFastVectorIntClaim (ULONG  ulVector)
+{
+    CSKY_PARAM    *param = archKernelParamGet();
+
+    if ((ulVector < VEC_USER) || (ulVector > VEC_MAX)) {
+        return  (PX_ERROR);
+    }
+
+    if (param->CP_bAPGR) {
+        vector[ulVector] = ((ULONG)archFastVectorIntRawEntry) | 1;
+    } else {
+        vector[ulVector] = ((ULONG)archFastVectorIntEntry);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: archFastAutoIntEntrySet
+** 功能描述: 设置系统快速自动中断处理服务函数
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  archFastAutoIntEntrySet (VOID)
+{
+    vector[VEC_FAUTOVEC] = ((ULONG)archFastAutoIntEntry);
 }
 /*********************************************************************************************************
 ** 函数名称: archTlbLoadExceptHandle

@@ -47,13 +47,14 @@ typedef struct lw_shm_node {
 #define SHMN_pvLink              SHMN_pvPhyMem
     ULONG                        SHMN_ulMapCnt;                         /*  映射计数器                  */
     mode_t                       SHMN_mode;                             /*  节点类型                    */
+    INT                          SHMN_iFlag;                            /*  文件标志                    */
     time_t                       SHMN_time;                             /*  节点时间, 一般为当前时间    */
     uid_t                        SHMN_uid;
     gid_t                        SHMN_gid;
 } LW_SHM_NODE;
 typedef LW_SHM_NODE             *PLW_SHM_NODE;
 /*********************************************************************************************************
-  shm根
+  shm 根
 *********************************************************************************************************/
 typedef struct lw_shm_root {
     PLW_LIST_LINE                SHMR_plineSon;                         /*  指向第一个儿子              */
@@ -85,6 +86,7 @@ static INT                       _G_iShmDrvNum = PX_ERROR;
 *********************************************************************************************************/
 static INT  __shmPhymemAlloc(PLW_SHM_NODE  pshmn);
 static INT  __shmPhymemFree(PLW_SHM_NODE  pshmn);
+static INT  __shmTruncate(PLW_SHM_NODE  pshmn, off_t  oftSize);
 /*********************************************************************************************************
 ** 函数名称: __shmFindNode
 ** 功能描述: 共享内存设备查找一个节点
@@ -304,6 +306,7 @@ static INT  __shmMakeNode (CPCHAR  pcName, INT  iFlags, INT  iMode, CPCHAR  pcLi
     pshmnNew->SHMN_oftSize  = 0;
     pshmnNew->SHMN_ulMapCnt = 0;                                        /*  没有映射                    */
     pshmnNew->SHMN_mode     = iMode;
+    pshmnNew->SHMN_iFlag    = iFlags;
     pshmnNew->SHMN_time     = lib_time(LW_NULL);                        /*  以 UTC 时间作为时间基准     */
     pshmnNew->SHMN_uid      = getuid();
     pshmnNew->SHMN_gid      = getgid();
@@ -489,6 +492,12 @@ static LONG  __shmOpen (LW_DEV_HDR     *pdevhdr,
         LW_DEV_INC_USE_COUNT(&_G_devhdrShm);                            /*  更新计数器                  */
         return  ((LONG)LW_NULL);
     }
+
+    if ((iFlags & O_TRUNC) &&
+        ((iFlags & O_ACCMODE) == O_RDONLY)) {                           /*  需要截断但为只读             */
+        _ErrorHandle(EACCES);
+        return  ((LONG)LW_NULL);
+    }
     
     if (iFlags & O_CREAT) {                                             /*  这里不过滤 socket 文件      */
         if (__fsCheckFileName(pcName)) {
@@ -501,15 +510,8 @@ static LONG  __shmOpen (LW_DEV_HDR     *pdevhdr,
             _ErrorHandle(ERROR_IO_DISK_NOT_PRESENT);                    /*  不支持以上这些格式          */
             return  (PX_ERROR);
         }
-    }
-    
-    if (iFlags & O_TRUNC) {                                             /*  不允许打开截断              */
-        _ErrorHandle(ENOSYS);
-        return  (PX_ERROR);
-    }
-    
-    if (iFlags & O_CREAT) {                                             /*  创建目录或文件              */
-        iError = __shmMakeNode(pcName, iFlags, iMode, LW_NULL);
+
+        iError = __shmMakeNode(pcName, iFlags, iMode, LW_NULL);         /*  创建目录或文件              */
         if ((iError != ERROR_NONE) && (iFlags & O_EXCL)) {
             return  (PX_ERROR);                                         /*  无法创建                    */
         }
@@ -522,10 +524,16 @@ static LONG  __shmOpen (LW_DEV_HDR     *pdevhdr,
         if (!S_ISLNK(pshmn->SHMN_mode)) {                               /*  不是链接文件                */
             __LW_SHM_UNLOCK();                                          /*  解锁共享内存设备            */
             LW_DEV_INC_USE_COUNT(&_G_devhdrShm);                        /*  更新计数器                  */
+
+            if (iFlags & O_TRUNC) {                                     /*  需要截断                    */
+                __shmTruncate(pshmn, 0);
+            }
+
             return  ((LONG)pshmn);
         }
     } else {
         __LW_SHM_UNLOCK();                                              /*  解锁共享内存设备            */
+        _ErrorHandle(ENOENT);
         return  (PX_ERROR);
     }
     __LW_SHM_UNLOCK();                                                  /*  解锁共享内存设备            */
@@ -953,6 +961,11 @@ static INT  __shmTruncate (PLW_SHM_NODE  pshmn, off_t  oftSize)
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
+    if ((pshmn->SHMN_iFlag & O_ACCMODE) == O_RDONLY) {                  /*  权限不足                    */
+        __LW_SHM_UNLOCK();                                              /*  解锁共享内存设备            */
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
     if (pshmn->SHMN_oftSize == oftSize) {
         __LW_SHM_UNLOCK();                                              /*  解锁共享内存设备            */
         return  (ERROR_NONE);
@@ -1006,7 +1019,7 @@ static INT   __shmMmap (PLW_SHM_NODE  pshmn, PLW_DEV_MMAP_AREA  pdmap)
     pshmn->SHMN_ulMapCnt++;                                             /*  mmap 计数++                 */
 
     ulPhysical  = (addr_t)pshmn->SHMN_pvPhyMem;
-    ulPhysical += (addr_t)(pdmap->DMAP_offPages << LW_CFG_VMM_PAGE_SHIFT);                                   
+    ulPhysical += (addr_t)(pdmap->DMAP_offPages << LW_CFG_VMM_PAGE_SHIFT);
     
     if (API_VmmRemapArea(pdmap->DMAP_pvAddr, (PVOID)ulPhysical, 
                          pdmap->DMAP_stLen, pdmap->DMAP_ulFlag,         /*  直接使用 mmap 指定的 flag   */

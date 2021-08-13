@@ -102,7 +102,7 @@ static VOID  __heapAllocPrint (PLW_CLASS_HEAP  pheap,
             return;
         }
     
-    } else if (_G_pidTraceProcess > 0) {                                /*  进跟踪指定进程              */
+    } else if (_G_pidTraceProcess > 0) {                                /*  仅跟踪指定进程              */
         if (_G_pidTraceProcess != __PROC_GET_PID_CUR()) {
             return;
         }
@@ -139,10 +139,10 @@ static VOID  __heapAllocPrint (PLW_CLASS_HEAP  pheap,
 *********************************************************************************************************/
 static VOID  __heapFreePrint (PLW_CLASS_HEAP  pheap, PVOID  pvAddr)
 {
-    BOOL                    bPut = LW_FALSE;
-    PLW_LIST_LINE           plineTemp;
-    __PHEAP_TRACE_NODE      phtn   = LW_NULL;
-    REGISTER PCHAR          pcAddr = (PCHAR)pvAddr;
+             BOOL                 bPut   = LW_FALSE;
+             PLW_LIST_LINE        plineTemp;
+             __PHEAP_TRACE_NODE   phtn   = LW_NULL;
+    REGISTER PCHAR                pcAddr = (PCHAR)pvAddr;
     
     if (!pvAddr) {
         return;

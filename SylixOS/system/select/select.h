@@ -87,7 +87,7 @@ LW_API INT     select(INT               iWidth,
                       fd_set           *pfdsetWrite,
                       fd_set           *pfdsetExcept,
                       struct timeval   *ptmvalTO);                      /*  BSD 标准 select()           */
-					  
+
 LW_API INT     pselect(INT                     iWidth, 
                        fd_set                 *pfdsetRead,
                        fd_set                 *pfdsetWrite,
@@ -101,7 +101,7 @@ LW_API INT     waitread(INT  iFd, struct timeval   *ptmvalTO);          /*  等待
 LW_API INT     waitwrite(INT  iFd, struct timeval   *ptmvalTO);         /*  等待单个文件可写            */
 
 LW_API INT     waitexcept(INT  iFd, struct timeval   *ptmvalTO);        /*  等待单个文件可异常          */
-#endif                                                          /* __SYLIXOS_EXTEND                     */
+#endif                                                                  /*  __SYLIXOS_EXTEND            */
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_SELECT_EN > 0)      */

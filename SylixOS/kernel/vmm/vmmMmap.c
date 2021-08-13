@@ -263,7 +263,7 @@ static PVOID  __vmmMapnMalloc (PLW_VMM_MAP_NODE  pmapn, size_t  stLen,
     
     if (iFlags & LW_VMM_PHY_PREALLOC) {
         LW_TCB_GET_CUR_SAFE(ptcbCur);
-        bNoLimit = __vmmPhysicalPageFaultCheck(1, ptcbCur, pulGuarder);     /*  检查物理内存是否超限        */
+        bNoLimit = __vmmPhysicalPageFaultCheck(1, ptcbCur, pulGuarder); /*  检查物理内存是否超限        */
         if (bNoLimit) {
             pvMem = API_VmmMallocEx(stLen, ulFlag);
         } else {
@@ -1171,7 +1171,11 @@ VOID  API_VmmMmapShow (VOID)
             pcShare = "false";
         }
         
+#if LW_CFG_CPU_WORD_LENGHT == 64
+        printf("%016lx %16lx %16llx %s %s %5d %4d\n",
+#else
         printf("%08lx %8lx %16llx %s %s %5d %4d\n",
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT adj  */
                (addr_t)pmapn->MAPN_pvAddr,
                (ULONG)pmapn->MAPN_stLen,
                pmapn->MAPN_off,

@@ -131,7 +131,7 @@ LW_WEAK ULONG  bspMmuPtsMaxNum (VOID)
 
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
 /*********************************************************************************************************
-** 函数名称: bspMmuPgdMaxNum
+** 函数名称: bspMmuPteMaxNum
 ** 功能描述: 获得 PTE 池的数量
 ** 输  入  : NONE
 ** 输  出  : PTE 池的数量 (映射 4GB 空间, 需要 1024 个 PTE 池)

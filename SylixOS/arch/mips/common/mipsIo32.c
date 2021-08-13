@@ -30,9 +30,9 @@
 *********************************************************************************************************/
 #define __32BIT_SPACE        (4ULL * LW_CFG_GB_SIZE)                    /*  32 位空间                   */
 /*********************************************************************************************************
-  全局变量
+  IO 基地址定义
 *********************************************************************************************************/
-static UINT64  _G_ui64MipsIoPortBase = 0ULL;                            /*  MIPS I/O 端口基地址         */
+LW_WEAK UINT64    __IO_BASE__ = (UINT64)0ul;
 /*********************************************************************************************************
 ** 函数名称: archSetIoPortBase
 ** 功能描述: 设置 I/O 端口基地址
@@ -43,7 +43,7 @@ static UINT64  _G_ui64MipsIoPortBase = 0ULL;                            /*  MIPS
 *********************************************************************************************************/
 VOID  archSetIoPortBase (UINT64  ui64IoPortBase)
 {
-    _G_ui64MipsIoPortBase = ui64IoPortBase;
+    __IO_BASE__ = ui64IoPortBase;
 }
 /*********************************************************************************************************
   MIPS 处理器 I/O 端口读
@@ -58,7 +58,7 @@ VOID  archSetIoPortBase (UINT64  ui64IoPortBase)
 *********************************************************************************************************/
 UINT8  in8 (addr_t  ulAddr)
 {
-    UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
+    UINT64  ui64Addr = __IO_BASE__ + ulAddr;
     UINT8   ucVal;
 
     if (ui64Addr < __32BIT_SPACE) {
@@ -80,7 +80,7 @@ UINT8  in8 (addr_t  ulAddr)
 *********************************************************************************************************/
 UINT16  in16 (addr_t  ulAddr)
 {
-    UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
+    UINT64  ui64Addr = __IO_BASE__ + ulAddr;
     UINT16  usVal;
 
     if (ui64Addr < __32BIT_SPACE) {
@@ -102,7 +102,7 @@ UINT16  in16 (addr_t  ulAddr)
 *********************************************************************************************************/
 UINT32  in32 (addr_t  ulAddr)
 {
-    UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
+    UINT64  ui64Addr = __IO_BASE__ + ulAddr;
     UINT32  uiVal;
 
     if (ui64Addr < __32BIT_SPACE) {
@@ -124,7 +124,7 @@ UINT32  in32 (addr_t  ulAddr)
 *********************************************************************************************************/
 UINT64  in64 (addr_t  ulAddr)
 {
-    UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
+    UINT64  ui64Addr = __IO_BASE__ + ulAddr;
     UINT64  ui64Val;
 
     if (ui64Addr < __32BIT_SPACE) {
@@ -150,7 +150,7 @@ UINT64  in64 (addr_t  ulAddr)
 *********************************************************************************************************/
 VOID  out8 (UINT8  ucData, addr_t  ulAddr)
 {
-    UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
+    UINT64  ui64Addr = __IO_BASE__ + ulAddr;
 
     KN_IO_WMB();
     if (ui64Addr < __32BIT_SPACE) {
@@ -170,7 +170,7 @@ VOID  out8 (UINT8  ucData, addr_t  ulAddr)
 *********************************************************************************************************/
 VOID  out16 (UINT16  usData, addr_t  ulAddr)
 {
-    UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
+    UINT64  ui64Addr = __IO_BASE__ + ulAddr;
 
     KN_IO_WMB();
     if (ui64Addr < __32BIT_SPACE) {
@@ -190,7 +190,7 @@ VOID  out16 (UINT16  usData, addr_t  ulAddr)
 *********************************************************************************************************/
 VOID  out32 (UINT32  uiData, addr_t  ulAddr)
 {
-    UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
+    UINT64  ui64Addr = __IO_BASE__ + ulAddr;
 
     KN_IO_WMB();
     if (ui64Addr < __32BIT_SPACE) {
@@ -210,7 +210,7 @@ VOID  out32 (UINT32  uiData, addr_t  ulAddr)
 *********************************************************************************************************/
 VOID  out64 (UINT64  u64Data, addr_t  ulAddr)
 {
-    UINT64  ui64Addr = _G_ui64MipsIoPortBase + ulAddr;
+    UINT64  ui64Addr = __IO_BASE__ + ulAddr;
 
     KN_IO_WMB();
     if (ui64Addr < __32BIT_SPACE) {

@@ -446,7 +446,7 @@ static PLW_VMM_PAGE  __vmmAbortNewPage (ULONG              ulAllocPageNum,
     pvmpagePhysical = __vmmPhysicalPageAlloc(ulAllocPageNum, 
                                              LW_ZONE_ATTR_NONE,
                                              &ulZoneIndex);             /*  分配物理内存(1个页面)       */
-    if (pvmpagePhysical == LW_NULL) {                                   /*  如果分配失败择交换出一个页面*/
+    if (pvmpagePhysical == LW_NULL) {                                   /*  如果分配失败则交换出一个页面*/
         _K_vmmStatus.VMMS_i64PageLackCounter++;
         pvmpagePhysical = __vmmPageSwapSwitch(__PAGEFAIL_CUR_PID,
                                               ulAllocPageNum, 

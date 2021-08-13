@@ -533,7 +533,7 @@ VOID  mips32MmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
     pmmuop->MMUOP_pfuncMakeCurCtx = mips32MmuMakeCurCtx;
 }
 
-#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

@@ -333,11 +333,11 @@ INT  nanosleep (const struct timespec  *rqtp, struct timespec  *rmtp)
              
              PLW_CLASS_TCB      ptcbCur;
     REGISTER PLW_CLASS_PCB      ppcb;
-	REGISTER ULONG              ulKernelTime;
-	REGISTER INT                iRetVal;
-	         INT                iSchedRet;
-	
-	REGISTER ULONG              ulError;
+    REGISTER ULONG              ulKernelTime;
+    REGISTER INT                iRetVal;
+             INT                iSchedRet;
+
+    REGISTER ULONG              ulError;
              ULONG              ulTick;
              
              struct timespec    tvStart;
@@ -496,11 +496,14 @@ UINT  sleep (UINT    uiSeconds)
         if (tsEnd.tv_sec >= tsStart.tv_sec) {
             uiPass = (UINT)(tsEnd.tv_sec - tsStart.tv_sec);
             if (uiPass < uiSeconds) {
+                __THREAD_CANCEL_POINT();                                /*  测试取消点                  */
                 return  (uiSeconds - uiPass);
             }
         }
     }
     
+    __THREAD_CANCEL_POINT();                                            /*  测试取消点                  */
+
     return  (0);
 }
 /*********************************************************************************************************

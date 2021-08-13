@@ -68,7 +68,7 @@ VOID  _WakeupAdd (PLW_CLASS_WAKEUP  pwu, PLW_CLASS_WAKEUP_NODE  pwun, BOOL  bPro
             } else {
                 _List_Line_Add_Left(&pwun->WUN_lineManage, plineTemp);  /*  不是表头则插在左边          */
             }
-            pwunTemp->WUN_ulCounter -= pwun->WUN_ulCounter;             /*  右侧的点从新就算计数器      */
+            pwunTemp->WUN_ulCounter -= pwun->WUN_ulCounter;             /*  右侧的点重新计算计数器      */
             break;
         }
     }

@@ -871,6 +871,11 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
         LW_SPIPE_UNLOCK(pspipedev);
         break;
 
+    case FIOSYNC:                                                       /*  不能进行同步操作            */
+        iErrCode = PX_ERROR;
+        _ErrorHandle(EINVAL);
+        break;
+
     default:
         iErrCode = PX_ERROR;
         _ErrorHandle(ERROR_IO_UNKNOWN_REQUEST);

@@ -299,7 +299,7 @@ INT API_SdCoreDecodeExtCSD (PLW_SDCORE_DEVICE  psdcoredevice,
                             LW_SDDEV_EXT_CSD  *psdextcsd)
 {
     UINT   uiExtCsdRev;
-    UINT8  pucExtCsd[512];
+    UINT8 *pucExtCsd = psdcoredevice->COREDEV_pucExtBuf;
     INT    iError;
 
 
@@ -1194,19 +1194,20 @@ static INT __sdCoreSendScr (PLW_SDCORE_DEVICE psdcoredevice, UINT32 *puiScr)
 *********************************************************************************************************/
 INT API_SdCoreDevSendAllSCR (PLW_SDCORE_DEVICE psdcoredevice, LW_SDDEV_SCR *psdscr)
 {
-    UINT32   uiScr[4];
+    UINT32  *puiScr = (UINT32 *)psdcoredevice->COREDEV_pucExtBuf;
     INT      iRet;
 
-    uiScr[0] = 0;
-    uiScr[1] = 0;
-    iRet = __sdCoreSendScr(psdcoredevice, uiScr + 2);
+    puiScr[0] = 0;
+    puiScr[1] = 0;
+
+    iRet = __sdCoreSendScr(psdcoredevice, puiScr + 2);
     if (iRet != ERROR_NONE) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "send scr error.\r\n");
         return  (PX_ERROR);
     }
 
-    psdscr->DEVSCR_ucSdaVsn   = __getBits(uiScr, 56, 4);
-    psdscr->DEVSCR_ucBusWidth = __getBits(uiScr, 48, 4);
+    psdscr->DEVSCR_ucSdaVsn   = __getBits(puiScr, 56, 4);
+    psdscr->DEVSCR_ucBusWidth = __getBits(puiScr, 48, 4);
 
     return  (ERROR_NONE);
 }

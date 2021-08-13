@@ -103,14 +103,16 @@ VOID  _PathCondense (PCHAR  pcPathName)
             *pcTemp = PX_DIVIDER;                                       /*  转换分隔符                  */
 
             if (iDotNum > 1) {                                          /*  双点, 将忽略上一级目录      */
-                /*
-                 *  XXX 起始字符必须为 / 否则这里的后退会多出一个字符!
-                 */
                 __LW_PATH_PUTBACK(pcNode, pcTail);                      /*  退回到上一级目录            */
+                if (!__LW_PATH_IS_DIVIDER(*pcNode)) {
+                    bNotInc = LW_FALSE;                                 /*  清除掉不包含                */
+                }
+
             } else if (iDotNum == 1) {                                  /*  单点                        */
                 /*
                  *  什么也不处理, 直接忽略此目录.
                  */
+
             } else {
                 /*
                  *  这里直接拷贝分隔符但不改变保存指针.

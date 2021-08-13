@@ -364,12 +364,16 @@ VOID  _TCBBuild (UINT8                    ucPriority,
 
 #if LW_CFG_CPU_FPU_EN > 0
     ptcb->TCB_pvStackFP = &ptcb->TCB_fpuctxContext;
-    __ARCH_FPU_CTX_INIT(ptcb->TCB_pvStackFP);                           /*  初始化当前任务 FPU 上下文   */
+    if (LW_CPU_FPU_IS_INITED()) {
+        __ARCH_FPU_CTX_INIT(ptcb->TCB_pvStackFP);                       /*  初始化当前任务 FPU 上下文   */
+    }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
 #if LW_CFG_CPU_DSP_EN > 0
     ptcb->TCB_pvStackDSP = &ptcb->TCB_dspctxContext;
-    __ARCH_DSP_CTX_INIT(ptcb->TCB_pvStackDSP);                          /*  初始化当前任务 DSP 上下文   */
+    if (LW_CPU_DSP_IS_INITED()) {
+        __ARCH_DSP_CTX_INIT(ptcb->TCB_pvStackDSP);                      /*  初始化当前任务 DSP 上下文   */
+    }
 #endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 
 #if LW_CFG_NET_EN > 0 && LW_CFG_NET_SAFE > 0

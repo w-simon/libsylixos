@@ -54,12 +54,18 @@ typedef LW_OEMFDISK_PINFO   *PLW_OEMFDISK_PINFO;
   API
 *********************************************************************************************************/
 
-LW_API INT  API_OemFdisk(CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpInfo[], UINT  uiNPart, size_t  stAlign);
+LW_API INT  API_OemFdisk(CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpInfo[],
+                         UINT  uiNPart, size_t  stAlign);
+LW_API INT  API_OemFdiskEx(CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpInfo[],
+                           UINT  uiNPart, size_t  stAlign, BOOL  bGpt);
 LW_API INT  API_OemFdiskGet(CPCHAR  pcBlkDev, LW_OEMFDISK_PINFO  fdpInfo[], UINT  uiNPart);
+LW_API INT  API_OemFdiskGetEx(CPCHAR  pcBlkDev, LW_OEMFDISK_PINFO  fdpInfo[], UINT  uiNPart, BOOL  *pbGpt);
 LW_API INT  API_OemFdiskShow(CPCHAR  pcBlkDev);
 
 #define oemFdisk                API_OemFdisk
+#define oemFdiskEx              API_OemFdiskEx
 #define oemFdiskGet             API_OemFdiskGet
+#define oemFdiskGetEx           API_OemFdiskGetEx
 #define oemFdiskShow            API_OemFdiskShow
 
 #endif                                                                  /*  __OEMFDISK_H                */

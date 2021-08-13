@@ -2020,14 +2020,15 @@ static INT  __tshellFsCmdDosfslabel (INT  iArgC, PCHAR  ppcArgV[])
 static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 {
     CHAR              cInput[512];
-    LW_OEMFDISK_PART  fdpInfo[4];
-    UINT              uiNPart;
+    LW_OEMFDISK_PART  fdpInfo[LW_CFG_MAX_DISKPARTS];
+    UINT              uiNPart, uiMaxPart;
     size_t            stAlign, stNum;
     struct stat       statGet;
     PCHAR             pcBlkFile;
     UINT              i, uiPct, uiTotalPct = 0;
     CHAR              cActive, cChar, *pcStr;
     INT               iCnt, iType;
+    BOOL              bGpt;
 
     if (iArgC < 2) {
         fprintf(stderr, "too few arguments!\n");
@@ -2037,7 +2038,15 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
         return  (oemFdiskShow(ppcArgV[1]));
 
     } else {
-        if (lib_strcmp(ppcArgV[1], "-f")) {
+        if (lib_strcmp(ppcArgV[1], "-f") == 0) {
+            bGpt = LW_FALSE;
+
+#if LW_CFG_CPU_WORD_LENGHT > 32
+        } else if (lib_strcmp(ppcArgV[1], "-fgpt") == 0) {
+            bGpt = LW_TRUE;
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+
+        } else {
             fprintf(stderr, "you must use '-f' to make disk partition!\n");
             return  (-ERROR_TSHELL_EPARAM);
         }
@@ -2055,20 +2064,29 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
         return  (-ERROR_TSHELL_EPARAM);
     }
 
-    printf("block device %s total size: %llu (MB), reserved: %lu (KB)\n",
-           pcBlkFile, (statGet.st_size >> 20),
-           statGet.st_blksize * 2048 / 1024);                           /*  保留了 2048 个扇区        */
+#if LW_CFG_CPU_WORD_LENGHT > 32
+    if (bGpt) {
+        uiMaxPart = LW_CFG_MAX_DISKPARTS;
+        printf("block device %s total size: %llu (MB)\n", pcBlkFile, (statGet.st_size >> 20));
+    } else
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+    {
+        uiMaxPart = LW_CFG_MAX_DISKPARTS > 4 ? 4 : LW_CFG_MAX_DISKPARTS;
+        printf("block device %s total size: %llu (MB), reserved: %lu (KB)\n",
+               pcBlkFile, (statGet.st_size >> 20),
+               statGet.st_blksize * 2048 / 1024);                         /*  保留了 2048 个扇区        */
+    }
 
 __input_num:
-    printf("please input how many partition(s) you want to make (1 ~ 4) : ");
+    printf("please input how many partition(s) you want to make (1 ~ %d) : ", uiMaxPart);
     fflush(stdout);
     fpurge(stdin);
     if (scanf("%d", &uiNPart) != 1) {
         goto    __input_num;
     }
 
-    if ((uiNPart < 1) || (uiNPart > 4)) {
-        printf("the number must be 1 ~ 4\n");
+    if ((uiNPart < 1) || (uiNPart > uiMaxPart)) {
+        printf("the number must be 1 ~ %d\n", uiMaxPart);
         goto    __input_num;
     }
 
@@ -2155,12 +2173,21 @@ __input_active:
 
 __input_type:
         printf("please input the file system type\n");
+#if LW_CFG_CPU_WORD_LENGHT > 32
+        printf("1: FAT   2: TPSFS   3: LINUX   4: RESERVED  5:EFI\n");
+        fpurge(stdin);
+        if ((scanf("%d", &iType) != 1) || ((iType < 1) || (iType > 5))) {
+            printf("please use 1 2 3 4 or 5\n");
+            goto    __input_type;
+        }
+#else
         printf("1: FAT   2: TPSFS   3: LINUX   4: RESERVED\n");
         fpurge(stdin);
         if ((scanf("%d", &iType) != 1) || ((iType < 1) || (iType > 4))) {
             printf("please use 1 2 3 or 4\n");
             goto    __input_type;
         }
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
 
         switch (iType) {
 
@@ -2179,6 +2206,12 @@ __input_type:
         case 4:
             fdpInfo[i].FDP_ucPartType = LW_DISK_PART_TYPE_RESERVED;
             break;
+
+#if LW_CFG_CPU_WORD_LENGHT > 32
+        case 5:
+            fdpInfo[i].FDP_ucPartType = LW_DISK_PART_TYPE_EFI;
+            break;
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
             
         default:
             fdpInfo[i].FDP_ucPartType = LW_DISK_PART_TYPE_TPS;
@@ -2187,7 +2220,7 @@ __input_type:
     }
 
     printf("making partition...\n");
-    iCnt = oemFdisk(pcBlkFile, fdpInfo, uiNPart, stAlign);
+    iCnt = oemFdiskEx(pcBlkFile, fdpInfo, uiNPart, stAlign, bGpt);
     if (iCnt <= ERROR_NONE) {
         fprintf(stderr, "make partition error: %s\n", lib_strerror(errno));
         return  (PX_ERROR);
@@ -2442,10 +2475,18 @@ VOID  __tshellFsCmdInit (VOID)
 
 #if LW_CFG_OEMDISK_EN > 0
     API_TShellKeywordAdd("fdisk", __tshellFsCmdFdisk);
+#if LW_CFG_CPU_WORD_LENGHT > 32
+    API_TShellFormatAdd("fdisk", " [-f] [-fgpt] [block I/O device]");
+    API_TShellHelpAdd("fdisk",   "show or make disk partition table\n"
+                                 "eg. fdisk /dev/blk/udisk0\n"
+                                 "    fdisk -f /dev/blk/sata0\n"
+                                 "    fdisk -fgpt /dev/blk/sata0\n");
+#else
     API_TShellFormatAdd("fdisk", " [-f] [block I/O device]");
     API_TShellHelpAdd("fdisk",   "show or make disk partition table\n"
                                  "eg. fdisk /dev/blk/udisk0\n"
                                  "    fdisk -f /dev/blk/sata0\n");
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
                                  
     API_TShellKeywordAdd("clrgpt", __tshellFsCmdClrGpt);
     API_TShellFormatAdd("clrgpt", " [-s [sector size]] [block I/O device]");

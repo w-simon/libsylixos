@@ -409,6 +409,12 @@ int  pthread_attr_setschedparam (pthread_attr_t            *pattr,
         return  (EINVAL);
     }
     
+    if ((pschedparam->sched_priority < __PX_PRIORITY_MIN) ||
+        (pschedparam->sched_priority > __PX_PRIORITY_MAX)) {
+        errno = EINVAL;
+        return  (EINVAL);
+    }
+
     pattr->PTHREADATTR_schedparam = *pschedparam;
     
     return  (ERROR_NONE);

@@ -770,27 +770,27 @@ static ULONG  arm64MmuFlagGet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr)
         LW_PMD_TRANSENTRY  *p_pmdentry = arm64MmuPmdOffset((LW_PMD_TRANSENTRY *)p_pgdentry,
                                                            ulAddr);     /*  获取二级描述符              */
         if (arm64MmuPmdIsOk(*p_pmdentry)) {
-              LW_PTE_TRANSENTRY  *p_pteentry = arm64MmuPteOffset((LW_PTE_TRANSENTRY *)p_pmdentry,
-                                                                 ulAddr);
+            LW_PTE_TRANSENTRY  *p_pteentry = arm64MmuPteOffset((LW_PTE_TRANSENTRY *)p_pmdentry,
+                                                               ulAddr);
                                                                         /*  获取三级描述符              */
-              if (arm64MmuPteIsOk(*p_pteentry)) {
-                  UINT64  u64Descriptor = (UINT64)(*p_pteentry);
+            if (arm64MmuPteIsOk(*p_pteentry)) {
+                UINT64  u64Descriptor = (UINT64)(*p_pteentry);
 
-                  ucGuard = (UINT8)((u64Descriptor & ARM64_PTE_GUARD_MASK) >> ARM64_PTE_GUARD_SHIFT);
-                  ucXN    = (UINT8)((u64Descriptor & ARM64_PTE_UXN_MASK)   >> ARM64_PTE_UXN_SHIFT);
-                  ucPXN   = (UINT8)((u64Descriptor & ARM64_PTE_PXN_MASK)   >> ARM64_PTE_PXN_SHIFT);
-                  ucCon   = (UINT8)((u64Descriptor & ARM64_PTE_CONT_MASK)  >> ARM64_PTE_CONT_SHIFT);
-                  ucnG    = (UINT8)((u64Descriptor & ARM64_PTE_NG_MASK)    >> ARM64_PTE_NG_SHIFT);
-                  ucAF    = (UINT8)((u64Descriptor & ARM64_PTE_AF_MASK)    >> ARM64_PTE_AF_SHIFT);
-                  ucSH    = (UINT8)((u64Descriptor & ARM64_PTE_SH_MASK)    >> ARM64_PTE_SH_SHIFT);
-                  ucAP    = (UINT8)((u64Descriptor & ARM64_PTE_AP_MASK)    >> ARM64_PTE_AP_SHIFT);
-                  ucNS    = (UINT8)((u64Descriptor & ARM64_PTE_NS_MASK)    >> ARM64_PTE_NS_SHIFT);
-                  ucAIn   = (UINT8)((u64Descriptor & ARM64_PTE_AIN_MASK)   >> ARM64_PTE_AIN_SHIFT);
+                ucGuard = (UINT8)((u64Descriptor & ARM64_PTE_GUARD_MASK) >> ARM64_PTE_GUARD_SHIFT);
+                ucXN    = (UINT8)((u64Descriptor & ARM64_PTE_UXN_MASK)   >> ARM64_PTE_UXN_SHIFT);
+                ucPXN   = (UINT8)((u64Descriptor & ARM64_PTE_PXN_MASK)   >> ARM64_PTE_PXN_SHIFT);
+                ucCon   = (UINT8)((u64Descriptor & ARM64_PTE_CONT_MASK)  >> ARM64_PTE_CONT_SHIFT);
+                ucnG    = (UINT8)((u64Descriptor & ARM64_PTE_NG_MASK)    >> ARM64_PTE_NG_SHIFT);
+                ucAF    = (UINT8)((u64Descriptor & ARM64_PTE_AF_MASK)    >> ARM64_PTE_AF_SHIFT);
+                ucSH    = (UINT8)((u64Descriptor & ARM64_PTE_SH_MASK)    >> ARM64_PTE_SH_SHIFT);
+                ucAP    = (UINT8)((u64Descriptor & ARM64_PTE_AP_MASK)    >> ARM64_PTE_AP_SHIFT);
+                ucNS    = (UINT8)((u64Descriptor & ARM64_PTE_NS_MASK)    >> ARM64_PTE_NS_SHIFT);
+                ucAIn   = (UINT8)((u64Descriptor & ARM64_PTE_AIN_MASK)   >> ARM64_PTE_AIN_SHIFT);
 
-                  arm64MmuAttr2Flags(ucGuard, ucXN, ucPXN, ucCon, ucnG,
-                                     ucAF, ucSH, ucAP, ucNS, ucAIn, &ulFlag);
+                arm64MmuAttr2Flags(ucGuard, ucXN, ucPXN, ucCon, ucnG,
+                                   ucAF, ucSH, ucAP, ucNS, ucAIn, &ulFlag);
 
-                  return  (ulFlag);
+                return  (ulFlag);
             }
         }
     }

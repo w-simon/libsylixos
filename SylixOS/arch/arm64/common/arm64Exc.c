@@ -217,9 +217,9 @@ VOID  archSyncExcHandle (ARCH_REG_CTX  *pregctx, UINT32  uiExcType)
     case EXC_SVC_AARCH64:
     case EXC_HVC_AARCH64:
     case EXC_SMC_AARCH64:
-       abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
-       abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_SYS;                  /*  系统调用错误                */
-       break;
+        abtInfo.VMABT_uiMethod = LW_VMM_ABORT_METHOD_EXEC;
+        abtInfo.VMABT_uiType   = LW_VMM_ABORT_TYPE_SYS;                 /*  系统调用错误                */
+        break;
 
     case EXC_INSTRUCTION_ABORT_LO:
     case EXC_INSTRUCTION_ABORT:

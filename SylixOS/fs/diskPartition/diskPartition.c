@@ -41,6 +41,9 @@
 *********************************************************************************************************/
 #if (LW_CFG_MAX_VOLUMES > 0) && (LW_CFG_DISKPART_EN > 0)
 #include "diskPartition.h"
+#if LW_CFG_CPU_WORD_LENGHT > 32
+#include "gptPartition.h"
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
 /*********************************************************************************************************
   一个物理磁盘带有五个逻辑分区的 BLK_DEV 文件系统示例结构:
 
@@ -399,6 +402,72 @@ static INT  __diskPartitionScan (PLW_BLK_DEV         pblkd,
     }
 }
 /*********************************************************************************************************
+** 函数名称: __diskGptPartitionScan
+** 功能描述: 扫描 GPT 分区信息
+** 输　入  : pblkd             块设备
+**           ulBytesPerSector  扇区大小
+**           pdpt              GPT 分区表结构
+** 输　出  : > 0 分区数量
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_CPU_WORD_LENGHT > 32
+
+static INT  __diskGptPartitionScan (PLW_BLK_DEV         pblkd,
+                                    ULONG               ulBytesPerSector,
+                                    PLW_DISKPART_TABLE  pdpt)
+{
+    UINT64     ui64PStartSec;
+    UINT64     ui64lPNSec;
+    BYTE       ucPartType;
+    INT        i;
+
+    LW_DISKPART_OPERAT     *pdoLogic;
+    GPT_TABLE              *pgpt;
+
+    pgpt = API_GptCreateAndInit(ulBytesPerSector, 0);
+    if (!pgpt) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+
+    if (API_GptPartitionBlkLoad(pblkd, pgpt) != ERROR_NONE) {           /*  从块设备加载 GPT 分区表     */
+        API_GptDestroy(pgpt);
+        return  (PX_ERROR);
+    }
+
+    for (i = 0;
+         (i < pgpt->GPT_header.HDR_uiEntriesCount) && (i < LW_CFG_MAX_DISKPARTS);
+         i++) {                                                         /*  遍历分区表                  */
+        pdoLogic = &pdpt->DPT_dpoLogic[i];                              /*  逻辑分区信息                */
+        if (API_GptGetEntry(pgpt, i, &ui64PStartSec, &ui64lPNSec, &ucPartType) != ERROR_NONE) {
+            API_GptDestroy(pgpt);
+            return  (PX_ERROR);
+        }
+
+        pdoLogic->DPO_dpnEntry.DPN_bIsActive     = LW_TRUE;
+        pdoLogic->DPO_dpnEntry.DPN_ulStartSector = ui64PStartSec;
+        pdoLogic->DPO_dpnEntry.DPN_ulNSector     = ui64lPNSec;
+        pdoLogic->DPO_dpnEntry.DPN_ucPartType    = ucPartType;
+        pdoLogic->DPT_pblkdDisk                  = pblkd;
+
+        __logicDiskInit(&pdoLogic->DPO_blkdLogic,
+                        pdoLogic->DPT_pblkdDisk,
+                        pdoLogic->DPO_dpnEntry.DPN_ulNSector);          /*  初始化逻辑设备控制块        */
+
+        if (!LW_DISK_PART_IS_VALID(ucPartType)) {                       /*  对未知分区类型尝试枚举      */
+            pdoLogic->DPO_dpnEntry.DPN_ucPartType = __fsPartitionProb(&pdoLogic->DPO_blkdLogic);
+        }
+    }
+
+    API_GptDestroy(pgpt);
+
+    return  (i);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+/*********************************************************************************************************
 ** 函数名称: __diskPartitionProb
 ** 功能描述: 分区表探测处理
 ** 输　入  : pblkd             块设备
@@ -473,9 +542,15 @@ INT  API_DiskPartitionScan (PLW_BLK_DEV  pblkd, PLW_DISKPART_TABLE  pdptDisk)
             return  (iError);
         }
     }
-    
-    iError = __diskPartitionScan(pblkd, ulBytesPerSector,
-                                 pdptDisk, 0, 0, 0);                    /*  分析磁盘分区表              */
+
+#if LW_CFG_CPU_WORD_LENGHT > 32
+    iError = __diskGptPartitionScan(pblkd, ulBytesPerSector, pdptDisk); /*  首先尝试 GPT 分区格式扫描   */
+    if (iError < 0)
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+    {
+        iError = __diskPartitionScan(pblkd, ulBytesPerSector,
+                                     pdptDisk, 0, 0, 0);                /*  分析磁盘分区表              */
+    }
     if (iError >= 0) {
         pdptDisk->DPT_ulNPart = (ULONG)iError;                          /*  记录分区数量                */
     

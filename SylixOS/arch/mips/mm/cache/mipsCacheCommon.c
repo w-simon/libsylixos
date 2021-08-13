@@ -291,6 +291,36 @@ static VOID  loongson3SCacheInit (VOID)
     }
 }
 /*********************************************************************************************************
+** 函数名称: jzriscSCacheInit
+** 功能描述: JZRISC SCACHE init
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  jzriscSCacheInit (VOID)
+{
+    UINT32  uiConfig2;
+    UINT32  uiTemp;
+
+    uiConfig2 = mipsCp0Config2Read();                                   /*  读 Config2                  */
+
+    uiTemp = (uiConfig2 >> 4) & 0x0f;
+    _G_SCache.CACHE_uiLineSize = 2 << uiTemp;
+
+    uiTemp = (uiConfig2 >> 8) & 0x0f;
+    _G_SCache.CACHE_uiSetNr = 64 << uiTemp;
+
+    uiTemp = (uiConfig2 >> 0) & 0x0f;
+    _G_SCache.CACHE_uiWayNr = uiTemp + 1;
+
+    _G_SCache.CACHE_uiWaySize = _G_SCache.CACHE_uiSetNr * _G_SCache.CACHE_uiLineSize;
+    _G_SCache.CACHE_uiWayBit  = lib_ffs(_G_SCache.CACHE_uiWaySize) - 1;
+    _G_SCache.CACHE_uiSize    = _G_SCache.CACHE_uiSetNr * _G_SCache.CACHE_uiWayNr *
+                                _G_SCache.CACHE_uiLineSize;
+    _G_SCache.CACHE_bPresent  = LW_TRUE;
+}
+/*********************************************************************************************************
 ** 函数名称: mipsSCacheInit
 ** 功能描述: MIPS SCACHE init
 ** 输　入  : NONE
@@ -364,6 +394,10 @@ static VOID  mipsSCacheSetup (VOID)
     case CPU_LOONGSON2K:
     case CPU_CETC_HR2:
         loongson3SCacheInit();
+        break;
+
+    case CPU_JZRISC:
+        jzriscSCacheInit();
         break;
 
     default:
@@ -466,9 +500,13 @@ VOID  mipsCacheProbe (CPCHAR  pcMachineName)
 
     case CPU_JZRISC:                                                    /*  君正 CPU                    */
         _G_bHaveTagHi = LW_FALSE;
-        _G_bHaveECC   = LW_TRUE;
-        _G_uiEccValue = 0;                                              /*  操作 L1C 的指令不影响 L2C   */
+        if (_G_uiMipsPridImp == PRID_IMP_XBURST2) {
+            _G_bHaveECC = LW_FALSE;
+        } else {
+            _G_bHaveECC = LW_TRUE;
+        }
         _G_bHaveFillI = LW_TRUE;
+        _G_uiEccValue = 0;                                              /*  操作 L1C 的指令不影响 L2C   */
         _G_bHaveHitWritebackD = LW_TRUE;
         /*
          * TODO: _G_bHaveHitWritebackS ??

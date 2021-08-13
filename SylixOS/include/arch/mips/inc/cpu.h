@@ -54,8 +54,9 @@
 #define PRID_COMP_CAVIUM        0x0d0000
 #define PRID_COMP_LOONGSON      0x140000
 #define PRID_COMP_INGENIC_D0    0xd00000                                /*  JZ4740, JZ4750              */
-#define PRID_COMP_INGENIC_D1    0xd10000                                /*  JZ4770, JZ4775              */
+#define PRID_COMP_INGENIC_D1    0xd10000                                /*  JZ4770, JZ4775, X1000       */
 #define PRID_COMP_INGENIC_E1    0xe10000                                /*  JZ4780                      */
+#define PRID_COMP_INGENIC_13    0x130000                                /*  X2000                       */
 #define PRID_COMP_CETC          0xff0000
 /*********************************************************************************************************
   Assigned Processor ID (implementation) values for bits 15:8 of the PRId
@@ -132,6 +133,8 @@
   These are the PRID's for when 23:16 == PRID_COMP_INGENIC
 *********************************************************************************************************/
 #define PRID_IMP_JZRISC         0x0200
+#define PRID_IMP_XBURST         PRID_IMP_JZRISC
+#define PRID_IMP_XBURST2        0x2000
 /*********************************************************************************************************
   Particular Revision values for bits 7:0 of the PRId register.
 *********************************************************************************************************/

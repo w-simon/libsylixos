@@ -811,6 +811,7 @@ SylixOS/fs/diskCache/diskCachePipeline.c \
 SylixOS/fs/diskCache/diskCacheProc.c \
 SylixOS/fs/diskCache/diskCacheSync.c \
 SylixOS/fs/diskPartition/diskPartition.c \
+SylixOS/fs/diskPartition/gptPartition.c \
 SylixOS/fs/diskRaid/diskRaid0.c \
 SylixOS/fs/diskRaid/diskRaid1.c \
 SylixOS/fs/diskRaid/diskRaidLib.c \

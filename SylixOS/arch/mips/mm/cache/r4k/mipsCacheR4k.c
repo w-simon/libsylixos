@@ -337,6 +337,30 @@ static INT  mipsCacheR4kDisable (LW_CACHE_TYPE  cachetype)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: mipsCacheX2kEnable
+** 功能描述: 使能 CACHE
+** 输　入  : cachetype      INSTRUCTION_CACHE / DATA_CACHE
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  mipsCacheX2kEnable (LW_CACHE_TYPE  cachetype)
+{
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: mipsCacheX2kDisable
+** 功能描述: 禁能 CACHE
+** 输　入  : cachetype      INSTRUCTION_CACHE / DATA_CACHE
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  mipsCacheX2kDisable (LW_CACHE_TYPE  cachetype)
+{
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: mipsCacheR4kFlush
 ** 功能描述: CACHE 脏数据回写
 ** 输　入  : cachetype     CACHE 类型
@@ -829,9 +853,11 @@ VOID  mipsCacheR4kInit (LW_CACHE_OP  *pcacheop,
 {
     mipsCacheProbe(pcMachineName);                                      /*  CACHE 探测                  */
     mipsCacheInfoShow();                                                /*  打印 CACHE 信息             */
-    mipsCacheR4kDisableHw();                                            /*  关闭 CACHE                  */
-    mipsBranchPredictorInvalidate();                                    /*  无效分支预测                */
-    mipsCacheR4kInitHw();                                               /*  初始化 CACHE                */
+    if (!((_G_uiMipsCpuType == CPU_JZRISC) && (_G_uiMipsPridImp == PRID_IMP_XBURST2))) {
+        mipsCacheR4kDisableHw();                                        /*  关闭 CACHE                  */
+        mipsBranchPredictorInvalidate();                                /*  无效分支预测                */
+        mipsCacheR4kInitHw();                                           /*  初始化 CACHE                */
+    }
 
 #if LW_CFG_SMP_EN > 0
     pcacheop->CACHEOP_ulOption = CACHE_TEXT_UPDATE_MP;
@@ -848,8 +874,13 @@ VOID  mipsCacheR4kInit (LW_CACHE_OP  *pcacheop,
     pcacheop->CACHEOP_iICacheWaySize = _G_ICache.CACHE_uiWaySize;
     pcacheop->CACHEOP_iDCacheWaySize = _G_DCache.CACHE_uiWaySize;
 
-    pcacheop->CACHEOP_pfuncEnable  = mipsCacheR4kEnable;
-    pcacheop->CACHEOP_pfuncDisable = mipsCacheR4kDisable;
+    if ((_G_uiMipsCpuType == CPU_JZRISC) && (_G_uiMipsPridImp == PRID_IMP_XBURST2)) {
+        pcacheop->CACHEOP_pfuncEnable  = mipsCacheX2kEnable;
+        pcacheop->CACHEOP_pfuncDisable = mipsCacheX2kDisable;
+    } else {
+        pcacheop->CACHEOP_pfuncEnable  = mipsCacheR4kEnable;
+        pcacheop->CACHEOP_pfuncDisable = mipsCacheR4kDisable;
+    }
     
     pcacheop->CACHEOP_pfuncLock   = mipsCacheR4kLock;                   /*  暂时不支持锁定操作          */
     pcacheop->CACHEOP_pfuncUnlock = mipsCacheR4kUnlock;
@@ -881,8 +912,10 @@ VOID  mipsCacheR4kInit (LW_CACHE_OP  *pcacheop,
 VOID  mipsCacheR4kReset (CPCHAR  pcMachineName)
 {
     mipsCacheProbe(pcMachineName);                                      /*  CACHE 探测                  */
-    mipsCacheR4kDisableHw();                                            /*  关闭 CACHE                  */
-    mipsBranchPredictorInvalidate();                                    /*  无效分支预测                */
+    if (!((_G_uiMipsCpuType == CPU_JZRISC) && (_G_uiMipsPridImp == PRID_IMP_XBURST2))) {
+        mipsCacheR4kDisableHw();                                        /*  关闭 CACHE                  */
+        mipsBranchPredictorInvalidate();                                /*  无效分支预测                */
+    }
 }
 
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */

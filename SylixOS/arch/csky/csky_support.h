@@ -88,7 +88,6 @@ VOID        archCrtCtxSwitch(PLW_CLASS_CPU  pcpuSw);
 #endif                                                                  /*  LW_CFG_COROUTINE_EN > 0     */
 
 VOID        archIntCtxLoad(PLW_CLASS_CPU  pcpuSw);
-VOID        archFastIntCtxLoad(PLW_CLASS_CPU  pcpuSw);
 VOID        archSigCtxLoad(const ARCH_REG_CTX  *pregctx);
 
 VOID        archIntCtxSaveReg(PLW_CLASS_CPU  pcpu,
@@ -138,6 +137,22 @@ INTREG  archGetPSR(VOID);
 INTREG  archIntDisable(VOID);
 VOID    archIntEnable(INTREG  iregInterLevel);
 VOID    archIntEnableForce(VOID);
+
+#define KN_FIQ_DISABLE()            archFastIntDisable()
+#define KN_FIQ_ENABLE()             archFastIntEnable()
+#define KN_FIQ_AUTO_ENTRY_SET()     archFastAutoIntEntrySet()
+#define KN_FIQ_VECTOR_CLAIM(vector) archFastVectorIntClaim(vector)
+
+VOID    archFastIntDisable(VOID);
+VOID    archFastIntEnable(VOID);
+
+VOID    archFastAutoIntEntry(VOID);
+VOID    archFastAutoIntRawEntry(VOID);
+VOID    archFastAutoIntEntrySet(VOID);
+
+VOID    archFastVectorIntEntry(VOID);
+VOID    archFastVectorIntRawEntry(VOID);
+INT     archFastVectorIntClaim(ULONG  ulVector);
 
 VOID    archPageCopy(PVOID pvTo, PVOID pvFrom);
 

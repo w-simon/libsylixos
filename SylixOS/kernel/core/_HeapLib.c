@@ -281,7 +281,7 @@ VOID  _HeapTraceFree (PLW_CLASS_HEAP  pheap, PVOID  pvMem)
     __HEAP_TRACE_FREE(pheap, pvMem);
 }
 /*********************************************************************************************************
-** 函数名称: _HeapCtor
+** 函数名称: _HeapCtorEx
 ** 功能描述: 构造一个内存堆
 ** 输　入  : pheapToBuild          需要创建的堆
 **           pvStartAddress        起始内存地址
@@ -304,7 +304,7 @@ PLW_CLASS_HEAP  _HeapCtorEx (PLW_CLASS_HEAP    pheapToBuild,
         stByteSize -= (size_t)(ulStartAlign - ulStart);                 /*  去掉前面的不对齐长度        */
     }
     
-    stByteSize = ROUND_DOWN(stByteSize, LW_CFG_HEAP_ALIGNMENT);         /*  分段大小对其                */
+    stByteSize = ROUND_DOWN(stByteSize, LW_CFG_HEAP_ALIGNMENT);         /*  分段大小对齐                */
     psegment   = (PLW_CLASS_SEGMENT)ulStartAlign;                       /*  第一个分段起始地址          */
     
     _LIST_LINE_INIT_IN_CODE(psegment->SEGMENT_lineManage);              /*  初始化第一个分段            */

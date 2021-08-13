@@ -1387,7 +1387,7 @@ errno_t  tpsFsChtime (PTPS_INODE pinode, struct utimbuf  *utim)
 errno_t  tpsFsFlushInodes (PTPS_SUPER_BLOCK psb)
 {
     PTPS_INODE  pinode = LW_NULL;
-    INT         iErr   = ERROR_NONE;
+    errno_t     iErr   = ERROR_NONE;
 
     if (LW_NULL == psb) {
         return  (EINVAL);

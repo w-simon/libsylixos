@@ -30,6 +30,7 @@ typedef struct {
     BOOL        CP_bUnalign;                                            /*  是否支持非对齐访问          */
     BOOL        CP_bMmuEnByBoot;                                        /*  BOOT 是否已经启动了 MMU     */
     BOOL        CP_bSLDepCache;                                         /*  自旋锁是否依赖 CACHE        */
+    BOOL        CP_bAPGR;                                               /*  硬件是否存在可选通用寄存器  */
 } CSKY_PARAM;
 
 /*********************************************************************************************************

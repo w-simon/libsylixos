@@ -348,7 +348,7 @@ INT  __resPidReclaim (pid_t  pid)
     }
 #endif
     
-#if	((LW_CFG_HTIMER_EN > 0) || (LW_CFG_ITIMER_EN > 0)) && (LW_CFG_MAX_TIMERS > 0)
+#if ((LW_CFG_HTIMER_EN > 0) || (LW_CFG_ITIMER_EN > 0)) && (LW_CFG_MAX_TIMERS > 0)
     for (i = 0; i < LW_CFG_MAX_TIMERS; i++) {                           /*  处理定时器                  */
         presh = &_G_reshTimerBuffer[i];
         if ((presh->RESH_pid == pid) && !presh->RESH_bIsGlobal) {

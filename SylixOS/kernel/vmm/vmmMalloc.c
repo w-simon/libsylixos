@@ -299,7 +299,7 @@ PVOID  API_VmmMallocAlign (size_t  stSize, size_t  stAlign, ULONG  ulFlag)
         }
 
         pvmpagePhysical->PAGE_ulMapPageAddr = ulVirtualAddr;
-        pvmpagePhysical->PAGE_ulFlags = ulFlag;
+        pvmpagePhysical->PAGE_ulFlags       = ulFlag;
 
         __pageLink(pvmpageVirtual, pvmpagePhysical);                    /*  将物理页面连接入虚拟空间    */
 
@@ -330,7 +330,7 @@ PVOID  API_VmmMallocAlign (size_t  stSize, size_t  stAlign, ULONG  ulFlag)
             }
 
             pvmpagePhysical->PAGE_ulMapPageAddr = ulVirtualAddr;
-            pvmpagePhysical->PAGE_ulFlags = ulFlag;
+            pvmpagePhysical->PAGE_ulFlags       = ulFlag;
 
             __pageLink(pvmpageVirtual, pvmpagePhysical);                /*  将物理页面连接入虚拟空间    */
 
@@ -752,7 +752,7 @@ ULONG  API_VmmMergeArea (PVOID  pvVirtualMem1, PVOID  pvVirtualMem2)
         return  (ERROR_VMM_VIRTUAL_PAGE);
     }
     
-    if ((pvmpageVirtualL->PAGE_ulPageAddr + pvmpageVirtualL->PAGE_ulCount) != 
+    if ((pvmpageVirtualL->PAGE_ulPageAddr + (pvmpageVirtualL->PAGE_ulCount << LW_CFG_VMM_PAGE_SHIFT)) !=
          pvmpageVirtualR->PAGE_ulPageAddr) {                            /*  非连续页面不能进行合并      */
         __VMM_UNLOCK();
         _ErrorHandle(ERROR_VMM_VIRTUAL_ADDR);

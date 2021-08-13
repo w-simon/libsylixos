@@ -35,7 +35,7 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-LW_OBJECT_ID _MakeObjectId (UINT8  ucCls, UINT16  usNode, UINT16  usIndex)
+LW_OBJECT_ID  _MakeObjectId (UINT8  ucCls, UINT16  usNode, UINT16  usIndex)
 {
     REGISTER ULONG    ulId;
     

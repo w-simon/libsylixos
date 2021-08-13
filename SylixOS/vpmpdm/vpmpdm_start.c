@@ -303,6 +303,7 @@ int setenv (const char *name, const char *value, int rewrite)
             if ((saveenv = malloc(size)) == NULL)
                 goto bad;
             (void)memcpy(saveenv, environ, cnt * sizeof(char *));
+            free(environ);
         }
         environ = saveenv;
         environ[cnt + 1] = NULL;

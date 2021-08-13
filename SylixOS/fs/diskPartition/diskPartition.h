@@ -83,6 +83,7 @@
 #define LW_DISK_PART_TYPE_QNX6_3                0xb3
 #define LW_DISK_PART_TYPE_ISO9660               0x96
 #define LW_DISK_PART_TYPE_TPS                   0x9c
+#define LW_DISK_PART_TYPE_EFI                   0x9d
 #define LW_DISK_PART_TYPE_RESERVED              0xbf
 /*********************************************************************************************************
   分区类型 (扩展分区)

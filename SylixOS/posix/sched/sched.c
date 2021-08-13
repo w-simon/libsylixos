@@ -146,7 +146,7 @@ int  sched_setparam (pid_t  pid, const struct sched_param  *pschedparam)
         return  (PX_ERROR);
     }
     
-    ucPriority= (UINT8)PX_PRIORITY_CONVERT(pschedparam->sched_priority);
+    ucPriority = (UINT8)PX_PRIORITY_CONVERT(pschedparam->sched_priority);
     
 #if LW_CFG_MODULELOADER_EN > 0
     if (pid == 0) {

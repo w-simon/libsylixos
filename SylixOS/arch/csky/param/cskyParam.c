@@ -24,7 +24,7 @@
 /*********************************************************************************************************
   启动参数
 *********************************************************************************************************/
-static CSKY_PARAM    cskyParam = { LW_TRUE, LW_TRUE , LW_TRUE };
+static CSKY_PARAM    cskyParam = { LW_TRUE, LW_TRUE, LW_TRUE, LW_TRUE };
 /*********************************************************************************************************
 ** 函数名称: archKernelParam
 ** 功能描述: C-SKY 体系架构启动参数设置.
@@ -58,6 +58,13 @@ VOID  archKernelParam (CPCHAR  pcParam)
             __ARCH_SPIN_BYPASS();
         }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
+    } else if (lib_strncmp(pcParam, "agpr=", 5) == 0) {                 /*  硬件是否存在可选通用寄存器  */
+        if (pcParam[5] == 'n') {
+            cskyParam.CP_bAPGR = LW_FALSE;
+            KN_FIQ_AUTO_ENTRY_SET();
+        } else {
+            cskyParam.CP_bAPGR = LW_TRUE;
+        }
     }
 }
 /*********************************************************************************************************

@@ -77,66 +77,58 @@
 #define writes64(a, b, c)   writes64_raw(a, b, c)
 
 /*********************************************************************************************************
-  C-SKY 处理器 I/O 端口读
+  C-SKY 处理器 I/O 端口操作 (C-SKY 处理器没有独立 I/O 端口, 处理方法与 I/O 内存相同)
 *********************************************************************************************************/
-#define in8(addr)           read8(addr)
-#define in16(addr)          read16(addr)
-#define in32(addr)          read32(addr)
-#define in64(addr)          read64(addr)
+
+extern ioaddr_t  __IO_BASE__;
 
 /*********************************************************************************************************
-  C-SKY 处理器 I/O 端口读 (大小端相关)
+  in IOPORT
 *********************************************************************************************************/
 
-#define in8_le(a)           in8(a)
-#define in16_le(a)          le16toh(in16(a))
-#define in32_le(a)          le32toh(in32(a))
-#define in64_le(a)          le64toh(in64(a))
+#define in8(a)              read8(__IO_BASE__ + a)
+#define in16(a)             read16(__IO_BASE__ + a)
+#define in32(a)             read32(__IO_BASE__ + a)
+#define in64(a)             read64(__IO_BASE__ + a)
 
-#define in8_be(a)           in8(a)
-#define in16_be(a)          be16toh(in16(a))
-#define in32_be(a)          be32toh(in32(a))
-#define in64_be(a)          be64toh(in64(a))
+#define in8_le(a)           read8_le(__IO_BASE__ + a)
+#define in16_le(a)          read16_le(__IO_BASE__ + a)
+#define in32_le(a)          read32_le(__IO_BASE__ + a)
+#define in64_le(a)          read64_le(__IO_BASE__ + a)
+
+#define in8_be(a)           read8_be(__IO_BASE__ + a)
+#define in16_be(a)          read16_be(__IO_BASE__ + a)
+#define in32_be(a)          read32_be(__IO_BASE__ + a)
+#define in64_be(a)          read64_be(__IO_BASE__ + a)
+
+#define ins8(a, b, c)       reads8(__IO_BASE__ + a, b, c)
+#define ins16(a, b, c)      reads16(__IO_BASE__ + a, b, c)
+#define ins32(a, b, c)      reads32(__IO_BASE__ + a, b, c)
+#define ins64(a, b, c)      reads64(__IO_BASE__ + a, b, c)
 
 /*********************************************************************************************************
-  C-SKY 处理器 I/O 端口写
-*********************************************************************************************************/
-#define out8(x, addr)       write8(x, addr)
-#define out16(x, addr)      write16(x, addr)
-#define out32(x, addr)      write32(x, addr)
-#define out64(x, addr)      write64(x, addr)
-
-/*********************************************************************************************************
-  C-SKY 处理器 I/O 端口写 (大小端相关)
+  out IOPORT
 *********************************************************************************************************/
 
-#define out8_le(v, a)       out8(v, a)
-#define out16_le(v, a)      out16(htole16(v), a)
-#define out32_le(v, a)      out32(htole32(v), a)
-#define out64_le(v, a)      out64(htole64(v), a)
+#define out8(d, a)          write8(d, __IO_BASE__ + a)
+#define out16(d, a)         write16(d, __IO_BASE__ + a)
+#define out32(d, a)         write32(d, __IO_BASE__ + a)
+#define out64(d, a)         write64(d, __IO_BASE__ + a)
 
-#define out8_be(v, a)       out8(v, a)
-#define out16_be(v, a)      out16(htobe16(v), a)
-#define out32_be(v, a)      out32(htobe32(v), a)
-#define out64_be(v, a)      out64(htobe64(v), a)
+#define out8_le(d, a)       write8_le(d, __IO_BASE__ + a)
+#define out16_le(d, a)      write16_le(d, __IO_BASE__ + a)
+#define out32_le(d, a)      write32_le(d, __IO_BASE__ + a)
+#define out64_le(d, a)      write64_le(d, __IO_BASE__ + a)
 
-/*********************************************************************************************************
-  C-SKY 处理器 I/O 端口连续读 (数据来自单个地址)
-*********************************************************************************************************/
+#define out8_be(d, a)       write8_be(d, __IO_BASE__ + a)
+#define out16_be(d, a)      write16_be(d, __IO_BASE__ + a)
+#define out32_be(d, a)      write32_be(d, __IO_BASE__ + a)
+#define out64_be(d, a)      write64_be(d, __IO_BASE__ + a)
 
-#define ins8(a, b, c)       reads8(a, b, c)
-#define ins16(a, b, c)      reads16(a, b, c)
-#define ins32(a, b, c)      reads32(a, b, c)
-#define ins64(a, b, c)      reads64(a, b, c)
-
-/*********************************************************************************************************
-  C-SKY 处理器 I/O 端口连续写 (数据写入单个地址)
-*********************************************************************************************************/
-
-#define outs8(a, b, c)      writes8(a, b, c)
-#define outs16(a, b, c)     writes16(a, b, c)
-#define outs32(a, b, c)     writes32(a, b, c)
-#define outs64(a, b, c)     writes64(a, b, c)
+#define outs8(a, b, c)      writes8(__IO_BASE__ + a, b, c)
+#define outs16(a, b, c)     writes16(__IO_BASE__ + a, b, c)
+#define outs32(a, b, c)     writes32(__IO_BASE__ + a, b, c)
+#define outs64(a, b, c)     writes64(__IO_BASE__ + a, b, c)
 
 #endif                                                                  /*  __ARCH_CSKY_IO_H            */
 /*********************************************************************************************************

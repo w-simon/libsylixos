@@ -140,7 +140,7 @@ int  setrlimit (int resource, const struct rlimit *rlp)
     INT           iRet = PX_ERROR;
     LW_LD_VPROC  *pvproc;
 
-    if (!rlp || (rlp->rlim_max > rlp->rlim_cur)) {
+    if (!rlp || (rlp->rlim_cur > rlp->rlim_max)) {
         errno = EINVAL;
         return  (PX_ERROR);
     }

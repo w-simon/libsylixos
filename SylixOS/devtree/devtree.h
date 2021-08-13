@@ -303,6 +303,8 @@ LW_API INT                   API_DeviceTreeDevEarlyInit(PLW_DEVTREE_TABLE  pdttM
 LW_API INT                   API_DeviceTreeIsCompatible(PLW_DEVTREE_NODE  pdtnDev,
                                                         PCHAR             pcCompat);
 
+LW_API PVOID                 API_DeviceTreeDevGetMatchData(PLW_DEV_INSTANCE  pdevinstance);
+
 /*********************************************************************************************************
   中断相关接口
 *********************************************************************************************************/

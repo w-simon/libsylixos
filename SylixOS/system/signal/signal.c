@@ -537,7 +537,7 @@ INT  sigsetmask (INT  iMask)
     return  (iMaskOld);
 }
 /*********************************************************************************************************
-** 函数名称: sigsetblock
+** 函数名称: sigblock
 ** 功能描述: 将新的需要阻塞的信号添加到当前线程 (BSD 兼容)
 ** 输　入  : iBlock                   新的阻塞信号掩码
 ** 输　出  : 先早的掩码
@@ -710,7 +710,7 @@ INT  siginterrupt (INT  iSigNo, INT  iFlag)
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-INT  sigstack (struct sigstack *ss, struct sigstack *oss)
+INT  sigstack (struct sigstack  *ss, struct sigstack  *oss)
 {
     stack_t     stackNew, stackOld;
     
@@ -754,7 +754,7 @@ INT  sigstack (struct sigstack *ss, struct sigstack *oss)
                                            API 函数
 *********************************************************************************************************/
 LW_API 
-INT  sigaltstack (const stack_t *ss, stack_t *oss)
+INT  sigaltstack (const stack_t  *ss, stack_t  *oss)
 {
     PLW_CLASS_TCB           ptcbCur;
     PLW_CLASS_SIGCONTEXT    psigctx;
@@ -1097,7 +1097,7 @@ INT  sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, const union sigval  sigvalu
     return  (__sigqueue(ulId, iSigNo, sigvalue.sival_ptr));
 }
 /*********************************************************************************************************
-** 函数名称: sigTrap
+** 函数名称: __sig_trap
 ** 功能描述: 向指定任务发送信号, 同时停止自己. (本程序在异常上下文中执行)
 ** 输　入  : ulIdSig                  线程 id (不允许为进程号)
 **           ulIdStop                 需要等待结束的线程

@@ -111,7 +111,7 @@ long  sysconf (int name)
         return  (1);
         
     case _SC_SIGQUEUE_MAX:
-        return  (LW_CFG_MAX_MSGQUEUES);
+        return  (LW_CFG_MAX_SIGQUEUE_NODES);
         
     case _SC_TIMER_MAX:
         return  (LW_CFG_MAX_TIMERS);

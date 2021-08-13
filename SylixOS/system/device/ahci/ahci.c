@@ -3172,8 +3172,8 @@ static INT  __ahciDiskDriveInit (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
         hCtrl->AHCICTRL_ullLba48TotalSecs[uiDrive] =
                             (UINT64)((((UINT64)((hParam->AHCIPARAM_usLba48Size[0]) & 0x0000ffff)) <<  0) |
                                      (((UINT64)((hParam->AHCIPARAM_usLba48Size[1]) & 0x0000ffff)) << 16) |
-                                     (((UINT64)((hParam->AHCIPARAM_usLba48Size[2]) & 0x0000ffff)) << 24) |
-                                     (((UINT64)((hParam->AHCIPARAM_usLba48Size[3]) & 0x0000ffff)) << 32));
+                                     (((UINT64)((hParam->AHCIPARAM_usLba48Size[2]) & 0x0000ffff)) << 32) |
+                                     (((UINT64)((hParam->AHCIPARAM_usLba48Size[3]) & 0x0000ffff)) << 48));
         hDrive->AHCIDRIVE_ulSectorMax = AHCI_MAX_RW_48LBA_SECTORS;
     
     } else {

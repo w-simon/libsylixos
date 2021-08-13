@@ -111,7 +111,7 @@ PVOID  API_VmmStackAlloc (size_t  stSize)
         }
         
         pvmpagePhysical->PAGE_ulMapPageAddr = ulVirtualAddr;
-        pvmpagePhysical->PAGE_ulFlags = LW_VMM_FLAG_RDWR;
+        pvmpagePhysical->PAGE_ulFlags       = LW_VMM_FLAG_RDWR;
         
         __pageLink(pvmpageVirtual, pvmpagePhysical);                    /*  将物理页面连接入虚拟空间    */
         

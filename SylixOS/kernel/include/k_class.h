@@ -260,7 +260,7 @@ typedef struct {
     PVOID                 EVENT_pvTcbOwn;                               /*  占有资源的TCB指针           */
                                                                         /*  可以在加入死锁检测机制      */
     ULONG                 EVENT_ulCounter;                              /*  计数器值                    */
-    ULONG                 EVENT_ulMaxCounter;                           /*  最大技术值                  */
+    ULONG                 EVENT_ulMaxCounter;                           /*  最大计数值                  */
     
     INT                   EVENT_iStatus;
 #define EVENT_RW_STATUS_R 0
@@ -361,12 +361,12 @@ typedef LW_CLASS_NOTEPAD    *PLW_CLASS_NOTEPAD;
 *********************************************************************************************************/
 
 typedef struct {
-     LW_LIST_LINE         PRIVATEVAR_lineVarList;                       /*  双向线表                    */
-     LW_LIST_MONO         PRIVATEVAR_monoResrcList;                     /*  空闲资源表                  */
+    LW_LIST_LINE         PRIVATEVAR_lineVarList;                        /*  双向线表                    */
+    LW_LIST_MONO         PRIVATEVAR_monoResrcList;                      /*  空闲资源表                  */
                                                                         /*  为了快速计算 将 LW_LIST_LINE*/
                                                                         /*  放在 0 偏移量上             */
-     ULONG               *PRIVATEVAR_pulAddress;                        /*  4/8 BYTE 私有化变量地址     */
-     ULONG                PRIVATEVAR_ulValueSave;                       /*  保存的变量的值              */
+    ULONG               *PRIVATEVAR_pulAddress;                         /*  4/8 BYTE 私有化变量地址     */
+    ULONG                PRIVATEVAR_ulValueSave;                        /*  保存的变量的值              */
 } LW_CLASS_THREADVAR;
 typedef LW_CLASS_THREADVAR *PLW_CLASS_THREADVAR;
 
@@ -376,13 +376,13 @@ typedef LW_CLASS_THREADVAR *PLW_CLASS_THREADVAR;
 *********************************************************************************************************/
 
 typedef struct {
-     PLW_STACK            THREADATTR_pstkLowAddr;                       /*  全部堆栈区低内存起始地址    */
-     size_t               THREADATTR_stGuardSize;                       /*  堆栈警戒区大小              */
-     size_t               THREADATTR_stStackByteSize;                   /*  全部堆栈区大小(字节)        */
-     UINT8                THREADATTR_ucPriority;                        /*  线程优先级                  */
-     ULONG                THREADATTR_ulOption;                          /*  任务选项                    */
-     PVOID                THREADATTR_pvArg;                             /*  线程参数                    */
-     PVOID                THREADATTR_pvExt;                             /*  扩展数据段指针              */
+    PLW_STACK            THREADATTR_pstkLowAddr;                        /*  全部堆栈区低内存起始地址    */
+    size_t               THREADATTR_stGuardSize;                        /*  堆栈警戒区大小              */
+    size_t               THREADATTR_stStackByteSize;                    /*  全部堆栈区大小(字节)        */
+    UINT8                THREADATTR_ucPriority;                         /*  线程优先级                  */
+    ULONG                THREADATTR_ulOption;                           /*  任务选项                    */
+    PVOID                THREADATTR_pvArg;                              /*  线程参数                    */
+    PVOID                THREADATTR_pvExt;                              /*  扩展数据段指针              */
 } LW_CLASS_THREADATTR;
 typedef LW_CLASS_THREADATTR     *PLW_CLASS_THREADATTR;
 

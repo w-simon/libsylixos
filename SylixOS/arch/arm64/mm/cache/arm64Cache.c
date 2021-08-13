@@ -519,7 +519,7 @@ VOID  arm64CacheInit (LW_CACHE_OP *pcacheop,
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 }
 /*********************************************************************************************************
-** 函数名称: archCacheV8Reset
+** 函数名称: arm64CacheReset
 ** 功能描述: 复位 CACHE 
 ** 输　入  : pcMachineName  机器名称
 ** 输　出  : NONE

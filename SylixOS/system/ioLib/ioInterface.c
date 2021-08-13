@@ -105,6 +105,7 @@ static INT _G_iIoStdFd[3] = {PX_ERROR, PX_ERROR, PX_ERROR};             /*  全局
 ** 输　入  : pcName                        文件名
 **           iFlag                         方式         O_RDONLY  O_WRONLY  O_RDWR  O_CREAT
 **           iMode                         UNIX MODE
+**           bCreate                       是否只调用创建接口
 ** 输　出  : 文件描述符
 ** 全局变量: 
 ** 调用模块: 

@@ -17,6 +17,8 @@
 ** 文件创建日期: 2015 年 08 月 27 日
 **
 ** 描        述: 16c550 兼容串口驱动支持.
+** BUG:
+** 2021.08.05    修复接收中断使用工作队列多收数据和少发数据
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -367,11 +369,18 @@ static INT  sio16c550SetHighBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
     INT     base_port;
     size_t  i = 0;
 
+#if defined(LW_CFG_CPU_ARCH_X86)
     if (psiochan->iobase == 0) {
         _ErrorHandle(ENODEV);
         return  (PX_ERROR);
     }
-    
+#else
+    if ((psiochan->iobase == 0) && (__IO_BASE__ == 0)) {
+        _ErrorHandle(ENODEV);
+        return  (PX_ERROR);
+    }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_X86         */
+
     base_port = sio16c550GetBasePort(psiochan->iobase, &key, &index);
     if (base_port < 0) {
         _ErrorHandle(ENODEV);
@@ -1022,7 +1031,7 @@ VOID sio16c550TxIsr (SIO16C550_CHAN *psiochan)
     
     psiochan->bdefer = LW_FALSE;
     
-    lsr = psiochan->lsr;                                                /*  first use save lsr value    */
+    lsr = GET_REG(psiochan, LSR);
     
     if (lsr & LSR_THRE) {
         for (i = 0; i < psiochan->fifo_len; i++) {
@@ -1057,7 +1066,7 @@ VOID sio16c550RxIsr (SIO16C550_CHAN *psiochan)
 
     LW_SPIN_LOCK_QUICK(&psiochan->slock, &intreg);
     
-    lsr = psiochan->lsr;                                                /*  first use save lsr value    */
+    lsr = GET_REG(psiochan, LSR);
     
     do {
         if (lsr & (LSR_BI | LSR_FE | LSR_PE | LSR_OE)) {
@@ -1120,7 +1129,6 @@ VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
         psiochan->ier &= (~RxFIFO_BIT);
         SET_REG(psiochan, IER, psiochan->ier);                          /* disable Rx Int               */
         
-        psiochan->lsr = lsr;                                            /* save lsr                     */
         LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
         
 #if LW_CFG_ISR_DEFER_EN > 0
@@ -1145,7 +1153,6 @@ VOID sio16c550Isr (SIO16C550_CHAN *psiochan)
         if (psiochan->bdefer == LW_FALSE) {                             /* not in queue                 */
             psiochan->bdefer =  LW_TRUE;
             
-            psiochan->lsr = lsr;                                        /* save lsr                     */
             LW_SPIN_UNLOCK_QUICK(&psiochan->slock, intreg);
             
 #if LW_CFG_ISR_DEFER_EN > 0

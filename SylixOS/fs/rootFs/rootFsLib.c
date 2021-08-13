@@ -436,7 +436,7 @@ INT  API_RootFsMakeNode (CPCHAR  pcName, INT  iNodeType, INT  iNodeOpt, INT  iMo
         }
         
     } else if ((iNodeType == LW_ROOTFS_NODE_TYPE_SOCK) ||
-               (iNodeType == LW_ROOTFS_NODE_TYPE_REG)) {                /*  socket or reg file                 */
+               (iNodeType == LW_ROOTFS_NODE_TYPE_REG)) {                /*  socket or reg file          */
         /*
          *  AF_UNIX нд╪Ч
          */

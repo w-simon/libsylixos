@@ -848,14 +848,14 @@ INT  API_TShellExec (CPCHAR  pcCommandExec)
 *********************************************************************************************************/
 LW_API  
 INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3], 
-                       BOOL  bIsJoin, LW_OBJECT_HANDLE *pulSh)
+                       BOOL  bIsJoin, LW_OBJECT_HANDLE  *pulSh)
 {
     INT                 iRet;
     INT                 iError;
     INT                 iFdArray[3];
     BOOL                bClosedArray[3];
     CHAR                cKeyword[LW_CFG_SHELL_MAX_KEYWORDLEN + 1];      /*  关键字                      */
-    PCHAR               pcParam = LW_NULL;                              /*  指向第一个参数的指针        */
+    PCHAR               pcParam  = LW_NULL;                             /*  指向第一个参数的指针        */
     __PTSHELL_KEYWORD   pskwNode = LW_NULL;
     
     CHAR                cCommand[LW_CFG_SHELL_MAX_COMMANDLEN + 1];

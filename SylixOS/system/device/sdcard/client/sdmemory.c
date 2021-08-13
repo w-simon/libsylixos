@@ -150,6 +150,8 @@ static INT __sdMemSwitchWait(PLW_SDCORE_DEVICE psdcoredevice,
 static CPCHAR __sdMemProtVsnStr(UINT8 ucType, UINT8 ucVsn);
 static ULONG  __sdMemBlkLogic2Phy(ULONG ulLogic, UINT8 ucBlkLenBits);
 static ULONG  __sdMemBlkPhy2Logic(ULONG ulPhy, UINT8 ucBlkLenBits);
+static VOID  *__sdMemExtBufAlloc(VOID);
+static VOID   __sdMemExtBufFree(VOID *pvExtBuf);
 /*********************************************************************************************************
 ** 函数名称: API_SdMemDevCreate
 ** 功能描述: 创建一个SD记忆卡设备
@@ -206,6 +208,16 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
         return  (LW_NULL);
     }
 
+    psdcoredevice->COREDEV_pucExtBuf = __sdMemExtBufAlloc();
+    if (!psdcoredevice->COREDEV_pucExtBuf) {
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "alloc ext buffer failed.\r\n");
+
+        if (bCoreDevSelf) {
+            API_SdCoreDevDelete(psdcoredevice);
+        }
+        return  (LW_NULL);
+    }
+
     /*
      * 初始化这个设备(针对记忆卡)
      */
@@ -213,6 +225,7 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
     if (iError != ERROR_NONE) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "do memory initialize failed.\r\n");
 
+        __sdMemExtBufFree(psdcoredevice->COREDEV_pucExtBuf);
         if (bCoreDevSelf) {
             API_SdCoreDevDelete(psdcoredevice);
         }
@@ -222,6 +235,7 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
 
     psdblkdevice  = (__PSD_BLK_DEV)__SHEAP_ALLOC(sizeof(__SD_BLK_DEV));
     if (!psdblkdevice) {
+        __sdMemExtBufFree(psdcoredevice->COREDEV_pucExtBuf);
         if (bCoreDevSelf) {
             API_SdCoreDevDelete(psdcoredevice);
         }
@@ -239,6 +253,7 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "view csd of device failed.\r\n");
         __SHEAP_FREE(psdblkdevice);
 
+        __sdMemExtBufFree(psdcoredevice->COREDEV_pucExtBuf);
         if (bCoreDevSelf) {
             API_SdCoreDevDelete(psdcoredevice);
         }
@@ -251,6 +266,7 @@ LW_API PLW_BLK_DEV API_SdMemDevCreate (INT                       iAdapterType,
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "unkonwn address access way.\r\n");
         __SHEAP_FREE(psdblkdevice);
 
+        __sdMemExtBufFree(psdcoredevice->COREDEV_pucExtBuf);
         if (bCoreDevSelf) {
             API_SdCoreDevDelete(psdcoredevice);
         }
@@ -363,6 +379,10 @@ LW_API INT  API_SdMemDevDelete (PLW_BLK_DEV pblkdevice)
 
     psdblkdevice  = (__PSD_BLK_DEV)pblkdevice;
     psdcoredevice = psdblkdevice->SDBLKDEV_pcoreDev;
+
+    if (psdcoredevice) {
+        __sdMemExtBufFree(psdcoredevice->COREDEV_pucExtBuf);
+    }
 
     if (psdcoredevice && psdblkdevice->SDBLKDEV_bCoreDevSelf) {
         iError = API_SdCoreDevDelete(psdcoredevice);                    /*  先删除core设备              */
@@ -1588,6 +1608,36 @@ static ULONG __sdMemBlkPhy2Logic (ULONG ulPhy, UINT8 ucBlkLenBits)
     return  (ulPhy);
 }
 /*********************************************************************************************************
+** 函数名称: __sdMemExtBufAlloc
+** 功能描述: 分配初始化使用的扩展缓冲区
+** 输    入: NONE
+** 输    出: NONE
+** 返    回: 缓冲区指针
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  *__sdMemExtBufAlloc (VOID)
+{
+    VOID *pvExtBuf;
+
+    pvExtBuf = API_CacheDmaMallocAlign(1024, 4);
+
+    return  (pvExtBuf);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemExtBufFree
+** 功能描述: 释放扩展缓冲区
+** 输    入: pvExtBuf  缓冲区指针
+** 输    出: NONE
+** 返    回: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID   __sdMemExtBufFree (VOID *pvExtBuf)
+{
+    API_CacheDmaFree(pvExtBuf);
+}
+/*********************************************************************************************************
 ** 函数名称: __sdMemSdSwCapGet
 ** 功能描述: 获得SD卡的SWITCH功能信息
 ** 输    入: psdcoredevice   核心设备对象
@@ -1604,7 +1654,7 @@ static INT __sdMemSdSwCapGet (PLW_SDCORE_DEVICE  psdcoredevice,
                               LW_SDDEV_CSD      *psdcsd,
                               LW_SDDEV_SW_CAP   *psdswcap)
 {
-    UINT8   ucSwCap[64];
+    UINT8  *pucSwCap = psdcoredevice->COREDEV_pucExtBuf;
     INT     iRet;
 
     lib_bzero(psdswcap, sizeof(LW_SDDEV_SW_CAP));
@@ -1617,13 +1667,13 @@ static INT __sdMemSdSwCapGet (PLW_SDCORE_DEVICE  psdcoredevice,
         return  (PX_ERROR);
     }
 
-    iRet = API_SdCoreDevSwitchEx(psdcoredevice, 0, 0, 0, ucSwCap);
+    iRet = API_SdCoreDevSwitchEx(psdcoredevice, 0, 0, 0, pucSwCap);
     if (iRet != ERROR_NONE) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "get sd switch information error.\r\n");
         return  (PX_ERROR);
     }
 
-    if (ucSwCap[13] & SD_SW_MODE_HIGH_SPEED) {
+    if (pucSwCap[13] & SD_SW_MODE_HIGH_SPEED) {
         psdswcap->DEVSWCAP_uiHsMaxDtr = 50000000;
     }
 
@@ -1642,18 +1692,18 @@ static INT __sdMemSdSwCapGet (PLW_SDCORE_DEVICE  psdcoredevice,
 static INT __sdMemSdHsSwitch (PLW_SDCORE_DEVICE  psdcoredevice, LW_SDDEV_SW_CAP   *psdswcap)
 {
     INT     iRet;
-    UINT8   ucStatus[64];
+    UINT8  *pucStatus = psdcoredevice->COREDEV_pucExtBuf;
 
     if (!psdswcap->DEVSWCAP_uiHsMaxDtr) {
         return  (PX_ERROR);
     }
 
-    iRet = API_SdCoreDevSwitchEx(psdcoredevice, 1, 0, 1, ucStatus);
+    iRet = API_SdCoreDevSwitchEx(psdcoredevice, 1, 0, 1, pucStatus);
     if (iRet != ERROR_NONE) {
         return  (PX_ERROR);
     }
 
-    if ((ucStatus[16] & 0xF) != 1) {
+    if ((pucStatus[16] & 0xF) != 1) {
         return  (PX_ERROR);
     }
 

@@ -1452,7 +1452,16 @@ static INT  __fatFsClusterSizeCal (PFAT_FILE   pfatfile, ULONG  *pulClusterSize)
         return  (PX_ERROR);
     }
     
-    if (ulSecNum >= 0x800000) {                                         /*  4 GB 以上磁盘               */
+    if (ulSecNum >= 0x4000000) {                                        /*  32 GB 以上磁盘              */
+        *pulClusterSize = 64 * __FAT_CLUSTER_CAL_BASE(ulSecSize);
+
+    } else if (ulSecNum >= 0x2000000) {                                 /*  16 GB 以上磁盘              */
+        *pulClusterSize = 32 * __FAT_CLUSTER_CAL_BASE(ulSecSize);
+
+    } else if (ulSecNum >= 0x1000000) {                                 /*  8 GB 以上磁盘               */
+        *pulClusterSize = 16 * __FAT_CLUSTER_CAL_BASE(ulSecSize);
+
+    } else if (ulSecNum >= 0x800000) {                                  /*  4 GB 以上磁盘               */
         *pulClusterSize = 8 * __FAT_CLUSTER_CAL_BASE(ulSecSize);
     
     } else if (ulSecNum >= 0x200000) {                                  /*  1 GB 以上磁盘               */
@@ -1531,12 +1540,12 @@ static INT  __fatFsFormat (PLW_FD_ENTRY  pfdentry, LONG  lArg)
         if (__blockIoDevIsLogic(pfatfile->FATFIL_pfatvol->FATVOL_iDrv)) {
             fresError = f_mkfs((BYTE)pfatfile->FATFIL_pfatvol->FATVOL_iDrv, 
                                (BYTE)(FM_SFD | FM_FAT | FM_FAT32),
-                               (UINT16)ulClusterSize,
+                               (UINT32)ulClusterSize,
                                pvWork, _MAX_SS);                        /*  此磁盘为逻辑磁盘不需要分区表*/
         } else {
             fresError = f_mkfs((BYTE)pfatfile->FATFIL_pfatvol->FATVOL_iDrv, 
                                (BYTE)(FM_FAT | FM_FAT32),
-                               (UINT16)ulClusterSize, 
+                               (UINT32)ulClusterSize,
                                pvWork, _MAX_SS);                        /*  格式化带有分区表            */
         }
         

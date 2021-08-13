@@ -21,9 +21,10 @@
 ** BUG:
 2011.01.12  增加对 SPI 的支持(SPI 下的特殊工具函数).
 2011.02.21  增加 API_SdCoreSpiSendIfCond 函数.该函数只能用于 SPI 模式下.
-2011.02.21  增 SPI 下设备寄存器的读取函数: API_SdCoreSpiRegisterRead().
+2011.02.21  增加 SPI 下设备寄存器的读取函数: API_SdCoreSpiRegisterRead().
 2011.03.25  修改 API_SdCoreDevCreate(), 用于底层驱动安装上层的回调.
 2015.09.15  修改 SD_OPCOND_DELAY_CONTS 由100改为5000, 使卡识别阶段具有更好的兼容性.
+2021.07.22  修正 设备初始化时涉及数据传输的缓冲区不能直接来源于栈上空间.
 *********************************************************************************************************/
 
 #ifndef __SDCORE_H
@@ -67,6 +68,8 @@ typedef struct lw_sdcore_device {
     INT      (*COREDEV_pfuncCoreDevXfer)(PVOID  pvDevHandle, PLW_SD_MESSAGE psdmsg, INT iNum);
     INT      (*COREDEV_pfuncCoreDevCtl)(PVOID   pvDevHandle, INT iCmd, LONG lArg);
     INT      (*COREDEV_pfuncCoreDevDelet)(PVOID pvDevHandle);
+
+    UINT8     *COREDEV_pucExtBuf;                                       /*  初始化使用的数据缓冲        */
 } LW_SDCORE_DEVICE, *PLW_SDCORE_DEVICE;
 
 /*********************************************************************************************************

@@ -37,6 +37,7 @@
   宏定义
 *********************************************************************************************************/
 #define __LW_HOSTTABLE_HASH_SIZE            17                          /*  hash 表大小                 */
+#define __LW_HOSTTABLE_BUFFER_SIZE          1024                        /*  host buffer 大小            */
 /*********************************************************************************************************
   hash 函数声明
 *********************************************************************************************************/
@@ -69,7 +70,6 @@ static INT  __tshellHostTable(INT  iArgC, PCHAR  *ppcArgV);
 *********************************************************************************************************/
 VOID  __inetHostTableInit (VOID)
 {
-    
     _G_ulHostTableLock = API_SemaphoreBCreate("hosttable_lock", LW_TRUE, 
                                               LW_OPTION_OBJECT_GLOBAL, LW_NULL);
 
@@ -98,7 +98,7 @@ INT  __inetHostTableGetItem (CPCHAR  pcHost, size_t  stLen, PVOID  pvAddr, UINT8
              ip_addr_t             *addr   = (ip_addr_t *)pvAddr;
              u32_t                  uiAddr = INADDR_NONE;
              CHAR                   cHostName[HOST_NAME_MAX + 1];
-             CHAR                   cHostsBuffer[MAX_FILENAME_LENGTH];
+             CHAR                   cHostsBuffer[__LW_HOSTTABLE_BUFFER_SIZE];
     struct hostent                 *phostent;
              FILE                  *fpHosts;
              BOOL                   bHostsFund = LW_FALSE;

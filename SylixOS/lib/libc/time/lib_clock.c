@@ -80,16 +80,9 @@ clock_t  lib_clock (VOID)
 INT  lib_clock_getcpuclockid (pid_t pid, clockid_t *clock_id)
 {
 #if LW_CFG_MODULELOADER_EN > 0
-    if (!vprocGet(pid)) {
+    if (pid && !vprocGet(pid)) {
         return  (PX_ERROR);
     }
-    
-#else
-    if (pid) {
-        _ErrorHandle(ESRCH);
-        return  (PX_ERROR);
-    }
-#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 
     if (!clock_id) {
         _ErrorHandle(EINVAL);
@@ -99,6 +92,10 @@ INT  lib_clock_getcpuclockid (pid_t pid, clockid_t *clock_id)
     *clock_id = CLOCK_PROCESS_CPUTIME_ID;
     
     return  (ERROR_NONE);
+#else
+    _ErrorHandle(ESRCH);
+    return  (PX_ERROR);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: lib_clock_getres
@@ -205,7 +202,8 @@ INT  lib_clock_settime (clockid_t  clockid, const struct timespec  *tv)
 {
     INTREG      iregInterLevel;
 
-    if (tv == LW_NULL) {
+    if ((tv == LW_NULL) ||
+        LW_NSEC_INVALD(tv->tv_nsec)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }

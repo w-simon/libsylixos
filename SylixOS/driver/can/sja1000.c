@@ -264,7 +264,8 @@ static INT sja1000SetBaud (SJA1000_CHAN *pcanchan, ULONG baudvalue)
 ** 函数名称: sja1000SetDiv
 ** 功能描述: 设置 SJA1000 DIV
 ** 输　入  : pcanchan      CAN CHAN
-**           baudvalue     波特率码
+**           rxinten       rx 中断使能状态
+**           cbp           时钟分频
 ** 输　出  : ERROR or OK
 ** 全局变量:
 ** 调用模块:

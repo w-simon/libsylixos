@@ -58,7 +58,9 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
                (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) || /*  Loongson-2E/2F              */
                (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
-               (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_X1000)  == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_X2000)  == 0)) {
         mipsCacheR4kInit(pcacheop, uiInstruction, uiData, pcMachineName);
 
     } else {
@@ -88,7 +90,9 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
                (lib_strcmp(pcMachineName, MIPS_MACHINE_LS2X)   == 0) || /*  Loongson-2E/2F              */
                (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
-               (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0)) {
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_X1000)  == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_X2000)  == 0)) {
         mipsCacheR4kReset(pcMachineName);
 
     } else {

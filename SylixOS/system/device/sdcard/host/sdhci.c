@@ -36,6 +36,7 @@
 2016.12.16  修正 在传输过程中可能产生死锁的问题.
 2017.03.15  修正 使用查询 SDIO 中断情况下, 应用线程禁止中断可能造成死锁的问题.
 2017.07.10  修正 带忙应答的命令处理应考虑数据完成中断和命令完成中断的先后顺序.
+2021.07.20  增加 传输性能以及实时性等性能优化配置.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #define  __SYLIXOS_IO
@@ -86,8 +87,11 @@
 /*********************************************************************************************************
   传输事务线操作宏定义
 *********************************************************************************************************/
-#define __SDHCI_TRANS_LOCK(pt)    LW_SPIN_LOCK(&pt->SDHCITS_slLock)
-#define __SDHCI_TRANS_UNLOCK(pt)  LW_SPIN_UNLOCK(&pt->SDHCITS_slLock)
+#define __SDHCI_TRANS_PREP()      INTREG  iregInterLevel
+#define __SDHCI_TRANS_LOCK(pt)    LW_SPIN_LOCK_QUICK(&pt->SDHCITS_slLock, &iregInterLevel)
+#define __SDHCI_TRANS_UNLOCK(pt)  LW_SPIN_UNLOCK_QUICK(&pt->SDHCITS_slLock, iregInterLevel)
+
+#define __SDHCI_ISRDEFER_EN(t)    (t)->SDHCITS_pjobqueue
 /*********************************************************************************************************
   适用于控制器能发出 SDIO 硬件中断的情况
 *********************************************************************************************************/
@@ -148,9 +152,7 @@ typedef struct __sdhci_capab {
 *********************************************************************************************************/
 struct __sdhci_trans {
     __PSDHCI_HOST         SDHCITS_psdhcihost;
-#if LW_CFG_VMM_EN > 0
     UINT8                *SDHCITS_pucDmaBuffer;
-#endif
     LW_OBJECT_HANDLE      SDHCITS_hFinishSync;                          /*  传输事务完成同步信号        */
 
     BOOL                  SDHCITS_bCmdFinish;
@@ -176,9 +178,12 @@ struct __sdhci_trans {
     INT                   SDHCITS_iStage;
 #define __SDHCI_TRANS_STAGE_START  0
 #define __SDHCI_TRANS_STAGE_STOP   1
+
     LW_SD_COMMAND        *SDHCITS_psdcmd;
     LW_SD_COMMAND        *SDHCITS_psdcmdStop;
     LW_SD_DATA           *SDHCITS_psddat;                               /*  对用户请求的引用            */
+
+    PLW_JOB_QUEUE         SDHCITS_pjobqueue;
 
     LW_SPINLOCK_DEFINE   (SDHCITS_slLock);
 };
@@ -324,6 +329,7 @@ static INT            __sdhciTransClean(__SDHCI_TRANS *psdhcitrans);
 static irqreturn_t    __sdhciTransIrq(VOID *pvArg, ULONG ulVector);
 static PVOID          __sdhciSdioIntSvr(VOID *pvArg);
 
+static VOID           __sdhciTransHandle(__SDHCI_TRANS    *psdhcitrans);
 static INT            __sdhciTransCmdHandle(__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta);
 static INT            __sdhciTransDatHandle(__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta);
 
@@ -332,6 +338,12 @@ static INT            __sdhciTransDatFinish(__SDHCI_TRANS *psdhcitrans);
 
 static INT            __sdhciDataReadNorm(__PSDHCI_TRANS    psdhcitrans);
 static INT            __sdhciDataWriteNorm(__PSDHCI_TRANS    psdhcitrans);
+
+static VOID           __sdhciTransDmaSync(__PSDHCI_TRANS    psdhcitrans,
+                                          VOID             *pvRaw,
+                                          VOID             *pvDma,
+                                          UINT32            uiSize,
+                                          INT               iSyncStage);
 /*********************************************************************************************************
   FOR IO ACCESS DRV
 *********************************************************************************************************/
@@ -351,6 +363,7 @@ static VOID   __sdhciMemWriteW(PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAdd
 static VOID   __sdhciMemWriteB(PLW_SDHCI_HOST_ATTR   psdhcihostattr, ULONG ulAddr, UINT8 ucByte);
 
 static INT    __sdhciRegAccessDrvInit(PLW_SDHCI_HOST_ATTR  psdhcihostattr);
+static VOID   __sdhciPerfCfgInit(SDHCI_PERF_CFG *psdhciperfcfg);
 /*********************************************************************************************************
   FOR DEBUG
 *********************************************************************************************************/
@@ -476,6 +489,8 @@ LW_API PVOID  API_SdhciHostCreate (CPCHAR               pcAdapterName,
         return  ((PVOID)LW_NULL);
     }
 
+    __sdhciPerfCfgInit(&psdhcihostattr->SDHCIHOST_perfcfg);
+
     psdhcihost = (__PSDHCI_HOST)__SHEAP_ALLOC(sizeof(__SDHCI_HOST));   /*  分配HOST                     */
     if (!psdhcihost) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
@@ -504,8 +519,12 @@ LW_API PVOID  API_SdhciHostCreate (CPCHAR               pcAdapterName,
 
     psdhcihost->SDHCIHS_psdadapter           = psdadapter;
     psdhcihost->SDHCIHS_atomicDevCnt.counter = 0;                       /*  初始设备数为0               */
-    psdhcihost->SDHCIHS_pfuncMasterXfer      = __sdhciTransferNorm;
-    psdhcihost->SDHCIHS_ucTransferMod        = SDHCIHOST_TMOD_SET_NORMAL;
+
+    psdhcihost->SDHCIHS_pfuncMasterXfer = __sdhciTransferNorm;
+    psdhcihost->SDHCIHS_ucTransferMod   = SDHCIHOST_TMOD_SET_NORMAL;    /*  预设模式                    */
+
+    API_SdhciHostTransferModSet(psdhcihost, psdhcihostattr->SDHCIHOST_perfcfg.SDHCIPERF_iXferMode);
+
     lib_memcpy(&psdhcihost->SDHCIHS_sdhcihostattr,
                psdhcihostattr, sizeof(LW_SDHCI_HOST_ATTR));
                                                                         /*  保存属性域                  */
@@ -915,14 +934,10 @@ static INT __sdhciTransferNorm (__PSDHCI_HOST       psdhcihost,
     psdhcitrans = psdhcihost->SDHCIHS_psdhcitrans;
 
     while ((i < iNum) && (psdmsg != LW_NULL)) {
-        __SDHCI_TRANS_LOCK(psdhcitrans);                                /*  锁定传输                    */
         iError = __sdhciTransPrepare(psdhcitrans, psdmsg, __SDHIC_TRANS_NORMAL);
         if (iError != ERROR_NONE) {
-            __SDHCI_TRANS_UNLOCK(psdhcitrans);
             return  (PX_ERROR);
         }
-
-        __SDHCI_TRANS_UNLOCK(psdhcitrans);
 
         iError = __sdhciTransStart(psdhcitrans);
         if (iError != ERROR_NONE) {
@@ -934,18 +949,14 @@ static INT __sdhciTransferNorm (__PSDHCI_HOST       psdhcihost,
             return  (PX_ERROR);
         }
 
-        __SDHCI_TRANS_LOCK(psdhcitrans);                                /*  锁定传输                    */
         __sdhciTransClean(psdhcitrans);                                 /*  清理本次传输                */
         if (psdhcitrans->SDHCITS_iCmdError != ERROR_NONE) {
-            __SDHCI_TRANS_UNLOCK(psdhcitrans);
             return  (PX_ERROR);
         }
 
         if (psdhcitrans->SDHCITS_iDatError != ERROR_NONE) {
-            __SDHCI_TRANS_UNLOCK(psdhcitrans);
             return  (PX_ERROR);
         }
-        __SDHCI_TRANS_UNLOCK(psdhcitrans);                              /*  解锁传输                    */
 
         i++;
         psdmsg++;
@@ -976,36 +987,28 @@ static INT __sdhciTransferSdma (__PSDHCI_HOST       psdhcihost,
     psdhcitrans = psdhcihost->SDHCIHS_psdhcitrans;
 
     while ((i < iNum) && (psdmsg != LW_NULL)) {
-        __SDHCI_TRANS_LOCK(psdhcitrans);                                /*  锁定传输                    */
         iError = __sdhciTransPrepare(psdhcitrans, psdmsg, __SDHIC_TRANS_SDMA);
         if (iError != ERROR_NONE) {
-            __SDHCI_TRANS_UNLOCK(psdhcitrans);
             return  (PX_ERROR);
         }
         iError = __sdhciTransStart(psdhcitrans);
         if (iError != ERROR_NONE) {
-            __SDHCI_TRANS_UNLOCK(psdhcitrans);
             return  (PX_ERROR);
         }
-        __SDHCI_TRANS_UNLOCK(psdhcitrans);                              /*  解锁传输                    */
 
         iError = __sdhciTransFinishWait(psdhcitrans);                   /*  等待本次传输完成            */
         if (iError != ERROR_NONE) {
             return  (PX_ERROR);
         }
 
-        __SDHCI_TRANS_LOCK(psdhcitrans);                                /*  锁定传输                    */
         __sdhciTransClean(psdhcitrans);                                 /*  清理本次传输                */
         if (psdhcitrans->SDHCITS_iCmdError != ERROR_NONE) {
-            __SDHCI_TRANS_UNLOCK(psdhcitrans);
             return  (PX_ERROR);
         }
 
         if (psdhcitrans->SDHCITS_iDatError != ERROR_NONE) {
-            __SDHCI_TRANS_UNLOCK(psdhcitrans);
             return  (PX_ERROR);
         }
-        __SDHCI_TRANS_UNLOCK(psdhcitrans);                              /*  解锁传输                    */
 
         i++;
         psdmsg++;
@@ -1086,8 +1089,11 @@ static INT __sdhciIoCtl (PLW_SD_ADAPTER  psdadapter,
                          INT             iCmd,
                          LONG            lArg)
 {
-    __PSDHCI_HOST  psdhcihost = LW_NULL;
-    INT            iError     = ERROR_NONE;
+    __PSDHCI_HOST        psdhcihost;
+    PLW_SDHCI_HOST_ATTR  psdhcihostattr;
+    SDHCI_QUIRK_OP      *psdhciquirkop;
+
+    INT                 iError = ERROR_NONE;
 
     if (!psdadapter) {
         _ErrorHandle(EINVAL);
@@ -1098,6 +1104,16 @@ static INT __sdhciIoCtl (PLW_SD_ADAPTER  psdadapter,
     if (!psdhcihost) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "no sdhci host.\r\n");
         return  (PX_ERROR);
+    }
+
+    psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+    psdhciquirkop  = psdhcihostattr->SDHCIHOST_pquirkop;
+
+    if (psdhciquirkop && psdhciquirkop->SDHCIQOP_pfuncCustomIoCtl) {
+        iError = psdhciquirkop->SDHCIQOP_pfuncCustomIoCtl(psdhcihostattr, iCmd, lArg);
+        if (iError != -ENOSYS) {
+            return  (iError);
+        }
     }
 
     switch (iCmd) {
@@ -1844,6 +1860,8 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
     struct timespec       tvOld;
     struct timespec       tvNow;
 
+    __SDHCI_TRANS_PREP();
+
     if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_DONOT_CHECK_BUSY_BEFORE_CMD_SEND)) {
         uiMask = SDHCI_PSTA_CMD_INHIBIT;
         if (psddat || SD_CMD_TEST_RSP(psdcmd, SD_RSP_BUSY)) {
@@ -1927,9 +1945,11 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
         }
     }
 
+    __SDHCI_TRANS_LOCK(psdhcitrans);
     SDHCI_WRITEW(psdhcihostattr, SDHCI_COMMAND, SDHCI_MAKE_CMD(psdcmd->SDCMD_uiOpcode, iCmdFlg));
-
     KN_IO_MB();
+    __SDHCI_TRANS_UNLOCK(psdhcitrans);
+
     return  (ERROR_NONE);
 
 __timeout:
@@ -2020,25 +2040,42 @@ static VOID __sdhciDataPrepareNorm (__PSDHCI_HOST  psdhcihost)
 *********************************************************************************************************/
 static VOID __sdhciDataPrepareSdma (__PSDHCI_HOST  psdhcihost)
 {
-    __PSDHCI_TRANS psdhcitrans = psdhcihost->SDHCIHS_psdhcitrans;
-    UINT8         *pucBuf      = psdhcitrans->SDHCITS_pucDatBuffCurr;
+    __PSDHCI_TRANS       psdhcitrans;
+    PLW_SDHCI_HOST_ATTR  psdhcihostattr;
+    SDHCI_PERF_CFG      *psdhciperfcfg;
+    UINT8               *pucRaw;
+    UINT8               *pucDma;
+    INT                  iSyncStage;
 
-    if (!pucBuf) {
+    psdhcitrans    = psdhcihost->SDHCIHS_psdhcitrans;
+    psdhcihostattr = &psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr;
+    psdhciperfcfg  = &psdhcihostattr->SDHCIHOST_perfcfg;
+    pucRaw         = psdhcitrans->SDHCITS_pucDatBuffCurr;
+
+    if (!pucRaw) {
         return;
     }
 
-#if LW_CFG_VMM_EN > 0
-    pucBuf = psdhcitrans->SDHCITS_pucDmaBuffer;
-    if (!psdhcitrans->SDHCITS_bIsRead) {
-        lib_memcpy(psdhcitrans->SDHCITS_pucDmaBuffer,
-                   psdhcitrans->SDHCITS_pucDatBuffCurr,
-                   psdhcitrans->SDHCITS_uiBlkCntRemain * psdhcitrans->SDHCITS_uiBlkSize);
+    if (psdhcitrans->SDHCITS_bIsRead) {
+        iSyncStage = SDHCI_DMASS_BEFORE_READ;
+    } else {
+        iSyncStage = SDHCI_DMASS_BEFORE_WRITE;
     }
-#else
-    pucBuf = psdhcitrans->SDHCITS_pucDatBuffCurr;
-#endif
 
-    __sdhciSdmaAddrUpdate(psdhcihost, (LONG)pucBuf);                    /*  写入 DMA 系统地址寄存器     */
+    if (psdhciperfcfg->SDHCIPERF_uiDmaBuffAttr &
+        (SDHCI_DMABUF_CACHE_COHERENCE | SDHCI_DMABUF_USR_DIRECT)) {
+        pucDma = psdhcitrans->SDHCITS_pucDatBuffCurr;
+    } else {
+        pucDma = psdhcitrans->SDHCITS_pucDmaBuffer;
+    }
+
+    __sdhciTransDmaSync(psdhcitrans,
+                        pucRaw,
+                        pucDma,
+                        psdhcitrans->SDHCITS_uiBlkCntRemain * psdhcitrans->SDHCITS_uiBlkSize,
+                        iSyncStage);
+
+    __sdhciSdmaAddrUpdate(psdhcihost, (LONG)pucDma);                    /*  写入 DMA 系统地址寄存器     */
                                                                         /*  命令发送后才会启动 DMA 传输 */
     __sdhciDataPrepareNorm(psdhcihost);
     __sdhciDmaSelect(psdhcihost, SDHCI_HCTRL_SDMA);
@@ -2179,6 +2216,63 @@ static INT __sdhciDataWriteNorm (__PSDHCI_TRANS    psdhcitrans)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __sdhciTransDmaSync
+** 功能描述: DMA 传输数据同步
+** 输    入: psdhcitrans     传输控制块
+**           pvRaw           原始数据地址
+**           pvDma           DMA 缓冲数据地址
+**           uiSize          数据大小
+**           iSyncStage      数据同步阶段标志
+** 输    出: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __sdhciTransDmaSync (__PSDHCI_TRANS    psdhcitrans,
+                                  VOID             *pvRaw,
+                                  VOID             *pvDma,
+                                  UINT32            uiSize,
+                                  INT               iSyncStage)
+{
+    PLW_SDHCI_HOST_ATTR psdhcihostattr;
+    SDHCI_PERF_CFG     *psdhciperfcfg;
+
+    psdhcihostattr = &psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr;
+    psdhciperfcfg  = &psdhcihostattr->SDHCIHOST_perfcfg;
+
+    if (psdhciperfcfg->SDHCIPERF_uiDmaBuffAttr & SDHCI_DMABUF_CACHE_COHERENCE) {
+        return;
+    }
+
+    if (psdhciperfcfg->SDHCIPERF_pfuncDmaSync) {
+        psdhciperfcfg->SDHCIPERF_pfuncDmaSync(pvRaw, pvDma, uiSize, iSyncStage);
+        return;
+    }
+
+    if (psdhciperfcfg->SDHCIPERF_uiDmaBuffAttr & SDHCI_DMABUF_USR_DIRECT) {
+        return;
+    }
+
+    switch (iSyncStage) {
+
+    case SDHCI_DMASS_BEFORE_READ:
+        break;
+
+    case SDHCI_DMASS_AFTER_READ:
+        lib_memcpy(pvRaw, pvDma, uiSize);
+        break;
+
+    case SDHCI_DMASS_BEFORE_WRITE:
+        lib_memcpy(pvDma, pvRaw, uiSize);
+        break;
+
+    case SDHCI_DMASS_AFTER_WRITE:
+        break;
+
+    default:
+        break;
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: __sdhciTransferIntSet
 ** 功能描述: 数据传输中断设置
 ** 输    入: psdhcihost       SDHCI HOST 结构指针
@@ -2283,11 +2377,8 @@ static __SDHCI_TRANS *__sdhciTransNew (__PSDHCI_HOST   psdhcihost)
 {
     __SDHCI_TRANS    *psdhcitrans;
     LW_OBJECT_HANDLE  hSync;
-    INT               iError;
-
-#if LW_CFG_VMM_EN > 0
     VOID             *pvDmaBuf;
-#endif
+    INT               iError;
 
     if (!psdhcihost) {
         return  (LW_NULL);
@@ -2300,14 +2391,12 @@ static __SDHCI_TRANS *__sdhciTransNew (__PSDHCI_HOST   psdhcihost)
     }
     lib_bzero(psdhcitrans, sizeof(__SDHCI_TRANS));
 
-#if LW_CFG_VMM_EN > 0
-    pvDmaBuf = API_VmmDmaAllocAlign(__SDHCI_DMA_BOUND_LEN, 4);
+    pvDmaBuf = API_CacheDmaMallocAlign(__SDHCI_DMA_BOUND_LEN, 4);
     if (!pvDmaBuf) {
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
         goto    __err0;
     }
     psdhcitrans->SDHCITS_pucDmaBuffer = (UINT8 *)pvDmaBuf;
-#endif
 
     hSync = API_SemaphoreBCreate("sdhcits_sync", LW_FALSE, LW_OPTION_OBJECT_GLOBAL, LW_NULL);
     if (hSync == LW_OBJECT_HANDLE_INVALID) {
@@ -2316,9 +2405,6 @@ static __SDHCI_TRANS *__sdhciTransNew (__PSDHCI_HOST   psdhcihost)
 
     LW_SPIN_INIT(&psdhcitrans->SDHCITS_slLock);
 
-#if LW_CFG_VMM_EN > 0
-    psdhcitrans->SDHCITS_pucDmaBuffer = pvDmaBuf;
-#endif
     psdhcitrans->SDHCITS_hFinishSync  = hSync;
     psdhcitrans->SDHCITS_psdhcihost   = psdhcihost;
     psdhcihost->SDHCIHS_psdhcitrans   = psdhcitrans;
@@ -2340,11 +2426,9 @@ __err2:
     API_SemaphoreBDelete(&hSync);
 
 __err1:
-#if LW_CFG_VMM_EN > 0
-   API_VmmDmaFree(pvDmaBuf);
+    API_CacheDmaFree(pvDmaBuf);
 
 __err0:
-#endif
     __SHEAP_FREE(psdhcitrans);
 
     return  (LW_NULL);
@@ -2359,12 +2443,15 @@ __err0:
 *********************************************************************************************************/
 static INT  __sdhciTransTaskInit (__SDHCI_TRANS *psdhcitrans)
 {
-    LW_OBJECT_HANDLE     hSdioIntSem;
-    LW_OBJECT_HANDLE     hSdioIntThread;
-    LW_CLASS_THREADATTR  threadattr;
-    LW_SDHCI_HOST_ATTR  *psdhcihostattr;
+    LW_OBJECT_HANDLE      hSdioIntSem;
+    LW_OBJECT_HANDLE      hSdioIntThread;
+    LW_CLASS_THREADATTR   threadattr;
+    LW_SDHCI_HOST_ATTR   *psdhcihostattr;
+    SDHCI_PERF_CFG       *psdhciperfcfg;
 
     psdhcihostattr = &psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr;
+    psdhciperfcfg  = &psdhcihostattr->SDHCIHOST_perfcfg;
+
     if (SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_SDIO_INT_OOB)) {
         return  (ERROR_NONE);
     }
@@ -2390,7 +2477,7 @@ static INT  __sdhciTransTaskInit (__SDHCI_TRANS *psdhcitrans)
 
     threadattr = API_ThreadAttrGetDefault();
     threadattr.THREADATTR_pvArg            = (PVOID)psdhcitrans;
-    threadattr.THREADATTR_ucPriority       = __SDHCI_SDIOINTSVR_PRIO;
+    threadattr.THREADATTR_ucPriority       = psdhciperfcfg->SDHCIPERF_iSdioSvrPrio;
     threadattr.THREADATTR_stStackByteSize  = __SDHCI_SDIOINTSVR_STKSZ;
     threadattr.THREADATTR_ulOption        |= LW_OPTION_OBJECT_GLOBAL;
     hSdioIntThread = API_ThreadCreate("t_sdhcisdio",
@@ -2401,6 +2488,10 @@ static INT  __sdhciTransTaskInit (__SDHCI_TRANS *psdhcitrans)
         goto    __err;
     }
     psdhcitrans->SDHCITS_hSdioIntThread = hSdioIntThread;
+    
+    if (psdhciperfcfg->SDHCIPERF_iIsrDeferNum >= 0) {
+        psdhcitrans->SDHCITS_pjobqueue = API_InterDeferGet((ULONG)psdhciperfcfg->SDHCIPERF_iIsrDeferNum);
+    }
 
     return  (ERROR_NONE);
 
@@ -2453,11 +2544,7 @@ static VOID __sdhciTransDel (__SDHCI_TRANS *psdhcitrans)
     API_InterVectorDisconnect(ulVector, __sdhciTransIrq, (VOID *)psdhcitrans);
 
     __sdhciTransTaskDeInit(psdhcitrans);
-
-#if LW_CFG_VMM_EN > 0
-    API_VmmDmaFree(psdhcitrans->SDHCITS_pucDmaBuffer);
-#endif
-
+    API_CacheDmaFree(psdhcitrans->SDHCITS_pucDmaBuffer);
     API_SemaphoreBDelete(&psdhcitrans->SDHCITS_hFinishSync);
     __SHEAP_FREE(psdhcitrans);
 }
@@ -2554,7 +2641,6 @@ static INT  __sdhciTransStart (__SDHCI_TRANS *psdhcitrans)
         __sdhciHostReset(psdhcitrans->SDHCITS_psdhcihost, SDHCI_SFRST_DATA | SDHCI_SFRST_CMD);
     }
 
-
     if (SDHCI_QUIRK_FLG(&psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr,
                          SDHCI_QUIRK_FLG_REENABLE_INTS_ON_EVERY_TRANSACTION)) {
         __sdhciIntClear(psdhcitrans->SDHCITS_psdhcihost);
@@ -2572,13 +2658,11 @@ static INT  __sdhciTransStart (__SDHCI_TRANS *psdhcitrans)
     }
 
     psdhcitrans->SDHCITS_iStage = __SDHCI_TRANS_STAGE_START;
+
+    API_SemaphoreBClear(psdhcitrans->SDHCITS_hFinishSync);
     iRet = __sdhciCmdSend(psdhcitrans->SDHCITS_psdhcihost,
                           psdhcitrans->SDHCITS_psdcmd,
                           psdhcitrans->SDHCITS_psddat);
-
-    if (iRet != ERROR_NONE) {
-        API_SemaphoreBClear(psdhcitrans->SDHCITS_hFinishSync);
-    }
 
     return  (iRet);
 }
@@ -2618,19 +2702,24 @@ static VOID  __sdhciTransFinish (__SDHCI_TRANS *psdhcitrans)
 *********************************************************************************************************/
 static INT  __sdhciTransClean (__SDHCI_TRANS *psdhcitrans)
 {
+    __SDHCI_TRANS_PREP();
+
     if (!psdhcitrans) {
         return  (PX_ERROR);
     }
 
-    psdhcitrans->SDHCITS_psdcmd     = LW_NULL;
-    psdhcitrans->SDHCITS_psdcmdStop = LW_NULL;
-    psdhcitrans->SDHCITS_psddat     = LW_NULL;
+    __SDHCI_TRANS_LOCK(psdhcitrans);
+    psdhcitrans->SDHCITS_psdcmd         = LW_NULL;
+    psdhcitrans->SDHCITS_psdcmdStop     = LW_NULL;
+    psdhcitrans->SDHCITS_psddat         = LW_NULL;
+    psdhcitrans->SDHCITS_pucDatBuffCurr = LW_NULL;
 
     if (SDHCI_QUIRK_FLG(&psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr,
                          SDHCI_QUIRK_FLG_REENABLE_INTS_ON_EVERY_TRANSACTION)) {
         __sdhciIntDisAndEn(psdhcitrans->SDHCITS_psdhcihost, SDHCI_INT_ALL_MASK, 0);
         __sdhciIntClear(psdhcitrans->SDHCITS_psdhcihost);
     }
+    __SDHCI_TRANS_UNLOCK(psdhcitrans);
 
     API_SemaphoreBClear(psdhcitrans->SDHCITS_hFinishSync);
 
@@ -2650,31 +2739,82 @@ static irqreturn_t   __sdhciTransIrq (VOID *pvArg, ULONG ulVector)
     __SDHCI_TRANS       *psdhcitrans    = (__SDHCI_TRANS *)pvArg;
     __SDHCI_HOST        *psdhcihost     = psdhcitrans->SDHCITS_psdhcihost;
     LW_SDHCI_HOST_ATTR  *psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
-    BOOL                 bSdioInt       = LW_FALSE;
-
+    ULONG                ulIntFlag      = 0;
+    irqreturn_t          irqret         = LW_IRQ_HANDLED;
     UINT32               uiIntSta;
-    irqreturn_t          irqret;
+
+    __SDHCI_TRANS_PREP();
 
     if (psdhcihostattr->SDHCIHOST_pquirkop &&
         psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncIsrEnterHook) {
         psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncIsrEnterHook(psdhcihostattr);
     }
 
-    uiIntSta = SDHCI_READL(psdhcihostattr, SDHCI_INT_STATUS);
-
 __redo:
+    __SDHCI_TRANS_LOCK(psdhcitrans);
+    uiIntSta = SDHCI_READL(psdhcihostattr, SDHCI_INT_STATUS);
+    psdhcitrans->SDHCITS_uiIntSta = uiIntSta;
+    SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta);
+    __SDHCI_TRANS_UNLOCK(psdhcitrans);
+
     if (!uiIntSta || uiIntSta == 0xffffffff) {
         SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta);
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "unknown int signals\r\n");
-        irqret = LW_IRQ_NONE;
-        goto    __end;                                                  /*  无效或未知的中断            */
+
+        API_InterVectorGetFlag(ulVector, &ulIntFlag);
+        if (ulIntFlag & LW_IRQ_FLAG_QUEUE) {
+            irqret = LW_IRQ_NONE;
+        }
+
+        goto    __end;
     }
 
-    SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta);
+    if (__SDHCI_ISRDEFER_EN(psdhcitrans)) {
+        API_InterVectorDisable(ulVector);
+        API_InterDeferJobAdd(psdhcitrans->SDHCITS_pjobqueue,
+                             (VOIDFUNCPTR)__sdhciTransHandle,
+                             (PVOID)psdhcitrans);
+    } else {
+        __sdhciTransHandle(psdhcitrans);
+    }
+
+    /*
+     * 有的控制器在处理完当前的中断后, 可能会再次产生新的中断状态,
+     * 该状态不一定能在之后以硬件中断的方式通知 CPU,
+     * 该情况下需要再次查询直到处理完成.
+     */
+    if (SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_RECHECK_INTS_AFTER_ISR)) {
+        goto    __redo;
+    }
+
+__end:
+    if (psdhcihostattr->SDHCIHOST_pquirkop &&
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncIsrExitHook) {
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncIsrExitHook(psdhcihostattr);
+    }
+
+    return  (irqret);
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciTransHandle
+** 功能描述: SDHCI 传输处理程序
+** 输    入: psdhcitrans      传输控制块
+** 输    出: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID   __sdhciTransHandle (__SDHCI_TRANS *psdhcitrans)
+{
+    __SDHCI_HOST        *psdhcihost     = psdhcitrans->SDHCITS_psdhcihost;
+    LW_SDHCI_HOST_ATTR  *psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+    BOOL                 bSdioInt       = LW_FALSE;
+    UINT32               uiIntSta;
+
+    __SDHCI_TRANS_PREP();
 
     __SDHCI_TRANS_LOCK(psdhcitrans);
-
-    psdhcitrans->SDHCITS_uiIntSta = uiIntSta;
+    uiIntSta = psdhcitrans->SDHCITS_uiIntSta;
+    __SDHCI_TRANS_UNLOCK(psdhcitrans);
 
     if (uiIntSta & SDHCI_INT_CMD_MASK) {
         SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta & SDHCI_INT_CMD_MASK);
@@ -2718,8 +2858,6 @@ __redo:
         SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta);
     }
 
-    irqret = LW_IRQ_HANDLED;
-
     KN_IO_MB();
 
     if (!SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_CANNOT_SDIO_INT) &&
@@ -2729,29 +2867,9 @@ __redo:
         __SDHCI_SDIO_NOTIFY(psdhcitrans);
     }
 
-    /*
-     * 有的控制器在处理完当前的中断后, 可能会再次产生新的中断状态,
-     * 该状态不一定能在之后以硬件中断的方式通知 CPU,
-     * 该情况下需要再次查询直到处理完成.
-     */
-    if (SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_RECHECK_INTS_AFTER_ISR)) {
-        uiIntSta = SDHCI_READL(psdhcihostattr, SDHCI_INT_STATUS);
-        if (uiIntSta) {
-            __SDHCI_TRANS_UNLOCK(psdhcitrans);
-            bSdioInt = LW_FALSE;
-            goto __redo;
-        }
+    if (__SDHCI_ISRDEFER_EN(psdhcitrans)) {
+        API_InterVectorEnable(psdhcihostattr->SDHCIHOST_ulIntVector);
     }
-
-    __SDHCI_TRANS_UNLOCK(psdhcitrans);
-
-__end:
-    if (psdhcihostattr->SDHCIHOST_pquirkop &&
-        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncIsrExitHook) {
-        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncIsrExitHook(psdhcihostattr);
-    }
-
-    return  (irqret);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciSdioIntSvr
@@ -2896,13 +3014,23 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
 {
     LW_SDHCI_HOST_ATTR  *psdhcihostattr = &psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr;
     SDHCI_QUIRK_OP      *psdhciquirkop  = psdhcihostattr->SDHCIHOST_pquirkop;
+    LW_SD_COMMAND       *psdcmd;
+    BOOL                 bStop;
 
     /*
      * 当没有数据传输时, 如果命令包含了 忙等待信号, 则也会产生数据完成中断
      * 详见 SDHCI 规范 2.2.17(page64)
      */
-    if (!psdhcitrans->SDHCITS_pucDatBuffCurr) {
-        if (SD_CMD_TEST_RSP(psdhcitrans->SDHCITS_psdcmd, SD_RSP_BUSY)) {
+    if (psdhcitrans->SDHCITS_iStage == __SDHCI_TRANS_STAGE_START) {
+        psdcmd = psdhcitrans->SDHCITS_psdcmd;
+        bStop  = LW_FALSE;
+    } else {
+        psdcmd = psdhcitrans->SDHCITS_psdcmdStop;
+        bStop  = LW_TRUE;
+    }
+
+    if (bStop || !psdhcitrans->SDHCITS_pucDatBuffCurr) {
+        if (psdcmd && SD_CMD_TEST_RSP(psdcmd, SD_RSP_BUSY)) {
             if (uiIntSta & SDHCI_INT_DATA_TIMEOUT) {
                 psdhcitrans->SDHCITS_iDatError = PX_ERROR;
                 SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "timeout on busy irq.\r\n");
@@ -3114,17 +3242,35 @@ static INT  __sdhciTransDatFinish (__SDHCI_TRANS *psdhcitrans)
 {
     LW_SDHCI_HOST_ATTR  *psdhcihostattr = &psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr;
 
-#if LW_CFG_VMM_EN > 0
-    if (psdhcitrans->SDHCITS_iDatError == ERROR_NONE) {
-        if (psdhcitrans->SDHCITS_bIsRead &&
-            (psdhcitrans->SDHCITS_iTransType != __SDHIC_TRANS_NORMAL)) {
+    if ((psdhcitrans->SDHCITS_iDatError  == ERROR_NONE) &&
+        (psdhcitrans->SDHCITS_iTransType != __SDHIC_TRANS_NORMAL)) {
+        SDHCI_PERF_CFG     *psdhciperfcfg;
+        UINT8              *pucRaw;
+        UINT8              *pucDma;
+        INT                 iSyncStage;
 
-            lib_memcpy(psdhcitrans->SDHCITS_pucDatBuffCurr,
-                       psdhcitrans->SDHCITS_pucDmaBuffer,
-                       psdhcitrans->SDHCITS_uiBlkSize * psdhcitrans->SDHCITS_uiBlkCntRemain);
+        psdhciperfcfg  = &psdhcihostattr->SDHCIHOST_perfcfg;
+        pucRaw         = psdhcitrans->SDHCITS_pucDatBuffCurr;
+
+        if (psdhcitrans->SDHCITS_bIsRead) {
+            iSyncStage = SDHCI_DMASS_AFTER_READ;
+        } else {
+            iSyncStage = SDHCI_DMASS_AFTER_WRITE;
         }
+
+        if (psdhciperfcfg->SDHCIPERF_uiDmaBuffAttr &
+            (SDHCI_DMABUF_CACHE_COHERENCE | SDHCI_DMABUF_USR_DIRECT)) {
+            pucDma = psdhcitrans->SDHCITS_pucDatBuffCurr;
+        } else {
+            pucDma = psdhcitrans->SDHCITS_pucDmaBuffer;
+        }
+
+        __sdhciTransDmaSync(psdhcitrans,
+                            pucRaw,
+                            pucDma,
+                            psdhcitrans->SDHCITS_uiBlkCntRemain * psdhcitrans->SDHCITS_uiBlkSize,
+                            iSyncStage);
     }
-#endif
 
     if (SDHCI_QUIRK_FLG(psdhcihostattr, SDHCI_QUIRK_FLG_DONOT_USE_ACMD12)) {
         if (psdhcitrans->SDHCITS_psdcmdStop) {
@@ -3182,12 +3328,65 @@ static INT  __sdhciRegAccessDrvInit (PLW_SDHCI_HOST_ATTR  psdhcihostattr)
 
     /*
      * 如果提供了自己的寄存器访问驱动则不使用默认的方法
+     * 且允许部分重构驱动方法
      */
-    if (!psdhcihostattr->SDHCIHOST_pdrvfuncs) {
+    if (psdhcihostattr->SDHCIHOST_pdrvfuncs) {
+        if ((iType != SDHCI_REGACCESS_TYPE_IO) &&
+            (iType != SDHCI_REGACCESS_TYPE_MEM)) {
+            SDCARD_DEBUG_MSG(__PRINTMESSAGE_LEVEL, "warning: sdhci io access type not valid, "
+                             "default to memory access type.\r\n");
+            iType = SDHCI_REGACCESS_TYPE_MEM;
+        }
+
+#define __SDHCI_DRV_COMPLETE(op)                        \
+        if (!psdhcihostattr->SDHCIHOST_pdrvfuncs->op) { \
+            psdhcihostattr->SDHCIHOST_pdrvfuncs->op =   \
+            _G_sdhcidrvfuncTbl[iType].op;               \
+        }
+
+        __SDHCI_DRV_COMPLETE(sdhciReadB);
+        __SDHCI_DRV_COMPLETE(sdhciReadW);
+        __SDHCI_DRV_COMPLETE(sdhciReadL);
+        __SDHCI_DRV_COMPLETE(sdhciWriteB);
+        __SDHCI_DRV_COMPLETE(sdhciWriteW);
+        __SDHCI_DRV_COMPLETE(sdhciWriteL);
+#undef __SDHCI_DRV_OVERWRITE
+
+    } else {
         psdhcihostattr->SDHCIHOST_pdrvfuncs = &_G_sdhcidrvfuncTbl[iType];
     }
 
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciPerfCfgInit
+** 功能描述: 性能配置参数初始化
+** 输    入: psdhciperfcfg   性能配置对象
+** 输    出: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID   __sdhciPerfCfgInit (SDHCI_PERF_CFG *psdhciperfcfg)
+{
+    if (psdhciperfcfg->SDHCIPERF_uiValidMagic != SDHCI_PERF_MAGIC) {
+        psdhciperfcfg->SDHCIPERF_iIsrDeferNum  = 0;
+        psdhciperfcfg->SDHCIPERF_iSdioSvrPrio  = __SDHCI_SDIOINTSVR_PRIO;
+        psdhciperfcfg->SDHCIPERF_iXferMode     = SDHCIHOST_TMOD_SET_NORMAL;
+        psdhciperfcfg->SDHCIPERF_uiDmaBuffAttr = 0;
+        psdhciperfcfg->SDHCIPERF_pfuncDmaSync  = LW_NULL;
+    }
+
+    if (psdhciperfcfg->SDHCIPERF_iXferMode == SDHCIHOST_TMOD_SET_ADMA) {
+        psdhciperfcfg->SDHCIPERF_iXferMode = SDHCIHOST_TMOD_SET_SDMA;
+    }
+
+    if (psdhciperfcfg->SDHCIPERF_iSdioSvrPrio < 0) {
+        psdhciperfcfg->SDHCIPERF_iSdioSvrPrio = __SDHCI_SDIOINTSVR_PRIO;
+    }
+
+    if (psdhciperfcfg->SDHCIPERF_iSdioSvrPrio > LW_PRIO_LOWEST) {
+        psdhciperfcfg->SDHCIPERF_iSdioSvrPrio = LW_PRIO_LOWEST;
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciIoReadL

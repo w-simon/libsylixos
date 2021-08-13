@@ -68,7 +68,7 @@
 
 FUNC_DEF(in8)
     MOV     X86_64_ARG0 , %RDX
-    MOV     $0 , %RAX
+    MOV     $0  , %RAX
     INB     %DX , %AL
     RET
     FUNC_END(in8)
@@ -79,7 +79,7 @@ FUNC_DEF(in8)
 
 FUNC_DEF(in16)
     MOV     X86_64_ARG0 , %RDX
-    MOV     $0 , %RAX
+    MOV     $0  , %RAX
     INW     %DX , %AX
     RET
     FUNC_END(in16)
@@ -90,7 +90,7 @@ FUNC_DEF(in16)
 
 FUNC_DEF(in32)
     MOV     X86_64_ARG0 , %RDX
-    MOV     $0 , %RAX
+    MOV     $0  , %RAX
     INL     %DX , %EAX
     RET
     FUNC_END(in32)
@@ -169,7 +169,7 @@ FUNC_DEF(ins32)
     MOV     X86_64_ARG1 , %RDI                                          ;/*  %RDI = pvBuffer             */
     CLD
     REP
-    INSL    %DX  , (%RDI)
+    INSL    %DX , (%RDI)
     RET
     FUNC_END(ins32)
 

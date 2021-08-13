@@ -415,6 +415,7 @@ __refined_seq:
         case LW_DISK_PART_TYPE_WIN95_FAT32:
         case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
+        case LW_DISK_PART_TYPE_EFI:
             if (bForceFsType) {                                         /*  是否强制指定文件系统类型    */
                 pfuncFsCreate = __fsCreateFuncGet(pcFsName,
                                                   poemd->OEMDISK_pblkdPart[i],
@@ -726,6 +727,7 @@ __refined_seq:
         case LW_DISK_PART_TYPE_WIN95_FAT32:
         case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
+        case LW_DISK_PART_TYPE_EFI:
             pfuncFsCreate = __fsCreateFuncGet("vfat",                   /*  查询 VFAT 文件系统装载函数  */
                                               poemd->OEMDISK_pblkdPart[i],
                                               dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);
@@ -1049,6 +1051,7 @@ __refined_seq:
         case LW_DISK_PART_TYPE_WIN95_FAT32:
         case LW_DISK_PART_TYPE_WIN95_FAT32LBA:
         case LW_DISK_PART_TYPE_WIN95_FAT16LBA:
+        case LW_DISK_PART_TYPE_EFI:
             pfuncFsCreate = __fsCreateFuncGet("vfat",                   /*  查询 VFAT 文件系统装载函数  */
                                               poemd->OEMDISK_pblkdPart[i],
                                               dptPart.DPT_dpoLogic[i].DPO_dpnEntry.DPN_ucPartType);

@@ -851,21 +851,27 @@ static INT __sdmSdioIntHandle (__SDM_HOST *psdmhost)
         return  (PX_ERROR);
     }
 
-    /*
-     *  Host 控制器可能传来假的 SDIO 中断
-     *  或者是不支持硬件 SDIO 中断的 HOST进行的一次查询请求
-     */
-    iRet = API_SdioCoreDevReadByte(psdmdev->SDMDEV_psdcoredev,
-                                   SDIO_CCCR_CCCR,
-                                   SDIO_CCCR_INTX,
-                                   &ucIntFlag);
-    if (iRet != ERROR_NONE) {
-        return  (PX_ERROR);
-    }
-
-    if (ucIntFlag) {
+    if (psdmhost->SDMHOST_lCfgFlag & SDHOST_EXTOPT_CONFIG_CUSTOM_SDIO) {
         __sdiobaseDevIrqHandle(psdmdev->SDMDEV_psddrv, psdmdev->SDMDEV_pvDevPriv);
         return  (ERROR_NONE);
+
+    } else {
+        /*
+         *  Host 控制器可能传来假的 SDIO 中断
+         *  或者是不支持硬件 SDIO 中断的 HOST进行的一次查询请求
+         */
+        iRet = API_SdioCoreDevReadByte(psdmdev->SDMDEV_psdcoredev,
+                                       SDIO_CCCR_CCCR,
+                                       SDIO_CCCR_INTX,
+                                       &ucIntFlag);
+        if (iRet != ERROR_NONE) {
+            return  (PX_ERROR);
+        }
+
+        if (ucIntFlag) {
+            __sdiobaseDevIrqHandle(psdmdev->SDMDEV_psddrv, psdmdev->SDMDEV_pvDevPriv);
+            return  (ERROR_NONE);
+        }
     }
 #endif                                                                  /*  LW_CFG_SDCARD_SDIO_EN > 0   */
 

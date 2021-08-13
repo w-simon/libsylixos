@@ -111,7 +111,7 @@ VOID  _AddTCBToEventPriority (PLW_CLASS_TCB    ptcb,
 }
 /*********************************************************************************************************
 ** 函数名称: _DelTCBFromEventPriority
-** 功能描述: 从FIFO事件等待队列中删除一个线程
+** 功能描述: 从 PRIORITY 事件等待队列中删除一个线程
 ** 输　入  : ptcb           任务控制块
 **           pevent         事件控制块
 **           ppringList     等待队列

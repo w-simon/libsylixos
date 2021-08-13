@@ -55,6 +55,7 @@ typedef struct {
     INT                 TPSVOL_iFlag;                                   /*  O_RDONLY or O_RDWR          */
     LW_HANDLE           TPSVOL_hThreadFlush;                            /*  回写线程句柄                */
     BOOL                TPSVOL_bNeedExit;                               /*  是否需要退出线程            */
+    PUCHAR              TPSVOL_pucZoreBuf;                              /*  清零缓冲区，用于文件扩充    */
 } TPS_VOLUME;
 typedef TPS_VOLUME     *PTPS_VOLUME;
 
@@ -73,6 +74,10 @@ static INT              _G_iTpsDrvNum = PX_ERROR;
   inode 回写间隔 (ms)
 *********************************************************************************************************/
 #define __TPS_INODE_FLUSH_INTERVAL    2000
+/*********************************************************************************************************
+  16K 大小的清零缓冲区，用于扩充文件
+*********************************************************************************************************/
+#define __TPS_ZERO_BUFF_SIZE          (1024 << 4)
 /*********************************************************************************************************
   文件类型
 *********************************************************************************************************/
@@ -351,7 +356,13 @@ static INT  __tpsFsDiskWrMeta (PTPS_DEV pdev, PUCHAR pucBuf, UINT64 ui64StartSec
     blkrange.BLKM_ulSectorCnt   = (ULONG)(uiSectorCnt);
     blkrange.BLKM_pucBuf        = pucBuf;
 
-    return  (__blockIoDevIoctl((INT)iDrv, FIOWRMETA, (LONG)&blkrange));
+    if (__blockIoDevIoctl((INT)iDrv, FIOWRMETA,
+                          (LONG)&blkrange) != ERROR_NONE) {             /*  兼容diskcache被禁用的情况   */
+        return  (__tpsFsDiskWrite(pdev, pucBuf, ui64StartSector,
+                                  uiSectorCnt, LW_TRUE));
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __tpsFsDiskRdMeta
@@ -373,7 +384,13 @@ static INT  __tpsFsDiskRdMeta (PTPS_DEV pdev, PUCHAR pucBuf, UINT64 ui64StartSec
     blkrange.BLKM_ulSectorCnt   = (ULONG)(uiSectorCnt);
     blkrange.BLKM_pucBuf        = pucBuf;
 
-    return  (__blockIoDevIoctl((INT)iDrv, FIORDMETA, (LONG)&blkrange));
+    if (__blockIoDevIoctl((INT)iDrv, FIORDMETA,
+                          (LONG)&blkrange) != ERROR_NONE) {             /*  兼容diskcache被禁用的情况   */
+        return  (__tpsFsDiskRead(pdev, pucBuf,
+                                 ui64StartSector, uiSectorCnt));
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_TpsFsDrvInstall
@@ -540,7 +557,8 @@ INT  API_TpsFsDevCreate (PCHAR   pcName, PLW_BLK_DEV  pblkd)
                                                     (PTHREAD_START_ROUTINE)__tpsFsFlushThread,
                                                     &threadattr, LW_NULL);
                                                                         /*  创建背景更新线程            */
-    ptpsvol->TPSVOL_iFlag = pblkd->BLKD_iFlag;
+    ptpsvol->TPSVOL_iFlag      = pblkd->BLKD_iFlag;
+    ptpsvol->TPSVOL_pucZoreBuf = LW_NULL;
 
     if (iosDevAddEx(&ptpsvol->TPSVOL_devhdrHdr, pcName, _G_iTpsDrvNum, DT_DIR)
         != ERROR_NONE) {                                                /*  安装文件系统设备            */
@@ -575,6 +593,10 @@ __error_handle:
         __blockIoDevDelete(iBlkdIndex);
     }
 
+    if (ptpsvol->TPSVOL_pucZoreBuf) {
+        __SHEAP_FREE(ptpsvol->TPSVOL_pucZoreBuf);
+        ptpsvol->TPSVOL_pucZoreBuf = LW_NULL;
+    }
     __SHEAP_FREE(ptpsvol);
 
     _ErrorHandle(iErr);
@@ -894,6 +916,10 @@ __re_umount_vol:
 
         API_SemaphoreMDelete(&ptpsvol->TPSVOL_hVolLock);                /*  删除卷锁                    */
 
+        if (ptpsvol->TPSVOL_pucZoreBuf) {
+            __SHEAP_FREE(ptpsvol->TPSVOL_pucZoreBuf);
+            ptpsvol->TPSVOL_pucZoreBuf = LW_NULL;
+        }
         __SHEAP_FREE(ptpsvol);                                          /*  释放卷控制块                */
 
         _DebugHandle(__LOGMESSAGE_LEVEL, "disk unmount ok.\r\n");
@@ -1153,6 +1179,88 @@ static ssize_t  __tpsFsPRead (PLW_FD_ENTRY  pfdentry,
     return  ((ssize_t)szReadNum);
 }
 /*********************************************************************************************************
+** 函数名称: __tpsFsExtendFile
+** 功能描述: 扩充文件长度，只能在 __TPS_FILE_LOCK 状态下调用
+** 输　入  : pfdentry         文件控制块
+**           oftPos           目标长度
+** 输　出  : ERROR
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tpsFsExtendFile (PLW_FD_ENTRY  pfdentry,
+                               off_t         oftPos)
+{
+    PLW_FD_NODE   pfdnode    = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
+    PTPS_FILE     ptpsfile   = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    PTPS_VOLUME   ptpsvol    = ptpsfile->TPSFIL_ptpsvol;
+    ino64_t       inode64    = pfdnode->FDNODE_inode64;
+    size_t        szWrite;
+    TPS_SIZE_T    szWriteNum = 0;
+    struct statfs statfs;
+    size_t        szExtend   = oftPos - tpsFsGetSize(ptpsfile->TPSFIL_pinode);
+
+    tpsFsStatfs(ptpsfile->TPSFIL_pinode->IND_psb, &statfs);
+    if ((szExtend / statfs.f_bsize) > statfs.f_bfree) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "no space for extending file.\r\n");
+        _ErrorHandle(ENOSPC);
+        return  (PX_ERROR);
+    }
+
+    while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
+        if (!ptpsvol->TPSVOL_pucZoreBuf) {                              /*  防止其它线程释放清零缓冲    */
+            ptpsvol->TPSVOL_pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(__TPS_ZERO_BUFF_SIZE);
+            if (!ptpsvol->TPSVOL_pucZoreBuf) {
+                _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+                _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+                return  (PX_ERROR);
+            }
+            lib_bzero(ptpsvol->TPSVOL_pucZoreBuf, __TPS_ZERO_BUFF_SIZE);
+        }
+
+        szWrite = (size_t)min(__TPS_ZERO_BUFF_SIZE,
+                              oftPos - tpsFsGetSize(ptpsfile->TPSFIL_pinode));
+        if (tpsFsWrite(ptpsfile->TPSFIL_pinode, ptpsvol->TPSVOL_pucZoreBuf,
+                       tpsFsGetSize(ptpsfile->TPSFIL_pinode),
+                       szWrite, &szWriteNum) != ERROR_NONE) {
+            break;
+        }
+
+        /*
+         *  释放锁再加锁，当扩展文件长度耗时很长时，给系统 kill 线程和 shell 运行的机会
+         *  此处需要使用 ptpsvol 加锁和解锁，因为 ptpsfile 可能在解锁过程中被删除
+         */
+        __TPS_VOL_UNLOCK(ptpsvol);
+        __TPS_VOL_LOCK(ptpsvol);
+
+        /*
+         * TODO: 这里可能发生卷被移除的情况, 暂时未处理.
+         */
+        if (API_IosFdNodeFind(ptpsvol->TPSVOL_plineFdNodeHeader,
+                              LW_DEV_MAKE_STDEV(&ptpsvol->TPSVOL_devhdrHdr),
+                              inode64) != pfdnode) {                    /*  文件在解锁期间被关闭        */
+            _DebugHandle(__ERRORMESSAGE_LEVEL, "file closed.\r\n");
+            _ErrorHandle(ERROR_IOS_INVALID_FILE_DESCRIPTOR);
+            __SHEAP_FREE(ptpsvol->TPSVOL_pucZoreBuf);
+            ptpsvol->TPSVOL_pucZoreBuf = LW_NULL;
+            return  (PX_ERROR);
+        }
+    }
+
+    /*
+     *  释放内存，如果线程在上述解锁过程被杀死，则清零缓冲将被保持到下次调用本函数
+     */
+    __SHEAP_FREE(ptpsvol->TPSVOL_pucZoreBuf);
+    ptpsvol->TPSVOL_pucZoreBuf = LW_NULL;
+
+    pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
+    if (pfdnode->FDNODE_oftSize < oftPos) {
+        _ErrorHandle(ENOSPC);
+        return  (PX_ERROR);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __tpsFsWrite
 ** 功能描述: TPS FS write 操作
 ** 输　入  : pfdentry         文件控制块
@@ -1168,8 +1276,10 @@ static ssize_t  __tpsFsWrite (PLW_FD_ENTRY  pfdentry,
 {
     PLW_FD_NODE   pfdnode    = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PTPS_FILE     ptpsfile   = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    PTPS_VOLUME   ptpsvol    = ptpsfile->TPSFIL_ptpsvol;
     TPS_SIZE_T    szWriteNum = 0;
     errno_t       iErr       = ERROR_NONE;
+    off_t         oftPos;
 
     if (!pcBuffer) {
         _ErrorHandle(EINVAL);
@@ -1190,43 +1300,24 @@ static ssize_t  __tpsFsWrite (PLW_FD_ENTRY  pfdentry,
     if (pfdentry->FDENTRY_iFlag & O_APPEND) {                           /*  追加模式                    */
         pfdentry->FDENTRY_oftPtr = pfdnode->FDNODE_oftSize;             /*  移动读写指针到末尾          */
     }
+    oftPos = pfdentry->FDENTRY_oftPtr;
 
     if (stNBytes) {                                                     /*  自动扩展文件                */
-        if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
-            UINT uiBufSize = ptpsfile->TPSFIL_pinode->IND_psb->SB_uiBlkSize;
-            size_t szWrite;
-            PUCHAR pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(uiBufSize);
-            if (pucZoreBuf == LW_NULL) {
-                __TPS_FILE_UNLOCK(ptpsfile);
-                _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
-                _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
-                return  (PX_ERROR);
-            }
-
-            lib_bzero(pucZoreBuf, uiBufSize);
-            while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < pfdentry->FDENTRY_oftPtr) {
-                szWrite = (size_t)min(uiBufSize, pfdentry->FDENTRY_oftPtr - tpsFsGetSize(ptpsfile->TPSFIL_pinode));
-                if (tpsFsWrite(ptpsfile->TPSFIL_pinode, pucZoreBuf,
-                               tpsFsGetSize(ptpsfile->TPSFIL_pinode),
-                               szWrite, &szWriteNum) != ERROR_NONE) {
-                    break;
-                }
-            }
-            __SHEAP_FREE(pucZoreBuf);
-
-            pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
-            if (pfdnode->FDNODE_oftSize < pfdentry->FDENTRY_oftPtr) {
-                __TPS_FILE_UNLOCK(ptpsfile);
-                _ErrorHandle(ENOSPC);
+        if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
+            if (__tpsFsExtendFile(pfdentry, oftPos) != ERROR_NONE) {
+                /*
+                 *  需要使用 ptpsvol 释放锁，因为 ptpsfile 可能被删除
+                 */
+                __TPS_VOL_UNLOCK(ptpsvol);
                 return  (PX_ERROR);
             }
         }
 
         iErr = tpsFsWrite(ptpsfile->TPSFIL_pinode, (PUCHAR)pcBuffer,
-                          pfdentry->FDENTRY_oftPtr, stNBytes, &szWriteNum);
+                          oftPos, stNBytes, &szWriteNum);
         if ((iErr == ERROR_NONE) && (szWriteNum > 0)) {
-            pfdentry->FDENTRY_oftPtr += (off_t)szWriteNum;              /*  更新文件指针                */
-            pfdnode->FDNODE_oftSize   = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
+            pfdentry->FDENTRY_oftPtr = oftPos + (off_t)szWriteNum;      /*  更新文件指针                */
+            pfdnode->FDNODE_oftSize  = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
         }
     }
 
@@ -1253,6 +1344,7 @@ static ssize_t  __tpsFsPWrite (PLW_FD_ENTRY  pfdentry,
 {
     PLW_FD_NODE   pfdnode    = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PTPS_FILE     ptpsfile   = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    PTPS_VOLUME   ptpsvol    = ptpsfile->TPSFIL_ptpsvol;
     TPS_SIZE_T    szWriteNum = 0;
     errno_t       iErr       = ERROR_NONE;
 
@@ -1274,31 +1366,11 @@ static ssize_t  __tpsFsPWrite (PLW_FD_ENTRY  pfdentry,
 
     if (stNBytes) {
         if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {           /*  自动扩展文件                */
-            UINT uiBufSize = ptpsfile->TPSFIL_pinode->IND_psb->SB_uiBlkSize;
-            size_t szWrite;
-            PUCHAR pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(uiBufSize);
-            if (pucZoreBuf == LW_NULL) {
-                __TPS_FILE_UNLOCK(ptpsfile);
-                _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
-                _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
-                return  (PX_ERROR);
-            }
-
-            lib_bzero(pucZoreBuf, uiBufSize);
-            while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftPos) {
-                szWrite = (size_t)min(uiBufSize, oftPos - tpsFsGetSize(ptpsfile->TPSFIL_pinode));
-                if (tpsFsWrite(ptpsfile->TPSFIL_pinode, pucZoreBuf,
-                               tpsFsGetSize(ptpsfile->TPSFIL_pinode),
-                               szWrite, &szWriteNum) != ERROR_NONE) {
-                    break;
-                }
-            }
-            __SHEAP_FREE(pucZoreBuf);
-
-            pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
-            if (pfdnode->FDNODE_oftSize < oftPos) {
-                __TPS_FILE_UNLOCK(ptpsfile);
-                _ErrorHandle(ENOSPC);
+            if (__tpsFsExtendFile(pfdentry, oftPos) != ERROR_NONE) {
+                /*
+                 *  需要使用 ptpsvol 释放锁，因为 ptpsfile 可能被删除
+                 */
+                __TPS_VOL_UNLOCK(ptpsvol);
                 return  (PX_ERROR);
             }
         }
@@ -1810,6 +1882,7 @@ static INT  __tpsFsTruncate (PLW_FD_ENTRY  pfdentry, off_t  oftSize)
 {
     PLW_FD_NODE         pfdnode  = (PLW_FD_NODE)pfdentry->FDENTRY_pfdnode;
     PTPS_FILE           ptpsfile = (PTPS_FILE)pfdnode->FDNODE_pvFile;
+    PTPS_VOLUME         ptpsvol  = ptpsfile->TPSFIL_ptpsvol;
     INT                 iError   = ERROR_NONE;
     errno_t             iErr     = ERROR_NONE;
 
@@ -1825,34 +1898,11 @@ static INT  __tpsFsTruncate (PLW_FD_ENTRY  pfdentry, off_t  oftSize)
     
     if (ptpsfile->TPSFIL_iFileType == __TPS_FILE_TYPE_NODE) {
         if (oftSize > tpsFsGetSize(ptpsfile->TPSFIL_pinode)) {          /*  自动扩展文件                */
-            UINT        uiBufSize  = ptpsfile->TPSFIL_pinode->IND_psb->SB_uiBlkSize;
-            size_t      szWrite;
-            TPS_SIZE_T  szWriteNum;
-            PUCHAR      pucZoreBuf = (PUCHAR)__SHEAP_ALLOC(uiBufSize);
-
-            if (pucZoreBuf == LW_NULL) {
-                __TPS_FILE_UNLOCK(ptpsfile);
-                _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
-                _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
-                return  (PX_ERROR);
-            }
-
-            while (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftSize) {
-                szWrite = (size_t)min(uiBufSize, oftSize -
-                                                 tpsFsGetSize(ptpsfile->TPSFIL_pinode));
-                if (tpsFsWrite(ptpsfile->TPSFIL_pinode, pucZoreBuf,
-                               tpsFsGetSize(ptpsfile->TPSFIL_pinode),
-                               szWrite, &szWriteNum) != ERROR_NONE) {
-                    break;
-                }
-            }
-            
-            pfdnode->FDNODE_oftSize = tpsFsGetSize(ptpsfile->TPSFIL_pinode);
-
-            __SHEAP_FREE(pucZoreBuf);
-            if (tpsFsGetSize(ptpsfile->TPSFIL_pinode) < oftSize) {
-                __TPS_FILE_UNLOCK(ptpsfile);
-                _ErrorHandle(EFBIG);
+            if (__tpsFsExtendFile(pfdentry, oftSize) != ERROR_NONE) {
+                /*
+                 *  需要使用 ptpsvol 释放锁，因为 ptpsfile 可能被删除
+                 */
+                __TPS_VOL_UNLOCK(ptpsvol);
                 return  (PX_ERROR);
             }
 

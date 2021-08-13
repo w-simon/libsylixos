@@ -35,8 +35,10 @@
 LW_API
 VOID  API_KernelFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
 {
+    REGISTER PLW_CLASS_TCB       ptcb;
+             PLW_LIST_LINE       plineList;
 #if LW_CFG_INTER_FPU > 0
-    INT     i, j;
+             INT                 i, j;
 #endif                                                                  /*  LW_CFG_INTER_FPU > 0        */
     
     if (LW_SYS_STATUS_GET()) {
@@ -45,7 +47,17 @@ VOID  API_KernelFpuPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     }
 
     archFpuPrimaryInit(pcMachineName, pcFpuName);                       /*  初始化 FPU 单元             */
-    
+
+    LW_CPU_FPU_INITED();                                                /*  标记 FPU 已经初始化         */
+
+    for (plineList  = _K_plineTCBHeader;
+         plineList != LW_NULL;
+         plineList  = _list_line_get_next(plineList)) {
+
+        ptcb = _LIST_ENTRY(plineList, LW_CLASS_TCB, TCB_lineManage);
+        __ARCH_FPU_CTX_INIT(ptcb->TCB_pvStackFP);                       /*  初始化该任务 FPU 上下文     */
+    }
+
 #if LW_CFG_INTER_FPU > 0
     if (LW_KERN_FPU_EN_GET()) {                                         /*  中断状态允许使用 FPU        */
         __ARCH_FPU_ENABLE();                                            /*  这里需要在当前 FPU 上下文中 */

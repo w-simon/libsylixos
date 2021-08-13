@@ -86,7 +86,7 @@ static VOID __ptimerHookInstall (VOID)
                                        (不得在中断中调用)
 *********************************************************************************************************/
 LW_API  
-INT  timer_create (clockid_t  clockid, struct sigevent *sigeventT, timer_t *ptimer)
+INT  timer_create (clockid_t  clockid, struct sigevent  *sigeventT, timer_t  *ptimer)
 {
     return  (timer_create_internal(clockid, sigeventT, ptimer, LW_OPTION_NONE));
 }
@@ -101,8 +101,10 @@ INT  timer_create (clockid_t  clockid, struct sigevent *sigeventT, timer_t *ptim
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  timer_create_internal (clockid_t  clockid, struct sigevent *sigeventT, 
-                            timer_t *ptimer, ULONG  ulOption)
+INT  timer_create_internal (clockid_t         clockid,
+                            struct sigevent  *sigeventT,
+                            timer_t          *ptimer,
+                            ULONG             ulOption)
 {
 #if LW_CFG_PTIMER_AUTO_DEL_EN > 0
     static INT          iIsInstallHook = 0;
@@ -629,7 +631,7 @@ INT  setitimer (INT                     iWhich,
     return  (iError);
 }
 /*********************************************************************************************************
-** 函数名称: setitimer
+** 函数名称: getitimer
 ** 功能描述: 获取内部定时器
 ** 输　入  : iWhich        类型, 仅支持 ITIMER_REAL 
 **           pitValue      获取当前定时信息
@@ -641,7 +643,7 @@ INT  setitimer (INT                     iWhich,
                                        (不得在中断中调用)
 *********************************************************************************************************/
 LW_API  
-INT  getitimer (INT iWhich, struct itimerval *pitValue)
+INT  getitimer (INT  iWhich, struct itimerval  *pitValue)
 {
     ULONG      ulGetCounter;
     ULONG      ulGetInterval;
@@ -702,7 +704,7 @@ UINT  alarm (UINT  uiSeconds)
                                        (不得在中断中调用)
 *********************************************************************************************************/
 LW_API  
-useconds_t ualarm (useconds_t usec, useconds_t usecInterval)
+useconds_t  ualarm (useconds_t  usec, useconds_t  usecInterval)
 {
     struct itimerval tvValue, tvOld;
     

@@ -164,6 +164,7 @@ struct sd_host {
 #define SDHOST_EXTOPT_CONFIG_RESELECT_SDIO      (1 << 1)            /*  SDIO 每一次传输都重新选择卡     */
 #define SDHOST_EXTOPT_CONFIG_SKIP_SDMEM         (1 << 2)            /*  跳过 SDMEM 驱动探测             */
 #define SDHOST_EXTOPT_CONFIG_SKIP_SDIO          (1 << 3)            /*  跳过 SDIO 驱动探测              */
+#define SDHOST_EXTOPT_CONFIG_CUSTOM_SDIO        (1 << 4)            /*  自定义 SDIO (将不做标准初始化)  */
 
 /*********************************************************************************************************
   API

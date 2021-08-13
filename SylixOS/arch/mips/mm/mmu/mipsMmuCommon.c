@@ -31,6 +31,15 @@
 #include "mips32/mips32Mmu.h"
 #include "mips64/mips64Mmu.h"
 /*********************************************************************************************************
+  君正 x1000 TLB 需要的特殊处理
+*********************************************************************************************************/
+#if LW_CFG_CPU_WORD_LENGHT == 32
+#define MIPS32_INGENIC_X1000_TLB_FIX     __asm__ __volatile__ ("li    $2, 0xa9000000 \n\t" \
+                                                               "mtc0  $2, $5, 4      \n\t" \
+                                                               "nop                  \n\t" \
+                                                               ::"r"(2))
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+/*********************************************************************************************************
   UNIQUE ENTRYHI(按 512KB 步进, 提升兼容性, TLB 数目最多 256 个, 不会上溢到 CKSEG1, CKSEG0 空间有 512MB)
 *********************************************************************************************************/
 #define MIPS_UNIQUE_ENTRYHI(idx)        (CKSEG0 + ((idx) << (18 + 1)))
@@ -389,6 +398,13 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
          * 5: Cacheable, coherent, write-back, write-allocate, read misses request Shared
          */
         _G_uiMmuEntryLoCache     = 0x5;                                 /*  一致性高速缓存              */
+
+#if LW_CFG_CPU_WORD_LENGHT == 32
+        if (_G_uiMipsMachineType == MIPS_MACHINE_TYPE_X1000) {          /*  针对 x1000 TLB 特殊初始化   */
+            MIPS32_INGENIC_X1000_TLB_FIX;
+        }
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+
         break;
 
     case CPU_CETC_HR2:                                                  /*  CETC-HR2                    */

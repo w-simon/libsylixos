@@ -889,7 +889,7 @@ int   posix_spawn_file_actions_destroy (posix_spawn_file_actions_t *file_actions
 *********************************************************************************************************/
 LW_API  
 int   posix_spawn_file_actions_addopen (posix_spawn_file_actions_t *file_actions,
-					                    int fd, const char *path, int oflag, mode_t mode)
+                                        int fd, const char *path, int oflag, mode_t mode)
 {
     __spawn_action *pspawnactNew;
     size_t          stPathLen;

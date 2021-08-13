@@ -380,6 +380,18 @@ ULONG  _CpuGetMaxNesting(VOID);
 PLW_CLASS_CPU  _CpuGetCur(VOID);
 #endif                                                                  /*  __SYLIXOS_ARM_ARCH_M__      */
 
+/*********************************************************************************************************
+  FPU Óë DSP ³õÊ¼»¯×´Ì¬
+*********************************************************************************************************/
+
+#define LW_CPU_FPU_INITED()         (_K_bFpuInited = LW_TRUE)
+#define LW_CPU_FPU_IS_INITED()      (_K_bFpuInited)
+
+#if LW_CFG_CPU_DSP_EN > 0
+#define LW_CPU_DSP_INITED()         (_K_bDspInited = LW_TRUE)
+#define LW_CPU_DSP_IS_INITED()      (_K_bDspInited)
+#endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
+
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 #endif                                                                  /*  __K_CPU_H                   */
 /*********************************************************************************************************

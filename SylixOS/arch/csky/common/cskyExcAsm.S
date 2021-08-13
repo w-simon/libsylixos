@@ -50,7 +50,9 @@
     IMPORT_LABEL(archFatalErrExceptHandle)
     IMPORT_LABEL(archIdlyExceptHandle)
     IMPORT_LABEL(archAutoIntHandle)
+    IMPORT_LABEL(archVectorIntHandle)
     IMPORT_LABEL(archFastAutoIntHandle)
+    IMPORT_LABEL(archFastVectorIntHandle)
     IMPORT_LABEL(archReservedExceptHandle)
     IMPORT_LABEL(archTlbFatalExceptHandle)
     IMPORT_LABEL(archTlbModExceptHandle)
@@ -78,7 +80,10 @@
     EXPORT_LABEL(archFatalErrExceptEntry)
     EXPORT_LABEL(archIdlyExceptEntry)
     EXPORT_LABEL(archAutoIntEntry)
+    EXPORT_LABEL(archFastAutoIntRawEntry)
     EXPORT_LABEL(archFastAutoIntEntry)
+    EXPORT_LABEL(archFastVectorIntRawEntry)
+    EXPORT_LABEL(archFastVectorIntEntry)
     EXPORT_LABEL(archReservedExceptEntry)
     EXPORT_LABEL(archTlbFatalExceptEntry)
     EXPORT_LABEL(archTlbModExceptEntry)
@@ -104,6 +109,8 @@
     SECTION(.text)
 
 MACRO_DEF(IRQ_ENTRY  irq  handle)
+    PSRCLR      FE                                                      ;/*  防止在保存 SP 时被 FIQ 打断 */
+
     ;/*
     ; * 使用异常临时栈, 并在异常临时栈开辟临时上下文保存区, 将寄存器保存到临时上下文保存区
     ; */
@@ -141,6 +148,8 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
     ; */
     MOV         A0 , SP
     JSRI        API_InterEnter
+
+    PSRSET      FE                                                      ;/*  使能 FIQ                    */
 
     CMPNEI      A0 , 1
     BT          3f
@@ -195,6 +204,7 @@ MACRO_DEF(IRQ_ENTRY  irq  handle)
 MACRO_DEF(FAST_INT_ENTRY  handle)
     MTCR        SP , SS1                                                ;/*  SS1 暂存异常前 SP           */
     MFCR        SP , SS0                                                ;/*  SP = 异常临时栈             */
+    ADDI        SP , 1024                                               ;/*  SP = FIQ 临时栈             */
 
     SUBI        SP , ARCH_REG_CTX_SIZE                                  ;/*  在临时堆栈开辟上下文保存区  */
 
@@ -222,53 +232,18 @@ MACRO_DEF(FAST_INT_ENTRY  handle)
     ST.W        R18 , (SP , XGREG(0))
 #endif
 
-    ;/*
-    ; * API_InterEnter(寄存器上下文)
-    ; */
-    MOV         A0 , SP
-    JSRI        API_InterEnter
+    MFCR        R0 , PSR
+    LSRI        R0 , 16
+    SEXTB       R0                                                      ;/*  R0 = 异常向量号             */
 
-    CMPNEI      A0 , 1
-    BT          3f
-
-    ;/*
-    ; * 第一次进入中断: 获得当前 CPU 中断堆栈栈顶, 并设置 SP
-    ; */
-    JSRI        API_InterStackBaseGet
-    MOV         SP , A0
-
-    ;/*
-    ; * 获得当前任务 TCB 的 ARCH_REG_CTX 地址
-    ; */
-    JSRI        API_ThreadTcbInter
-    MOV         A1 , A0
-
-2:
-	PSRCLR      FE
     ;/*
     ; * handle(vector, 寄存器上下文)
     ; */
     JSRI        \handle
-    ;/*
-    ; * API_InterExitFastInt()
-    ; * 如果没有发生中断嵌套, 则 API_InterExitFastInt 会调用 archFiqCtxLoad 函数
-    ; */
-    JSRI        API_InterExitFastInt
 
-    ;/*
-    ; * 来到这里, 说明发生了中断嵌套
-    ; */
     MOV         A1 , SP
     RESTORE_REGS_FAST_INT
 
-3:
-    ;/*
-    ; * 不是第一次进入中断
-    ; */
-    MFCR        SP , SS1                                                ;/*  异常前 SP                   */
-    SUBI        SP , ARCH_REG_CTX_SIZE
-    MOV         A1 , SP
-    BR          2b
     MACRO_END()
 
 ;/*********************************************************************************************************
@@ -344,7 +319,7 @@ FUNC_DEF(archIdlyExceptEntry)
     FUNC_END(archIdlyExceptEntry)
 
 ;/*********************************************************************************************************
-;  普通中断入口函数
+;  普通自动中断入口函数
 ;*********************************************************************************************************/
 
 FUNC_DEF(archAutoIntEntry)
@@ -352,7 +327,16 @@ FUNC_DEF(archAutoIntEntry)
     FUNC_END(archAutoIntEntry)
 
 ;/*********************************************************************************************************
-;  快速中断入口函数
+;  快速自动中断入口函数(硬件存在可选通用寄存器, 不需要保存上下文)
+;*********************************************************************************************************/
+
+FUNC_DEF(archFastAutoIntRawEntry)
+    JSRI            archFastAutoIntHandle
+    RFI
+    FUNC_END(archFastAutoIntRawEntry)
+
+;/*********************************************************************************************************
+;  快速自动中断入口函数(硬件不存在可选通用寄存器, 需要保存上下文)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archFastAutoIntEntry)
@@ -442,7 +426,27 @@ FUNC_DEF(archTlbStoreExceptEntry)
     FUNC_END(archTlbStoreExceptEntry)
 
 ;/*********************************************************************************************************
-;  32 ~ 255 号中断入口函数
+;  快速向量中断处理入口函数(硬件存在可选通用寄存器, 不需要保存上下文)
+;*********************************************************************************************************/
+
+FUNC_DEF(archFastVectorIntRawEntry)
+    MFCR            R0 , PSR
+    LSRI            R0 , 16
+    SEXTB           R0
+    JSRI            archFastVectorIntHandle
+    RFI
+    FUNC_END(archFastVectorIntRawEntry)
+
+;/*********************************************************************************************************
+;  快速向量中断处理入口函数(硬件不存在可选通用寄存器, 需要保存上下文)
+;*********************************************************************************************************/
+
+FUNC_DEF(archFastVectorIntEntry)
+    FAST_INT_ENTRY  archFastVectorIntHandle
+    FUNC_END(archFastVectorIntEntry)
+
+;/*********************************************************************************************************
+;  32 ~ 255 号普通向量中断入口函数
 ;*********************************************************************************************************/
 
     .irp        Id,                                   \
@@ -471,7 +475,7 @@ FUNC_DEF(archTlbStoreExceptEntry)
     250, 251, 252, 253, 254, 255
     EXPORT_LABEL(archIntEntry\Id)
 FUNC_DEF(archIntEntry\Id)
-    IRQ_ENTRY   \Id  bspIntHandle
+    IRQ_ENTRY   \Id  archVectorIntHandle
     FUNC_END(archIntEntry\Id)
     .endr
 
@@ -479,8 +483,10 @@ FUNC_DEF(archIntEntry\Id)
 ;  异常向量表
 ;*********************************************************************************************************/
 
+    SECTION(.data)
+
     .align  10
-FUNC_DEF(vector)
+LINE_LABEL(vector)
     .long   archResetEntry                                              ;/*  0  - Reset                  */
     .long   archUnalignedExceptEntry                                    ;/*  1  - Unaligned              */
     .long   archAccessExceptEntry                                       ;/*  2  - Access                 */
@@ -492,7 +498,7 @@ FUNC_DEF(vector)
     .long   archFatalErrExceptEntry                                     ;/*  8  - Fatal Err              */
     .long   archIdlyExceptEntry                                         ;/*  9  - Idly                   */
     .long   archAutoIntEntry                                            ;/*  10 - Auto                   */
-    .long   archFastAutoIntEntry + 0x1                                  ;/*  11 - Fast Auto              */
+    .long   archFastAutoIntRawEntry + 0x1                               ;/*  11 - Fast Auto              */
     .long   archReservedExceptEntry                                     ;/*  12 - Reserved               */
     .long   archTlbFatalExceptEntry                                     ;/*  13 - TLB Fatal              */
 #if LW_CFG_VMM_EN > 0
@@ -544,8 +550,6 @@ FUNC_DEF(vector)
     250, 251, 252, 253, 254, 255
     .long   archIntEntry\Id
     .endr
-    FUNC_END(vector)
-
     FILE_END()
 
 #endif

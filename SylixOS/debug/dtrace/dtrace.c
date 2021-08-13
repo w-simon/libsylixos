@@ -308,8 +308,8 @@ INT  API_DtraceBreakTrap (addr_t  ulAddr, UINT  uiBpType)
         
 #if LW_CFG_SMP_EN > 0 && !defined(LW_DTRACE_HW_ISTEP)
         if (ulAddr == ptcbCur->TCB_ulStepAddr) {
-        	archDbgBpRemove(ptcbCur->TCB_ulStepAddr, sizeof(addr_t),
-        			        ptcbCur->TCB_ulStepInst, LW_FALSE);
+            archDbgBpRemove(ptcbCur->TCB_ulStepAddr, sizeof(addr_t),
+                            ptcbCur->TCB_ulStepInst, LW_FALSE);
             ptcbCur->TCB_bStepClear = LW_TRUE;                          /*  ¶Ïµã±»ÒÆ³ý                  */
         }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */

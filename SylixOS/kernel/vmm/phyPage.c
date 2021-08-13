@@ -634,7 +634,7 @@ ULONG  __vmmPhysicalPageGetMinContinue (ULONG  *pulZoneIndex, UINT  uiAttr)
     return  (ulMin);
 }
 /*********************************************************************************************************
-** 函数名称: __vmmPhysicalCreate
+** 函数名称: __vmmPhysicalPageFaultLimit
 ** 功能描述: 设置缺页中断物理内存限制.
 ** 输　入  : pvpflNew          新的设置
 **           pvpflOld          之前的设置

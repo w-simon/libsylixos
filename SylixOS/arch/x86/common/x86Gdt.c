@@ -262,11 +262,11 @@ static INT  __x86GdtInit (ULONG  ulCPUId)
 {
     X86_GDT_REG  gdtr;
 
-    _G_x86GDT[ulCPUId][X86_SEG_NULL]  = (X86_SEG_DESC){ 0, };
-    _G_x86GDT[ulCPUId][X86_SEG_KCODE] = BUILD_GDTE(0, 1);
-    _G_x86GDT[ulCPUId][X86_SEG_KDATA] = BUILD_GDTE(0, 0);
-    _G_x86GDT[ulCPUId][X86_SEG_UCODE] = BUILD_GDTE(3, 1);
-    _G_x86GDT[ulCPUId][X86_SEG_UDATA] = BUILD_GDTE(3, 0);
+    _G_x86GDT[ulCPUId][X86_SEG_NULL]       = (X86_SEG_DESC){ 0, };
+    _G_x86GDT[ulCPUId][X86_SEG_KCODE]      = BUILD_GDTE(0, 1);
+    _G_x86GDT[ulCPUId][X86_SEG_KDATA]      = BUILD_GDTE(0, 0);
+    _G_x86GDT[ulCPUId][X86_SEG_UCODE]      = BUILD_GDTE(3, 1);
+    _G_x86GDT[ulCPUId][X86_SEG_UDATA]      = BUILD_GDTE(3, 0);
     _G_x86GDT[ulCPUId][X86_SEG_KERNEL_TSS] = (X86_SEG_DESC){ 0, };
 
     /*

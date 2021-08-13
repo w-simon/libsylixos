@@ -956,7 +956,7 @@ static INT  __tshellSysCmdSigqueue (INT  iArgC, PCHAR  ppcArgV[])
     INT               iSigNum = SIGKILL;
     union sigval      sigvalue;
     
-    sigvalue.sival_int = 0;
+    sigvalue.sival_int = 1;
     
     if (iArgC == 2) {
         if (ppcArgV[1][0] < '0' ||
@@ -980,7 +980,7 @@ static INT  __tshellSysCmdSigqueue (INT  iArgC, PCHAR  ppcArgV[])
         sscanf(ppcArgV[2], "%d",  &iSigNum);
         sscanf(ppcArgV[3], "%lx", &ulId);
         if (API_ObjectGetClass(ulId) != _OBJECT_THREAD) {
-            sscanf(ppcArgV[1], "%ld", &ulId);                           /*  进程 id                     */
+            sscanf(ppcArgV[3], "%ld", &ulId);                           /*  进程 id                     */
         }
         return  (sigqueue(ulId, iSigNum, sigvalue));
     

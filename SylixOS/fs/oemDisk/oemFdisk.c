@@ -189,19 +189,114 @@ static INT  __oemFdisk (INT                     iBlkFd,
     return  ((INT)i);
 }
 /*********************************************************************************************************
-** 函数名称: API_OemFdisk
+** 函数名称: __oemGptFdisk
+** 功能描述: 对 OEM 磁盘设备进行 GPT 分区操作
+** 输　入  : iBlkFd             块设备文件描述符
+**           ulSecSize          扇区大小
+**           ulTotalSec         扇区总数
+**           fdpPart            分区信息
+**           uiNPart            分区个数
+**           stAlign            分区对齐 (例如: SSD 需要 4K 对齐)
+** 输　出  : 分区个数
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_CPU_WORD_LENGHT > 32
+
+static INT  __oemGptFdisk (INT                     iBlkFd,
+                           ULONG                   ulSecSize,
+                           ULONG                   ulTotalSec,
+                           const LW_OEMFDISK_PART  fdpPart[],
+                           UINT                    uiNPart,
+                           size_t                  stAlign)
+{
+    UINT64 ui64PSecNext;
+    UINT64 ui64PStartSec;
+    UINT64 ui64lPNSec;
+    UINT64 ui64LeftSec;
+    INT    i;
+    ULONG  ulNSecPerMB = LW_CFG_MB_SIZE / ulSecSize;
+
+    GPT_TABLE *pgpt;
+
+    pgpt = API_GptCreateAndInit(ulSecSize, ulTotalSec);
+    if (!pgpt) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+
+    ui64PSecNext  = pgpt->GPT_header.HDR_ui64FirstLba;
+    ui64LeftSec   = pgpt->GPT_header.HDR_ui64LastLba - pgpt->GPT_header.HDR_ui64FirstLba;
+
+    for (i = 0; i < uiNPart; i++) {                                     /*  确定分区 LBA 信息           */
+        ui64PStartSec = ui64PSecNext;
+        if (ui64PStartSec > pgpt->GPT_header.HDR_ui64LastLba) {
+            API_GptDestroy(pgpt);
+            return  (PX_ERROR);
+        }
+
+        if (fdpPart[i].FDP_ucSzPct == 0) {                              /*  剩下所有                    */
+            ui64lPNSec = ui64LeftSec;
+
+        } else if (fdpPart[i].FDP_ucSzPct > 100) {                      /*  按容量信息分配              */
+            ui64lPNSec = fdpPart[i].FDP_ulMBytes * ulNSecPerMB;
+
+        } else {                                                        /*  按百分比分配                */
+            ui64lPNSec = ulTotalSec;
+            ui64lPNSec = (ui64lPNSec * fdpPart[i].FDP_ucSzPct) / 100;
+        }
+
+        if ((ui64PStartSec + ui64lPNSec) > pgpt->GPT_header.HDR_ui64LastLba) {
+            ui64lPNSec = pgpt->GPT_header.HDR_ui64LastLba - ui64PStartSec;
+        }
+
+        ui64lPNSec    = ROUND_DOWN(ui64lPNSec, (stAlign / ulSecSize));  /*  对齐的扇区个数              */
+        ui64LeftSec  -= ui64lPNSec;
+        ui64PSecNext += ui64lPNSec;
+
+        if (API_GptAddEntry(pgpt, ui64PStartSec, ui64lPNSec,
+                            fdpPart[i].FDP_ucPartType) != ERROR_NONE) { /*  添加到 GPT 分区表           */
+            API_GptDestroy(pgpt);
+            return  (PX_ERROR);
+        }
+
+        if (fdpPart[i].FDP_ucSzPct == 0) {
+            i++;
+            break;
+        }
+    }
+
+    if (API_GptPartitionSave(iBlkFd, pgpt) != ERROR_NONE) {             /*  写入分区表到块设备          */
+        API_GptDestroy(pgpt);
+        return  (PX_ERROR);
+    }
+
+    API_GptDestroy(pgpt);
+
+    return  ((INT)i);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+/*********************************************************************************************************
+** 函数名称: API_OemFdiskEx
 ** 功能描述: 对 OEM 磁盘设备进行分区操作
 ** 输　入  : pcBlkDev           块设备文件 例如: /dev/blk/sata0
 **           fdpPart            分区参数
 **           uiNPart            分区参数个数
 **           stAlign            分区对齐 (例如: SSD 需要 4K 对齐)
+**           bGpt               是否 GPT 分区
 ** 输　出  : 产生的分区个数, PX_ERROR 表示错误.
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  uiNPart, size_t  stAlign)
+INT  API_OemFdiskEx (CPCHAR                  pcBlkDev,
+                     const LW_OEMFDISK_PART  fdpPart[],
+                     UINT                    uiNPart,
+                     size_t                  stAlign,
+                     BOOL                    bGpt)
 {
     INT         i;
     INT         iBlkFd;
@@ -210,11 +305,24 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
     ULONG       ulSecSize;
     ULONG       ulTotalSec;
 
-    if (!pcBlkDev || !fdpPart || !uiNPart || (uiNPart > 4)) {
+    if (!pcBlkDev || !fdpPart || !uiNPart) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (!bGpt && (uiNPart > 4)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
     
+#if LW_CFG_CPU_WORD_LENGHT == 32
+    if (bGpt) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "32bits CPU no support GPT partition.\r\n");
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+
     if ((stAlign < 4096) || (stAlign & (stAlign - 1))) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "stAlign error.\r\n");
         _ErrorHandle(EINVAL);
@@ -244,7 +352,7 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
         return  (PX_ERROR);
     }
     
-    if (ulTotalSec < __DISK_PART_MINSEC) {
+    if (!bGpt && (ulTotalSec < __DISK_PART_OFFSEC)) {
         close(iBlkFd);
         _ErrorHandle(ENOSPC);
         return  (PX_ERROR);
@@ -267,13 +375,40 @@ INT  API_OemFdisk (CPCHAR  pcBlkDev, const LW_OEMFDISK_PART  fdpPart[], UINT  ui
     }
 
     uiNPart = i;
-    iNCnt   = __oemFdisk(iBlkFd, ulSecSize, ulTotalSec, fdpPart, uiNPart, stAlign);
+#if LW_CFG_CPU_WORD_LENGHT > 32
+    if (bGpt) {                                                         /*  以 GPT 格式对块设备分区     */
+        iNCnt = __oemGptFdisk(iBlkFd, ulSecSize, ulTotalSec, fdpPart, uiNPart, stAlign);
+    } else
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+    {
+        iNCnt = __oemFdisk(iBlkFd, ulSecSize, ulTotalSec, fdpPart, uiNPart, stAlign);
+    }
     if (iNCnt > 0) {
         fsync(iBlkFd);
     }
     close(iBlkFd);
 
     return  (iNCnt);
+}
+/*********************************************************************************************************
+** 函数名称: API_OemFdisk
+** 功能描述: 对 OEM 磁盘设备进行分区操作
+** 输　入  : pcBlkDev           块设备文件 例如: /dev/blk/sata0
+**           fdpPart            分区参数
+**           uiNPart            分区参数个数
+**           stAlign            分区对齐 (例如: SSD 需要 4K 对齐)
+** 输　出  : 产生的分区个数, PX_ERROR 表示错误.
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_OemFdisk (CPCHAR                  pcBlkDev,
+                   const LW_OEMFDISK_PART  fdpPart[],
+                   UINT                    uiNPart,
+                   size_t                  stAlign)
+{
+    return  (API_OemFdiskEx(pcBlkDev, fdpPart, uiNPart, stAlign, LW_FALSE));
 }
 /*********************************************************************************************************
 ** 函数名称: __oemFdiskGet
@@ -383,18 +518,73 @@ static INT  __oemFdiskGet (INT                  iBlkFd,
     }
 }
 /*********************************************************************************************************
+** 函数名称: __oemGptFdiskGet
+** 功能描述: 获取 OEM 磁盘设备 GPT 分区情况
+** 输　入  : iBlkFd             块设备文件描述符
+**           fdpInfo            获取信息缓冲
+**           uiNPart            缓冲区可保存分区信息个数
+**           ulSecSize          扇区大小
+** 输　出  : 获取的分区个数
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_CPU_WORD_LENGHT > 32
+
+static INT  __oemGptFdiskGet (INT                  iBlkFd,
+                              LW_OEMFDISK_PINFO    fdpInfo[],
+                              UINT                 uiNPart,
+                              ULONG                ulSecSize)
+{
+    UINT64 ui64PStartSec;
+    UINT64 ui64lPNSec;
+    INT    i;
+
+    GPT_TABLE *pgpt;
+
+    pgpt = API_GptCreateAndInit(ulSecSize, 0);
+    if (!pgpt) {
+        _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+
+    if (API_GptPartitionLoad(iBlkFd, pgpt) != ERROR_NONE) {             /*  加载 GPT 分区信息           */
+        API_GptDestroy(pgpt);
+        return  (PX_ERROR);
+    }
+
+    for (i = 0; i < pgpt->GPT_header.HDR_uiEntriesCount; i++) {         /*  转换分区表                  */
+        if (API_GptGetEntry(pgpt, i, &ui64PStartSec,
+                            &ui64lPNSec, &fdpInfo[i].FDP_ucPartType) != ERROR_NONE) {
+            API_GptDestroy(pgpt);
+            return  (PX_ERROR);
+        }
+
+        fdpInfo[i].FDP_bIsActive = LW_TRUE;
+        fdpInfo[i].FDP_u64Size    = ((UINT64)ui64lPNSec * ulSecSize);
+        fdpInfo[i].FDP_u64Oft     = ((UINT64)ui64PStartSec * ulSecSize);
+    }
+
+    API_GptDestroy(pgpt);
+
+    return  (i);
+}
+
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+/*********************************************************************************************************
 ** 函数名称: API_OemFdiskGet
 ** 功能描述: 获取 OEM 磁盘设备分区情况
 ** 输　入  : pcBlkDev           块设备文件 例如: /dev/blk/sata0
 **           fdpInfo            获取信息缓冲
 **           uiNPart            缓冲区可保存分区信息个数
+**           pbGpt              返回是否 GPT 分区
 ** 输　出  : 获取的分区个数, PX_ERROR 表示错误.
 ** 全局变量:
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_OemFdiskGet (CPCHAR  pcBlkDev, LW_OEMFDISK_PINFO  fdpInfo[], UINT  uiNPart)
+INT  API_OemFdiskGetEx (CPCHAR  pcBlkDev, LW_OEMFDISK_PINFO  fdpInfo[], UINT  uiNPart, BOOL  *pbGpt)
 {
     INT         iBlkFd;
     INT         iNCnt;
@@ -422,10 +612,41 @@ INT  API_OemFdiskGet (CPCHAR  pcBlkDev, LW_OEMFDISK_PINFO  fdpInfo[], UINT  uiNP
         ulSecSize = 512;
     }
 
-    iNCnt = __oemFdiskGet(iBlkFd, 0, 0, ulSecSize, 0, fdpInfo, uiNPart);
+#if LW_CFG_CPU_WORD_LENGHT > 32
+    iNCnt = __oemGptFdiskGet(iBlkFd, fdpInfo, uiNPart, ulSecSize);      /*  首先尝试 GPT 分区格式扫描   */
+    if (iNCnt < 0) {
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+        iNCnt  = __oemFdiskGet(iBlkFd, 0, 0, ulSecSize, 0, fdpInfo, uiNPart);
+        if (pbGpt) {
+            *pbGpt = LW_FALSE;
+        }
+#if LW_CFG_CPU_WORD_LENGHT > 32
+    } else {
+        if (pbGpt) {
+            *pbGpt = LW_TRUE;
+        }
+    }
+#endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
+
     close(iBlkFd);
 
     return  (iNCnt);
+}
+/*********************************************************************************************************
+** 函数名称: API_OemFdiskGet
+** 功能描述: 获取 OEM 磁盘设备分区情况
+** 输　入  : pcBlkDev           块设备文件 例如: /dev/blk/sata0
+**           fdpInfo            获取信息缓冲
+**           uiNPart            缓冲区可保存分区信息个数
+** 输　出  : 获取的分区个数, PX_ERROR 表示错误.
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_OemFdiskGet (CPCHAR  pcBlkDev, LW_OEMFDISK_PINFO  fdpInfo[], UINT  uiNPart)
+{
+    return  (API_OemFdiskGetEx(pcBlkDev, fdpInfo, uiNPart, LW_NULL));
 }
 /*********************************************************************************************************
 ** 函数名称: __oemFdiskGetType
@@ -496,6 +717,7 @@ static CPCHAR  __oemFdiskGetType (UINT8  ucType)
     case 0x94:  return  ("Amoeba bad block table Partition");
     case 0x96:  return  ("ISO-9660 file system");
     case 0x9c:  return  ("SylixOS True Power Safe Partition");
+    case 0x9d:  return  ("EFI Partition");
     case 0xa0:  return  ("IBM Thinkpad hibernation Partition");
     case 0xa5:  return  ("BSD/386 Partition");
     case 0xa7:  return  ("NeXTSTEP 486 Partition");
@@ -549,6 +771,7 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
     INT                  i, iBlkFd;
     PCHAR                pcAct;
     CPCHAR               pcType;
+    BOOL                 bGpt;
 
     fdpInfo = (PLW_OEMFDISK_PINFO)__SHEAP_ALLOC(sizeof(LW_OEMFDISK_PINFO) *
                                                 LW_CFG_MAX_DISKPARTS);
@@ -612,7 +835,7 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
     printf("block product : %s\n", blkinfo.BLKI_cProduct);
     printf("block media   : %s\n", blkinfo.BLKI_cMedia);
 
-    iRet = API_OemFdiskGet(pcBlkDev, fdpInfo, LW_CFG_MAX_DISKPARTS);
+    iRet = API_OemFdiskGetEx(pcBlkDev, fdpInfo, LW_CFG_MAX_DISKPARTS, &bGpt);
     if (iRet < ERROR_NONE) {
         fprintf(stderr, "\ncan not analysis partition table: %s\n", lib_strerror(errno));
         __SHEAP_FREE(fdpInfo);
@@ -624,7 +847,7 @@ INT  API_OemFdiskShow (CPCHAR  pcBlkDev)
         return  (iRet);
     }
 
-    printf("\npartition >>\n%s", pcPartInfo);
+    printf("\n%s partition >>\n%s", (bGpt ? "GPT" : "MBR"), pcPartInfo);
     for (i = 0; i < iRet; i++) {
         pcAct  = (fdpInfo[i].FDP_bIsActive) ? "*" : "";
         pcType = __oemFdiskGetType(fdpInfo[i].FDP_ucPartType);

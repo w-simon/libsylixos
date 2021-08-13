@@ -68,7 +68,7 @@ ULONG  API_TimerCancel (LW_OBJECT_HANDLE  ulId)
     }
 
     ptmr = &_K_tmrBuffer[usIndex];
-    
+
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */
     
     if (ptmr->TIMER_ucStatus == LW_TIMER_STATUS_STOP) {                 /*  没有工作                    */

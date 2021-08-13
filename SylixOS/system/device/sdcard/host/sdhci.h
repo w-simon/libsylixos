@@ -32,7 +32,8 @@
 2015.12.17  增加对 MMC/eMMC 总线位宽的兼容性处理.
 2017.02.28  增加 SDIO 外设额外电源设置和带外 SDIO 中断的 Quirk 操作.
 2018.05.22  增加 SD 卡仅能使用1位模式的处理.
-			增加 PIO 模式平台相关延时处理.
+            增加 PIO 模式平台相关延时处理.
+2021.07.20  增加 传输性能以及实时性等性能优化配置.
 *********************************************************************************************************/
 
 #ifndef __SDHCI_H
@@ -461,6 +462,62 @@
 #define SDHCIHOST_TMOD_CAN_ADMA         (1 << 2)
 
 /*********************************************************************************************************
+  SD 标准主控性能相关配置
+
+  SDHCIPERF_iIsrDeferNum
+    < 0 : 则不使用中断底半部处理
+    > 0 : 代表中断底半部分处理绑定的CPU核心号(依赖LW_CFG_ISR_DEFER_EN/LW_CFG_ISR_DEFER_PER_CPU 配置)
+
+  SDHCIPERF_iSdioSvrPrio
+    sdio 服务线程优先级. 如果小于0, 则使用默认值
+
+  SDHCIPERF_iXferMode
+    可选择: SDHCIHOST_TMOD_SET_XXXX. 可不再使用: API_SdhciHostTransferModSet()
+
+  SDHCIPERF_iDmaBuffAttr
+    用于指明使用 DMA 传输时, DMA缓冲区的属性
+    SDHCI_DMABUF_CACHE_COHERENCE :
+    如果确保传输的缓冲区是cache一致性的，则设置此标志指示内部不进行数据同步
+
+    SDHCI_DMABUF_USR_DIRECT :
+    该标志指示直接使用上层提供的缓冲区用于DMA传输, 且同步方式由驱动决定
+
+    注: 以上两种标志不允许同时使用
+
+  SDHCIPERF_pfuncDmaSync
+    仅在使用 DMA 传输的时候使用, 驱动可根据当前的平台特性进行优化(如使用cache操作, 优化的内存拷贝等)
+    参数 iSyncStage 为: SDHCI_DMASS_BEFORE_XXXX
+    如果为 LW_NULL, 则默认使用 memcpy() 操作
+
+    特别注意: 如果使用了SIMD指令的拷贝函数,则必须使能中断底半部功能
+*********************************************************************************************************/
+
+#define SDHCI_PERF_MAGIC                0xabcd4321
+
+#define SDHCI_DMASS_BEFORE_READ         0
+#define SDHCI_DMASS_AFTER_READ          1
+#define SDHCI_DMASS_BEFORE_WRITE        2
+#define SDHCI_DMASS_AFTER_WRITE         3
+
+typedef struct _sdhci_perf_cfg {
+    UINT32           SDHCIPERF_uiValidMagic;
+    INT              SDHCIPERF_iIsrDeferNum;
+    INT              SDHCIPERF_iSdioSvrPrio;
+
+    INT              SDHCIPERF_iXferMode;
+    UINT32           SDHCIPERF_uiDmaBuffAttr;
+#define SDHCI_DMABUF_CACHE_COHERENCE    (1 << 0)
+#define SDHCI_DMABUF_USR_DIRECT         (1 << 1)
+
+    VOID           (*SDHCIPERF_pfuncDmaSync)(VOID     *pvRaw,
+                                             VOID     *pvDma,
+                                             UINT32    uiSize,
+                                             INT       iSyncStage);
+
+    ULONG            SDHCIPERF_ulReserved[8];
+} SDHCI_PERF_CFG;
+
+/*********************************************************************************************************
   SD 标准主控制器属性结构
 *********************************************************************************************************/
 
@@ -528,6 +585,10 @@ typedef struct lw_sdhci_host_attr {
 #define SDHCI_QUIRK_FLG_SD_FORCE_1BIT                         (1 << 18) /*  SD 卡强制使用1位总线        */
 
     VOID            *SDHCIHOST_pvUsrSpec;                               /*  用户驱动特殊数据            */
+
+    SDHCI_PERF_CFG   SDHCIHOST_perfcfg;                                 /*  性能相关配置                */
+    ULONG            SDHCIHOST_ulReserved[12];
+
 } LW_SDHCI_HOST_ATTR, *PLW_SDHCI_HOST_ATTR;
 
 #define SDHCI_QUIRK_FLG(pattr, flg)   ((pattr)->SDHCIHOST_uiQuirkFlag & (flg))
@@ -657,6 +718,14 @@ struct _sdhci_quirk_op {
             PLW_SDHCI_HOST_ATTR  psdhcihostattr,
 			BOOL				 bIsRead
             );
+    INT     (*SDHCIQOP_pfuncCustomIoCtl)                                /*  自定义总线控制操作          */
+            (                                                           /*  如果返回值为-ENOSYS         */
+            PLW_SDHCI_HOST_ATTR  psdhcihostattr,                        /*  则使用默认操作              */
+            INT                  iCmd,
+            LONG                 lArg
+            );
+
+    ULONG   ulReserved[12];
 };
 
 /*********************************************************************************************************
