@@ -330,7 +330,7 @@ VOID  __ram_truncate (PRAM_NODE  pramn, size_t  stOft)
             plineTemp = _list_line_get_next(plineTemp);
             _List_Line_Del(plineDel, &pramn->RAMN_plineBStart);
             
-            __RAM_BFREE(plineTemp);
+            __RAM_BFREE(plineDel);
             pramfs->RAMFS_ulCurBlk--;
             pramn->RAMN_ulCnt--;
         } while (plineTemp);

@@ -317,6 +317,7 @@ static LONG __ramFsOpen (PRAM_VOLUME     pramfs,
             goto    __file_open_ok;
         
         } else {
+            __RAMFS_VOL_UNLOCK(pramfs);
             return  (PX_ERROR);
         }
     }
