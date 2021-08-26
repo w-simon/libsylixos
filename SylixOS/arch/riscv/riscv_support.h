@@ -155,7 +155,8 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
   RISC-V ´¦ÀíÆ÷ CACHE ²Ù×÷
 *********************************************************************************************************/
 
-#define RISCV_MACHINE_GENERAL   "general"                               /*  General                     */
+#define RISCV_MACHINE_GENERAL      "general"                            /*  General                     */
+#define RISCV_MACHINE_T_HEAD_C9XX  "t_head_c9xx"                        /*  T-Head C906/C910 machine    */
 
 #if LW_CFG_CACHE_EN > 0
 VOID    archCacheReset(CPCHAR     pcMachineName);
@@ -170,6 +171,8 @@ VOID    archCacheInit(CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcM
 
 #if LW_CFG_VMM_EN > 0
 VOID    archMmuInit(CPCHAR  pcMachineName);
+VOID    riscvMmuC9xxForceShare(BOOL  bEnOrDis);
+VOID    riscvMmuC9xxForceSecure(BOOL  bEnOrDis);
 
 #define __ARCH_MMU_INIT     archMmuInit
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */

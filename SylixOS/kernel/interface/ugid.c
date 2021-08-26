@@ -191,8 +191,8 @@ uid_t getuid (void)
     return  (ptcbCur->TCB_uid);
 }
 /*********************************************************************************************************
-** 函数名称: getuid
-** 功能描述: get current uid
+** 函数名称: setuid
+** 功能描述: set current uid
 ** 输　入  : uid
 ** 输　出  : ERROR
 ** 全局变量: 

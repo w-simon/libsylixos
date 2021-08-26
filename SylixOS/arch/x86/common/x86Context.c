@@ -67,7 +67,7 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     pregctx->REG_uiEIP    = (ARCH_REG_T)pfuncTask;                      /*  指令指针寄存器(EIP)         */
 
     pregctx->REG_uiCS     = X86_CS_KERNEL;                              /*  代码段寄存器(CS)            */
-    pregctx->REG_uiSS     = X86_DS_KERNEL;                              /*  代码段寄存器(SS)            */
+    pregctx->REG_uiSS     = X86_DS_KERNEL;                              /*  堆栈段寄存器(SS)            */
     pregctx->REG_uiEFLAGS = X86_EFLAGS_IF;                              /*  标志寄存器设置中断使能位    */
 
     return  ((PLW_STACK)pfpctx);

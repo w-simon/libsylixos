@@ -66,6 +66,32 @@
 #define SV39_MMU_PA(ulTemp)         ((ulTemp & SV39_MMU_PPN_MASK) << (LW_CFG_VMM_PAGE_SHIFT - SV39_MMU_PPN_SHIFT))
 #define SV39_MMU_PPN(pa)            (((pa) >> (LW_CFG_VMM_PAGE_SHIFT - SV39_MMU_PPN_SHIFT)) & SV39_MMU_PPN_MASK)
 /*********************************************************************************************************
+  T-HEAD C9XX 扩展
+*********************************************************************************************************/
+static BOOL                         _G_bC9xxVmForceShare = LW_FALSE;    /*  强制为共享模式              */
+static UINT64                       _G_ulC9xxVmSec       = 0;           /*  默认为安全模式              */
+static UINT64                       _G_ulC9xxVmShare     = 0;           /*  共享位值                    */
+
+#define C9XX_VM_FORCE_SH            _G_bC9xxVmForceShare                /*  强制为共享模式              */
+#define C9XX_VM_SH                  _G_ulC9xxVmShare                    /*  共享位值                    */
+#define C9XX_VM_SEC                 _G_ulC9xxVmSec                      /*  非安全位值                  */
+
+#define SV39_MMU_C9XX_EX_SEC             (1ul)
+#define SV39_MMU_C9XX_EX_SEC_NO          (0)
+#define SV39_MMU_C9XX_EX_SEC_SHIFT       (59)                           /*  t-head c9xx 扩展 sec        */
+#define SV39_MMU_C9XX_EX_SHARE           (1ul)
+#define SV39_MMU_C9XX_EX_SHARE_NO        (0)
+#define SV39_MMU_C9XX_EX_SHARE_SHIFT     (60)                           /*  t-head c9xx 扩展 shareable  */
+#define SV39_MMU_C9XX_EX_BUFFER          (1ul)
+#define SV39_MMU_C9XX_EX_BUFFER_NO       (0)
+#define SV39_MMU_C9XX_EX_BUFFER_SHIFT    (61)                           /*  t-head c9xx 扩展 bufferable */
+#define SV39_MMU_C9XX_EX_CACHE           (1ul)
+#define SV39_MMU_C9XX_EX_CACHE_NO        (0)
+#define SV39_MMU_C9XX_EX_CACHE_SHIFT     (62)                           /*  t-head c9xx 扩展 cacheable  */
+#define SV39_MMU_C9XX_EX_SO              (1ul)
+#define SV39_MMU_C9XX_EX_SO_NO           (0)
+#define SV39_MMU_C9XX_EX_SO_SHIFT        (63)                           /*  t-head cxx 扩展 SO         */
+/*********************************************************************************************************
   页面数大于其 1/2 时, 全清 TLB
 *********************************************************************************************************/
 #define SV39_MMU_TLB_NR             (32)                                /*  TLB 数目                    */
@@ -362,6 +388,64 @@ static LW_INLINE LW_PTE_TRANSENTRY  sv39MmuBuildPteEntry (addr_t  ulBaseAddr,
                  | (ucU << SV39_MMU_U_SHIFT)
                  | (ucG << SV39_MMU_G_SHIFT)
                  | ((ULONG)ucRSW << SV39_MMU_RSW_SHIFT);
+
+    return  (ulDescriptor);
+}
+/*********************************************************************************************************
+** 函数名称: c9xxMmuBuildPteEntry
+** 功能描述: 生成一个四级描述符 (PTE 描述符)
+** 输　入  : ulBaseAddr              基地址     (页基地址)
+**           ucV                     是否有效
+**           ucR                     是否可读
+**           ucW                     是否可写
+**           ucX                     是否执行
+**           ucU                     是否用户能访问
+**           ucG                     是否全局
+**           ucRSW                   RSW
+** 输　出  : 四级描述符
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static LW_INLINE LW_PTE_TRANSENTRY  c9xxMmuBuildPteEntry (addr_t  ulBaseAddr,
+                                                          UINT8   ucV,
+                                                          UINT8   ucR,
+                                                          UINT8   ucW,
+                                                          UINT8   ucX,
+                                                          UINT8   ucU,
+                                                          UINT8   ucG,
+                                                          UINT8   ucRSW)
+{
+    LW_PTE_TRANSENTRY  ulDescriptor;
+
+    if (ucRSW == SV39_MMU_RSW_ZERO) {
+        ulDescriptor = (SV39_MMU_PPN(ulBaseAddr))
+                     | (ucR << SV39_MMU_A_SHIFT)
+                     | (ucW << SV39_MMU_D_SHIFT)
+                     | (ucR << SV39_MMU_V_SHIFT)
+                     | (ucR << SV39_MMU_R_SHIFT)
+                     | (ucW << SV39_MMU_W_SHIFT)
+                     | (ucX << SV39_MMU_X_SHIFT)
+                     | (ucU << SV39_MMU_U_SHIFT)
+                     | (ucG << SV39_MMU_G_SHIFT)
+                     | (C9XX_VM_SEC << SV39_MMU_C9XX_EX_SEC_SHIFT)
+                     | (SV39_MMU_C9XX_EX_SO << SV39_MMU_C9XX_EX_SO_SHIFT)
+                     | ((ULONG)ucRSW << SV39_MMU_RSW_SHIFT);
+    } else {
+        ulDescriptor = (SV39_MMU_PPN(ulBaseAddr))
+                     | (ucR << SV39_MMU_A_SHIFT)
+                     | (ucW << SV39_MMU_D_SHIFT)
+                     | (ucR << SV39_MMU_V_SHIFT)
+                     | (ucR << SV39_MMU_R_SHIFT)
+                     | (ucW << SV39_MMU_W_SHIFT)
+                     | (ucX << SV39_MMU_X_SHIFT)
+                     | (ucU << SV39_MMU_U_SHIFT)
+                     | (ucG << SV39_MMU_G_SHIFT)
+                     | (C9XX_VM_SH  << SV39_MMU_C9XX_EX_SHARE_SHIFT)
+                     | (C9XX_VM_SEC << SV39_MMU_C9XX_EX_SEC_SHIFT)
+                     | (SV39_MMU_C9XX_EX_BUFFER << SV39_MMU_C9XX_EX_BUFFER_SHIFT)
+                     | (SV39_MMU_C9XX_EX_CACHE  << SV39_MMU_C9XX_EX_CACHE_SHIFT)
+                     | ((ULONG)ucRSW << SV39_MMU_RSW_SHIFT);
+    }
 
     return  (ulDescriptor);
 }
@@ -787,6 +871,50 @@ static INT  sv39MmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulF
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
+** 函数名称: c9xxMmuFlagSet
+** 功能描述: 设置指定虚拟地址的 flag 标志
+** 输　入  : pmmuctx        mmu 上下文
+**           ulAddr         虚拟地址
+**           ulFlag         flag 标志
+** 输　出  : ERROR CODE
+** 全局变量: 
+** 调用模块: 
+** 注  意  : 这里不需要清除快表 TLB, 因为 VMM 自身会作此操作.
+*********************************************************************************************************/
+static INT  c9xxMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFlag)
+{
+    UINT8  ucV, ucR, ucW, ucX, ucU, ucG, ucRSW;
+
+    if (sv39MmuFlags2Attr(ulFlag, &ucV, &ucR, &ucW,
+                          &ucX, &ucU, &ucG, &ucRSW) != ERROR_NONE) {    /*  无效的映射关系              */
+        return  (PX_ERROR);
+    }
+
+    LW_PGD_TRANSENTRY  *p_pgdentry = sv39MmuPgdOffset(pmmuctx, ulAddr); /*  获得一级描述符地址          */
+
+    if (p_pgdentry && sv39MmuPgdIsOk(*p_pgdentry)) {                    /*  一级描述符有效              */
+        LW_PMD_TRANSENTRY  *p_pmdentry = sv39MmuPmdOffset(p_pgdentry,
+                                                          ulAddr);      /*  获得二级描述符地址          */
+
+        if (sv39MmuPmdIsOk(*p_pmdentry)) {                              /*  二级描述符有效              */
+            LW_PTE_TRANSENTRY  *p_pteentry = sv39MmuPteOffset(p_pmdentry,
+                                                              ulAddr);  /*  获得三级描述符地址          */
+            LW_PTE_TRANSENTRY   pteentry = *p_pteentry;                 /*  获得三级描述符              */
+
+            if (sv39MmuPteIsOk(pteentry)) {                             /*  三级描述符有效              */
+                addr_t  ulPhysicalAddr = (addr_t)(SV39_MMU_PA(pteentry));
+
+                *p_pteentry = c9xxMmuBuildPteEntry(ulPhysicalAddr,
+                                                   ucV, ucR, ucW, ucX, ucU, ucG, ucRSW);
+
+                return  (ERROR_NONE);
+            }
+        }
+    }
+
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
 ** 函数名称: sv39MmuMakeTrans
 ** 功能描述: 设置页面映射关系
 ** 输　入  : pmmuctx        mmu 上下文
@@ -813,6 +941,35 @@ static VOID  sv39MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
     }
 
     *p_pteentry = sv39MmuBuildPteEntry((addr_t)paPhysicalAddr,
+                                       ucV, ucR, ucW, ucX, ucU, ucG, ucRSW);
+}
+/*********************************************************************************************************
+** 函数名称: c9xxMmuMakeTrans
+** 功能描述: 设置页面映射关系
+** 输　入  : pmmuctx        mmu 上下文
+**           p_pteentry     对应的页表项
+**           ulVirtualAddr  虚拟地址
+**           paPhysicalAddr 物理地址
+**           ulFlag         对应的类型
+** 输　出  : NONE
+** 全局变量: 
+** 调用模块: 
+** 注  意  : 这里不需要清除快表 TLB, 因为 VMM 自身会作此操作.
+*********************************************************************************************************/
+static VOID  c9xxMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
+                                   LW_PTE_TRANSENTRY  *p_pteentry,
+                                   addr_t              ulVirtualAddr,
+                                   phys_addr_t         paPhysicalAddr,
+                                   ULONG               ulFlag)
+{
+    UINT8  ucV, ucR, ucW, ucX, ucU, ucG, ucRSW;
+    
+    if (sv39MmuFlags2Attr(ulFlag, &ucV, &ucR, &ucW,
+                          &ucX, &ucU, &ucG, &ucRSW) != ERROR_NONE) {    /*  无效的映射关系              */
+        return;
+    }
+
+    *p_pteentry = c9xxMmuBuildPteEntry((addr_t)paPhysicalAddr,
                                        ucV, ucR, ucW, ucX, ucU, ucG, ucRSW);
 }
 /*********************************************************************************************************
@@ -947,13 +1104,49 @@ VOID  riscvMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
     pmmuop->MMUOP_pfuncPTEPhysGet = sv39MmuPtePhysGet;
     
     pmmuop->MMUOP_pfuncFlagGet = sv39MmuFlagGet;
-    pmmuop->MMUOP_pfuncFlagSet = sv39MmuFlagSet;
     
-    pmmuop->MMUOP_pfuncMakeTrans     = sv39MmuMakeTrans;
     pmmuop->MMUOP_pfuncMakeCurCtx    = sv39MmuMakeCurCtx;
     pmmuop->MMUOP_pfuncInvalidateTLB = sv39MmuInvTLB;
     pmmuop->MMUOP_pfuncSetEnable     = sv39MmuEnable;
     pmmuop->MMUOP_pfuncSetDisable    = sv39MmuDisable;
+
+    if (lib_strcmp(pcMachineName, RISCV_MACHINE_T_HEAD_C9XX) == 0) {
+        pmmuop->MMUOP_pfuncFlagSet   = c9xxMmuFlagSet;
+        pmmuop->MMUOP_pfuncMakeTrans = c9xxMmuMakeTrans;
+
+        if ((LW_NCPUS > 1) || C9XX_VM_FORCE_SH) {
+            C9XX_VM_SH = SV39_MMU_C9XX_EX_SHARE;
+        } else {
+            C9XX_VM_SH = SV39_MMU_C9XX_EX_SHARE_NO;
+        }
+    } else {
+        pmmuop->MMUOP_pfuncFlagSet   = sv39MmuFlagSet;
+        pmmuop->MMUOP_pfuncMakeTrans = sv39MmuMakeTrans;
+    }
+}
+/*********************************************************************************************************
+** 函数名称: riscvMmuC9xxForceShare
+** 功能描述: MMU 系统强制为 share 模式
+** 输　入  : bEnOrDis      是否使能强制 share 模式, 此函数仅可在 bspKernelInitHook() 中被调用.
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  riscvMmuC9xxForceShare (BOOL  bEnOrDis)
+{
+    C9XX_VM_FORCE_SH = bEnOrDis;
+}
+/*********************************************************************************************************
+** 函数名称: riscvMmuC9xxForceSecure
+** 功能描述: MMU 系统强制为 Non-Secure 模式
+** 输　入  : bEnOrDis      是否使能强制 Non-Secure 模式, 此函数仅可在 bspKernelInitHook() 中被调用.
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  riscvMmuC9xxForceSecure (BOOL  bEnOrDis)
+{
+    C9XX_VM_SEC = bEnOrDis ? SV39_MMU_C9XX_EX_SEC : SV39_MMU_C9XX_EX_SEC_NO;
 }
 
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 64*/

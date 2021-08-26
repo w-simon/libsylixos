@@ -10,16 +10,13 @@
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: arm64Mmu4K.c
+** 文   件   名: arm64Mmu16K.c
 **
 ** 创   建   人: Wang.Xuan (王翾)
 **
-** 文件创建日期: 2018 年 07 月 04 日
+** 文件创建日期: 2020 年 09 月 09 日
 **
-** 描        述: ARM64 体系构架 MMU 驱动 (4K 页大小).
-**
-** BUG：
-2018.10.26 修复在飞腾平台下因为符号位扩展导致的错误
+** 描        述: ARM64 体系构架 MMU 驱动 (16K 页大小).
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -27,7 +24,7 @@
   裁剪支持
 *********************************************************************************************************/
 #if LW_CFG_VMM_EN > 0
-#if LW_CFG_ARM64_PAGE_SHIFT == 12
+#if LW_CFG_ARM64_PAGE_SHIFT == 14
 #include "../../param/arm64Param.h"
 #include "../cache/arm64Cache.h"
 #include "arm64Mmu.h"
@@ -81,13 +78,13 @@ extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
   +---------+--------------+-----------+----------+---------+
 *********************************************************************************************************/
 #define ARM64_MMU_NS_SHIFT      (63)                                    /*  PGD、PMD、PTS 中的 Secure & */
-#define ARM64_MMU_NS_MASK       (0x1 << ARM64_MMU_NS_SHIFT)             /*  Non-Secure 标志             */
+#define ARM64_MMU_NS_MASK       (1UL << ARM64_MMU_NS_SHIFT)             /*  Non-Secure 标志             */
 #define ARM64_MMU_AP_SHIFT      (61)                                    /*  PGD、PMD、PTS 中的 Access   */
-#define ARM64_MMU_AP_MASK       (0x3 << ARM64_MMU_AP_SHIFT)             /*  permissions 标志            */
+#define ARM64_MMU_AP_MASK       (3UL << ARM64_MMU_AP_SHIFT)             /*  permissions 标志            */
 #define ARM64_MMU_XN_SHIFT      (60)
-#define ARM64_MMU_XN_MASK       (0x1 << ARM64_MMU_XN_SHIFT)             /*  PGD、PMD、PTS 中的 XN       */
+#define ARM64_MMU_XN_MASK       (1UL << ARM64_MMU_XN_SHIFT)             /*  PGD、PMD、PTS 中的 XN       */
 #define ARM64_MMU_PXN_SHIFT     (59)
-#define ARM64_MMU_PXN_MASK      (0x1 << ARM64_MMU_PXN_SHIFT)            /*  PGD、PMD、PTS 中的 PXN      */
+#define ARM64_MMU_PXN_MASK      (1UL << ARM64_MMU_PXN_SHIFT)            /*  PGD、PMD、PTS 中的 PXN      */
 
 #define ARM64_PTE_GUARD_SHIFT   (55)
 #define ARM64_PTE_GUARD_MASK    (1UL << ARM64_PTE_GUARD_SHIFT)          /*  用于记录 GUARD 标志         */
@@ -98,17 +95,17 @@ extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 #define ARM64_PTE_CONT_SHIFT    (52)
 #define ARM64_PTE_CONT_MASK     (1UL << ARM64_PTE_CONT_SHIFT)           /*  Contiguous range            */
 #define ARM64_PTE_NG_SHIFT      (11)
-#define ARM64_PTE_NG_MASK       (0x1 << ARM64_PTE_NG_SHIFT)             /*  PTE 中的 nG 标志            */
+#define ARM64_PTE_NG_MASK       (1UL << ARM64_PTE_NG_SHIFT)             /*  PTE 中的 nG 标志            */
 #define ARM64_PTE_AF_SHIFT      (10)
-#define ARM64_PTE_AF_MASK       (0x1 << ARM64_PTE_AF_SHIFT)             /*  PTE 中的访问标志            */
+#define ARM64_PTE_AF_MASK       (1UL << ARM64_PTE_AF_SHIFT)             /*  PTE 中的访问标志            */
 #define ARM64_PTE_SH_SHIFT      (8)
-#define ARM64_PTE_SH_MASK       (0x3 << ARM64_PTE_SH_SHIFT)             /*  PTE 中的共享权限掩码        */
+#define ARM64_PTE_SH_MASK       (3UL << ARM64_PTE_SH_SHIFT)             /*  PTE 中的共享权限掩码        */
 #define ARM64_PTE_AP_SHIFT      (6)
-#define ARM64_PTE_AP_MASK       (0x3 << ARM64_PTE_AP_SHIFT)             /*  PTE 中的访问权限掩码        */
+#define ARM64_PTE_AP_MASK       (3UL << ARM64_PTE_AP_SHIFT)             /*  PTE 中的访问权限掩码        */
 #define ARM64_PTE_NS_SHIFT      (5)
-#define ARM64_PTE_NS_MASK       (0x1 << ARM64_PTE_NS_SHIFT)             /*  PTE 中的 Non-Secure         */
+#define ARM64_PTE_NS_MASK       (1UL << ARM64_PTE_NS_SHIFT)             /*  PTE 中的 Non-Secure         */
 #define ARM64_PTE_AIN_SHIFT     (2)
-#define ARM64_PTE_AIN_MASK      (0x7 << ARM64_PTE_AIN_SHIFT)            /*  PTE 中的 AttrIndex          */
+#define ARM64_PTE_AIN_MASK      (7UL << ARM64_PTE_AIN_SHIFT)            /*  PTE 中的 AttrIndex          */
 
 #define ARM64_MMU_NS_SECURE     (0)
 #define ARM64_MMU_NS_NONSECURE  (1)
@@ -118,12 +115,12 @@ extern VOID    arm64DCacheFlush(PVOID  pvStart, PVOID  pvEnd, UINT32  uiStep);
 /*********************************************************************************************************
   PGD PMD PTS PTE 中的掩码
 *********************************************************************************************************/
-#define ARM64_MMU_ADDR_MASK     (0xfffffffff000ul)                      /*  [47:12]                     */
+#define ARM64_MMU_ADDR_MASK     (0xffffffffc000ul)                      /*  [47:14]                     */
 /*********************************************************************************************************
   2 个检查权限定义
 *********************************************************************************************************/
-#define GUARDED_CHK          0                                          /*  做详细权限检查              */
-#define GUARDED_NOT_CHK      1                                          /*  不做详细权限检查            */
+#define GUARDED_CHK             0                                       /*  做详细权限检查              */
+#define GUARDED_NOT_CHK         1                                       /*  不做详细权限检查            */
 /*********************************************************************************************************
   全局定义
 *********************************************************************************************************/
@@ -437,15 +434,13 @@ static LW_PTE_TRANSENTRY  arm64MmuBuildPtentry (addr_t  ulBaseAddr,
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
-** 注  意  : ARM 体系结构要求: 一级页表基地址需要保持 16 KByte 对齐, 单条目映射 1 MByte 空间.
-                               二级页表基地址需要保持  1 KByte 对齐, 单条目映射 4 KByte 空间.
 *********************************************************************************************************/
 static INT  arm64MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 {
-#define PGD_BLOCK_SIZE  (4  * LW_CFG_KB_SIZE)
-#define PMD_BLOCK_SIZE  (4  * LW_CFG_KB_SIZE)
-#define PTS_BLOCK_SIZE  (4  * LW_CFG_KB_SIZE)
-#define PTE_BLOCK_SIZE  (4  * LW_CFG_KB_SIZE)
+#define PGD_BLOCK_SIZE  (16 * LW_CFG_KB_SIZE)
+#define PMD_BLOCK_SIZE  (16 * LW_CFG_KB_SIZE)
+#define PTS_BLOCK_SIZE  (16 * LW_CFG_KB_SIZE)
+#define PTE_BLOCK_SIZE  (16 * LW_CFG_KB_SIZE)
 
     PVOID  pvPgdTable;
     PVOID  pvPmdTable;
@@ -497,7 +492,7 @@ static INT  arm64MmuGlobalInit (CPCHAR  pcMachineName)
 
     arm64MmuInvalidateTLB();
 
-    arm64MmuSetTCR(0x580823510);                                        /*  T0SZ = 2 ^ 48               */
+    arm64MmuSetTCR(0x54082b510);                                        /*  T0SZ = 2 ^ 48               */
 
     arm64MmuSetMAIR();
 
@@ -1137,6 +1132,11 @@ static VOID  arm64MmuInvTLB (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulPageAddr, ULONG
 *********************************************************************************************************/
 VOID  arm64MmuInit (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
 {
+    ULONG  ulMMFR16 = (arm64MmuGetMMFR() >> ARM64_MMFR_TGRAN16_SHIFT) & 0xf;
+
+    _BugFormat(ARM64_MMFR_TGRAN16_NSUPPORT == ulMMFR16, LW_TRUE,
+               "This CPU can't support 16KB page size!\r\n");
+
     pmmuop->MMUOP_ulOption = 0ul;
 
     pmmuop->MMUOP_pfuncMemInit    = arm64MmuMemInit;
@@ -1207,7 +1207,7 @@ INT  arm64MmuShareableGet (VOID)
     }
 }
 
-#endif                                                                  /*  LW_CFG_ARM64_PAGE_SHIFT==12 */
+#endif                                                                  /*  LW_CFG_ARM64_PAGE_SHIFT==14 */
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
 /*********************************************************************************************************
   END

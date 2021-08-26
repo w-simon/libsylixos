@@ -449,7 +449,7 @@ static VOID  mips64MmuPtsFree (LW_PTS_TRANSENTRY  *p_ptsentry)
 ** 函数名称: mips64MmuPteAlloc
 ** 功能描述: 分配 PTE 项
 ** 输　入  : pmmuctx        mmu 上下文
-**           p_pmdentry     pmd 入口地址
+**           p_ptsentry     pts 入口地址
 **           ulAddr         虚拟地址
 ** 输　出  : 分配 PTE 地址
 ** 全局变量:

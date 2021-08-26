@@ -22,7 +22,19 @@
 #ifndef __ARM64MMU_H
 #define __ARM64MMU_H
 
+/*********************************************************************************************************
+  页大小支持
+*********************************************************************************************************/
+
+#define ARM64_MMFR_TGRAN4_SHIFT         28
+#define ARM64_MMFR_TGRAN64_SHIFT        24
+#define ARM64_MMFR_TGRAN16_SHIFT        20
+#define ARM64_MMFR_TGRAN4_NSUPPORT      0xf
+#define ARM64_MMFR_TGRAN64_NSUPPORT     0xf
+#define ARM64_MMFR_TGRAN16_NSUPPORT     0x0
+
 VOID   arm64MmuInit(LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName);
+ULONG  arm64MmuGetMMFR(VOID);
 ULONG  arm64MmuAbtFaultAddr(VOID);
 
 #endif                                                                  /*  __ARM64MMU_H                */

@@ -74,7 +74,7 @@ LINE_LABEL(1)
     MOVL        %EDI , %ECX
     ANDL        %EAX , %ECX
     LOCK
-    CMPXCHGL    %ECX, (%RSI)
+    CMPXCHGL    %ECX , (%RSI)
     JNZ         1b
     MOVL        %ECX , %EAX
     RET
@@ -107,7 +107,7 @@ LINE_LABEL(1)
     MOVL        %EDI , %ECX
     ORL         %EAX , %ECX
     LOCK
-    CMPXCHGL    %ECX, (%RSI)
+    CMPXCHGL    %ECX , (%RSI)
     JNZ         1b
     MOVL        %ECX , %EAX
     RET
@@ -123,7 +123,7 @@ LINE_LABEL(1)
     MOVL        %EDI , %ECX
     XORL        %EAX , %ECX
     LOCK
-    CMPXCHGL    %ECX, (%RSI)
+    CMPXCHGL    %ECX , (%RSI)
     JNZ         1b
     MOVL        %ECX , %EAX
     RET
@@ -164,7 +164,7 @@ LINE_LABEL(1)
     MOVQ        %RDI , %RCX
     ANDQ        %RAX , %RCX
     LOCK
-    CMPXCHGQ    %RCX, (%RSI)
+    CMPXCHGQ    %RCX , (%RSI)
     JNZ         1b
     MOVQ        %RCX , %RAX
     RET
@@ -197,7 +197,7 @@ LINE_LABEL(1)
     MOVQ        %RDI , %RCX
     ORQ         %RAX , %RCX
     LOCK
-    CMPXCHGQ    %RCX, (%RSI)
+    CMPXCHGQ    %RCX , (%RSI)
     JNZ         1b
     MOVQ        %RCX , %RAX
     RET
@@ -213,7 +213,7 @@ LINE_LABEL(1)
     MOVQ        %RDI , %RCX
     XORQ        %RAX , %RCX
     LOCK
-    CMPXCHGQ    %RCX, (%RSI)
+    CMPXCHGQ    %RCX , (%RSI)
     JNZ         1b
     MOVQ        %RCX , %RAX
     RET

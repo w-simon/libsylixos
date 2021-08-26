@@ -84,7 +84,7 @@ struct __ARCH_REG_CTX {
     ARCH_REG_T      REG_uiCS;                                           /*  ´úÂë¶Î¼Ä´æÆ÷(CS)            */
     ARCH_REG_T      REG_uiEFLAGS;                                       /*  ±êÖ¾¼Ä´æÆ÷(EFLAGS)          */
     ARCH_REG_T      REG_uiESP;                                          /*  ¶ÑÕ»Ö¸Õë¼Ä´æÆ÷              */
-    ARCH_REG_T      REG_uiSS;                                           /*  ´úÂë¶Î¼Ä´æÆ÷(CS)            */
+    ARCH_REG_T      REG_uiSS;                                           /*  ¶ÑÕ»¶Î¼Ä´æÆ÷(SS)            */
 
 #define REG_ERROR   REG_uiError
 #define REG_XIP     REG_uiEIP

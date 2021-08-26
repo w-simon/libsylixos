@@ -468,7 +468,6 @@ VOID  x86FpuSseSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
     }
 
     x86FpuSseInit();                                                    /*  ³õÊ¼»¯¼Ä´æÆ÷                */
-
 }
 
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */

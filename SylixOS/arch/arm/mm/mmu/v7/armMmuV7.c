@@ -90,8 +90,11 @@ extern VOID   armMmuV7SetTTBCR(UINT32 uiTTBCR);
 ** 功能描述: 根据 SylixOS 权限标志, 生成 ARM MMU 权限标志
 ** 输　入  : ulFlag                  内存访问权限
 **           pucAP                   访问权限
+**           pucAP2                  访问权限
 **           pucDomain               所属控制域
 **           pucCB                   CACHE 控制参数
+**           pucTEX                  CACHE 控制参数
+**           pucXN                   可执行权限
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
@@ -227,25 +230,28 @@ static INT  armMmuAttr2Flags (UINT8  ucAP,
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: armMmuBuildPgdesc
+** 函数名称: armMmuBuildPgdEntry
 ** 功能描述: 生成一个一级描述符 (PGD 描述符)
 ** 输　入  : uiBaseAddr              基地址     (段基地址、二级页表基地址)
 **           ucAP                    访问权限
+**           ucAP2                   访问权限
 **           ucDomain                域
 **           ucCB                    CACHE 和 WRITEBUFFER 控制
+**           ucTEX                   CACHE 控制参数
+**           ucXN                    可执行权限
 **           ucType                  一级描述符类型
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static LW_PGD_TRANSENTRY  armMmuBuildPgdesc (UINT32  uiBaseAddr,
-                                             UINT8   ucAP,
-                                             UINT8   ucAP2,
-                                             UINT8   ucDomain,
-                                             UINT8   ucCB,
-                                             UINT8   ucTEX,
-                                             UINT8   ucXN,
-                                             UINT8   ucType)
+static LW_PGD_TRANSENTRY  armMmuBuildPgdEntry (UINT32  uiBaseAddr,
+                                               UINT8   ucAP,
+                                               UINT8   ucAP2,
+                                               UINT8   ucDomain,
+                                               UINT8   ucCB,
+                                               UINT8   ucTEX,
+                                               UINT8   ucXN,
+                                               UINT8   ucType)
 {
     LW_PGD_TRANSENTRY   uiDescriptor;
 
@@ -280,25 +286,28 @@ static LW_PGD_TRANSENTRY  armMmuBuildPgdesc (UINT32  uiBaseAddr,
     return  (uiDescriptor);
 }
 /*********************************************************************************************************
-** 函数名称: armMmuBuildPtentry
+** 函数名称: armMmuBuildPteEntry
 ** 功能描述: 生成一个二级描述符 (PTE 描述符)
 ** 输　入  : uiBaseAddr              基地址     (页地址)
 **           ucAP                    访问权限
+**           ucAP2                   访问权限
 **           ucDomain                域
 **           ucCB                    CACHE 和 WRITEBUFFER 控制
+**           ucTEX                   CACHE 控制参数
+**           ucXN                    可执行权限
 **           ucType                  二级描述符类型
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static LW_PTE_TRANSENTRY  armMmuBuildPtentry (UINT32  uiBaseAddr,
-                                              UINT8   ucAP,
-                                              UINT8   ucAP2,
-                                              UINT8   ucDomain,
-                                              UINT8   ucCB,
-                                              UINT8   ucTEX,
-                                              UINT8   ucXN,
-                                              UINT8   ucType)
+static LW_PTE_TRANSENTRY  armMmuBuildPteEntry (UINT32  uiBaseAddr,
+                                               UINT8   ucAP,
+                                               UINT8   ucAP2,
+                                               UINT8   ucDomain,
+                                               UINT8   ucCB,
+                                               UINT8   ucTEX,
+                                               UINT8   ucXN,
+                                               UINT8   ucType)
 {
     LW_PTE_TRANSENTRY   uiDescriptor;
 
@@ -591,12 +600,12 @@ static LW_PTE_TRANSENTRY  *armMmuPteAlloc (PLW_MMU_CONTEXT     pmmuctx,
                      &ucCB, &ucTEX,
                      &ucXN);
 
-    *p_pmdentry = (LW_PMD_TRANSENTRY)armMmuBuildPgdesc((UINT32)p_pteentry,
-                                                       ucAP, ucAP2,
-                                                       ucDomain,
-                                                       ucCB, ucTEX,
-                                                       ucXN,
-                                                       COARSE_TBASE);   /*  设置二级页面基地址          */
+    *p_pmdentry = (LW_PMD_TRANSENTRY)armMmuBuildPgdEntry((UINT32)p_pteentry,
+                                                         ucAP, ucAP2,
+                                                         ucDomain,
+                                                         ucCB, ucTEX,
+                                                         ucXN,
+                                                         COARSE_TBASE); /*  设置二级页面基地址          */
 #if LW_CFG_CACHE_EN > 0
     iregInterLevel = KN_INT_DISABLE();
     armDCacheFlush((PVOID)p_pmdentry, (PVOID)p_pmdentry, 32);           /*  第三个参数无影响            */
@@ -742,8 +751,8 @@ static INT  armMmuFlagSet (PLW_MMU_CONTEXT  pmmuctx, addr_t  ulAddr, ULONG  ulFl
                                                                   ulAddr);
         if (armMmuPteIsOk(*p_pteentry)) {
             addr_t   ulPhysicalAddr = (addr_t)(*p_pteentry & 0xFFFFF000);
-            *p_pteentry = armMmuBuildPtentry((UINT32)ulPhysicalAddr, ucAP, ucAP2,
-                                             ucDomain, ucCB, ucTEX, ucXN, ucType);
+            *p_pteentry = armMmuBuildPteEntry((UINT32)ulPhysicalAddr, ucAP, ucAP2,
+                                              ucDomain, ucCB, ucTEX, ucXN, ucType);
 #if LW_CFG_CACHE_EN > 0
             armDCacheFlush((PVOID)p_pteentry, (PVOID)p_pteentry, 32);   /*  第三个参数无影响            */
 #endif                                                                  /*  LW_CFG_CACHE_EN > 0         */
@@ -794,9 +803,9 @@ static VOID  armMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
         return;
     }
     
-    *p_pteentry = armMmuBuildPtentry((UINT32)paPhysicalAddr,
-                                     ucAP, ucAP2, ucDomain,
-                                     ucCB, ucTEX, ucXN, ucType);
+    *p_pteentry = armMmuBuildPteEntry((UINT32)paPhysicalAddr,
+                                      ucAP, ucAP2, ucDomain,
+                                      ucCB, ucTEX, ucXN, ucType);
                                                         
 #if LW_CFG_CACHE_EN > 0
     armDCacheFlush((PVOID)p_pteentry, (PVOID)p_pteentry, 32);           /*  第三个参数无影响            */

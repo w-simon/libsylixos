@@ -1237,7 +1237,7 @@ PVOID  API_ModuleSym (PVOID  pvModule, CPCHAR  pcName)
 {
     LW_LD_EXEC_MODULE *pmodule = (LW_LD_EXEC_MODULE *)pvModule;
     INT                iError;
-    INT                iLayer = 20;                                     /*  最大递归 20 次              */
+    INT                iLayer  = 20;                                    /*  最大递归 20 次              */
     addr_t             ulValue = (addr_t)LW_NULL;
     
     if (!pcName) {

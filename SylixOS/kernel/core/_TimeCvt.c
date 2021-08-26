@@ -228,7 +228,7 @@ static INT64  __timespecTimeoutTick64 (BOOL  bRel, const struct timespec  *ptv)
     return  (i64Timeout);
 }
 /*********************************************************************************************************
-** 函数名称: __timeCvtInit
+** 函数名称: _TimeCvtInit
 ** 功能描述: 时间转换函数初始化
 ** 输　入  : NONE
 ** 输　出  : NONE

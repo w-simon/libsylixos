@@ -103,8 +103,8 @@
 #define LW_CFG_MIPS_HAS_CLZ_INSTR       1                               /*  是否支持前导零 CLZ 指令     */
 #define LW_CFG_MIPS_HAS_SYNC_INSTR      1                               /*  是否支持 SYNC 指令          */
 #define LW_CFG_MIPS_HAS_MSA_INSTR       0                               /*  是否支持 MSA(SIMD) 指令     */
-#if defined(_MIPS_ARCH_MIPS64R2) || defined(_MIPS_ARCH_HR2)
-#define LW_CFG_MIPS_HAS_RDHWR_INSTR     1                               /*  MIPS64R2 支持 RDHWR 指令    */
+#if defined(_MIPS_ARCH_MIPS64R2) || defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_MIPS32R2)
+#define LW_CFG_MIPS_HAS_RDHWR_INSTR     1                               /*  MIPS32/64R2 支持 RDHWR 指令 */
 #else
 #define LW_CFG_MIPS_HAS_RDHWR_INSTR     0                               /*  是否支持 RDHWR 指令         */
 #endif

@@ -152,7 +152,7 @@ INT  x86IdtSecondaryInit (VOID)
 }
 /*********************************************************************************************************
 ** 函数名称: x86IdtSetHandler
-** 功能描述: 设备 IDTE 的处理函数
+** 功能描述: 设置 IDTE 的处理函数
 ** 输　入  : ucX86Vector       x86 异常向量
 **           ulHandlerAddr     处理函数
 **           iLowestPriviledge 最低特权级  0..3

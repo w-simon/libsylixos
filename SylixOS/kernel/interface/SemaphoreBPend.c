@@ -132,10 +132,10 @@ __wait_again:
     ptcbCur->TCB_ucWaitTimeout  = LW_WAIT_TIME_CLEAR;                   /*  清空等待时间                */
     
     if (ulTimeout == LW_OPTION_WAIT_INFINITE) {                         /*  是否是无穷等待              */
-	    ptcbCur->TCB_ulDelay = 0ul;
-	} else {
-	    ptcbCur->TCB_ulDelay = ulTimeout;                               /*  设置超时时间                */
-	}
+        ptcbCur->TCB_ulDelay = 0ul;
+    } else {
+        ptcbCur->TCB_ulDelay = ulTimeout;                               /*  设置超时时间                */
+    }
     __KERNEL_TIME_GET_IGNIRQ(ulTimeSave, ULONG);                        /*  记录系统时间                */
         
     if (pevent->EVENT_ulOption & LW_OPTION_WAIT_PRIORITY) {             /*  按优先级等待                */

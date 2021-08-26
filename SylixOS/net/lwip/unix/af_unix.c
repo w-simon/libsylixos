@@ -1239,7 +1239,7 @@ INT  unix_bind (AF_UNIX_T  *pafunix, const struct sockaddr *name, socklen_t name
     
     __AF_UNIX_LOCK();
     if (!pafunix->UNIX_tempmode.enable) {
-        API_IosFdGetName(iFd, cPath, MAX_FILENAME_LENGTH);                  /*  获得完整路径                */
+        API_IosFdGetName(iFd, cPath, MAX_FILENAME_LENGTH);              /*  获得完整路径                */
     }
 
     iSockType = __AF_UNIX_TYPE(pafunix);

@@ -716,7 +716,7 @@ struct _sdhci_quirk_op {
     VOID    (*SDHCIQOP_pfuncPioXferHook)                                /*  平台相关 PIO 传输 HOOK      */
             (
             PLW_SDHCI_HOST_ATTR  psdhcihostattr,
-			BOOL				 bIsRead
+            BOOL                 bIsRead
             );
     INT     (*SDHCIQOP_pfuncCustomIoCtl)                                /*  自定义总线控制操作          */
             (                                                           /*  如果返回值为-ENOSYS         */

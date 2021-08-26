@@ -51,7 +51,11 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
     REGISTER UINT16                 usIndex;
     REGISTER PLW_CLASS_EVENT        pevent;
              LW_CLASS_EVENT         event;
-    
+
+#if LW_CFG_SEMRW_EN > 0
+             LW_OBJECT_HANDLE       ulOwner = LW_OBJECT_HANDLE_INVALID;
+#endif                                                                  /*  LW_CFG_SEMRW_EN > 0         */
+
              BOOL                   bValue;
              ULONG                  ulValue;
              ULONG                  ulMaxValue;
@@ -117,7 +121,8 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
                                             &ulRWCnt,
                                             &ulValue,
                                             &ulWValue,
-                                            &ulOption, LW_NULL);
+                                            &ulOption,
+                                            &ulOwner);
         pcType      = "RW";
         ulThreadNum = ulValue + ulWValue;
         break;
@@ -185,9 +190,9 @@ VOID    API_SemaphoreShow (LW_OBJECT_HANDLE  ulId)
     } else if (ulObjectClass == _OBJECT_SEM_RW) {                       /*  ¶ÁÐ´ÐÅºÅÁ¿                  */
         PCHAR       pcSafeMode;
         
-        if (bValue == LW_FALSE) {
-            API_ThreadGetName(((PLW_CLASS_TCB)(event.EVENT_pvTcbOwn))->TCB_ulId,
-                              cOwner);
+        if (ulOwner) {
+            API_ThreadGetName(ulOwner, cOwner);
+
         } else {
             if (ulRWCnt) {
                 lib_strcpy(cOwner, "READERS");

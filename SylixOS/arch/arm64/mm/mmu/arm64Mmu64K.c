@@ -132,7 +132,7 @@ static UINT                     _G_uiVMSAShare = INNER_SHAREABLE;       /*  共享
 ** 函数名称: arm64MmuFlags2Attr
 ** 功能描述: 根据 SylixOS 权限标志, 生成 ARM64 MMU 权限标志
 ** 输　入  : ulFlag                 内存访问权限
-** 输　出  : pucGuard               进行严格的权限检查
+**           pucGuard               进行严格的权限检查
 **           pucXN                  可执行权限标志
 **           pucPXN                 特权可执行权限标志
 **           pucCon                 Contiguous 标志
@@ -142,7 +142,7 @@ static UINT                     _G_uiVMSAShare = INNER_SHAREABLE;       /*  共享
 **           pucAP                  是否可写权限标志
 **           pucNS                  Non-Secure 标志
 **           pucAIn                 Cache 和 Bufferable 权限标志
-**           ERROR_CODE
+** 输　出  : ERROR_CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -215,8 +215,8 @@ static INT  arm64MmuFlags2Attr (ULONG   ulFlag,
 **           ucAP                  是否可写权限标志
 **           ucNS                  Non-Secure 标志
 **           ucAIn                 Cache 和 Bufferable 权限标志
-** 输　出  : ulFlag                内存访问权限
-**           ERROR_CODE
+**           pulFlag               内存访问权限
+** 输　出  : ERROR_CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
@@ -240,7 +240,7 @@ static INT  arm64MmuAttr2Flags (UINT8  ucGuard,
         *pulFlag |= LW_VMM_FLAG_GUARDED;
     }
 
-    if (ucAF == 1) {        
+    if (ucAF == 1) {
         *pulFlag |= LW_VMM_FLAG_ACCESS;
     }
 

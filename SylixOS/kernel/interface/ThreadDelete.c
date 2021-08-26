@@ -171,9 +171,9 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     iregInterLevel = KN_INT_DISABLE();                                  /*  关闭中断                    */ 
     
     _K_usThreadCounter--;
-    _K_ptcbTCBIdTable[usIndex] = LW_NULL;                               /*  TCB 表清0                   */
+    _K_ptcbTCBIdTable[usIndex] = LW_NULL;                               /*  TCB 表清 0                  */
     
-    _List_Line_Del(&ptcbDel->TCB_lineManage, &_K_plineTCBHeader);       /*  从管理练表中删除            */
+    _List_Line_Del(&ptcbDel->TCB_lineManage, &_K_plineTCBHeader);       /*  从管理链表中删除            */
     
     KN_INT_ENABLE(iregInterLevel);                                      /*  打开中断                    */
     

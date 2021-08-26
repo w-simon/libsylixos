@@ -72,8 +72,8 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     pregctx->REG_ulRBP = (ARCH_REG_T)pfpctx;                            /*  RBP Ö¸Õë¼Ä´æÆ÷              */
     pregctx->REG_ulRSP = (ARCH_REG_T)pfpctx;                            /*  RSP Ö¸Õë¼Ä´æÆ÷              */
 
-    pregctx->REG_ulRIP = 0x0000000000000000;
-    pregctx->REG_ulRIP = (ARCH_REG_T)pfuncTask;
+    pregctx->REG_ulError = 0x0000000000000000;                          /*  ERROR CODE                  */
+    pregctx->REG_ulRIP   = (ARCH_REG_T)pfuncTask;
 
     pregctx->REG_ulCS = X86_CS_KERNEL;
     pregctx->REG_ulSS = X86_DS_KERNEL;

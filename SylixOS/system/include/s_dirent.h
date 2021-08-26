@@ -30,14 +30,14 @@
 *********************************************************************************************************/
 
 struct dirent {
-    char	            d_name[NAME_MAX + 1];                           /*  文件名                      */
+    char                d_name[NAME_MAX + 1];                           /*  文件名                      */
     unsigned char       d_type;                                         /*  文件类型 (可能为 DT_UNKNOWN)*/
     char                d_shortname[13];                                /*  fat 短文件名 (可能不存在)   */
     PVOID              *d_resv;                                         /*  保留                        */
 };
 
 struct dirent64 {                                                       /*  same as `struct dirent'     */
-    char	            d_name[NAME_MAX + 1];                           /*  文件名                      */
+    char                d_name[NAME_MAX + 1];                           /*  文件名                      */
     unsigned char       d_type;                                         /*  文件类型 (可能为 DT_UNKNOWN)*/
     char                d_shortname[13];                                /*  fat 短文件名 (可能不存在)   */
     PVOID              *d_resv;                                         /*  保留                        */

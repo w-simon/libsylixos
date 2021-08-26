@@ -95,13 +95,13 @@ INT __moduleVerifyVersion (CPCHAR  pcModuleName, CPCHAR  pcVersion, ULONG  ulTyp
     ulModuleOsVersion = __SYLIXOS_MAKEVER(ulMajor, ulMinor, ulRevision);
     
     if (ulType == LW_LD_MOD_TYPE_SO) {
-        if (ulModuleOsVersion < ulSoComOldest) {                        /*  SO 不再兼容范围内           */
+        if (ulModuleOsVersion < ulSoComOldest) {                        /*  SO 不在兼容范围内           */
             goto    __bad_version;
         }
     
     } else {
         if (ulModuleOsVersion > ulKoComNewest ||
-            ulModuleOsVersion < ulKoComOldest) {                        /*  KO 不再兼容范围内           */
+            ulModuleOsVersion < ulKoComOldest) {                        /*  KO 不在兼容范围内           */
             goto    __bad_version;
         }
     }

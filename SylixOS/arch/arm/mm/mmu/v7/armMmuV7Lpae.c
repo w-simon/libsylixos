@@ -114,9 +114,15 @@ extern VOID   armMmuV7SetMAIR1(VOID);
 ** 函数名称: armMmuFlags2Attr
 ** 功能描述: 根据 SylixOS 权限标志, 生成 ARM MMU 权限标志
 ** 输　入  : ulFlag                  内存访问权限
-**           pucAP                   访问权限
-**           pucDomain               所属控制域
-**           pucCB                   CACHE 控制参数
+**           pucXN                  可执行权限标志
+**           pucPXN                 特权可执行权限标志
+**           pucCon                 Contiguous 标志
+**           pucnG                  非全局映射标志
+**           pucAF                  是否拥有访问权限标志
+**           pucSH                  共享权限标志
+**           pucAP                  是否可写权限标志
+**           pucNS                  Non-Secure 标志
+**           pucAIn                 Cache 和 Bufferable 权限标志
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
@@ -173,13 +179,17 @@ static INT  armMmuFlags2Attr (ULONG   ulFlag,
 /*********************************************************************************************************
 ** 函数名称: armMmuAttr2Flags
 ** 功能描述: 根据 ARM MMU 权限标志, 生成 SylixOS 权限标志
-** 输　入  : ucAP                    访问权限
-**           ucAP2                   访问权限
-**           ucDomain                所属控制域
-**           ucCB                    CACHE 控制参数
-**           ucTEX                   CACHE 控制参数
-**           ucXN                    可执行权限
-**           pulFlag                 内存访问权限
+** 输　入  : ucXN                  可执行权限标志
+**           ucAP2                 访问权限
+**           ucPXN                 特权可执行权限标志
+**           ucCon                 Contiguous 标志
+**           ucnG                  非全局映射标志
+**           ucAF                  是否拥有访问权限标志
+**           ucSH                  共享权限标志
+**           ucAP                  是否可写权限标志
+**           ucNS                  Non-Secure 标志
+**           ucAIn                 Cache 和 Bufferable 权限标志
+**           pulFlag               内存访问权限
 ** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
@@ -231,11 +241,12 @@ static INT  armMmuAttr2Flags (UINT8  ucXN,
 ** 函数名称: armMmuBuildPgdEntry
 ** 功能描述: 生成一个一级描述符 (PGD 描述符)
 ** 输　入  : ulBaseAddr              基地址     (段基地址、二级页表基地址)
+**           ucNS                    是否访问安全区域
 **           ucAP                    访问权限
-**           ucDomain                域
-**           ucCB                    CACHE 和 WRITEBUFFER 控制
+**           ucXN                    可执行权限标志
+**           ucPXN                   特权可执行权限标志
 **           ucType                  一级描述符类型
-** 输　出  : ERROR or OK
+** 输　出  : 一级描述符
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -301,11 +312,17 @@ static LW_PMD_TRANSENTRY  armMmuBuildPmdEntry (addr_t  ulBaseAddr,
 ** 函数名称: armMmuBuildPteEntry
 ** 功能描述: 生成一个三级描述符 (PTE 描述符)
 ** 输　入  : u64BaseAddr             基地址     (页地址)
-**           ucAP                    访问权限
-**           ucDomain                域
-**           ucCB                    CACHE 和 WRITEBUFFER 控制
+**           ucXN                    可执行权限标志
+**           ucPXN                   特权可执行权限标志
+**           ucCon                   Contiguous 标志
+**           ucnG                    非全局映射标志
+**           ucAF                    访问标志
+**           ucSH                    共享权限标志
+**           ucAP                    访问权限标志
+**           ucNS                    Non-Secure 标志
+**           ucAIn                   Attribute Index
 **           ucType                  三级描述符类型
-** 输　出  : ERROR or OK
+** 输　出  : 三级描述符
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -484,7 +501,7 @@ static LW_PMD_TRANSENTRY *armMmuPmdOffset (LW_PGD_TRANSENTRY  *p_pgdentry, addr_
 /*********************************************************************************************************
 ** 函数名称: armMmuPteOffset
 ** 功能描述: 通过虚拟地址计算 PTE 项
-** 输　入  : p_pgdentry     pgd 入口地址
+** 输　入  : p_pmdentry     pmd 入口地址
 **           ulAddr         虚拟地址
 ** 输　出  : 对应的 PTE 表项地址
 ** 全局变量: 
@@ -976,7 +993,7 @@ VOID  armMmuV7Init (LW_MMU_OP *pmmuop, CPCHAR  pcMachineName)
     pmmuop->MMUOP_pfuncPTEFree  = armMmuPteFree;
     
     pmmuop->MMUOP_pfuncPGDIsOk = armMmuPgdIsOk;
-    pmmuop->MMUOP_pfuncPMDIsOk = armMmuPgdIsOk;
+    pmmuop->MMUOP_pfuncPMDIsOk = armMmuPmdIsOk;
     pmmuop->MMUOP_pfuncPTEIsOk = armMmuPteIsOk;
     
     pmmuop->MMUOP_pfuncPGDOffset = armMmuPgdOffset;
