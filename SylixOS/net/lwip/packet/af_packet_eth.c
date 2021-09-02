@@ -56,7 +56,7 @@ errno_t  __packetEthRawSendto (AF_PACKET_T          *pafpacket,
     struct pbuf  *pbuf_dat;
            err_t  err;
     
-    if ((stBytes < ETH_HLEN) || (stBytes > ETH_FRAME_LEN)) {
+    if (stBytes < ETH_HLEN || stBytes > (UINT16_MAX - ETH_PAD_SIZE)) {
         return  (EMSGSIZE);
     }
     
@@ -73,6 +73,10 @@ errno_t  __packetEthRawSendto (AF_PACKET_T          *pafpacket,
     if (!(pnetif->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET))) {
         UNLOCK_TCPIP_CORE();
         return  (ENXIO);
+    }
+    if (pnetif->mtu && (stBytes > pnetif->mtu + ETH_HLEN)) {
+        UNLOCK_TCPIP_CORE();
+        return  (EMSGSIZE);
     }
     if (!netif_is_up(pnetif) || !netif_is_link_up(pnetif)) {
         UNLOCK_TCPIP_CORE();
@@ -142,10 +146,10 @@ errno_t  __packetEthDgramSendto (AF_PACKET_T          *pafpacket,
     struct eth_hdr *pethhdr;
            err_t    err;
     
-    if (stBytes > ETH_DATA_LEN) {
+    if (stBytes > (UINT16_MAX - ETH_HLEN - ETH_PAD_SIZE)) {
         return  (EMSGSIZE);
     }
-    
+
     LOCK_TCPIP_CORE();
     pnetif = netif_get_by_index(psockaddrll->sll_ifindex);
     if (pnetif == LW_NULL) {
@@ -160,7 +164,10 @@ errno_t  __packetEthDgramSendto (AF_PACKET_T          *pafpacket,
         UNLOCK_TCPIP_CORE();
         return  (ENETDOWN);
     }
-    
+    if (pnetif->mtu && (stBytes > pnetif->mtu)) {
+        UNLOCK_TCPIP_CORE();
+        return  (EMSGSIZE);
+    }
     pbuf_hdr = pbuf_alloc(PBUF_RAW, ETH_HLEN + ETH_PAD_SIZE, PBUF_RAM); /*  分配带有 PAD 的报头         */
     if (pbuf_hdr == LW_NULL) {
         UNLOCK_TCPIP_CORE();

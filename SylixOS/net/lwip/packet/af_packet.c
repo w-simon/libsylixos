@@ -50,9 +50,9 @@ extern void  __socketEnotify(void *file, LW_SEL_TYPE type, INT  iSoErr);
 /*********************************************************************************************************
   宏配置
 *********************************************************************************************************/
-#define __AF_PACKET_BUF_MAX         (LW_CFG_KB_SIZE * 256)              /*  默认为 64K 接收缓冲         */
+#define __AF_PACKET_BUF_MAX         (LW_CFG_KB_SIZE * 512)              /*  最大接收缓冲大小            */
 #define __AF_PACKET_BUF_MIN         (LW_CFG_KB_SIZE * 16)               /*  最小接收缓冲大小            */
-#define __AF_PACKET_BUF_DEF         (LW_CFG_KB_SIZE * 64)
+#define __AF_PACKET_BUF_DEF         (LW_CFG_KB_SIZE * 64)               /*  默认为 64K 接收缓冲         */
 #define __AF_PACKET_PKT_NODES       LW_CFG_LWIP_NUM_POOLS
 /*********************************************************************************************************
   全局变量
