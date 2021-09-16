@@ -801,12 +801,8 @@ VOID  sync (VOID)
         _IosLock();                                                     /*  进入 IO 临界区              */
         if (pfdentry->FDENTRY_state == FDSTAT_REQCLOSE) {
             pfdentry->FDENTRY_state =  FDSTAT_CLOSING;
-            _IosUnlock();                                               /*  退出 IO 临界区              */
-            
             _IosFileClose(pfdentry);                                    /*  调用驱动关闭文件            */
-            
-            _IosLock();                                                 /*  进入 IO 临界区              */
-        
+                                                                        /*  在 IOS lock 状态被调用      */
         } else if (pfdentry->FDENTRY_state == FDSTAT_SYNC) {
             pfdentry->FDENTRY_state = FDSTAT_OK;
         }

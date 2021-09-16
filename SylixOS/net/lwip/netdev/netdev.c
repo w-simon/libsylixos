@@ -204,6 +204,7 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
     mem_free(mac);
     netif_set_maddr_hook(netif, group, 0);
     
+#if NETDEV_ALWAYS_ALLMULTI > 0
     if (!netdev->mac_filter) {
       flags = netif_get_flags(netif);
       if (flags & IFF_ALLMULTI) {
@@ -211,6 +212,7 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
         netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
       }
     }
+#endif /* NETDEV_ALWAYS_ALLMULTI > 0 */
     
   } else {
     if (mac) {
@@ -232,13 +234,20 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
     netdev->mac_filter = mac;
     netif_set_maddr_hook(netif, group, 1);
     
+#if NETDEV_ALWAYS_ALLMULTI > 0
     flags = netif_get_flags(netif);
     if (!(flags & IFF_ALLMULTI)) {
       NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
       netif->flags2 |= NETIF_FLAG2_ALLMULTI;
     }
+#endif /* NETDEV_ALWAYS_ALLMULTI > 0 */
   }
   
+#if NETDEV_ALWAYS_ALLMULTI == 0
+  flags = netif_get_flags(netif);
+  NETDEV_RXMODE(netdev, flags);
+#endif /* NETDEV_ALWAYS_ALLMULTI == 0 */
+
   return (ERR_OK);
 }
 
@@ -286,6 +295,7 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
     mem_free(mac);
     netif_set_maddr6_hook(netif, group, 0);
     
+#if NETDEV_ALWAYS_ALLMULTI > 0
     if (!netdev->mac_filter) {
       flags = netif_get_flags(netif);
       if (flags & IFF_ALLMULTI) {
@@ -293,6 +303,7 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
         netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
       }
     }
+#endif /* NETDEV_ALWAYS_ALLMULTI > 0 */
     
   } else {
     if (mac) {
@@ -314,13 +325,20 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
     netdev->mac_filter = mac;
     netif_set_maddr6_hook(netif, group, 1);
     
+#if NETDEV_ALWAYS_ALLMULTI > 0
     flags = netif_get_flags(netif);
     if (!(flags & IFF_ALLMULTI)) {
       NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
       netif->flags2 |= NETIF_FLAG2_ALLMULTI;
     }
+#endif /* NETDEV_ALWAYS_ALLMULTI > 0 */
   }
   
+#if NETDEV_ALWAYS_ALLMULTI == 0
+  flags = netif_get_flags(netif);
+  NETDEV_RXMODE(netdev, flags);
+#endif /* NETDEV_ALWAYS_ALLMULTI == 0 */
+
   return (ERR_OK);
 }
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
@@ -366,8 +384,9 @@ static int  netdev_netif_ioctl (struct netif *netif, int cmd, void *arg)
     if (netdev->drv->rxmode) {
       ifreq = (struct ifreq *)arg;
       flags = netif_get_flags(netif);
-      if ((flags & (IFF_PROMISC | IFF_ALLMULTI)) != 
-          (ifreq->ifr_flags & (IFF_PROMISC | IFF_ALLMULTI))) { /* rx mode changed */
+      if (((flags & (IFF_PROMISC | IFF_ALLMULTI)) !=
+           (ifreq->ifr_flags & (IFF_PROMISC | IFF_ALLMULTI))) ||
+           (ifreq->ifr_name[0] == '\0')) { /* rx mode need changed */
         ret = netdev->drv->rxmode(netdev, ifreq->ifr_flags);
       } else {
         ret = 0; /* do not allow to change other flags */
@@ -746,6 +765,8 @@ static err_t  netdev_netif_init (struct netif *netif)
     NETDEV_UP(netdev);
   }
   
+  NETDEV_RXMODE(netdev, netdev->if_flags); /* init rxmode */
+
 #if LWIP_IPV6 && LWIP_IPV6_MLD
   /*
    * For hardware/netifs that implement MAC filtering.
@@ -758,8 +779,6 @@ static err_t  netdev_netif_init (struct netif *netif)
     netif->mld_mac_filter(netif, &ip6_allnodes_ll, NETIF_ADD_MAC_FILTER);
   }
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
-
-  NETDEV_RXMODE(netdev, netdev->if_flags); /* init rxmode */
 
   return (ERR_OK);
 }
@@ -1170,6 +1189,20 @@ int  netdev_foreache (FUNCPTR pfunc, void *arg0, void *arg1,
   return (0);
 }
 
+/* Get netdev flags */
+int  netdev_flags (netdev_t *netdev)
+{
+  struct netif *netif;
+
+  if (!netdev || (netdev->magic_no != NETDEV_MAGIC)) {
+    return (0);
+  }
+
+  netif = (struct netif *)netdev->sys;
+
+  return (netif_get_flags(netif));
+}
+
 /* netdev start poll mode */
 int  netdev_poll_enable (netdev_t *netdev, int (*poll_input)(struct netdev *, struct pbuf *), void *poll_arg)
 {
@@ -1551,11 +1584,16 @@ int  netdev_macfilter_add (netdev_t *netdev, const UINT8 hwaddr[])
   
   if (type == NETDEV_MAC_TYPE_MULTICAST) {
     netif = (struct netif *)(netdev->sys);
+#if NETDEV_ALWAYS_ALLMULTI > 0
     flags = netif_get_flags(netif);
     if (!(flags & IFF_ALLMULTI)) {
       NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
       netif->flags2 |= NETIF_FLAG2_ALLMULTI;
     }
+#else /* NETDEV_ALWAYS_ALLMULTI > 0 */
+    flags = netif_get_flags(netif);
+    NETDEV_RXMODE(netdev, flags);
+#endif /* NETDEV_ALWAYS_ALLMULTI == 0 */
   }
   
   return (0);
@@ -1594,11 +1632,16 @@ int  netdev_macfilter_delete (netdev_t *netdev, const UINT8 hwaddr[])
   
   if (!netdev->mac_filter) {
     netif = (struct netif *)(netdev->sys);
+#if NETDEV_ALWAYS_ALLMULTI > 0
     flags = netif_get_flags(netif);
     if (flags & IFF_ALLMULTI) {
       NETDEV_RXMODE(netdev, flags & ~IFF_ALLMULTI);
       netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
     }
+#else /* NETDEV_ALWAYS_ALLMULTI > 0 */
+    flags = netif_get_flags(netif);
+    NETDEV_RXMODE(netdev, flags);
+#endif /* NETDEV_ALWAYS_ALLMULTI == 0 */
   }
   
   return (0);

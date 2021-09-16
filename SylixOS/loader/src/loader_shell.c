@@ -383,6 +383,7 @@ static INT  __tshellExec (INT  iArgC, PCHAR  *ppcArgV)
     }
     
     if (fstat(fileno(pfile), &statBuf) < ERROR_NONE) {                  /*  获得文件信息                */
+        fclose(pfile);
         return  (-ERROR_TSHELL_CMDNOTFUND);                             /*  无法找到命令                */
     }
     

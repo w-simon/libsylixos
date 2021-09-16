@@ -760,26 +760,26 @@ static int  dm9000_rxmode (struct netdev *netdev, int flags)
 
     if (flags & IFF_PROMISC) {
         rcr |= RCR_PRMSC;
-    }
 
-    if (flags & IFF_ALLMULTI) {
+    } else if (flags & IFF_ALLMULTI || netdev_macfilter_count(netdev) > 4) {
         rcr |= RCR_ALL;
-    }
 
-    /*
-     * the multicast address in Hash Table : 64 bits
-     */
-    NETDEV_MACFILTER_FOREACH(netdev, ha) {
-        hash_val = ether_crc_le(6, ha->hwaddr) & 0x3f;
-        hash_table[hash_val / 16] |= (UINT16) 1 << (hash_val % 16);
-    }
+    } else {
+        /*
+         * the multicast address in Hash Table : 64 bits
+         */
+        NETDEV_MACFILTER_FOREACH(netdev, ha) {
+            hash_val = ether_crc_le(6, ha->hwaddr) & 0x3f;
+            hash_table[hash_val / 16] |= (UINT16) 1 << (hash_val % 16);
+        }
 
-    /*
-     * Write the hash table to MAC MD table
-     */
-    for (i = 0, oft = DM9000_MAR; i < 4; i++) {
-        dm9000_io_write(dm9000, oft++, hash_table[i]);
-        dm9000_io_write(dm9000, oft++, hash_table[i] >> 8);
+        /*
+         * Write the hash table to MAC MD table
+         */
+        for (i = 0, oft = DM9000_MAR; i < 4; i++) {
+            dm9000_io_write(dm9000, oft++, hash_table[i]);
+            dm9000_io_write(dm9000, oft++, hash_table[i] >> 8);
+        }
     }
 
     dm9000_io_write(dm9000, DM9000_RCR, rcr);

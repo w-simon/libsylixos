@@ -830,7 +830,7 @@ static INT  ataBlkDevFill (ATA_DEV_HANDLE  hDev)
 
         if ((hDrive->ATADRIVE_ucOkLba) &&
             (hDrive->ATADRIVE_ullCapacity) &&
-            (hDrive->ATADRIVE_ullCapacity > (UINT64)(uiCylinders * uiHeads * uiSectors))) {
+            (hDrive->ATADRIVE_ullCapacity > ((UINT64)uiCylinders * uiHeads * uiSectors))) {
             ullBlkMax = hDrive->ATADRIVE_ullCapacity - hDev->ATADEV_ullBlkOffset;
 
             ATA_LOG(ATA_LOG_PRT,
@@ -839,7 +839,7 @@ static INT  ataBlkDevFill (ATA_DEV_HANDLE  hDev)
                     uiCylinders, uiHeads, uiSectors, hInfo, uiBytes);
 
         } else {
-            ullBlkMax = (UINT64)(uiCylinders * uiHeads * uiSectors) - hDev->ATADEV_ullBlkOffset;
+            ullBlkMax = ((UINT64)uiCylinders * uiHeads * uiSectors) - hDev->ATADEV_ullBlkOffset;
 
             ATA_LOG(ATA_LOG_PRT,
                     "ctrl %d drive %d blk dev use chs cyl=%d, heads=%d, secs=%d info=%p bytes=%d.\r\n",

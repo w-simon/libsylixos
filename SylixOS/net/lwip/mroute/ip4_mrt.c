@@ -421,6 +421,8 @@ static u8_t ip4_mrt_down (struct raw_pcb *pcb)
               ((struct sockaddr_in *)&(ifr.ifr_addr))->sin_family = AF_INET;
               ((struct sockaddr_in *)&(ifr.ifr_addr))->sin_addr.s_addr = INADDR_ANY;
               ifp->ioctl(ifp, SIOCDELMULTI, &ifr);
+            } else {
+              ifp->flags2 &= ~NETIF_FLAG2_ALLMULTI;
             }
           }
         }
@@ -569,6 +571,8 @@ static u8_t ip4_mrt_add_vif (struct vifctl *vifcp)
             ((struct sockaddr_in *)&(ifr.ifr_addr))->sin_addr.s_addr = INADDR_ANY;
             if (ifp->ioctl(ifp, SIOCADDMULTI, &ifr)) {
               return (EOPNOTSUPP);
+            } else {
+              ifp->flags2 |= NETIF_FLAG2_ALLMULTI;
             }
           }
         } else {
@@ -632,6 +636,8 @@ static u8_t ip4_mrt_del_vif (const vifi_t *vifip)
             ((struct sockaddr_in *)&(ifr.ifr_addr))->sin_family = AF_INET;
             ((struct sockaddr_in *)&(ifr.ifr_addr))->sin_addr.s_addr = INADDR_ANY;
             ifp->ioctl(ifp, SIOCDELMULTI, &ifr);
+          } else {
+            ifp->flags2 &= ~NETIF_FLAG2_ALLMULTI;
           }
         }
       }

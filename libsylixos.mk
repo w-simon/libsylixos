@@ -1980,6 +1980,7 @@ SylixOS/devtree/devtreeLib.c \
 SylixOS/devtree/devtreeMdio.c \
 SylixOS/devtree/devtreeI2c.c \
 SylixOS/devtree/devtreeSpi.c \
+SylixOS/devtree/devtreePci.c \
 SylixOS/devtree/devtreePhandle.c \
 SylixOS/devtree/devtreeProperty.c \
 SylixOS/driver/fdt/fdtdec_common.c \

@@ -1231,6 +1231,7 @@ static INT gdbGetElfOffset (pid_t   pid,
 
     if (read(iFd, &ehdr, sizeof(ehdr)) < sizeof(ehdr)) {                /*  ¶ÁÈ¡ELFÍ·                   */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "Read elf header error.\r\n");
+        close(iFd);
         return  (PX_ERROR);
     }
 

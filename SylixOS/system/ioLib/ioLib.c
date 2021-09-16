@@ -455,12 +455,13 @@ static VOID  _IosThreadDelete (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal, PLW_CLAS
 {
     extern VOID  __fdLockfCleanupHook(PLW_CLASS_TCB  ptcbDel);
 
-    if (ptcbDel && ptcbDel->TCB_pvIoEnv) {
-        _IosEnvDelete((PLW_IO_ENV)ptcbDel->TCB_pvIoEnv);                /*  删除私有 io 环境            */
-        ptcbDel->TCB_pvIoEnv = LW_NULL;                                 /*  防止重启后造成误判          */
+    if (ptcbDel) {
+        if (ptcbDel->TCB_pvIoEnv) {
+            _IosEnvDelete((PLW_IO_ENV)ptcbDel->TCB_pvIoEnv);            /*  删除私有 io 环境            */
+            ptcbDel->TCB_pvIoEnv = LW_NULL;                             /*  防止重启后造成误判          */
+        }
+        __fdLockfCleanupHook(ptcbDel);                                  /*  删除阻塞文件锁              */
     }
-    
-    __fdLockfCleanupHook(ptcbDel);                                      /*  删除阻塞文件锁              */
 }
 /*********************************************************************************************************
 ** 函数名称: _IosInit

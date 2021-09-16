@@ -573,15 +573,13 @@ int  netbr_delete_dev (const char *brdev, int brindex, const char *sub, int sub_
   }
   
   flags = netif_get_flags(netif);
-  if (flags & IFF_PROMISC) {
-    ifreq.ifr_name[0] = 0;
-    ifreq.ifr_flags   = flags & ~IFF_PROMISC;
-    if (netif->ioctl) {
-      if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make Non IFF_PROMISC */
-        _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
-      } else {
-        netif->flags2 &= ~NETIF_FLAG2_PROMISC;
-      }
+  ifreq.ifr_name[0] = 0;
+  ifreq.ifr_flags   = flags & ~IFF_PROMISC;
+  if (netif->ioctl) {
+    if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make Non IFF_PROMISC */
+      _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
+    } else {
+      netif->flags2 &= ~NETIF_FLAG2_PROMISC;
     }
   }
   
@@ -739,15 +737,13 @@ int  netbr_delete (const char *brdev, int brindex)
     }
     
     flags = netif_get_flags(netif);
-    if (flags & IFF_PROMISC) {
-      ifreq.ifr_name[0] = 0;
-      ifreq.ifr_flags   = flags & ~IFF_PROMISC;
-      if (netif->ioctl) {
-        if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) {
-          _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
-        } else {
-          netif->flags2 &= ~NETIF_FLAG2_PROMISC;
-        }
+    ifreq.ifr_name[0] = 0;
+    ifreq.ifr_flags   = flags & ~IFF_PROMISC;
+    if (netif->ioctl) {
+      if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) {
+        _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
+      } else {
+        netif->flags2 &= ~NETIF_FLAG2_PROMISC;
       }
     }
     
@@ -861,15 +857,13 @@ void  netbr_sub_delete_hook (netdev_t *netdev)
   }
   
   flags = netif_get_flags(netif);
-  if (flags & IFF_PROMISC) {
-    ifreq.ifr_name[0] = 0;
-    ifreq.ifr_flags   = flags & ~IFF_PROMISC;
-    if (netif->ioctl) {
-      if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make Non IFF_PROMISC */
-        _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
-      } else {
-        netif->flags2 &= ~NETIF_FLAG2_PROMISC;
-      }
+  ifreq.ifr_name[0] = 0;
+  ifreq.ifr_flags   = flags & ~IFF_PROMISC;
+  if (netif->ioctl) {
+    if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make Non IFF_PROMISC */
+      _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
+    } else {
+      netif->flags2 &= ~NETIF_FLAG2_PROMISC;
     }
   }
   

@@ -2459,8 +2459,10 @@ static int file_insert(const char * fn, char *p
 	}
 	size = statbuf.st_size;
 	p = text_hole_make(p, size);
-	if (p == NULL)
+	if (p == NULL) {
+		close(fd);
 		goto fi0;
+	}
 	cnt = safe_read(fd, p, size);
 	if (cnt < 0) {
 		status_line_bold("\"%s\" %s", fn, strerror(errno));

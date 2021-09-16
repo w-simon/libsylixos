@@ -557,7 +557,7 @@ typedef struct lw_sdhci_host_attr {
      *  主要针对不同的特性开关, 如是否使用 ACMD12 等.
      *
      * SDHCI_QUIRK_FLG_SDIO_INT_OOB
-     *  通常情况想, SDHCI 本身支持 SDIO 中断功能, 如果控制器确实不支持SDIO硬件中断, 则内部使用查询模式.
+     *  通常情况下, SDHCI 本身支持 SDIO 中断功能, 如果控制器确实不支持 SDIO 硬件中断, 则内部使用查询模式.
      *  但是, 有的 SDIO 设备自身通过额外的 GPIO 引脚产生 SDIO 中断信号, 即不由 SDHCI 控制器本身产生, 因此
      *  叫做带外中断(Out-of-Band). 使能此标志后, 将忽略 SDHCI_QUIRK_FLG_CANNOT_SDIO_INT 标志, 并且需要
      *  驱动自己实现带外中断服务.

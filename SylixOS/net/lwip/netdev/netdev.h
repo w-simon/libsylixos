@@ -59,6 +59,9 @@
 /* netdev declaration */
 struct netdev;
 
+/* When add a multicast address, whether to allow all multicast packets */
+#define NETDEV_ALWAYS_ALLMULTI 0
+
 /*
  * netdev media address list
  */
@@ -284,7 +287,7 @@ typedef struct netdev {
   void *priv;   /* user network device private data */
   
   /* the following member is used by system, driver MUST set zero and do not used! */
-  int if_flags;
+  int if_flags; /* ONLY IFF_RUNNING and IFF_UP flags will automated update, use netdev_flags() instead */
   
   /* wireless externed */
   void *wireless_handlers; /* iw_handler_def ptr */
@@ -314,6 +317,7 @@ int  netdev_delete(netdev_t *netdev); /* WARNING: You MUST DO NOT lock device th
 int  netdev_index(netdev_t *netdev, unsigned int *index);
 int  netdev_ifname(netdev_t *netdev, char *ifname);
 int  netdev_foreache(FUNCPTR pfunc, void *arg0, void *arg1, void *arg2, void *arg3, void *arg4, void *arg5);
+int  netdev_flags(netdev_t *netdev);
 
 /* netdev outer firewall set,
  * The system will automatically call fw() with each received packet,

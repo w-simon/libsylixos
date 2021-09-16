@@ -229,6 +229,34 @@ ULONG  API_InterDeferJobAdd (PLW_JOB_QUEUE  pjobq, VOIDFUNCPTR  pfunc, PVOID  pv
     return  (_jobQueueAdd(pjobq, pfunc, pvArg, LW_NULL, LW_NULL, LW_NULL, LW_NULL, LW_NULL));
 }
 /*********************************************************************************************************
+** 函数名称: API_InterDeferJobAddEx
+** 功能描述: 向中断延迟处理队列加入一个任务
+** 输　入  : pjobq         队列
+**           pfunc         处理函数
+**           pvArg[0...5]  处理参数
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+ULONG  API_InterDeferJobAddEx (PLW_JOB_QUEUE  pjobq,
+                               VOIDFUNCPTR    pfunc,
+                               PVOID          pvArg0,
+                               PVOID          pvArg1,
+                               PVOID          pvArg2,
+                               PVOID          pvArg3,
+                               PVOID          pvArg4,
+                               PVOID          pvArg5)
+{
+    if (!pjobq) {
+        _ErrorHandle(EINVAL);
+        return  (EINVAL);
+    }
+
+    return  (_jobQueueAdd(pjobq, pfunc, pvArg0, pvArg1, pvArg2, pvArg3, pvArg4, pvArg5));
+}
+/*********************************************************************************************************
 ** 函数名称: API_InterDeferJobDelete
 ** 功能描述: 从中断延迟处理队列删除任务
 ** 输　入  : pjobq         队列

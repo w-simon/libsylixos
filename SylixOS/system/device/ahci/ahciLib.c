@@ -278,7 +278,9 @@ UINT64  API_AhciDriveSectorCountGet (AHCI_CTRL_HANDLE  hCtrl, UINT  uiDrive)
         ullSectors = hCtrl->AHCICTRL_uiLbaTotalSecs[uiDrive];
     
     } else {                                                            /* CHS ģʽ                     */
-        ullSectors = hDrive->AHCIDRIVE_uiCylinder * hDrive->AHCIDRIVE_uiHead * hDrive->AHCIDRIVE_uiSector;
+        ullSectors = (UINT64)hDrive->AHCIDRIVE_uiCylinder *
+                     hDrive->AHCIDRIVE_uiHead *
+                     hDrive->AHCIDRIVE_uiSector;
     }
 
     return  (ullSectors);

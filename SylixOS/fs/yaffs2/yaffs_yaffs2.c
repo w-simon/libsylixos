@@ -878,7 +878,7 @@ int yaffs2_handle_hole(struct yaffs_obj *obj, loff_t new_size)
 
 	increase = new_size - old_file_size;
 
-	if (increase < YAFFS_SMALL_HOLE_THRESHOLD * dev->data_bytes_per_chunk &&
+	if (increase < (loff_t)YAFFS_SMALL_HOLE_THRESHOLD * dev->data_bytes_per_chunk &&
 	    yaffs_check_alloc_available(dev, YAFFS_SMALL_HOLE_THRESHOLD + 1))
 		small_hole = 1;
 	else
@@ -1051,7 +1051,7 @@ static inline int yaffs2_scan_chunk(struct yaffs_dev *dev,
 	} else if (tags.chunk_id > 0) {
 		/* chunk_id > 0 so it is a data chunk... */
 		loff_t endpos;
-		loff_t chunk_base = (tags.chunk_id - 1) *
+		loff_t chunk_base = (loff_t)(tags.chunk_id - 1) *
 					dev->data_bytes_per_chunk;
 
 		*found_chunks = 1;

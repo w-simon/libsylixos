@@ -44,6 +44,12 @@
 #define ROOT_NODE_ADDR_CELLS_DEFAULT         1
 
 /*********************************************************************************************************
+  无效地址定义
+*********************************************************************************************************/
+
+#define OF_BAD_ADDR                         (-1)
+
+/*********************************************************************************************************
   加载标识定义
 *********************************************************************************************************/
 
@@ -58,8 +64,8 @@
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x)                       (sizeof(x) / sizeof((x)[0]))
 #endif
-#define RESOURCE_SIZE(res)                  (res.iomem.DEVRES_ulEnd - \
-                                             res.iomem.DEVRES_ulStart + 1)
+#define RESOURCE_SIZE(res)                  ((res).iomem.DEVRES_ulEnd - \
+                                             (res).iomem.DEVRES_ulStart + 1)
 
 /*********************************************************************************************************
   设备树相关定义
@@ -126,6 +132,24 @@ typedef struct devtree_phandle_iterator {
     PLW_DEVTREE_NODE      DTPHI_pdtnDev;
 } LW_DEVTREE_PHANDLE_ITERATOR;
 typedef LW_DEVTREE_PHANDLE_ITERATOR  *PLW_DEVTREE_PHANDLE_ITERATOR;
+
+typedef struct devtree_pci_range_parser {
+    PLW_DEVTREE_NODE      DTPRP_pdtnDev;
+    const UINT32         *DTPRP_puiRange;
+    const UINT32         *DTPRP_puiEnd;
+    INT                   DTPRP_iNp;
+    INT                   DTPRP_iPna;
+} LW_DEVTREE_PCI_RANGE_PARSER;
+typedef LW_DEVTREE_PCI_RANGE_PARSER  *PLW_DEVTREE_PCI_RANGE_PARSER;
+
+typedef struct devtree_pci_range {
+    UINT32                DTPR_uiPciSpace;
+    UINT64                DTPR_ullPciAddr;
+    UINT64                DTPR_ullCpuAddr;
+    UINT64                DTPR_ullSize;
+    UINT32                DTPR_uiFlags;
+} LW_DEVTREE_PCI_RANGE;
+typedef LW_DEVTREE_PCI_RANGE         *PLW_DEVTREE_PCI_RANGE;
 
 typedef PVOID (*FUNC_DT_ALLOC)(size_t  stSize, size_t  stAlign);
 typedef INT   (*FUNC_SCAN_CALLBACK)(PVOID   pvBase,  INT  iOffset,
@@ -384,6 +408,23 @@ LW_API INT                   API_DeviceTreeSpiCtrlRegister(PLW_DT_SPI_CTRL    ps
 
 LW_API INT                   API_DeviceTreeSpiDevRegister(PLW_DT_SPI_CTRL    pspictrl,
                                                           PLW_DEVTREE_NODE   pdtnDev);
+
+/*********************************************************************************************************
+  PCI 相关接口
+*********************************************************************************************************/
+
+LW_API INT                   API_DeviceTreePciBusRangeParse(PLW_DEVTREE_NODE  pdtnDev,
+                                                            PLW_DEV_RESOURCE  pdevresource);
+
+LW_API INT                   API_DeviceTreePciHostBridgeResourcesGet(PLW_DEVTREE_NODE     pdtnDev,
+                                                                     UINT8                ucBusNo,
+                                                                     UINT8                ucBusMax,
+                                                                     LW_LIST_LINE_HEADER *pplineheadResource,
+                                                                     UINT64              *pullIoBase);
+
+LW_API INT                   API_DeviceTreePciRangesParse(PLW_DEVTREE_NODE     pdtnDev,
+                                                          LW_LIST_LINE_HEADER *pplineheadResource,
+                                                          PLW_DEV_RESOURCE    *pdevresBusRange);
 
 #include "devtree_error.h"
 #include "devtree_inline.h"

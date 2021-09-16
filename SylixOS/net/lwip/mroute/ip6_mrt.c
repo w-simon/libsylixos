@@ -284,6 +284,8 @@ static u8_t ip6_mrt_down (struct raw_pcb *pcb)
               ((struct sockaddr_in6 *)&(ifr.ifr_addr))->sin6_family = AF_INET6;
               ((struct sockaddr_in6 *)&(ifr.ifr_addr))->sin6_addr = in6addr_any;
               ifp->ioctl(ifp, SIOCDELMULTI, &ifr);
+            } else {
+              ifp->flags2 &= ~NETIF_FLAG2_ALLMULTI;
             }
           }
         }
@@ -376,6 +378,8 @@ static u8_t ip6_mrt_add_mif (struct mif6ctl *mifcp)
           ((struct sockaddr_in6 *)&(ifr.ifr_addr))->sin6_addr = in6addr_any;
           if (ifp->ioctl(ifp, SIOCADDMULTI, &ifr)) {
             return (EOPNOTSUPP);
+          } else {
+            ifp->flags2 |= NETIF_FLAG2_ALLMULTI;
           }
         }
       } else {
@@ -431,6 +435,8 @@ static u8_t ip6_mrt_del_mif (mifi_t *mifip)
           ((struct sockaddr_in6 *)&(ifr.ifr_addr))->sin6_family = AF_INET6;
           ((struct sockaddr_in6 *)&(ifr.ifr_addr))->sin6_addr = in6addr_any;
           ifp->ioctl(ifp, SIOCDELMULTI, &ifr);
+        } else {
+          ifp->flags2 &= ~NETIF_FLAG2_ALLMULTI;
         }
       }
     }

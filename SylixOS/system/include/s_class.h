@@ -208,9 +208,14 @@ typedef LW_DEVTREE_TABLE_ITEM    *PLW_DEVTREE_TABLE;
 typedef struct dev_resource {
     union {
         struct {
-            addr_t                DEVRES_ulStart;                       /*  IO 地址资源的起始地址       */
-            addr_t                DEVRES_ulEnd;                         /*  IO 地址资源的结束地址       */
+            addr_t                DEVRES_ulStart;                       /*  IO、MEM 地址资源的起始地址  */
+            addr_t                DEVRES_ulEnd;                         /*  IO、MEM 地址资源的结束地址  */
         } iomem;
+
+        struct {
+            addr_t                DEVRES_ulStart;                       /*  BUS 资源的起始地址          */
+            addr_t                DEVRES_ulEnd;                         /*  BUS 资源的结束地址          */
+        } bus;
 
         struct {
             ULONG                 DEVRES_ulIrq;                         /*  中断资源的中断号            */
@@ -218,11 +223,20 @@ typedef struct dev_resource {
         } irq;
     };
     CPCHAR                        DEVRES_pcName;                        /*  资源的名称                  */
+    ULONG                         DEVRES_ulFlags;                       /*  资源的类型                  */
+    ULONG                         DEVRES_ulReserve[16];
 } LW_DEV_RESOURCE;
 typedef LW_DEV_RESOURCE          *PLW_DEV_RESOURCE;
 
-#endif                                                                  /*  LW_CFG_DEVTREE_EN           */
+typedef struct dev_resource_entry {
+    LW_LIST_LINE                  DEVRESE_plineManage;
+    PLW_DEV_RESOURCE              DEVRESE_pdevres;
+    UINT64                        DEVRESE_ullOffset;
+    LW_DEV_RESOURCE               DEVRESE_devres;
+} LW_DEV_RESOURCE_ENTRY;
+typedef LW_DEV_RESOURCE_ENTRY    *PLW_DEV_RESOURCE_ENTRY;
 
+#endif                                                                  /*  LW_CFG_DEVTREE_EN           */
 /*********************************************************************************************************
   设备头
 *********************************************************************************************************/

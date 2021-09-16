@@ -1114,6 +1114,15 @@ LW_API INT              API_InterDeferContext(VOID);                    /*  是否
 
 LW_API ULONG            API_InterDeferJobAdd(PLW_JOB_QUEUE  pjobq, VOIDFUNCPTR  pfunc, PVOID  pvArg);
                                                                         /*  向中断延迟处理队列加入任务  */
+LW_API ULONG            API_InterDeferJobAddEx(PLW_JOB_QUEUE  pjobq,
+                                               VOIDFUNCPTR    pfunc,
+                                               PVOID          pvArg0,
+                                               PVOID          pvArg1,
+                                               PVOID          pvArg2,
+                                               PVOID          pvArg3,
+                                               PVOID          pvArg4,
+                                               PVOID          pvArg5);  /*  向中断延迟处理队列加入任务  */
+
 LW_API ULONG            API_InterDeferJobDelete(PLW_JOB_QUEUE  pjobq, BOOL  bMatchArg, 
                                                 VOIDFUNCPTR  pfunc, PVOID  pvArg);
                                                                         /*  从中断延迟处理队列删除任务  */

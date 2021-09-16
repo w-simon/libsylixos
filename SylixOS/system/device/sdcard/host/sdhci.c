@@ -85,7 +85,7 @@
 #define __SDHCI_SDIOINTSVR_PRIO   197
 #define __SDHCI_SDIOINTSVR_STKSZ  (8 * 1024)
 /*********************************************************************************************************
-  传输事务线操作宏定义
+  传输事务线程操作宏定义
 *********************************************************************************************************/
 #define __SDHCI_TRANS_PREP()      INTREG  iregInterLevel
 #define __SDHCI_TRANS_LOCK(pt)    LW_SPIN_LOCK_QUICK(&pt->SDHCITS_slLock, &iregInterLevel)
@@ -157,6 +157,7 @@ struct __sdhci_trans {
 
     BOOL                  SDHCITS_bCmdFinish;
     BOOL                  SDHCITS_bDatFinish;
+    BOOL                  SDHCITS_bTransFinish;
     INT                   SDHCITS_iCmdError;
     INT                   SDHCITS_iDatError;                            /*  事务状态控制                */
 
@@ -172,8 +173,6 @@ struct __sdhci_trans {
 
     LW_OBJECT_HANDLE      SDHCITS_hSdioIntThread;                       /*  负责 SDIO 中断处理线程      */
     LW_OBJECT_HANDLE      SDHCITS_hSdioIntSem;                          /*  SDIO 中断同步信号           */
-
-    UINT32                SDHCITS_uiIntSta;
 
     INT                   SDHCITS_iStage;
 #define __SDHCI_TRANS_STAGE_START  0
@@ -306,9 +305,12 @@ static VOID __sdhciDataPrepareSdma(__PSDHCI_HOST  psdhcihost);
 static VOID __sdhciDataPrepareAdma(__PSDHCI_HOST  psdhcihost);
 
 static VOID __sdhciTransferIntSet(__PSDHCI_HOST  psdhcihost);
-static VOID __sdhciIntDisAndEn(__PSDHCI_HOST     psdhcihost,
-                               UINT32            uiDisMask,
-                               UINT32            uiEnMask);
+static VOID __sdhciIntStatusDisAndEn(__PSDHCI_HOST     psdhcihost,
+                                     UINT32            uiDisMask,
+                                     UINT32            uiEnMask);
+static VOID __sdhciIntSignalDisAndEn(__PSDHCI_HOST     psdhcihost,
+                                     UINT32            uiDisMask,
+                                     UINT32            uiEnMask);
 static VOID __sdhciSdioIntEn(__PSDHCI_HOST     psdhcihost, BOOL bEnable);
 /*********************************************************************************************************
   FOR TRANSACTION
@@ -329,7 +331,7 @@ static INT            __sdhciTransClean(__SDHCI_TRANS *psdhcitrans);
 static irqreturn_t    __sdhciTransIrq(VOID *pvArg, ULONG ulVector);
 static PVOID          __sdhciSdioIntSvr(VOID *pvArg);
 
-static VOID           __sdhciTransHandle(__SDHCI_TRANS    *psdhcitrans);
+static VOID           __sdhciTransHandle(__SDHCI_TRANS *psdhcitrans, UINT32  uiIntSta);
 static INT            __sdhciTransCmdHandle(__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta);
 static INT            __sdhciTransDatHandle(__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta);
 
@@ -528,8 +530,6 @@ LW_API PVOID  API_SdhciHostCreate (CPCHAR               pcAdapterName,
     lib_memcpy(&psdhcihost->SDHCIHS_sdhcihostattr,
                psdhcihostattr, sizeof(LW_SDHCI_HOST_ATTR));
                                                                         /*  保存属性域                  */
-    __sdhciIntDisAndEn(psdhcihost, SDHCI_INT_ALL_MASK, 0);              /*  禁止所有中断                */
-
     psdhcitrans = __sdhciTransNew(psdhcihost);
     if (!psdhcitrans) {
         goto    __err1;
@@ -559,7 +559,12 @@ LW_API PVOID  API_SdhciHostCreate (CPCHAR               pcAdapterName,
 
     __sdhciTimeoutSet(psdhcihost);
 
-    __sdhciIntDisAndEn(psdhcihost, SDHCI_INT_ALL_MASK | SDHCI_INT_CARD_INT, __SDHCI_INT_EN_MASK);
+    __sdhciIntStatusDisAndEn(psdhcihost,
+                             SDHCI_INT_ALL_MASK | SDHCI_INT_CARD_INT,
+                             __SDHCI_INT_EN_MASK);
+    __sdhciIntSignalDisAndEn(psdhcihost,
+                             SDHCI_INT_ALL_MASK | SDHCI_INT_CARD_INT,
+                             __SDHCI_INT_EN_MASK);
 
     return  ((PVOID)psdhcihost);
 
@@ -1955,9 +1960,9 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
 __timeout:
     SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL,"timeout error.\r\n");
 
-    psdhcitrans->SDHCITS_iCmdError = PX_ERROR;
-    psdhcitrans->SDHCITS_iDatError = PX_ERROR;
-    __sdhciTransFinish(psdhcitrans);
+    psdhcitrans->SDHCITS_iCmdError      = PX_ERROR;
+    psdhcitrans->SDHCITS_iDatError      = PX_ERROR;
+    psdhcitrans->SDHCITS_bTransFinish   = LW_TRUE;                      /*  本次事务结束                */
 
     return  (PX_ERROR);
 }
@@ -2283,10 +2288,15 @@ static VOID  __sdhciTransDmaSync (__PSDHCI_TRANS    psdhcitrans,
 static VOID __sdhciTransferIntSet (__PSDHCI_HOST  psdhcihost)
 {
     PLW_SDHCI_HOST_ATTR psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+    __SDHCI_TRANS      *psdhcitrans    = psdhcihost->SDHCIHS_psdhcitrans;
+
     UINT32              uiIntIoMsk;                                     /*  使用一般传输时的中断掩码    */
     UINT32              uiIntDmaMsk;                                    /*  使用 DMA 传输时的中断掩码   */
     UINT32              uiEnMask;                                       /*  最终使能掩码                */
 
+    __SDHCI_TRANS_PREP();
+
+    __SDHCI_TRANS_LOCK(psdhcitrans);
     uiIntIoMsk  = SDHCI_INT_SPACE_AVAIL | SDHCI_INT_DATA_AVAIL;
     uiIntDmaMsk = SDHCI_INT_DMA_END     | SDHCI_INT_ADMA_ERROR;
     uiEnMask    = SDHCI_READL(psdhcihostattr, SDHCI_INTSTA_ENABLE);     /*  读取32位(包括错误中断)      */
@@ -2307,10 +2317,11 @@ static VOID __sdhciTransferIntSet (__PSDHCI_HOST  psdhcihost)
      */
     SDHCI_WRITEL(psdhcihostattr, SDHCI_INTSTA_ENABLE, uiEnMask);
     SDHCI_WRITEL(psdhcihostattr, SDHCI_SIGNAL_ENABLE, uiEnMask);
+    __SDHCI_TRANS_UNLOCK(psdhcitrans);
 }
 /*********************************************************************************************************
-** 函数名称: __sdhciIntDisAndEn
-** 功能描述: 中断设置(使能\禁能).设置中断状态(错误\一般状态)和中断信号(错误\一般信号)寄存器.
+** 函数名称: __sdhciIntStatusDisAndEn
+** 功能描述: 中断状态(错误\一般状态)设置(使能\禁能).
 ** 输    入: psdhcihost      SDHCI HOST 结构指针
 **           uiDisMask       禁能掩码
 **           uiEnMask        使能掩码
@@ -2318,23 +2329,51 @@ static VOID __sdhciTransferIntSet (__PSDHCI_HOST  psdhcihost)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID __sdhciIntDisAndEn (__PSDHCI_HOST  psdhcihost,
-                                UINT32         uiDisMask,
-                                UINT32         uiEnMask)
+static VOID __sdhciIntStatusDisAndEn (__PSDHCI_HOST  psdhcihost,
+                                      UINT32         uiDisMask,
+                                      UINT32         uiEnMask)
 {
     PLW_SDHCI_HOST_ATTR psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+    __SDHCI_TRANS      *psdhcitrans    = psdhcihost->SDHCIHS_psdhcitrans;
     UINT32              uiMask;
 
+    __SDHCI_TRANS_PREP();
+
+    __SDHCI_TRANS_LOCK(psdhcitrans);
     uiMask  =  SDHCI_READL(psdhcihostattr, SDHCI_INTSTA_ENABLE);
     uiMask &= ~uiDisMask;
     uiMask |=  uiEnMask;
 
-    /*
-     * 因为这两个寄存器的位标位置都完全相同,
-     * 所以可以同时用一个掩码.
-     */
     SDHCI_WRITEL(psdhcihostattr, SDHCI_INTSTA_ENABLE, uiMask);
+    __SDHCI_TRANS_UNLOCK(psdhcitrans);
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciIntSignalDisAndEn
+** 功能描述: 中断信号(错误\一般状态)设置(使能\禁能).
+** 输    入: psdhcihost      SDHCI HOST 结构指针
+**           uiDisMask       禁能掩码
+**           uiEnMask        使能掩码
+** 输    出: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID __sdhciIntSignalDisAndEn (__PSDHCI_HOST  psdhcihost,
+                                      UINT32         uiDisMask,
+                                      UINT32         uiEnMask)
+{
+    PLW_SDHCI_HOST_ATTR psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+    __SDHCI_TRANS      *psdhcitrans    = psdhcihost->SDHCIHS_psdhcitrans;
+    UINT32              uiMask;
+
+    __SDHCI_TRANS_PREP();
+
+    __SDHCI_TRANS_LOCK(psdhcitrans);
+    uiMask  =  SDHCI_READL(psdhcihostattr, SDHCI_SIGNAL_ENABLE);
+    uiMask &= ~uiDisMask;
+    uiMask |=  uiEnMask;
+
     SDHCI_WRITEL(psdhcihostattr, SDHCI_SIGNAL_ENABLE, uiMask);
+    __SDHCI_TRANS_UNLOCK(psdhcitrans);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciSdioIntEn
@@ -2348,9 +2387,15 @@ static VOID __sdhciIntDisAndEn (__PSDHCI_HOST  psdhcihost,
 static VOID __sdhciSdioIntEn (__PSDHCI_HOST psdhcihost, BOOL bEnable)
 {
     PLW_SDHCI_HOST_ATTR  psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+    __SDHCI_TRANS       *psdhcitrans    = psdhcihost->SDHCIHS_psdhcitrans;
+
     UINT32               uiMask;
 
+    __SDHCI_TRANS_PREP();
+
+    __SDHCI_TRANS_LOCK(psdhcitrans);
     if (psdhcihost->SDHCIHS_bSdioIntEnable == bEnable) {
+        __SDHCI_TRANS_UNLOCK(psdhcitrans);
         return;
     }
 
@@ -2364,6 +2409,7 @@ static VOID __sdhciSdioIntEn (__PSDHCI_HOST psdhcihost, BOOL bEnable)
     SDHCI_WRITEL(psdhcihostattr, SDHCI_INTSTA_ENABLE, uiMask);
     SDHCI_WRITEL(psdhcihostattr, SDHCI_SIGNAL_ENABLE, uiMask);
     psdhcihost->SDHCIHS_bSdioIntEnable = bEnable;
+    __SDHCI_TRANS_UNLOCK(psdhcitrans);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciTransNew
@@ -2413,6 +2459,9 @@ static __SDHCI_TRANS *__sdhciTransNew (__PSDHCI_HOST   psdhcihost)
     if (iError != ERROR_NONE) {
         goto    __err2;
     }
+
+    __sdhciIntStatusDisAndEn(psdhcihost, SDHCI_INT_ALL_MASK, 0);              /*  禁止所有中断状态            */
+    __sdhciIntSignalDisAndEn(psdhcihost, SDHCI_INT_ALL_MASK, 0);              /*  禁止所有中断信号            */
 
     API_InterVectorConnect(psdhcihost->SDHCIHS_sdhcihostattr.SDHCIHOST_ulIntVector,
                            __sdhciTransIrq,
@@ -2608,11 +2657,12 @@ static INT  __sdhciTransPrepare (__SDHCI_TRANS *psdhcitrans,
         psdhcitrans->SDHCITS_uiBlkCntRemain = 0;
     }
 
-    psdhcitrans->SDHCITS_iTransType  = iTransType;
-    psdhcitrans->SDHCITS_bCmdFinish  = LW_FALSE;
-    psdhcitrans->SDHCITS_bDatFinish  = LW_FALSE;
-    psdhcitrans->SDHCITS_iCmdError   = ERROR_NONE;
-    psdhcitrans->SDHCITS_iDatError   = ERROR_NONE;
+    psdhcitrans->SDHCITS_iTransType     = iTransType;
+    psdhcitrans->SDHCITS_bCmdFinish     = LW_FALSE;
+    psdhcitrans->SDHCITS_bDatFinish     = LW_FALSE;
+    psdhcitrans->SDHCITS_bTransFinish   = LW_FALSE;
+    psdhcitrans->SDHCITS_iCmdError      = ERROR_NONE;
+    psdhcitrans->SDHCITS_iDatError      = ERROR_NONE;
 
     psdhcitrans->SDHCITS_psdcmd      = psdmsg->SDMSG_psdcmdCmd;
     psdhcitrans->SDHCITS_psdcmdStop  = psdmsg->SDMSG_psdcmdStop;
@@ -2644,7 +2694,10 @@ static INT  __sdhciTransStart (__SDHCI_TRANS *psdhcitrans)
     if (SDHCI_QUIRK_FLG(&psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr,
                          SDHCI_QUIRK_FLG_REENABLE_INTS_ON_EVERY_TRANSACTION)) {
         __sdhciIntClear(psdhcitrans->SDHCITS_psdhcihost);
-        __sdhciIntDisAndEn(psdhcitrans->SDHCITS_psdhcihost, SDHCI_INT_ALL_MASK, __SDHCI_INT_EN_MASK);
+        __sdhciIntStatusDisAndEn(psdhcitrans->SDHCITS_psdhcihost,
+                                 SDHCI_INT_ALL_MASK, __SDHCI_INT_EN_MASK);
+        __sdhciIntSignalDisAndEn(psdhcitrans->SDHCITS_psdhcihost,
+                                 SDHCI_INT_ALL_MASK, __SDHCI_INT_EN_MASK);
     }
 
     if (psdhcitrans->SDHCITS_pucDatBuffCurr) {
@@ -2716,7 +2769,8 @@ static INT  __sdhciTransClean (__SDHCI_TRANS *psdhcitrans)
 
     if (SDHCI_QUIRK_FLG(&psdhcitrans->SDHCITS_psdhcihost->SDHCIHS_sdhcihostattr,
                          SDHCI_QUIRK_FLG_REENABLE_INTS_ON_EVERY_TRANSACTION)) {
-        __sdhciIntDisAndEn(psdhcitrans->SDHCITS_psdhcihost, SDHCI_INT_ALL_MASK, 0);
+        __sdhciIntStatusDisAndEn(psdhcitrans->SDHCITS_psdhcihost, SDHCI_INT_ALL_MASK, 0);
+        __sdhciIntSignalDisAndEn(psdhcitrans->SDHCITS_psdhcihost, SDHCI_INT_ALL_MASK, 0);
         __sdhciIntClear(psdhcitrans->SDHCITS_psdhcihost);
     }
     __SDHCI_TRANS_UNLOCK(psdhcitrans);
@@ -2753,12 +2807,10 @@ static irqreturn_t   __sdhciTransIrq (VOID *pvArg, ULONG ulVector)
 __redo:
     __SDHCI_TRANS_LOCK(psdhcitrans);
     uiIntSta = SDHCI_READL(psdhcihostattr, SDHCI_INT_STATUS);
-    psdhcitrans->SDHCITS_uiIntSta = uiIntSta;
     SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta);
     __SDHCI_TRANS_UNLOCK(psdhcitrans);
 
     if (!uiIntSta || uiIntSta == 0xffffffff) {
-        SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta);
         SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "unknown int signals\r\n");
 
         API_InterVectorGetFlag(ulVector, &ulIntFlag);
@@ -2770,12 +2822,14 @@ __redo:
     }
 
     if (__SDHCI_ISRDEFER_EN(psdhcitrans)) {
-        API_InterVectorDisable(ulVector);
-        API_InterDeferJobAdd(psdhcitrans->SDHCITS_pjobqueue,
-                             (VOIDFUNCPTR)__sdhciTransHandle,
-                             (PVOID)psdhcitrans);
+        __sdhciIntSignalDisAndEn(psdhcihost, uiIntSta, 0);
+        API_InterDeferJobAddEx(psdhcitrans->SDHCITS_pjobqueue,
+                               (VOIDFUNCPTR)__sdhciTransHandle,
+                               (PVOID)psdhcitrans,
+                               (PVOID)(ULONG)uiIntSta,
+                               LW_NULL, LW_NULL, LW_NULL, LW_NULL);
     } else {
-        __sdhciTransHandle(psdhcitrans);
+        __sdhciTransHandle(psdhcitrans, uiIntSta);
     }
 
     /*
@@ -2799,30 +2853,22 @@ __end:
 ** 函数名称: __sdhciTransHandle
 ** 功能描述: SDHCI 传输处理程序
 ** 输    入: psdhcitrans      传输控制块
+             uiIntSta         当前需要处理的中断状态
 ** 输    出: NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID   __sdhciTransHandle (__SDHCI_TRANS *psdhcitrans)
+static VOID   __sdhciTransHandle (__SDHCI_TRANS *psdhcitrans, UINT32  uiIntSta)
 {
     __SDHCI_HOST        *psdhcihost     = psdhcitrans->SDHCITS_psdhcihost;
     LW_SDHCI_HOST_ATTR  *psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
     BOOL                 bSdioInt       = LW_FALSE;
-    UINT32               uiIntSta;
-
-    __SDHCI_TRANS_PREP();
-
-    __SDHCI_TRANS_LOCK(psdhcitrans);
-    uiIntSta = psdhcitrans->SDHCITS_uiIntSta;
-    __SDHCI_TRANS_UNLOCK(psdhcitrans);
 
     if (uiIntSta & SDHCI_INT_CMD_MASK) {
-        SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta & SDHCI_INT_CMD_MASK);
         __sdhciTransCmdHandle(psdhcitrans, uiIntSta & SDHCI_INT_CMD_MASK);
     }
 
     if (uiIntSta & SDHCI_INT_DATA_MASK) {
-        SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta & SDHCI_INT_DATA_MASK);
         __sdhciTransDatHandle(psdhcitrans, uiIntSta & SDHCI_INT_DATA_MASK);
     }
 
@@ -2838,24 +2884,15 @@ static VOID   __sdhciTransHandle (__SDHCI_TRANS *psdhcitrans)
         bSdioInt = LW_TRUE;
     }
 
-    uiIntSta &= ~(SDHCI_INT_CMD_MASK | SDHCI_INT_DATA_MASK);
-    uiIntSta &= ~(SDHCI_INT_ERROR);
-
     if (uiIntSta & SDHCI_INT_BUS_POWER) {
         SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL,
                           "sdhci(%s): card consumed too much power!\r\n",
                           __SDHCI_HOST_NAME(psdhcitrans->SDHCITS_psdhcihost));
-        SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, SDHCI_INT_BUS_POWER);
-        uiIntSta &= ~SDHCI_INT_BUS_POWER;
     }
 
     if (uiIntSta & SDHCI_INT_CARD_INT) {
         bSdioInt = LW_TRUE;
         uiIntSta &= ~SDHCI_INT_CARD_INT;
-    }
-
-    if (uiIntSta) {
-        SDHCI_WRITEL(psdhcihostattr, SDHCI_INT_STATUS, uiIntSta);
     }
 
     KN_IO_MB();
@@ -2868,7 +2905,11 @@ static VOID   __sdhciTransHandle (__SDHCI_TRANS *psdhcitrans)
     }
 
     if (__SDHCI_ISRDEFER_EN(psdhcitrans)) {
-        API_InterVectorEnable(psdhcihostattr->SDHCIHOST_ulIntVector);
+        __sdhciIntSignalDisAndEn(psdhcihost, 0, uiIntSta);
+    }
+
+    if (psdhcitrans->SDHCITS_bTransFinish) {
+        __sdhciTransFinish(psdhcitrans);
     }
 }
 /*********************************************************************************************************
@@ -2990,8 +3031,8 @@ static INT  __sdhciTransCmdHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
             }
         }
 
-        psdhcitrans->SDHCITS_iCmdError = PX_ERROR;
-        __sdhciTransFinish(psdhcitrans);                                /*  结束本次传输                */
+        psdhcitrans->SDHCITS_iCmdError      = PX_ERROR;
+        psdhcitrans->SDHCITS_bTransFinish   = LW_TRUE;                  /*  本次事务结束                */
         return  (PX_ERROR);
     }
 
@@ -3032,9 +3073,9 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
     if (bStop || !psdhcitrans->SDHCITS_pucDatBuffCurr) {
         if (psdcmd && SD_CMD_TEST_RSP(psdcmd, SD_RSP_BUSY)) {
             if (uiIntSta & SDHCI_INT_DATA_TIMEOUT) {
-                psdhcitrans->SDHCITS_iDatError = PX_ERROR;
+                psdhcitrans->SDHCITS_iDatError      = PX_ERROR;
+                psdhcitrans->SDHCITS_bTransFinish   = LW_TRUE;          /*  本次事务结束                */
                 SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "timeout on busy irq.\r\n");
-                __sdhciTransFinish(psdhcitrans);
                 return  (PX_ERROR);
             }
 
@@ -3046,7 +3087,7 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
                  * 如果命令未完成,需待命令中断产生后结束事务
                  */
                 if (psdhcitrans->SDHCITS_bCmdFinish) {
-                    __sdhciTransFinish(psdhcitrans);
+                    psdhcitrans->SDHCITS_bTransFinish = LW_TRUE;        /*  本次事务结束                */
                 }
 
                 return  (ERROR_NONE);
@@ -3200,7 +3241,7 @@ __ret:
     psdhcitrans->SDHCITS_bCmdFinish = LW_TRUE;
 
     if (psdhcitrans->SDHCITS_iStage == __SDHCI_TRANS_STAGE_STOP) {
-        __sdhciTransFinish(psdhcitrans);                                /*  本次事务结束                */
+        psdhcitrans->SDHCITS_bTransFinish = LW_TRUE;                    /*  本次事务结束                */
         return  (ERROR_NONE);
     }
 
@@ -3219,7 +3260,7 @@ __ret:
             return  (ERROR_NONE);
         }
 
-        __sdhciTransFinish(psdhcitrans);                            /*  本次事务结束                */
+        psdhcitrans->SDHCITS_bTransFinish = LW_TRUE;                    /*  本次事务结束                */
 
     } else {
         /*
@@ -3280,7 +3321,7 @@ static INT  __sdhciTransDatFinish (__SDHCI_TRANS *psdhcitrans)
         }
     }
 
-    __sdhciTransFinish(psdhcitrans);
+    psdhcitrans->SDHCITS_bTransFinish = LW_TRUE;                        /*  本次事务结束                */
 
     return  (ERROR_NONE);
 }

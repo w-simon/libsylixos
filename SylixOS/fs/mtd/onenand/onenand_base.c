@@ -718,7 +718,7 @@ static void onenand_invalidate_bufferram(struct mtd_info *mtd, loff_t addr,
 
 	/* Invalidate BufferRAM */
 	for (i = 0; i < MAX_BUFFERRAM; i++) {
-		loff_t buf_addr = this->bufferram[i].blockpage << this->page_shift;
+		loff_t buf_addr = (loff_t)this->bufferram[i].blockpage << this->page_shift;
 
 		if (buf_addr >= addr && buf_addr < end_addr)
 			this->bufferram[i].blockpage = -1;

@@ -26,7 +26,11 @@ void  ptmalloc_abort(void);
 #define USE_DL_PREFIX           1
 
 /* Use system page size */
+#if LW_CFG_VMM_EN > 0
 #define malloc_getpagesize      getpagesize()
+#else
+#define malloc_getpagesize      ((size_t)16U * (size_t)1024U)
+#endif /* LW_CFG_VMM_EN > 0 */
 
 /* Use the supplied emulation of sbrk */
 #define MORECORE                ptmalloc_sbrk

@@ -97,22 +97,22 @@ static VOID  __fdLockfPrint (CPCHAR  pcMsg, PLW_FD_LOCKF    pfdlockf)
     PLW_FD_LOCKF    pfdlockfBlock;
 
     if (!pfdlockf) {
-        printf(pcMsg);
+        _PrintFormat(pcMsg);
         return;
     }
 
-    printf("%s: lock %p for ", pcMsg, pfdlockf);
-    printf("proc %d", pfdlockf->FDLOCK_pid);
-    printf(", %s, start %llx, end %llx",
-           pfdlockf->FDLOCK_usType == F_RDLCK ? "shared" :
-           pfdlockf->FDLOCK_usType == F_WRLCK ? "exclusive" :
-           pfdlockf->FDLOCK_usType == F_UNLCK ? "unlock" :
-           "unknown", pfdlockf->FDLOCK_oftStart, pfdlockf->FDLOCK_oftEnd);
+    _PrintFormat("%s: lock %p for ", pcMsg, pfdlockf);
+    _PrintFormat("proc %d", pfdlockf->FDLOCK_pid);
+    _PrintFormat(", %s, start %llx, end %llx",
+                 pfdlockf->FDLOCK_usType == F_RDLCK ? "shared" :
+                 pfdlockf->FDLOCK_usType == F_WRLCK ? "exclusive" :
+                 pfdlockf->FDLOCK_usType == F_UNLCK ? "unlock" :
+                 "unknown", pfdlockf->FDLOCK_oftStart, pfdlockf->FDLOCK_oftEnd);
     if (pfdlockf->FDLOCK_plineBlockHd) {
         pfdlockfBlock = _LIST_ENTRY(pfdlockf->FDLOCK_plineBlockHd, LW_FD_LOCKF, FDLOCK_lineBlock);
-        printf(" block %p\n", pfdlockfBlock);
+        _PrintFormat(" block %p\r\n", pfdlockfBlock);
     } else {
-        printf("\n");
+        _PrintFormat("\r\n");
     }
 #endif                                                                  /*  DEBUG_PRINT_EN              */
 }
@@ -132,19 +132,19 @@ static VOID  __fdLockfPrintList (CPCHAR  pcMsg, PLW_FD_LOCKF    pfdlockf)
     PLW_FD_LOCKF    pfdlockfTmp, pfdlockfBlock;
 	PCHAR           pcOpen, pcClose;
 
-    printf("%s: lock list:\n", pcMsg);
+	_PrintFormat("%s: lock list:\r\n", pcMsg);
     for (pfdlockfTmp  = *pfdlockf->FDLOCK_pfdlockHead; 
          pfdlockfTmp != LW_NULL; 
          pfdlockfTmp  = pfdlockfTmp->FDLOCK_pfdlockNext) {
          
-        printf("\tlock %p for ", pfdlockfTmp);
-        printf("proc %d", pfdlockfTmp->FDLOCK_pid);
+        _PrintFormat("\tlock %p for ", pfdlockfTmp);
+        _PrintFormat("proc %d", pfdlockfTmp->FDLOCK_pid);
         
-        printf(", %s, start %llx, end %llx",
-               pfdlockfTmp->FDLOCK_usType == F_RDLCK ? "shared" :
-               pfdlockfTmp->FDLOCK_usType == F_WRLCK ? "exclusive" :
-               pfdlockfTmp->FDLOCK_usType == F_UNLCK ? "unlock" :
-               "unknown", pfdlockfTmp->FDLOCK_oftStart, pfdlockfTmp->FDLOCK_oftEnd);
+        _PrintFormat(", %s, start %llx, end %llx",
+                     pfdlockfTmp->FDLOCK_usType == F_RDLCK ? "shared" :
+                     pfdlockfTmp->FDLOCK_usType == F_WRLCK ? "exclusive" :
+                     pfdlockfTmp->FDLOCK_usType == F_UNLCK ? "unlock" :
+                     "unknown", pfdlockfTmp->FDLOCK_oftStart, pfdlockfTmp->FDLOCK_oftEnd);
            
         pcOpen = " is blocking { ";
         pcClose = "";
@@ -155,19 +155,18 @@ static VOID  __fdLockfPrintList (CPCHAR  pcMsg, PLW_FD_LOCKF    pfdlockf)
              
             pfdlockfBlock = _LIST_ENTRY(plineTmp, LW_FD_LOCKF, FDLOCK_lineBlock);
             
-            printf("%s", pcOpen);
+            _PrintFormat("%s", pcOpen);
             pcOpen = ", ";
             pcClose = " }";
             
-            printf("proc %d", pfdlockfBlock->FDLOCK_pid);
-            
-            printf(", %s, start %llx, end %llx",
-                   pfdlockfBlock->FDLOCK_usType == F_RDLCK ? "shared" :
-                   pfdlockfBlock->FDLOCK_usType == F_WRLCK ? "exclusive" :
-                   pfdlockfBlock->FDLOCK_usType == F_UNLCK ? "unlock" :
-                   "unknown", pfdlockfBlock->FDLOCK_oftStart, pfdlockfBlock->FDLOCK_oftEnd);
+            _PrintFormat("proc %d", pfdlockfBlock->FDLOCK_pid);
+            _PrintFormat(", %s, start %llx, end %llx",
+                         pfdlockfBlock->FDLOCK_usType == F_RDLCK ? "shared" :
+                         pfdlockfBlock->FDLOCK_usType == F_WRLCK ? "exclusive" :
+                         pfdlockfBlock->FDLOCK_usType == F_UNLCK ? "unlock" :
+                         "unknown", pfdlockfBlock->FDLOCK_oftStart, pfdlockfBlock->FDLOCK_oftEnd);
         }
-        printf("%s\n", pcClose);
+        _PrintFormat("%s\r\n", pcClose);
     }
 #endif                                                                  /*  DEBUG_PRINT_EN              */
 }

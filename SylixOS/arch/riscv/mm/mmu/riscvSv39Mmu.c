@@ -957,10 +957,10 @@ static VOID  sv39MmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
 ** 注  意  : 这里不需要清除快表 TLB, 因为 VMM 自身会作此操作.
 *********************************************************************************************************/
 static VOID  c9xxMmuMakeTrans (PLW_MMU_CONTEXT     pmmuctx,
-                                   LW_PTE_TRANSENTRY  *p_pteentry,
-                                   addr_t              ulVirtualAddr,
-                                   phys_addr_t         paPhysicalAddr,
-                                   ULONG               ulFlag)
+                               LW_PTE_TRANSENTRY  *p_pteentry,
+                               addr_t              ulVirtualAddr,
+                               phys_addr_t         paPhysicalAddr,
+                               ULONG               ulFlag)
 {
     UINT8  ucV, ucR, ucW, ucX, ucU, ucG, ucRSW;
     

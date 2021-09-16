@@ -1252,7 +1252,7 @@ INT  packet_connect (AF_PACKET_T *pafpacket, const struct sockaddr *name, sockle
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: packet_recvfrom
+** 函数名称: packet_recvfrom2
 ** 功能描述: recvfrom
 ** 输　入  : pafpacket afpacket file
 **           mem       buffer

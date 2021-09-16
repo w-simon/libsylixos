@@ -679,7 +679,7 @@ PVOID  API_DeviceTreeAddressIoremap (PLW_DEVTREE_NODE  pdtnDev, INT  iIndex)
     }
 
     return  (API_VmmIoRemapNocache((PVOID)devresource.iomem.DEVRES_ulStart,
-                                   RESOURCE_SIZE(&devresource)));
+                                   RESOURCE_SIZE(devresource)));
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_DeviceTreeFindNodeOptsByPath

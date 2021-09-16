@@ -1338,7 +1338,7 @@ static VOID  __pciCapPcieSlot (INT iBus, INT iSlot, INT iFunc, UINT  uiOffset)
     }
     if (usSlotCtl & PCI_EXP_SLTCTL_PWRC) {
         printf(" Power Controller %s",
-               (usSlotCtl & PCI_EXP_SLTCTL_PWRI) >> 10 == 0 ? "on" : "off");
+               (usSlotCtl & PCI_EXP_SLTCTL_PWRC) >> 10 == 0 ? "on" : "off");
     }
 }
 /*********************************************************************************************************

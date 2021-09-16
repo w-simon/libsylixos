@@ -431,7 +431,8 @@ char *if_indextoname (unsigned  ifindex, char *ifname)
     char  *ret;
 
     if (!ifname) {
-        errno = EINVAL;
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
     }
     
     LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
