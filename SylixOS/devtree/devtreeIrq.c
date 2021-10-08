@@ -465,7 +465,7 @@ INT  API_DeviceTreeIrqToResouceTable (PLW_DEVTREE_NODE  pdtnDev,
     INT  i;
 
     for (i = 0; i < iNrIrqs; i++) {
-        if (API_DeviceTreeIrqToResource(pdtnDev, i, pdevresource) <= 0) {
+        if (API_DeviceTreeIrqToResource(pdtnDev, i, pdevresource) < 0) {
             break;
         }
     }

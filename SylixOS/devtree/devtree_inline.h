@@ -158,6 +158,25 @@ static LW_INLINE  CPCHAR  __deviceTreeBaseNameGet (CPCHAR  pcPath)
 
     return  (pcTail ? (pcTail + 1) : pcPath);
 }
+/*********************************************************************************************************
+** 函数名称: __deviceTreeChildCountGet
+** 功能描述: 获取节点名称
+** 输　入  : pdtnDev          设备树节点
+** 输　出  : 子节点数
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static LW_INLINE  INT  __deviceTreeChildCountGet (const PLW_DEVTREE_NODE  pdtnDev)
+{
+    PLW_DEVTREE_NODE    pdtnChild;
+    INT                 iCount      = 0;
+
+    _LIST_EACH_CHILD_OF_NODE(pdtnDev, pdtnChild) {
+        iCount++;
+    }
+
+    return  (iCount);
+}
 
 #endif                                                                  /*  __DEVTREE_INLINE_H          */
 /*********************************************************************************************************

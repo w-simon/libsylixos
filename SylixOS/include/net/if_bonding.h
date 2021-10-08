@@ -60,6 +60,7 @@ struct net_bonding_ctl {
 
 #define NETBD_MON_MODE_TRAFFIC      0                       /*  Traffic detect (default) 'active-backup'*/
 #define NETBD_MON_MODE_ARP          1                       /*  ARP detect 'active-backup'              */
+#define NETBD_MON_MODE_LINK         2                       /*  Only use linkup detect 'active-backup'  */
 
 #define NETBD_CTL_ADD           _IOWR('b', 0, struct net_bonding_ctl)
 #define NETBD_CTL_DELETE        _IOW( 'b', 1, struct net_bonding_ctl)

@@ -168,12 +168,13 @@ INT  __deviceTreeSpiDevInfoGet (PLW_DT_SPI_DEVICE  pdtspidev, PLW_DEVTREE_NODE  
 *********************************************************************************************************/
 LW_API
 INT  API_DeviceTreeSpiCtrlRegister (PLW_DT_SPI_CTRL      pdtspictrl,
-                                    PLW_DEVTREE_NODE     pdtnDev)
+                                    PLW_DEVTREE_NODE     pdtnDev,
+                                    CPCHAR               pcName)
 {
     PLW_DEVTREE_NODE    pdtnChild;
     INT                 iRet;
 
-    iRet = API_SpiCtrlRegister(pdtspictrl);                             /*  ×¢²á SPI ¿ØÖÆÆ÷             */
+    iRet = API_SpiCtrlRegister(pdtspictrl, pcName);                     /*  ×¢²á SPI ¿ØÖÆÆ÷             */
     if (iRet) {
         return  (iRet);
     }

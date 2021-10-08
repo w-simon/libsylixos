@@ -93,7 +93,7 @@ static INT  __deviceTreeRememberOrFreeMap (PLW_PINCTRL           ppinctrl,
 
     ppinctlmaps->PCTLM_ppinctldev   = ppinctrldev;                      /*  记录引脚控制器              */
     ppinctlmaps->PCTLM_ppinctlmaps  = ppinctrlmap;                      /*  记录引脚映射数组            */
-    ppinctlmaps->PCTLM_uiMapsNum = uiNumMaps;                           /*  记录引脚映射数组元素个数    */
+    ppinctlmaps->PCTLM_uiMapsNum    = uiNumMaps;                        /*  记录引脚映射数组元素个数    */
     _List_Line_Add_Ahead(&ppinctlmaps->PCTLM_lineManage,
                          &ppinctrl->PCTL_plinemaps);                    /*  添加引脚映射结构节点        */
 

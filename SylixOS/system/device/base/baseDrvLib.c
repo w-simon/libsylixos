@@ -394,7 +394,7 @@ __error_handle:
     __DRV_DEV_LIST_UNLOCK(pdrvinstance);
     pdevinstance->DEVHD_pdrvinstance = NULL;
     
-    _DebugFormat(__ERRORMESSAGE_LEVEL,"Failed to probe device: %s",
+    _DebugFormat(__ERRORMESSAGE_LEVEL,"Failed to probe device: %s\r\n",
                  pdevinstance->DEVHD_pcName);
     
     return  (PX_ERROR);
@@ -526,20 +526,20 @@ INT  API_DriverRegister (PLW_DRV_INSTANCE  pdrvinstance)
     }
 
     if (!(pbustype->BUS_uiStatus & BUS_INITIALIZED)) {                  /*  总线尚未初始化返回错误      */
-        _DebugFormat(__ERRORMESSAGE_LEVEL, "Bus %s was not initialized.\n",
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "Bus %s was not initialized.\r\n",
                      pbustype->BUS_pcName);
         return  (PX_ERROR);
     }
     
     if (!pdrvinstance->DRVHD_pcName) {                                  /*  驱动名字未初始化返回失败    */
-        _DebugFormat(__ERRORMESSAGE_LEVEL, "Driver name is NULL");
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "Driver name is NULL\r\n");
         return  (PX_ERROR);
     }
     
     pdrvinstanceOther = __drvFind(pdrvinstance->DRVHD_pcName,
                                   pdrvinstance->DRVHD_pbustype);        /*  查找驱动是否已注册          */
     if (pdrvinstanceOther) {
-        _DebugFormat(__ERRORMESSAGE_LEVEL, "Driver %s is already registered",
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "Driver %s is already registered\r\n",
                      pdrvinstance->DRVHD_pcName);
         return  (PX_ERROR);
     }
@@ -587,7 +587,7 @@ INT  API_DeviceRegister (PLW_DEV_INSTANCE  pdevinstance)
 
     uiStatus = pdevinstance->DEVHD_pbustype->BUS_uiStatus;
     if (!(uiStatus & BUS_INITIALIZED)) {                                /*  总线尚未初始化返回失败      */
-        _DebugFormat(__ERRORMESSAGE_LEVEL, "Bus %s was not initialized.\n",
+        _DebugFormat(__ERRORMESSAGE_LEVEL, "Bus %s was not initialized.\r\n",
                      pdevinstance->DEVHD_pbustype->BUS_pcName);
         return  (PX_ERROR);
     }

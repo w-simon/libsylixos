@@ -124,7 +124,6 @@ typedef LW_DT_SPI_MSG       *PLW_DT_SPI_MSG;
 
 typedef struct lw_dt_spi_ctrl {
     PLW_SPI_ADAPTER          DTSPICTRL_pspiadapter;
-    CPCHAR                   DTSPICTRL_pcName;                          /*  SPI 控制器名称              */
     PLW_DEV_INSTANCE         DTSPICTRL_pdevinstance;                    /*  驱动模型中的设备            */
     LW_OBJECT_HANDLE         DTSPICTRL_hBusLock;                        /*  总线操作锁                  */
 
@@ -164,11 +163,11 @@ typedef struct lw_dt_spi_ctrl {
     INT                    (*DTSPICTRL_pfuncPrepareHw)(struct lw_dt_spi_ctrl     *pdtspictrl);
     INT                    (*DTSPICTRL_pfuncUnprepareHw)(struct lw_dt_spi_ctrl   *pdtspictrl);
     INT                    (*DTSPICTRL_pfuncPrepareMsg)(struct lw_dt_spi_ctrl    *pdtspictrl,
-                                                         struct lw_dt_spi_msg     *pdtspimsg);
+                                                        struct lw_dt_spi_msg     *pdtspimsg);
     INT                    (*DTSPICTRL_pfuncUnprepareMsg)(struct lw_dt_spi_ctrl  *pdtspictrl,
-                                                           struct lw_dt_spi_msg   *pdtspimsg);
+                                                          struct lw_dt_spi_msg   *pdtspimsg);
     INT                    (*DTSPICTRL_pfuncXferOneMsg)(struct lw_dt_spi_dev     *pdtspidev,
-                                                         struct lw_dt_spi_msg     *pdtspimsg);
+                                                        struct lw_dt_spi_msg     *pdtspimsg);
 } LW_DT_SPI_CTRL;
 typedef LW_DT_SPI_CTRL     *PLW_DT_SPI_CTRL;
 
@@ -196,9 +195,9 @@ typedef LW_DT_SPI_DEVICE    *PLW_DT_SPI_DEVICE;
 *********************************************************************************************************/
 
 typedef struct lw_dt_spi_drv  {
-    LW_DRV_INSTANCE          DTSPIDRV_drvinstance;                     /*  驱动模型中的驱动            */
-    CPCHAR                   DTSPIDRV_pcName;                          /*  驱动名称                    */
-    PVOID                    DTSPIDRV_pvPriv;                          /*  私有数据                    */
+    LW_DRV_INSTANCE          DTSPIDRV_drvinstance;                      /*  驱动模型中的驱动            */
+    CPCHAR                   DTSPIDRV_pcName;                           /*  驱动名称                    */
+    PVOID                    DTSPIDRV_pvPriv;                           /*  私有数据                    */
 
     /*
      *  以下为操作函数，具体功能见名称
@@ -224,7 +223,8 @@ LW_API VOID              API_SpiCtrlFree(PLW_DT_SPI_CTRL         pdtspictrl);
 
 LW_API PVOID             API_SpiCtrlGetPrivData(PLW_DT_SPI_CTRL  pdtspictrl);
 
-LW_API INT               API_SpiCtrlRegister(PLW_DT_SPI_CTRL     pdtspictrl);
+LW_API INT               API_SpiCtrlRegister(PLW_DT_SPI_CTRL     pdtspictrl,
+                                             CPCHAR              pcName);
 
 LW_API INT               API_SpiDrvRegister(PLW_DT_SPI_DRIVER    pspidriver);
 
@@ -238,7 +238,7 @@ LW_API INT               API_SpiDevSetup(PLW_DT_SPI_DEVICE       pdtspidev);
 
 LW_API INT               API_SpiDevTransfer(PLW_DT_SPI_DEVICE    pdtspidev,
                                             PLW_DT_SPI_XFER      pdtspixfers,
-                                            INT                 iNum);
+                                            INT                  iNum);
 
 LW_API INT               API_SpiWrite(PLW_DT_SPI_DEVICE       pdtspidev,
                                       PVOID                   pvBuf,

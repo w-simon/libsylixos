@@ -404,7 +404,8 @@ LW_API INT                   API_DeviceTreeI2cDevRegister(PLW_DT_I2C_ADAPTER  pi
 *********************************************************************************************************/
 
 LW_API INT                   API_DeviceTreeSpiCtrlRegister(PLW_DT_SPI_CTRL    pspictrl,
-                                                           PLW_DEVTREE_NODE   pdtnDev);
+                                                           PLW_DEVTREE_NODE   pdtnDev,
+                                                           CPCHAR             pcName);
 
 LW_API INT                   API_DeviceTreeSpiDevRegister(PLW_DT_SPI_CTRL    pspictrl,
                                                           PLW_DEVTREE_NODE   pdtnDev);

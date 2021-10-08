@@ -276,7 +276,7 @@ static INT  __tshellNetbd (INT  iArgC, PCHAR  *ppcArgV)
     
     if ((lib_strcmp(ppcArgV[1], "addbd")    == 0) ||
         (lib_strcmp(ppcArgV[1], "changebd") == 0)) {
-        if (iArgC < 7) {
+        if (iArgC < 5) {
             goto    __arg_error;
         }
         
@@ -294,15 +294,27 @@ static INT  __tshellNetbd (INT  iArgC, PCHAR  *ppcArgV)
             iMonMode = NETBD_MON_MODE_TRAFFIC;
         } else if (lib_strcmp(ppcArgV[4], "-a") == 0) {
             iMonMode = NETBD_MON_MODE_ARP;
+        } else if (lib_strcmp(ppcArgV[4], "-l") == 0) {
+            iMonMode = NETBD_MON_MODE_LINK;
         } else {
             goto    __arg_error;
         }
         
-        if (sscanf(ppcArgV[5], "%d", &iInterval) != 1) {
-            goto    __arg_error;
-        }
-        if (sscanf(ppcArgV[6], "%d", &iAlive) != 1) {
-            goto    __arg_error;
+        if (iMonMode != NETBD_MON_MODE_LINK) {
+            if (iArgC < 7) {
+                goto    __arg_error;
+            }
+
+            if (sscanf(ppcArgV[5], "%d", &iInterval) != 1) {
+                goto    __arg_error;
+            }
+            if (sscanf(ppcArgV[6], "%d", &iAlive) != 1) {
+                goto    __arg_error;
+            }
+
+        } else {
+            iInterval = 1000;
+            iAlive    = 1000;
         }
 
         if (lib_strcmp(ppcArgV[1], "addbd") == 0) {
@@ -434,12 +446,13 @@ INT  _netBondingInit (VOID)
                       "eg. netbonding show bond0              (Show all net device in 'bond0' net bonding)\n"
                       "    netbonding addbd bond0 [...]       (Add a net bonding named 'bond0')\n"
                       "    netbonding changebd bond0 [...]    (Change a net bonding named 'bond0')\n\n"
-                      "    [...]: [ab|bl|bc] [-t|-a] [interval] [time to alive]\n\n"
+                      "    [...]: [ab|bl|bc] [-t|-a|-l] [interval] [time to alive]\n\n"
                       "    ab           : Active Backup mode\n"
                       "    bl           : Balance RR mode\n"
                       "    bc           : Broadcast mode\n"
                       "    -t           : Traffic detect in 'Active Backup' mode\n"
                       "    -a           : ARP detect in 'Active Backup' mode\n"
+                      "    -l           : Linkup detect only in 'Active Backup' mode\n"
                       "    interval     : ARP detect interval (milliseconds)\n"
                       "    time to alive: When detect OK how long does it take to active (milliseconds)\n\n"
                       "    netbonding delbd bond0             (Delete a net bonding named 'bond0')\n"

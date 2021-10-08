@@ -189,15 +189,27 @@ static void netbd_select_working (netbd_t *netbd)
   }
 }
 
+/* learn my MAC address */
+static void netbd_learn_my_mac (netbd_t *netbd)
+{
+  ip4_addr_t ipaddr;
+  struct netif *netdbif;
+  struct netif *sendif;
+  struct eth_addr macsrc;
+
+  ipaddr.addr = htonl(0xc0a8015a); /* any ip */
+  netdbif = (struct netif *)(netbd->netdev_bd.sys);
+  MEMCPY(&macsrc.addr, netdbif->hwaddr, ETH_ALEN);
+  sendif = (struct netif *)(netbd->working->netdev->sys);
+  etharp_raw(sendif, &macsrc, &ethbroadcast, &macsrc, netif_ip4_addr(netdbif),
+             &ethzero, &ipaddr, ARP_REQUEST); /* send ARP request */
+}
+
 /* net bonding traffic detect */
 static void netbd_traffic_detect (netbd_t *netbd)
 {
   int i;
   netbd_eth_t *netbd_eth;
-  struct netif *netdbif;
-  struct netif *sendif;
-  struct eth_addr macsrc;
-  ip4_addr_t ipaddr;
   netbd_eth_t *curent_working = netbd->working;
   
   NETBD_LOCK(netbd);
@@ -218,9 +230,10 @@ static void netbd_traffic_detect (netbd_t *netbd)
     NETBD_UNLOCK(netbd);
     return;
   }
+
   netbd_select_working(netbd);
 
-  if (curent_working != netbd->working) { /* woking change */
+  if (curent_working != netbd->working) { /* working change */
     netbd->working_change = 1;
   }
 
@@ -229,12 +242,7 @@ static void netbd_traffic_detect (netbd_t *netbd)
    * let the corresponding port learn the MAC address of the netbd.
    */
   if (netbd->working_change) {
-    ipaddr.addr = 0x5A01A8C0; /* any ip */
-    netdbif = (struct netif *)(netbd->netdev_bd.sys);
-    MEMCPY(&macsrc.addr, netdbif->hwaddr, ETH_ALEN);
-    sendif = (struct netif *)(netbd->working->netdev->sys);
-    etharp_raw(sendif, &macsrc, &ethbroadcast, &macsrc, netif_ip4_addr(netdbif),
-               &ethzero, &ipaddr, ARP_REQUEST); /* send ARP request */
+    netbd_learn_my_mac(netbd);
     netbd->working_change = 0;
   }
   NETBD_UNLOCK(netbd);
@@ -301,6 +309,34 @@ static void netbd_arp_detect (netbd_t *netbd)
     }
     NETBD_UNLOCK(netbd);
   }
+}
+
+/* net bonding linkup detect */
+static void netbd_linkup_detect (netbd_t *netbd)
+{
+  netbd_eth_t *curent_working = netbd->working;
+
+  NETBD_LOCK(netbd);
+  if (!netbd->eth_cnt) { /* no sub device */
+    NETBD_UNLOCK(netbd);
+    return;
+  }
+
+  netbd_select_working(netbd);
+
+  if (curent_working != netbd->working) { /* working change */
+    netbd->working_change = 1;
+  }
+
+  /*
+   * When a working link change is detected, a broadcast arp is actively sent to
+   * let the corresponding port learn the MAC address of the netbd.
+   */
+  if (netbd->working_change) {
+    netbd_learn_my_mac(netbd);
+    netbd->working_change = 0;
+  }
+  NETBD_UNLOCK(netbd);
 }
 
 /* net bonding arp process */
@@ -407,7 +443,7 @@ static int  netbd_transmit (struct netdev *netdev, struct pbuf *p)
     }
   }
 
-  if (curent_working != netbd->working) { /* woking change */
+  if (curent_working != netbd->working) { /* working change */
     netbd->working_change = 1;
   }
 
@@ -535,7 +571,7 @@ to_bd:
       }
       netbd_eth->alive = netbd->alive; /* refresh time alive counter */
   
-    } else { /* NETBD_MON_MODE_ARP */
+    } else if (netbd->mon_mode == NETBD_MON_MODE_ARP) {
       u16_t type = eh->type;
       u16_t next_hdr_offset = SIZEOF_ETH_HDR;
       struct etharp_hdr *hdr;
@@ -556,9 +592,14 @@ to_bd:
         hdr = (struct etharp_hdr *)((u8_t *)(p->payload) + next_hdr_offset);
         netbd_arp_process(netbd, netbd_eth, hdr); /* process arp packet */
       }
+
+    } else { /* NETBD_MON_MODE_LINK */
+      if (!(netbd->working->netdev->if_flags & IFF_RUNNING)) {
+        netbd->working = netbd_eth; /* use this net device as working */
+      }
     }
   }
-  if (curent_working != netbd->working) {   /* woking change */
+  if (curent_working != netbd->working) {   /* working change */
     netbd->working_change = 1;
   }
   
@@ -603,8 +644,10 @@ static void  netbd_proc (void *arg)
       if (netbd->mode == NETBD_MODE_ACTIVE_BACKUP) {
         if (netbd->mon_mode == NETBD_MON_MODE_TRAFFIC) {
           netbd_traffic_detect(netbd);
-        } else {
+        } else if (netbd->mon_mode == NETBD_MON_MODE_ARP) {
           netbd_arp_detect(netbd);
+        } else {
+          netbd_linkup_detect(netbd);
         }
       }
       netbd_link_check(netbd);
@@ -1110,7 +1153,9 @@ int  netbd_add (const char *bddev, const char *ip,
   }
   
   if (mode == NETBD_MODE_ACTIVE_BACKUP) {
-    if ((mon_mode != NETBD_MON_MODE_TRAFFIC) && (mon_mode != NETBD_MON_MODE_ARP)) {
+    if ((mon_mode != NETBD_MON_MODE_TRAFFIC) &&
+        (mon_mode != NETBD_MON_MODE_ARP) &&
+        (mon_mode != NETBD_MON_MODE_LINK)) {
       errno = EINVAL;
       return (-1);
     }
@@ -1327,9 +1372,10 @@ int  netbd_change (const char *bddev, int mode,
                    int mon_mode, int interval,
                    int alive)
 {
-  int found;
+  int i, found;
   netdev_t *netdev_bd;
   netbd_t *netbd;
+  netbd_eth_t *netbd_eth;
 
   if (!bddev) {
     errno = EINVAL;
@@ -1344,7 +1390,9 @@ int  netbd_change (const char *bddev, int mode,
   }
 
   if (mode == NETBD_MODE_ACTIVE_BACKUP) {
-    if ((mon_mode != NETBD_MON_MODE_TRAFFIC) && (mon_mode != NETBD_MON_MODE_ARP)) {
+    if ((mon_mode != NETBD_MON_MODE_TRAFFIC) &&
+        (mon_mode != NETBD_MON_MODE_ARP) &&
+        (mon_mode != NETBD_MON_MODE_LINK)) {
       errno = EINVAL;
       return (-1);
     }
@@ -1379,6 +1427,15 @@ int  netbd_change (const char *bddev, int mode,
   }
 
   NETBD_LOCK(netbd);
+  /* We need initialize active */
+  if (mode == NETBD_MODE_ACTIVE_BACKUP) {
+    netbd_eth = (netbd_eth_t *)netbd->eth_ring;
+    for (i = 0; i < netbd->eth_cnt; i++) {
+      netbd_eth->alive = alive;
+      netbd_eth = (netbd_eth_t *)_list_ring_get_next(&netbd_eth->ring);
+    }
+  }
+
   netbd->mode = mode;
   netbd->mon_mode = mon_mode;
   netbd->timer = interval;
@@ -1474,6 +1531,7 @@ int  netbd_show_dev (const char *bddev, int bdindex, int fd)
   netdev_t *netdev_bd;
   netdev_t *netdev;
   ip4_addr_t ipaddr[NETBD_ARP_BUF_MAX];
+  char *mon_mode;
   char speed[32];
   char ifname[NETIF_NAMESIZE];
   LW_LIST_LINE *pline;
@@ -1514,7 +1572,14 @@ int  netbd_show_dev (const char *bddev, int bdindex, int fd)
   }
   
   if (netbd->mode == NETBD_MODE_ACTIVE_BACKUP) {
-    fdprintf(fd, "Moniting    : %s\n", (netbd->mon_mode == NETBD_MON_MODE_TRAFFIC) ? "Traffic" : "ARP Detect");
+    if (netbd->mon_mode == NETBD_MON_MODE_TRAFFIC) {
+      mon_mode = "Traffic";
+    } else if (netbd->mon_mode == NETBD_MON_MODE_ARP) {
+      mon_mode = "ARP Detect";
+    } else {
+      mon_mode = "Linkup";
+    }
+    fdprintf(fd, "Moniting    : %s\n", mon_mode);
     fdprintf(fd, "Timeout     : %d (milliseconds)\n", netbd->alive);
     
     if (netbd->working) {

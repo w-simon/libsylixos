@@ -150,7 +150,7 @@ PLW_DT_SPI_CTRL  API_SpiCtrlAlloc (PLW_DEV_INSTANCE  pdevinstance, UINT  uiPrivD
 {
     PLW_DT_SPI_CTRL  pdtspictrl;
     PVOID            pvMem;
-      
+
     if (!pdevinstance) {
         _ErrorHandle(EINVAL);
         return  (LW_NULL);
@@ -163,11 +163,11 @@ PLW_DT_SPI_CTRL  API_SpiCtrlAlloc (PLW_DEV_INSTANCE  pdevinstance, UINT  uiPrivD
 
     pdtspictrl                          = (PLW_DT_SPI_CTRL)pvMem;
     pdevinstance->DEVHD_pvPrivData      = pdtspictrl;
-    
+
     pdtspictrl->DTSPICTRL_pvPriv        = pvMem + sizeof(LW_DT_SPI_CTRL);
     pdtspictrl->DTSPICTRL_pdevinstance  = pdevinstance;
     pdtspictrl->DTSPICTRL_usChipSelNums = 1;
-    
+
     return  (pdtspictrl);
 }
 /*********************************************************************************************************
@@ -219,20 +219,15 @@ PVOID  API_SpiCtrlGetPrivData (PLW_DT_SPI_CTRL  pdtspictrl)
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_SpiCtrlRegister (PLW_DT_SPI_CTRL  pdtspictrl)
+INT  API_SpiCtrlRegister (PLW_DT_SPI_CTRL  pdtspictrl, CPCHAR  pcName)
 {
     PLW_SPI_ADAPTER     pspiadapter;
 
-    if (!pdtspictrl) {
+    if (!pdtspictrl || !pcName) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
-    if (LW_NULL == pdtspictrl->DTSPICTRL_pcName) {                      /*  检查控制器名称              */
-        _DebugFormat(__ERRORMESSAGE_LEVEL, "SPI controller name is empty.\r\n");
-        return  (PX_ERROR);
-    }
-    
     if (LW_NULL == pdtspictrl->DTSPICTRL_pfuncXferOne) {                /*  检查传输接口                */
         _DebugFormat(__ERRORMESSAGE_LEVEL, "SPI transfer function is empty.\r\n");
         return  (PX_ERROR);
@@ -240,7 +235,7 @@ INT  API_SpiCtrlRegister (PLW_DT_SPI_CTRL  pdtspictrl)
 
     /*
      *  因为 SPI 控制器已作为平台设备注册，
-     *  此处仅对控制器参数进行初始化, 
+     *  此处仅对控制器参数进行初始化,
      */
     pdtspictrl->DTSPICTRL_hBusLock = API_SemaphoreBCreate("spi_buslock",
                                                           LW_TRUE,
@@ -257,8 +252,7 @@ INT  API_SpiCtrlRegister (PLW_DT_SPI_CTRL  pdtspictrl)
         return  (PX_ERROR);
     }
 
-    if (__busAdapterCreate(&pspiadapter->SPIADAPTER_pbusadapter,
-                           pdtspictrl->DTSPICTRL_pcName) != ERROR_NONE) {
+    if (__busAdapterCreate(&pspiadapter->SPIADAPTER_pbusadapter, pcName) != ERROR_NONE) {
         __SHEAP_FREE(pspiadapter);
         return  (PX_ERROR);
     }
@@ -310,9 +304,9 @@ INT  API_SpiDevRegister (PLW_DT_SPI_DEVICE  pdtspidevice)
     pdtspictrl   = pdtspidevice->DTSPIDEV_pdtspictrl;
 
     LW_BUS_INC_DEV_COUNT(&pdtspictrl->DTSPICTRL_pspiadapter->SPIADAPTER_pbusadapter);
-    
+
     pdevinstance->DEVHD_pbustype = &_G_bustypeSpi;                      /*  设置设备使用的总线类型      */
-    
+
     iRet = API_DeviceRegister(pdevinstance);                            /*  注册设备                    */
 
     return  (iRet);
@@ -339,7 +333,7 @@ VOID  API_SpiDevDelete (PLW_DT_SPI_DEVICE  pdtspidevice)
     pdtspictrl = pdtspidevice->DTSPIDEV_pdtspictrl;
 
     LW_BUS_DEC_DEV_COUNT(&pdtspictrl->DTSPICTRL_pspiadapter->SPIADAPTER_pbusadapter);
-    
+
     if (pdtspidevice) {
         __SHEAP_FREE(pdtspidevice);
     }
@@ -392,7 +386,7 @@ INT  API_SpiDevSetup (PLW_DT_SPI_DEVICE  pdtspidevice)
     UINT16  usUglyBits;
     UINT16  usMode;
     INT     iRet   = ERROR_NONE;
-    
+
     if (!pdtspidevice) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -402,19 +396,19 @@ INT  API_SpiDevSetup (PLW_DT_SPI_DEVICE  pdtspidevice)
 
     /*
      *  不能同时选择 DUAL 模式 和 QUAD 模式
-     */  
+     */
     if (((usMode & LW_SPI_TX_DUAL) && (usMode & LW_SPI_TX_QUAD)) ||
         ((usMode & LW_SPI_RX_DUAL) && (usMode & LW_SPI_RX_QUAD))) {
         _DebugFormat(__ERRORMESSAGE_LEVEL, "SPI: can not select "
                      "dual and quad at the same time\r\n");
         return  (-EINVAL);
     }
-        
+
     /*
      *  SPI 的三线模式不能使用 DUAL 和 QUAD 模式
      */
     if ((usMode & LW_SPI_3WIRE) && (usMode &
-        (LW_SPI_TX_DUAL | LW_SPI_TX_QUAD | 
+        (LW_SPI_TX_DUAL | LW_SPI_TX_QUAD |
          LW_SPI_RX_DUAL | LW_SPI_RX_QUAD))) {
         _DebugFormat(__ERRORMESSAGE_LEVEL, "SPI: can not select "
                      "dual and quad with 3 wire mode.\r\n");
@@ -425,8 +419,8 @@ INT  API_SpiDevSetup (PLW_DT_SPI_DEVICE  pdtspidevice)
      *  处理模式中无效的标志
      */
     usBadBits  = usMode & (~pdtspidevice->DTSPIDEV_pdtspictrl->DTSPICTRL_uiMode);
-    usUglyBits = usBadBits & 
-                 (LW_SPI_TX_DUAL | LW_SPI_TX_QUAD | 
+    usUglyBits = usBadBits &
+                 (LW_SPI_TX_DUAL | LW_SPI_TX_QUAD |
                   LW_SPI_RX_DUAL | LW_SPI_RX_QUAD);
 
     if (usUglyBits) {
@@ -450,7 +444,7 @@ INT  API_SpiDevSetup (PLW_DT_SPI_DEVICE  pdtspidevice)
     if (!pdtspidevice->DTSPIDEV_uiSpeedMax) {
         pdtspidevice->DTSPIDEV_uiSpeedMax = pdtspidevice->DTSPIDEV_pdtspictrl->DTSPICTRL_uiSpeedMax;
     }
-    
+
     /*
      *  以上主要是检查 SPI 设备的参数是否与控制器匹配，
      *  做完上述检查后，调用控制器注册的 setup 回调函数
@@ -465,7 +459,7 @@ INT  API_SpiDevSetup (PLW_DT_SPI_DEVICE  pdtspidevice)
     if (pdtspidevice->DTSPIDEV_pdtspictrl->DTSPICTRL_pfuncSetCs) {
         pdtspidevice->DTSPIDEV_pdtspictrl->DTSPICTRL_pfuncSetCs(pdtspidevice, LW_FALSE);
     }
-        
+
     return  (iRet);
 }
 /*********************************************************************************************************
@@ -483,7 +477,7 @@ LW_API
 INT  API_SpiDevTransfer (PLW_DT_SPI_DEVICE  pdtspidevice,
                          PLW_DT_SPI_XFER    pspixfer,
                          INT                iNum)
-{    
+{
     PLW_DT_SPI_CTRL  pdtspictrl;
     INT              iRet;
     INT              i;
@@ -500,7 +494,7 @@ INT  API_SpiDevTransfer (PLW_DT_SPI_DEVICE  pdtspidevice,
         iRet = pdtspictrl->DTSPICTRL_pfuncPrepareXfer(pdtspidevice);    /*  传输前准备                  */
         if (iRet) {
             goto  __xfer_ret;
-        }        
+        }
     }
 
     if (pdtspictrl->DTSPICTRL_pfuncSetCs) {
@@ -547,14 +541,14 @@ INT  API_SpiWrite (PLW_DT_SPI_DEVICE  pdtspidevice, PVOID  pvBuf, INT  iLen)
 
     if ((LW_NULL == pdtspidevice) ||
         (LW_NULL == pvBuf)        ||
-        (0 <= iLen))  {
+        (0 <= iLen)) {
         return  (PX_ERROR);
     }
-        
+
     lib_bzero(&spixfer, sizeof(spixfer));
     spixfer.DTSPIXFER_pvTxBuf = pvBuf;
     spixfer.DTSPIXFER_uiLen   = iLen;
-     
+
     iRet = API_SpiDevTransfer(pdtspidevice, &spixfer, 1);
 
     return  (iRet);
@@ -577,15 +571,15 @@ INT  API_SpiRead  (PLW_DT_SPI_DEVICE  pdtspidevice, PVOID  pvBuf, INT  iLen)
     INT             iRet;
 
     if ((LW_NULL == pdtspidevice) ||
-        (LW_NULL == pvBuf)   || 
+        (LW_NULL == pvBuf)        ||
         (0 <= iLen))  {
         return  (PX_ERROR);
     }
-        
+
     lib_bzero(&spixfer, sizeof(spixfer));
     spixfer.DTSPIXFER_pvRxBuf = pvBuf;
     spixfer.DTSPIXFER_uiLen   = iLen;
-     
+
     iRet = API_SpiDevTransfer(pdtspidevice, &spixfer, 1);
 
     return  (iRet);
@@ -625,11 +619,11 @@ INT  API_SpiWriteThenRead (PLW_DT_SPI_DEVICE  pdtspidevice,
     spixfer[1].DTSPIXFER_pvTxBuf = LW_NULL;
     spixfer[1].DTSPIXFER_pvRxBuf = pvRxBuf;
     spixfer[1].DTSPIXFER_uiLen   = iRxLen;
-                
+
     iRet = API_SpiDevTransfer(pdtspidevice, spixfer, 2);
 
     return  (iRet);
-}   
+}
 /*********************************************************************************************************
 ** 函数名称: API_SpiW8R8
 ** 功能描述: 进行 SPI 通道写 8 bit，再读 8 bit 操作函数
