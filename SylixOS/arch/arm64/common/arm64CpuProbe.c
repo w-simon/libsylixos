@@ -4,41 +4,46 @@
 **
 **                                   嵌入式实时操作系统
 **
-**                                       SylixOS(TM)
+**                                SylixOS(TM)  LW : long wing
 **
-**                               Copyright  All Rights Reserved
+**                               Copyright All Rights Reserved
 **
 **--------------文件信息--------------------------------------------------------------------------------
 **
-** 文   件   名: arm64Mmu.h
+** 文   件   名: arm64CpuProbe.c
 **
 ** 创   建   人: Wang.Xuan (王翾)
 **
-** 文件创建日期: 2018 年 07 月 04 日
+** 文件创建日期: 2021 年 10 月 09 日
 **
-** 描        述: ARM64 体系构架 MMU 驱动.
+** 描        述: ARM64 体系构架 CPU 版本探测相关.
 *********************************************************************************************************/
-
-#ifndef __ARM64MMU_H
-#define __ARM64MMU_H
-
+#define  __SYLIXOS_KERNEL
+#include "SylixOS.h"
 /*********************************************************************************************************
-  页大小支持
+** 函数名称: arm64CpuMidrMatch
+** 功能描述: 对 CPU 的 MIDR 版本进行探测比对
+** 输　入  : uiModel    比较的模板
+**           uiRvMin    版本范围最小值
+**           uiRvMax    版本范围最大值
+** 输　出  : 是否符合版本
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
+BOOL  arm64CpuMidrMatch (UINT32  uiModel, UINT32  uiRvMin, UINT32  uiRvMax)
+{
+    UINT32   uiMidr;
 
-#define ARM64_MMFR_TGRAN4_SHIFT         28
-#define ARM64_MMFR_TGRAN64_SHIFT        24
-#define ARM64_MMFR_TGRAN16_SHIFT        20
-#define ARM64_MMFR_TGRAN4_NSUPPORT      0xf
-#define ARM64_MMFR_TGRAN64_NSUPPORT     0xf
-#define ARM64_MMFR_TGRAN16_NSUPPORT     0x0
+    uiMidr = arm64GetMIDREL1();
+    if ((uiMidr & MIDR_CPU_MODEL_MASK) != uiModel) {
+        uiMidr &= (MIDR_REVISION_MASK | MIDR_VARIANT_MASK);
+        if ((uiMidr >= uiRvMin) && (uiMidr <= uiRvMax)) {
+            return  (LW_TRUE);
+        }
+    }
 
-VOID   arm64MmuInit(LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName);
-ULONG  arm64MmuGetMMFR0(VOID);
-ULONG  arm64MmuGetMMFR1(VOID);
-ULONG  arm64MmuAbtFaultAddr(VOID);
-
-#endif                                                                  /*  __ARM64MMU_H                */
+    return  (LW_FALSE);
+}
 /*********************************************************************************************************
   END
 *********************************************************************************************************/

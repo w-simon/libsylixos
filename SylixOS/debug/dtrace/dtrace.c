@@ -1401,44 +1401,6 @@ ULONG  API_DtraceThreadStepGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, add
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_DtraceSchedHook
-** 功能描述: 线程切换HOOK函数，用于切换断点信息
-**           ulThreadOld      切出线程
-**           ulThreadNew      切入线程
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-** 注  意  : 由于在任务切换 HOOK 中执行, 这里只处理本地 I-CACHE, 其他核通过判断虚断点生效 I-CACHE.
-
-                                           API 函数
-*********************************************************************************************************/
-LW_API
-VOID  API_DtraceSchedHook (LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulThreadNew)
-{
-    REGISTER UINT16         usIndex;
-    REGISTER PLW_CLASS_TCB  ptcb;
-
-    usIndex = _ObjectGetIndex(ulThreadOld);
-    ptcb    = __GET_TCB_FROM_INDEX(usIndex);
-    if (ptcb && (ptcb->TCB_ulStepAddr != LW_GDB_ADDR_INVAL) && !ptcb->TCB_bStepClear) {
-        archDbgBpRemove(ptcb->TCB_ulStepAddr, sizeof(addr_t), 
-                        ptcb->TCB_ulStepInst, (LW_CFG_GDB_SMP_TU_LAZY) ? LW_TRUE : LW_FALSE);
-        ptcb->TCB_bStepClear = LW_TRUE;                                 /*  单步断点已经被清除          */
-        __DTRACE_MSG("[DTRACE] <HOOK> Clear thread 0x%lx Step-Breakpoint @ 0x%08lx CPU %ld.\r\n", 
-                     ulThreadOld, ptcb->TCB_ulStepAddr, LW_CPU_GET_CUR_ID());
-    }
-
-    usIndex = _ObjectGetIndex(ulThreadNew);
-    ptcb    = __GET_TCB_FROM_INDEX(usIndex);
-    if ((ptcb->TCB_ulStepAddr != LW_GDB_ADDR_INVAL) && ptcb->TCB_bStepClear) {
-        archDbgBpInsert(ptcb->TCB_ulStepAddr, sizeof(addr_t), 
-                        &ptcb->TCB_ulStepInst, LW_TRUE);                /*  仅更新本地 I-CACHE          */
-        ptcb->TCB_bStepClear = LW_FALSE;                                /*  单步断点生效                */
-        __DTRACE_MSG("[DTRACE] <HOOK> Set thread 0x%lx Step-Breakpoint @ 0x%08lx CPU %ld.\r\n", 
-                     ulThreadNew, ptcb->TCB_ulStepAddr, LW_CPU_GET_CUR_ID());
-    }
-}
-/*********************************************************************************************************
 ** 函数名称: API_DtraceThreadStepSet
 ** 功能描述: 设置线程单步断点模式
 ** 输　入  : pvDtrace      dtrace 节点
@@ -1487,6 +1449,54 @@ ULONG  API_DtraceThreadStepSet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, BOO
 }
 
 #endif                                                                  /*  !LW_DTRACE_HW_ISTEP         */
+/*********************************************************************************************************
+** 函数名称: API_DtraceSchedHook
+** 功能描述: 线程切换HOOK函数，用于切换断点信息
+**           ulThreadOld      切出线程
+**           ulThreadNew      切入线程
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+
+                                           API 函数
+*********************************************************************************************************/
+#if !defined(LW_DTRACE_HW_ISTEP) || defined(__ARCH_DBG_SCHED_HOOK)
+
+LW_API
+VOID  API_DtraceSchedHook (LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulThreadNew)
+{
+    REGISTER UINT16         usIndex;
+    REGISTER PLW_CLASS_TCB  ptcbOld, ptcbNew;
+
+    usIndex = _ObjectGetIndex(ulThreadOld);
+    ptcbOld = __GET_TCB_FROM_INDEX(usIndex);
+    usIndex = _ObjectGetIndex(ulThreadNew);
+    ptcbNew = __GET_TCB_FROM_INDEX(usIndex);
+
+#if !defined(LW_DTRACE_HW_ISTEP)
+    if (ptcbOld && (ptcbOld->TCB_ulStepAddr != LW_GDB_ADDR_INVAL) && !ptcbOld->TCB_bStepClear) {
+        archDbgBpRemove(ptcbOld->TCB_ulStepAddr, sizeof(addr_t),
+                        ptcbOld->TCB_ulStepInst, (LW_CFG_GDB_SMP_TU_LAZY) ? LW_TRUE : LW_FALSE);
+        ptcbOld->TCB_bStepClear = LW_TRUE;                              /*  单步断点已经被清除          */
+        __DTRACE_MSG("[DTRACE] <HOOK> Clear thread 0x%lx Step-Breakpoint @ 0x%08lx CPU %ld.\r\n",
+                     ulThreadOld, ptcbOld->TCB_ulStepAddr, LW_CPU_GET_CUR_ID());
+    }
+
+    if ((ptcbNew->TCB_ulStepAddr != LW_GDB_ADDR_INVAL) && ptcbNew->TCB_bStepClear) {
+        archDbgBpInsert(ptcbNew->TCB_ulStepAddr, sizeof(addr_t),
+                        &ptcbNew->TCB_ulStepInst, LW_TRUE);             /*  仅更新本地 I-CACHE          */
+        ptcbNew->TCB_bStepClear = LW_FALSE;                             /*  单步断点生效                */
+        __DTRACE_MSG("[DTRACE] <HOOK> Set thread 0x%lx Step-Breakpoint @ 0x%08lx CPU %ld.\r\n",
+                     ulThreadNew, ptcbNew->TCB_ulStepAddr, LW_CPU_GET_CUR_ID());
+    }
+#endif                                                                  /*  !LW_DTRACE_HW_ISTEP         */
+
+#ifdef __ARCH_DBG_SCHED_HOOK
+    __ARCH_DBG_SCHED_HOOK(ptcbOld, ptcbNew);
+#endif                                                                  /*  __ARCH_DBG_SCHED_HOOK       */
+}
+
+#endif                                                                  /*  !LW_DTRACE... || __ARCH...  */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 /*********************************************************************************************************
   END

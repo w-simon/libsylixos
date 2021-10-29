@@ -29,6 +29,7 @@
 #if LW_CFG_VMM_EN > 0
 #if LW_CFG_ARM64_PAGE_SHIFT == 12
 #include "../../param/arm64Param.h"
+#include "../../common/arm64CpuProbe.h"
 #include "../cache/arm64Cache.h"
 #include "arm64Mmu.h"
 /*********************************************************************************************************
@@ -493,11 +494,35 @@ static INT  arm64MmuMemInit (PLW_MMU_CONTEXT  pmmuctx)
 *********************************************************************************************************/
 static INT  arm64MmuGlobalInit (CPCHAR  pcMachineName)
 {
+    UINT64   ullTCR = 0;
+    UINT64   ullMMFR1;
+
     archCacheReset(pcMachineName);
 
     arm64MmuInvalidateTLB();
 
-    arm64MmuSetTCR(0x580823510);                                        /*  T0SZ = 2 ^ 48               */
+#if LW_CFG_ARM64_HW_AFDBM > 0
+    /*
+     *  硬件更新 Access 和 Dirty 位
+     */
+    ullMMFR1 = arm64MmuGetMMFR1() & 0xf;
+    if (ullMMFR1 >= 2) {
+#if LW_CFG_ARM64_ERRATUM_1024718 > 0
+        if (!arm64CpuMidrMatch(MIDR_CORTEX_A55, MIDR_CPU_VAR_REV(0, 0), MIDR_CPU_VAR_REV(1, 0)))
+#endif
+        {
+            ullTCR = TCR_HD;
+        }
+    }
+    ullTCR |= TCR_HA;
+#endif
+
+    ullTCR |= TCR_IPS_48BIT_256TB | TCR_TG1_4KB | TCR_EPD1_GEN_FAULT |
+             ((2 << TCR_T1SZ_SHIFT) & TCR_T1SZ_MASK) | TCR_TG0_4KB |
+             TCR_SH0_INNER_SHAREABLE | TCR_ORGN0_WB_RA_WA | TCR_IRGN0_WB_RA_WA |
+             ((16 << TCR_T0SZ_SHIFT) & TCR_T0SZ_MASK);
+
+    arm64MmuSetTCR(ullTCR);                                             /*  T0SZ = 2 ^ 48               */
 
     arm64MmuSetMAIR();
 

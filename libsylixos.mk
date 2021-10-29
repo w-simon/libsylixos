@@ -110,6 +110,7 @@ SylixOS/arch/arm64/backtrace/arm64Backtrace.c \
 SylixOS/arch/arm64/common/arm64Assert.c \
 SylixOS/arch/arm64/common/arm64Context.c \
 SylixOS/arch/arm64/common/arm64ContextAsm.S \
+SylixOS/arch/arm64/common/arm64CpuProbe.c \
 SylixOS/arch/arm64/common/arm64Exc.c \
 SylixOS/arch/arm64/common/arm64ExcAsm.S \
 SylixOS/arch/arm64/common/arm64Io.c \

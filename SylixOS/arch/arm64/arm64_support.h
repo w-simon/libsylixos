@@ -105,6 +105,9 @@ VOID    archDbgBpPrefetch(addr_t ulAddr);
 UINT    archDbgTrapType(addr_t   ulAddr, PVOID   pvArch);
 VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);
 VOID    archDbgSetStepMode(ARCH_REG_CTX  *pregctx, BOOL  bEnable);
+VOID    archDbgSchedHook(PLW_CLASS_TCB  ptcbOld, PLW_CLASS_TCB  ptcbNew);
+
+#define __ARCH_DBG_SCHED_HOOK   archDbgSchedHook
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 /*********************************************************************************************************
@@ -144,6 +147,10 @@ INTREG  arm64GetCurrentEL(VOID);
 INTREG  arm64GetSPSel(VOID);
 VOID    arm64EL2SwitchEL1(VOID);
 VOID    arm64WaitForInterrupt(VOID);
+
+UINT32  arm64GetMDSCREL1(VOID);
+VOID    arm64SetMDSCREL1(UINT32  uiReg);
+UINT32  arm64GetMIDREL1(VOID);
 
 /*********************************************************************************************************
   ARM64 ´¦ÀíÆ÷ BogoMIPS Ñ­»·

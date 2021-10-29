@@ -292,7 +292,7 @@ struct sio_drv_funcs {                                                  /*  driv
 #define sioCallbackInstall(pSioChan, callbackType, callback, callbackArg) \
 	    ((pSioChan)->pDrvFuncs->callbackInstall(pSioChan, callbackType, \
                                                 callback, callbackArg))
-			
+
 #define sioPollInput(pSioChan, inChar) \
         ((pSioChan)->pDrvFuncs->pollInput(pSioChan, inChar))
         

@@ -422,6 +422,9 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag,
         if (off > stat64Fd.st_size) {                                   /*  off 越界                    */
             _ErrorHandle(ENXIO);
             return  (LW_VMM_MAP_FAILED);
+
+        } else if ((off + stLen) > stat64Fd.st_size) {                  /*  重新设置有效的映射范围      */
+            stLen -= (off + stLen - stat64Fd.st_size);
         }
     }
     

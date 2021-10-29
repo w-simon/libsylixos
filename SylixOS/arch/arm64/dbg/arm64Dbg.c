@@ -230,6 +230,36 @@ VOID  archDbgSetStepMode (ARCH_REG_CTX  *pregctx, BOOL  bEnable)
         pregctx->REG_ulPstate |= M_PSTATE_D;                            /*  屏蔽 Debug 异常             */
     }
 }
+/*********************************************************************************************************
+** 函数名称: archDbgSchedHook
+** 功能描述: 单步上下文设置（在上下文切换中调用）.
+** 输　入  : ptcbOld        旧的任务
+**           ptcbNew        新的任务
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+** 说  明  : armv8 在使用 Software Step 时，要保证 OS Lock 处于 unlocked 状态
+*********************************************************************************************************/
+VOID  archDbgSchedHook (PLW_CLASS_TCB  ptcbOld, PLW_CLASS_TCB  ptcbNew)
+{
+    ARCH_REG_CTX  *pregctx;
+    UINT           uiReg;
+
+    pregctx = &ptcbNew->TCB_archRegCtx;
+    uiReg   = arm64GetMDSCREL1();
+    if (pregctx->REG_ulPstate & M_PSTATE_SS) {
+        if (!(uiReg & MDSCR_EL1_SS_EN)) {
+            uiReg |= MDSCR_EL1_SS_EN;
+            arm64SetMDSCREL1(uiReg);
+        }
+
+    } else {
+        if (uiReg & MDSCR_EL1_SS_EN) {
+            uiReg &= ~MDSCR_EL1_SS_EN;
+            arm64SetMDSCREL1(uiReg);
+        }
+    }
+}
 
 #endif                                                                  /*  LW_DTRACE_HW_ISTEP          */
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */

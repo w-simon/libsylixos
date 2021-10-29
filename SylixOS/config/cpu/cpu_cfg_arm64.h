@@ -76,6 +76,14 @@
 #define LW_CFG_ARM64_PREFETCH_W         1                               /*  是否使用 PLDW 指令          */
 #define LW_CFG_ARM64_CACHE_L2           1                               /*  是否允许管理 ARM 二级 CACHE */
 #define LW_CFG_ARM64_CACHE_L2_ECC       1                               /*  是否打开 ARM 二级 CACHE ECC */
+#define LW_CFG_ARM64_HW_AFDBM           1                               /*  是否打开硬件 A、D 位更新    */
+
+/*********************************************************************************************************
+  ARM 勘误
+  ERRATUM_1024718: Update of DBM/AP bits without break before make might result in incorrect update
+*********************************************************************************************************/
+
+#define LW_CFG_ARM64_ERRATUM_1024718    1                               /*  DBM/AP 功能勘误             */
 
 /*********************************************************************************************************
   调试相关配置

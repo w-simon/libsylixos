@@ -64,8 +64,8 @@ FUNC_DEF(archTaskCtxStart)
 #if LW_CFG_ARM64_HW_STEP_EN > 0
     MOV     X0,        #0
     MSR     OSLAR_EL1, X0                                               ;/*  解锁 OS Lock                */
-    MOV     X0 ,       MDSCR_EL1_KDE_EN | MDSCR_EL1_SS_EN
-    MSR     MDSCR_EL1, X0                                               ;/*  使能 Software Step 功能     */
+    MOV     X0 ,       MDSCR_EL1_KDE_EN | MDSCR_EL1_MDE_EN
+    MSR     MDSCR_EL1, X0                                               ;/*  使能 debug 功能             */
 #endif
 
 LINE_LABEL(archTaskCtxLoad)

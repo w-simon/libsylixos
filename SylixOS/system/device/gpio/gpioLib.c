@@ -21,6 +21,7 @@
 ** BUG:
 2014.05.25  加入 get flags 操作.
 2017.12.29  加入 API_GpioGetIrq() 解决多个 GPIO 共享一路中断的竞争风险.
+2021.10.13  修复添加 GPIO 芯片时, 未处理头插情况的问题.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -177,8 +178,8 @@ VOID  API_GpioInit (VOID)
 ** 调用模块: 
                                            API 函数
 *********************************************************************************************************/
-LW_API  
-INT  API_GpioChipAdd (PLW_GPIO_CHIP pgchip)
+LW_API
+INT  API_GpioChipAdd (PLW_GPIO_CHIP  pgchip)
 {
     INTREG         iregInterLevel;
     UINT           i;
@@ -226,7 +227,11 @@ INT  API_GpioChipAdd (PLW_GPIO_CHIP pgchip)
                 return  (PX_ERROR);
             }
         }
-        _List_Line_Add_Left(&pgchip->GC_lineManage, plineTemp);
+        if (plineTemp == _G_plineGpioChips) {                           /*  恰好是头插的情况            */
+            _List_Line_Add_Ahead(&pgchip->GC_lineManage, &_G_plineGpioChips);
+        } else {
+            _List_Line_Add_Left(&pgchip->GC_lineManage, plineTemp);
+        }
     
     } else if (_G_plineGpioChips) {                                     /*  新加入点 base 最大          */
         _List_Line_Add_Right(&pgchip->GC_lineManage, &pgchipTemp->GC_lineManage);

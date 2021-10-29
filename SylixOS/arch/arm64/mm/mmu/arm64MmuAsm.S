@@ -30,7 +30,8 @@
 
     FILE_BEGIN()
     
-    EXPORT_LABEL(arm64MmuGetMMFR)
+    EXPORT_LABEL(arm64MmuGetMMFR0)
+    EXPORT_LABEL(arm64MmuGetMMFR1)
     EXPORT_LABEL(arm64MmuInvalidateTLB)
     EXPORT_LABEL(arm64MmuInvalidateTLBMVA)
     EXPORT_LABEL(arm64MmuSetTTBR)
@@ -44,11 +45,16 @@
     EXPORT_LABEL(arm64MmuAbtFaultAddr)
   
 ;/*********************************************************************************************************
-;  TLB 相关操作
+;  MMU 属性获取
 ;*********************************************************************************************************/
 
-FUNC_DEF(arm64MmuGetMMFR)
+FUNC_DEF(arm64MmuGetMMFR0)
     MRS     X0 , ID_AA64MMFR0_EL1
+    RET
+    FUNC_END()
+
+FUNC_DEF(arm64MmuGetMMFR1)
+    MRS     X0 , ID_AA64MMFR1_EL1
     RET
     FUNC_END()
     

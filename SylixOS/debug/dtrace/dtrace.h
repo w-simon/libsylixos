@@ -134,10 +134,17 @@ LW_API ULONG    API_DtraceThreadExtraInfo(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulT
 #ifndef LW_DTRACE_HW_ISTEP
 LW_API ULONG    API_DtraceThreadStepSet(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, addr_t  ulAddr);
 LW_API ULONG    API_DtraceThreadStepGet(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, addr_t  *pulAddr);
-LW_API VOID     API_DtraceSchedHook(LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulThreadNew);
 #else
 LW_API ULONG    API_DtraceThreadStepSet(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, BOOL bEnable);
 #endif                                                                  /*  !LW_DTRACE_HW_ISTEP         */
+
+/*********************************************************************************************************
+  Task switch hook
+*********************************************************************************************************/
+
+#if !defined(LW_DTRACE_HW_ISTEP) || defined(__ARCH_DBG_SCHED_HOOK)
+LW_API VOID     API_DtraceSchedHook(LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulThreadNew);
+#endif
 
 /*********************************************************************************************************
   API (SylixOS internal use only!)

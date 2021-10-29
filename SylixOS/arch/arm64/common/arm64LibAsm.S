@@ -63,6 +63,9 @@
     EXPORT_LABEL(arm64EL2SwitchEL1)
     EXPORT_LABEL(arm64EL3SwitchEL2)
     EXPORT_LABEL(arm64SwitchToEl1)
+    EXPORT_LABEL(arm64GetMDSCREL1)
+    EXPORT_LABEL(arm64SetMDSCREL1)
+    EXPORT_LABEL(arm64GetMIDREL1)
 
     WEAK(archIntDisable)
     WEAK(archIntEnable)
@@ -356,6 +359,29 @@ FUNC_DEF(arm64GetCurrentEL)
 
 FUNC_DEF(arm64GetSPSel)
     MRS     X0 , SPSel
+    RET
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  ARM64 ªÒµ√ MIDR
+;*********************************************************************************************************/
+
+FUNC_DEF(arm64GetMIDREL1)
+    MRS     X0 , MIDR_EL1
+    RET
+    FUNC_END()
+
+;/*********************************************************************************************************
+;  ARM64 …Ë÷√ MDSCR
+;*********************************************************************************************************/
+
+FUNC_DEF(arm64GetMDSCREL1)
+    MRS     X0 , MDSCR_EL1
+    RET
+    FUNC_END()
+
+FUNC_DEF(arm64SetMDSCREL1)
+    MSR     MDSCR_EL1 , X0
     RET
     FUNC_END()
 
