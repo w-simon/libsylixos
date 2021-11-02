@@ -89,6 +89,10 @@ static VOID  mispCpuProbeLegacy (VOID)
         _G_uiMipsCpuType = CPU_CETC_HR2;
         break;
 
+    case PRID_IMP_CETC_HR3:                                             /*  CETC-HR3                    */
+        _G_uiMipsCpuType = CPU_CETC_HR3;
+        break;
+
     default:
         break;
     }
@@ -170,6 +174,9 @@ VOID  mipsCpuProbe (CPCHAR  pcMachineName)
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_HR2) == 0)) {
         _G_uiMipsMachineType = MIPS_MACHINE_TYPE_HR2;
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_HR3) == 0)) {
+        _G_uiMipsMachineType = MIPS_MACHINE_TYPE_HR3;
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_X1000) == 0)) {
         _G_uiMipsMachineType = MIPS_MACHINE_TYPE_X1000;

@@ -408,6 +408,7 @@ VOID  mipsMmuInit (LW_MMU_OP  *pmmuop, CPCHAR  pcMachineName)
         break;
 
     case CPU_CETC_HR2:                                                  /*  CETC-HR2                    */
+    case CPU_CETC_HR3:                                                  /*  CETC-HR3                    */
         _G_bMmuHasXI             = LW_TRUE;                             /*  有执行阻止位                */
         _G_uiMmuEntryLoUnCache   = 0x2;                                 /*  非高速缓存                  */
         _G_uiMmuEntryLoUnCacheWb = 0x2;                                 /*  非高速缓存                  */

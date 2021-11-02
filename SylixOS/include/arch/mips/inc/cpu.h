@@ -99,6 +99,7 @@
 #define PRID_IMP_LOONGSON_64    0x6300                                  /*  Loongson-2/3                */
 #define PRID_IMP_LOONGSON2K     0x6100
 #define PRID_IMP_CETC_HR2       0x0000
+#define PRID_IMP_CETC_HR3       0x3200
 #define PRID_IMP_UNKNOWN        0xff00
 /*********************************************************************************************************
   These are the PRID's for when 23:16 == PRID_COMP_MIPS
@@ -224,7 +225,7 @@ typedef enum cpu_type_enum {
      */
     CPU_5KC, CPU_5KE, CPU_20KC, CPU_25KF, CPU_SB1, CPU_SB1A, CPU_LOONGSON2,
     CPU_LOONGSON3, CPU_LOONGSON2K, CPU_LOONGSON3_COMP, CPU_CAVIUM_OCTEON, CPU_CAVIUM_OCTEON_PLUS,
-    CPU_CAVIUM_OCTEON2, CPU_CAVIUM_OCTEON3, CPU_XLR, CPU_XLP, CPU_CETC_HR2,
+    CPU_CAVIUM_OCTEON2, CPU_CAVIUM_OCTEON3, CPU_XLR, CPU_XLP, CPU_CETC_HR2, CPU_CETC_HR3,
 
     CPU_QEMU_GENERIC,
 

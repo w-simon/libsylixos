@@ -66,13 +66,14 @@ VOID  _UpKernelUnlockIgnIrq (VOID)
 *********************************************************************************************************/
 VOID  _UpKernelLockQuick (INTREG  *piregInterLevel)
 {
-    PLW_CLASS_CPU   pcpuCur = LW_CPU_GET_CUR();
-    
+    PLW_CLASS_CPU   pcpuCur;
+
+    *piregInterLevel = KN_INT_DISABLE();
+
+    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
-    
-    *piregInterLevel = KN_INT_DISABLE();
 }
 /*********************************************************************************************************
 ** 函数名称: _UpKernelUnlockQuick

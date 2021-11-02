@@ -172,6 +172,7 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
 #define MIPS_MACHINE_X1000  "x1000"
 #define MIPS_MACHINE_X2000  "x2000"
 #define MIPS_MACHINE_HR2    "hr2"
+#define MIPS_MACHINE_HR3    "hr3"
 
 #define MIPS_MACHINE_TYPE_24KF      0
 #define MIPS_MACHINE_TYPE_LS1X      10
@@ -181,6 +182,7 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
 #define MIPS_MACHINE_TYPE_X1000     41
 #define MIPS_MACHINE_TYPE_X2000     42
 #define MIPS_MACHINE_TYPE_HR2       50
+#define MIPS_MACHINE_TYPE_HR3       51
 
 #if LW_CFG_CACHE_EN > 0
 VOID    archCacheReset(CPCHAR     pcMachineName);

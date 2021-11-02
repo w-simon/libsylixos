@@ -165,13 +165,14 @@ VOID  _UpSpinUnlockIgnIrq (spinlock_t *psl)
 *********************************************************************************************************/
 VOID  _UpSpinLockIrq (spinlock_t *psl, INTREG  *piregInterLevel)
 {
-    PLW_CLASS_CPU   pcpuCur = LW_CPU_GET_CUR();
-    
+    PLW_CLASS_CPU   pcpuCur;
+
+    *piregInterLevel = KN_INT_DISABLE();
+
+    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
-    
-    *piregInterLevel = KN_INT_DISABLE();
 }
 /*********************************************************************************************************
 ** 函数名称: _UpSpinTryLockIrq
@@ -184,13 +185,14 @@ VOID  _UpSpinLockIrq (spinlock_t *psl, INTREG  *piregInterLevel)
 *********************************************************************************************************/
 BOOL  _UpSpinTryLockIrq (spinlock_t *psl, INTREG  *piregInterLevel)
 {
-    PLW_CLASS_CPU   pcpuCur = LW_CPU_GET_CUR();
-    
+    PLW_CLASS_CPU   pcpuCur;
+
+    *piregInterLevel = KN_INT_DISABLE();
+
+    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
-    
-    *piregInterLevel = KN_INT_DISABLE();
     
     return  (LW_TRUE);
 }
@@ -235,13 +237,14 @@ INT  _UpSpinUnlockIrq (spinlock_t *psl, INTREG  iregInterLevel)
 *********************************************************************************************************/
 VOID  _UpSpinLockIrqQuick (spinlock_t *psl, INTREG  *piregInterLevel)
 {
-    PLW_CLASS_CPU   pcpuCur = LW_CPU_GET_CUR();
+    PLW_CLASS_CPU   pcpuCur;
 
+    *piregInterLevel = KN_INT_DISABLE();
+
+    pcpuCur = LW_CPU_GET_CUR();
     if (!pcpuCur->CPU_ulInterNesting) {
         __THREAD_LOCK_INC(pcpuCur->CPU_ptcbTCBCur);                     /*  锁定任务在当前 CPU          */
     }
-
-    *piregInterLevel = KN_INT_DISABLE();
 }
 /*********************************************************************************************************
 ** 函数名称: _UpSpinUnlockIrqQuick

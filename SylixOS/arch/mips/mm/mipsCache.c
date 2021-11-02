@@ -52,7 +52,8 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
         (_G_uiMipsCpuType == CPU_LOONGSON2K)) {                         /*  Loongson-2K                 */
         mipsCacheLs3xInit(pcacheop, uiInstruction, uiData, pcMachineName);
 
-    } else if (_G_uiMipsCpuType == CPU_CETC_HR2) {                      /*  CETC-HR2                    */
+    } else if ((_G_uiMipsCpuType == CPU_CETC_HR2) ||                    /*  CETC-HR2                    */
+               (_G_uiMipsCpuType == CPU_CETC_HR3) ) {                   /*  CETC-HR3                    */
         mipsCacheHr2Init(pcacheop, uiInstruction, uiData, pcMachineName);
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||
@@ -84,7 +85,8 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
         (_G_uiMipsCpuType == CPU_LOONGSON2K)) {                         /*  Loongson-2K                 */
         mipsCacheLs3xReset(pcMachineName);
 
-    } else if (_G_uiMipsCpuType == CPU_CETC_HR2) {                      /*  CETC-HR2                    */
+    } else if ((_G_uiMipsCpuType == CPU_CETC_HR2) ||                    /*  CETC-HR2                    */
+               (_G_uiMipsCpuType == CPU_CETC_HR3)) {                    /*  CETC-HR3                    */
         mipsCacheHr2Reset(pcMachineName);
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_LS1X)   == 0) ||

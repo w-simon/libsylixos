@@ -405,8 +405,8 @@ static INT  __ram_automem (PRAM_NODE  pramn, ULONG  ulNBlk, size_t  stStart, siz
     }
 }
 /*********************************************************************************************************
-** 函数名称: __ram_automem
-** 功能描述: ramfs 根据需要设置文件缓冲区
+** 函数名称: __ram_increase
+** 功能描述: ramfs 扩充文件大小
 ** 输　入  : pramn            文件节点
 **           ulNBlk           需求缓冲数量
 **           stStart          在此范围内不清零

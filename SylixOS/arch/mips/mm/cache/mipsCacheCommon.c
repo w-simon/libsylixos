@@ -87,6 +87,7 @@ static VOID  mipsPCacheProbe (VOID)
     case CPU_LOONGSON3_COMP:
     case CPU_LOONGSON2K:
     case CPU_CETC_HR2:
+    case CPU_CETC_HR3:
         uiConfig1 = mipsCp0Config1Read();
         uiLineSize = (uiConfig1 >> 19) & 7;
         if (uiLineSize) {
@@ -393,6 +394,7 @@ static VOID  mipsSCacheSetup (VOID)
     case CPU_LOONGSON3_COMP:
     case CPU_LOONGSON2K:
     case CPU_CETC_HR2:
+    case CPU_CETC_HR3:
         loongson3SCacheInit();
         break;
 
@@ -493,6 +495,7 @@ VOID  mipsCacheProbe (CPCHAR  pcMachineName)
     case CPU_LOONGSON3_COMP:
     case CPU_LOONGSON2K:                                                /*  Loongson-2K                 */
     case CPU_CETC_HR2:                                                  /*  CETC-HR2                    */
+    case CPU_CETC_HR3:                                                  /*  CETC-HR3                    */
         _G_bHaveTagHi = LW_TRUE;
         _G_bHaveECC   = LW_TRUE;
         _G_uiEccValue = 0x22;                                           /*  ECC µÄÖµ                    */
