@@ -445,12 +445,17 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
         pstatGet->st_uid     = 0;
         pstatGet->st_gid     = 0;
         pstatGet->st_rdev    = 1;
-        pstatGet->st_size    = 0;
         pstatGet->st_blksize = 0;
         pstatGet->st_blocks  = 0;
         pstatGet->st_atime   = API_RootFsTime(LW_NULL);
         pstatGet->st_mtime   = API_RootFsTime(LW_NULL);
         pstatGet->st_ctime   = API_RootFsTime(LW_NULL);
+
+        if (psock->SOCK_iFamily == AF_PACKET) {
+            pstatGet->st_size = packet_size(psock->SOCK_pafpacket);     /*  AF_PACKET mmap 需要此大小   */
+        } else {
+            pstatGet->st_size = 0;
+        }
         return  (ERROR_NONE);
     }
     

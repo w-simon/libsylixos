@@ -1836,6 +1836,7 @@ SylixOS/system/device/dma/dmaLib.c \
 SylixOS/system/device/eventfd/eventfdDev.c \
 SylixOS/system/device/gpio/gpioDev.c \
 SylixOS/system/device/gpio/gpioLib.c \
+SylixOS/system/device/gpio/gpioLibDevTree.c \
 SylixOS/system/device/graph/gmemDev.c \
 SylixOS/system/device/hstimerfd/hstimerfdDev.c \
 SylixOS/system/device/hwrtc/hwrtc.c \
@@ -1975,6 +1976,7 @@ SylixOS/devtree/devtreeDev.c \
 SylixOS/devtree/devtreeIrq.c \
 SylixOS/devtree/devtreeClock.c \
 SylixOS/devtree/devtreeGpio.c \
+SylixOS/devtree/devtreePinctrl.c \
 SylixOS/devtree/devtreeHighLevel.c \
 SylixOS/devtree/devtreeLowLevel.c \
 SylixOS/devtree/devtreeLib.c \

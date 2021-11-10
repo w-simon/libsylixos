@@ -101,6 +101,25 @@ INT  API_PlatformDeviceRegister (PLW_DEV_INSTANCE  pdevinstance)
     return  (API_DeviceRegister(pdevinstance));
 }
 /*********************************************************************************************************
+** 函数名称: API_PlatformDeviceUnregister
+** 功能描述: 平台设备卸载
+** 输　入  : pdevinstance    平台设备指针
+** 输　出  : ERROR_CODE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_PlatformDeviceUnregister (PLW_DEV_INSTANCE  pdevinstance)
+{
+    if (!pdevinstance) {
+        _ErrorHandle(EINVAL);
+        return;
+    }
+
+    API_DeviceUnregister(pdevinstance);
+}
+/*********************************************************************************************************
 ** 函数名称: API_PlatformDriverRegister
 ** 功能描述: 平台设备驱动注册
 ** 输　入  : pdrvinstance    驱动指针
@@ -120,6 +139,25 @@ INT  API_PlatformDriverRegister (PLW_DRV_INSTANCE  pdrvinstance)
     pdrvinstance->DRVHD_pbustype = &_G_bustypePlatform;
 
     return  (API_DriverRegister(pdrvinstance));
+}
+/*********************************************************************************************************
+** 函数名称: API_PlatformDriverUnregister
+** 功能描述: 平台设备驱动卸载
+** 输　入  : pdrvinstance    驱动指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_PlatformDriverUnregister (PLW_DRV_INSTANCE  pdrvinstance)
+{
+    if (!pdrvinstance) {
+        _ErrorHandle(EINVAL);
+        return;
+    }
+
+    API_DriverUnregister(pdrvinstance);
 }
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */

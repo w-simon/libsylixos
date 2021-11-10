@@ -35,7 +35,7 @@
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-INT  __deviceTreeSpiDevInfoGet (PLW_DT_SPI_DEVICE  pdtspidev, PLW_DEVTREE_NODE  pdtnDev)
+static INT  __deviceTreeSpiDevInfoGet (PLW_DT_SPI_DEVICE  pdtspidev, PLW_DEVTREE_NODE  pdtnDev)
 {
     UINT32  uiValue = 0;
     INT     iRet;
@@ -201,9 +201,15 @@ INT  API_DeviceTreeSpiDevRegister (PLW_DT_SPI_CTRL    pdtspictrl,
 {
     PLW_DT_SPI_DEVICE  pdtspidev;
     INT                iRet;
-            
-    pdtspidev = API_SpiDevCreate();                                     /*  创建 SPI 设备               */
-    if (LW_NULL == pdtspidev) {
+
+    if (!pdtspictrl || !pdtnDev) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    pdtspidev = __SHEAP_ZALLOC(sizeof(LW_DT_SPI_DEVICE));
+    if (!pdtspidev) {
+        _ErrorHandle(ENOMEM);
         return  (PX_ERROR);
     }
     pdtspidev->DTSPIDEV_pdtspictrl = pdtspictrl;                        /*  设置 SPI 设备连接的控制器   */
@@ -215,18 +221,18 @@ INT  API_DeviceTreeSpiDevRegister (PLW_DT_SPI_CTRL    pdtspictrl,
            
     iRet = API_SpiDevRegister(pdtspidev);                               /*  注册 SPI 设备到系统         */
     if (iRet) {
-        DEVTREE_ERR("SPI device %s register failed.\r\n", 
+        DEVTREE_ERR("SPI device %s register failed.\r\n",
                     pdtspidev->DTSPIDEV_cName);
         goto  __error_handle;
     } else {
-        DEVTREE_MSG("SPI device %s register successfully.\r\n", 
+        DEVTREE_MSG("SPI device %s register successfully.\r\n",
                     pdtspidev->DTSPIDEV_cName);
     }
 
     return  (ERROR_NONE);
 
 __error_handle:
-    API_SpiDevDelete(pdtspidev);
+    __SHEAP_FREE(pdtspidev);
     return  (iRet);
 }
 

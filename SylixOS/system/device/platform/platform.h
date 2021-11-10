@@ -27,11 +27,15 @@
 *********************************************************************************************************/
 #if (LW_CFG_DEVICE_EN > 0) && (LW_CFG_DEVTREE_EN > 0)
 
-LW_API INT  API_PlatformBusInit(VOID);
+LW_API INT      API_PlatformBusInit(VOID);
 
-LW_API INT  API_PlatformDeviceRegister(PLW_DEV_INSTANCE  pdevinstance);
+LW_API INT      API_PlatformDeviceRegister(PLW_DEV_INSTANCE  pdevinstance);
 
-LW_API INT  API_PlatformDriverRegister(PLW_DRV_INSTANCE  pdrvinstance);
+LW_API VOID     API_PlatformDeviceUnregister(PLW_DEV_INSTANCE  pdevinstance);
+
+LW_API INT      API_PlatformDriverRegister(PLW_DRV_INSTANCE  pdrvinstance);
+
+LW_API VOID     API_PlatformDriverUnregister(PLW_DRV_INSTANCE  pdrvinstance);
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */
                                                                         /*  (LW_CFG_DEVTREE_EN > 0)     */

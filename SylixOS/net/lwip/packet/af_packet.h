@@ -130,6 +130,7 @@ INT             packet_getsockopt(AF_PACKET_T *pafpacket, int level, int optname
 INT             packet_ioctl(AF_PACKET_T *pafpacket, INT  iCmd, PVOID  pvArg);
 INT             packet_mmap(AF_PACKET_T *pafpacket, PLW_DEV_MMAP_AREA  pdmap);
 INT             packet_unmap(AF_PACKET_T *pafpacket, PLW_DEV_MMAP_AREA  pdmap);
+size_t          packet_size(AF_PACKET_T *pafpacket);
 
 #endif                                                                  /*  __AF_PACKET_H               */
 /*********************************************************************************************************

@@ -455,6 +455,7 @@ static PLW_PINCTRL  __pinCtrlCreate (PLW_DEVTREE_NODE  pdtnDev)
 ** 输　出  : 引脚序号
 ** 全局变量:
 ** 调用模块:
+**                                            API 函数
 *********************************************************************************************************/
 LW_API
 INT  API_PinCtrlPinGetByName (PLW_PINCTRL_DEV  ppctldev, CPCHAR  pcName)

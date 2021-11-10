@@ -138,7 +138,7 @@ static const PLW_DEVTREE_TABLE  __deviceTreeNodeMatch (PLW_DEVTREE_NODE   pdtnDe
                                           pdttMatch->DTITEM_cType,
                                           pdttMatch->DTITEM_cName);
         if (iScore > iBestScore) {                                      /*  找到最合适的表项            */
-            pdttBestMatch = pdttMatch;
+            pdttBestMatch   = pdttMatch;
             iBestScore      = iScore;
         }
     }

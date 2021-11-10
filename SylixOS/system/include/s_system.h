@@ -124,6 +124,7 @@
 #include "../SylixOS/system/device/mii/phyDev.h"                        /*  mii phy 设备接口            */
 #include "../SylixOS/system/device/i2c/i2cLibDevTree.h"                 /*  I2C 驱动框架                */
 #include "../SylixOS/system/device/spi/spiLibDevTree.h"                 /*  SPI 驱动框架                */
+#include "../SylixOS/system/device/gpio/gpioLibDevTree.h"               /*  GPIO 驱动框架               */
 #endif                                                                  /*  __SYLIXOS_DEVTREE_DRV       */
 /*********************************************************************************************************
   ATA 总线及其设备驱动模型

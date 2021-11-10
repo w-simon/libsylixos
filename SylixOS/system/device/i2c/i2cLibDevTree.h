@@ -78,13 +78,14 @@ typedef LW_DT_I2C_MSG          *PLW_DT_I2C_MSG;
 
 typedef struct lw_dt_i2c_adapter {
     PLW_I2C_ADAPTER             DTI2CADPT_pi2cadapter;                  /*  适配器指针                  */
-    CPCHAR                      DTI2CADPT_pcName;                       /*  I2C 控制器名称              */
     PLW_DEV_INSTANCE            DTI2CADPT_pdevinstance;                 /*  驱动模型中的设备            */
     LW_OBJECT_HANDLE            DTI2CADPT_hBusLock;                     /*  总线操作锁                  */
     ULONG                       DTI2CADPT_ulTimeout;                    /*  操作超时时间                */
     INT                         DTI2CADPT_iRetry;                       /*  重试次数                    */
     PVOID                       DTI2CADPT_pvPriv;                       /*  私有数据                    */
     struct lw_dt_i2c_funcs     *DTI2CADPT_pi2cfuncs;                    /*  总线适配器操作函数          */
+
+    ULONG                       DTI2CADPT_ulPad[16];                    /*  保留未来扩展                */
 } LW_DT_I2C_ADAPTER;
 typedef LW_DT_I2C_ADAPTER      *PLW_DT_I2C_ADAPTER;
 
@@ -99,7 +100,6 @@ typedef struct lw_dt_i2c_funcs {
                                                                         /*  I2C 传输函数                */
     UINT32  (*DTI2CFUNC_pfuncFunction)(PLW_DT_I2C_ADAPTER    pdti2cadapter);
                                                                         /*  I2C 控制器支持的功能        */
-                                                                     
 } LW_DT_I2C_FUNCS;
 typedef LW_DT_I2C_FUNCS       *PLW_DT_I2C_FUNCS;
 
@@ -150,15 +150,17 @@ LW_API INT               API_I2cBusInit(VOID);
 
 LW_API PLW_BUS_TYPE      API_I2cBusGet(VOID);
 
-LW_API INT               API_I2cAdapterRegister(PLW_DT_I2C_ADAPTER  pdti2cadapter);
+LW_API INT               API_I2cAdapterRegister(PLW_DT_I2C_ADAPTER  pdti2cadapter, CPCHAR  pcName);
 
-LW_API PLW_DT_I2C_DEVICE API_I2cDevCreate(PLW_DT_I2C_ADAPTER        pdti2cadapter);
+LW_API VOID              API_I2cAdapterUnregister(PLW_DT_I2C_ADAPTER  pdti2cadapter);
 
 LW_API INT               API_I2cDevRegister(PLW_DT_I2C_DEVICE       pdti2cdev);
 
 LW_API VOID              API_I2cDevDelete(PLW_DT_I2C_DEVICE         pdti2cdev);
 
 LW_API INT               API_I2cDrvRegister(PLW_DT_I2C_DRIVER       pdti2cdriver);
+
+LW_API VOID              API_I2cDrvUnregister(PLW_DT_I2C_DRIVER     pdti2cdriver);
 
 LW_API INT               API_I2cBusTransfer(PLW_DT_I2C_ADAPTER      pdti2cadapter,
                                             PLW_DT_I2C_MSG          pdti2cmsg,

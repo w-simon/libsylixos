@@ -1554,6 +1554,43 @@ FUNCPTR  vprocGetMain (VOID)
     }
 }
 /*********************************************************************************************************
+** 函数名称: vprocThreadExtCleanup
+** 功能描述: 执行类 POSIX 线程高级操作功能清理工作
+** 输　入  : pvproc           进程控制块
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_THREAD_EXT_EN > 0
+
+static VOID  vprocThreadExtCleanup (LW_LD_VPROC      *pvproc)
+{
+    PLW_CLASS_TCB   ptcbCur;
+    BOOL            bForce;
+    INT             iKernelSpace;
+
+    /*
+     * 在找不到入口函数或 vp 补丁 & libc 版本不符合规定时会执行此函数
+     * 模块已经装载成功，相关的 init 函数也都执行过，模块的 init 函数可能会 push 了一些 cleanup 函数
+     * 或创建了一些带 cleanup 函数的 pthread key
+     * 因为 API_ModuleFinish 会销毁 vp 补丁堆和 API_ModuleTerminal 会回收模块内存，
+     * 所以需要提前执行 cleanup 函数
+     */
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    iKernelSpace = __KERNEL_SPACE_GET2(ptcbCur);
+    __KERNEL_SPACE_SET2(ptcbCur, 0);                                    /*  当前任务退出内核环境        */
+
+    _TCBCleanupPopExt(ptcbCur);                                         /*  提前执行 cleanup pop 操作   */
+
+    bForce = (pvproc->VP_iExitMode == LW_VPROC_EXIT_FORCE);
+    _PthreadKeyCleanup(ptcbCur, !bForce);                               /*  提前执行 key cleanup 操作   */
+
+    __KERNEL_SPACE_SET2(ptcbCur, iKernelSpace);                         /*  当前任务回到原来的内核环境  */
+}
+
+#endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
+/*********************************************************************************************************
 ** 函数名称: vprocRun
 ** 功能描述: 加载并执行 elf 文件.
 ** 输　入  : pvproc           进程控制块
@@ -1662,6 +1699,10 @@ __error_handle:
     }
     
     if (iErrLevel > 0) {
+#if LW_CFG_THREAD_EXT_EN > 0
+        vprocThreadExtCleanup(pvproc);                                  /*  执行清理工作                */
+#endif                                                                  /*  LW_CFG_THREAD_EXT_EN > 0    */
+
         API_ModuleFinish((PVOID)pvproc);                                /*  结束进程                    */
         API_ModuleTerminal((PVOID)pvproc);                              /*  卸载进程内所有的模块        */
     }

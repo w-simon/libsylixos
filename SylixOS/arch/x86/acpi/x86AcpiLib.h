@@ -75,6 +75,8 @@ extern ACPI_TABLE_RSDT     *_G_pAcpiRsdt;
 extern ACPI_TABLE_XSDT     *_G_pAcpiXsdt;
 extern ACPI_TABLE_FADT     *_G_pAcpiFadt;
 
+extern CHAR                *_G_pcMultibootAcpiRsdpPtr;
+
 extern PCHAR                _G_pcAcpiOsHeapPtr;
 extern PCHAR                _G_pcAcpiOsHeapBase;
 extern PCHAR                _G_pcAcpiOsHeapTop;

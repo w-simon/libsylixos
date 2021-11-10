@@ -127,7 +127,6 @@ typedef struct lw_dt_spi_ctrl {
     PLW_DEV_INSTANCE         DTSPICTRL_pdevinstance;                    /*  驱动模型中的设备            */
     LW_OBJECT_HANDLE         DTSPICTRL_hBusLock;                        /*  总线操作锁                  */
 
-
     UINT16                   DTSPICTRL_usChipSelNums;                   /*  片选信号数量                */
     UINT16                   DTSPICTRL_usDmaAlignment;                  /*  DMA 对齐方式                */
     UINT32                   DTSPICTRL_uiXferSizeMax;                   /*  控制器一次最多传输的字节数  */
@@ -135,6 +134,7 @@ typedef struct lw_dt_spi_ctrl {
     UINT32                   DTSPICTRL_uiSpeedMin;                      /*  SPI 总线最低工作速率        */
     UINT32                   DTSPICTRL_uiMode;                          /*  工作模式                    */
     UINT16                   DTSPICTRL_usFlag;                          /*  其他功能标志                */
+    UINT32                  *DTSPICTRL_puiChipSelGpios;                 /*  片选 GPIO                   */
     
 #define LW_SPI_HALF_DUPLEX   BIT(0)                                     /*  can't do full duplex        */
 #define LW_SPI_NO_RX         BIT(1)                                     /*  can't do buffer read        */
@@ -168,6 +168,8 @@ typedef struct lw_dt_spi_ctrl {
                                                           struct lw_dt_spi_msg   *pdtspimsg);
     INT                    (*DTSPICTRL_pfuncXferOneMsg)(struct lw_dt_spi_dev     *pdtspidev,
                                                         struct lw_dt_spi_msg     *pdtspimsg);
+
+    ULONG                    DTSPICTRL_ulPad[16];                       /*  保留未来扩展                */
 } LW_DT_SPI_CTRL;
 typedef LW_DT_SPI_CTRL     *PLW_DT_SPI_CTRL;
 
@@ -186,7 +188,6 @@ typedef struct lw_dt_spi_dev {
     UINT8                    DTSPIDEV_ucBitsPerWord;                    /*  有效数据位数                */
     UINT32                   DTSPIDEV_uiMode;                           /*  SPI 工作模式                */
     UINT                     DTSPIDEV_uiIrq;                            /*  中断号                      */
-    UINT32                   DTSPIDEV_uiCsGpio;
 } LW_DT_SPI_DEVICE;
 typedef LW_DT_SPI_DEVICE    *PLW_DT_SPI_DEVICE;
 
@@ -216,19 +217,14 @@ LW_API INT               API_SpiBusInit(VOID);
 
 LW_API PLW_BUS_TYPE      API_SpiBusGet(VOID);
 
-LW_API PLW_DT_SPI_CTRL   API_SpiCtrlAlloc(PLW_DEV_INSTANCE pdevinstance,
-                                          UINT             uiPrivDataSize);
-
-LW_API VOID              API_SpiCtrlFree(PLW_DT_SPI_CTRL         pdtspictrl);
-
-LW_API PVOID             API_SpiCtrlGetPrivData(PLW_DT_SPI_CTRL  pdtspictrl);
-
 LW_API INT               API_SpiCtrlRegister(PLW_DT_SPI_CTRL     pdtspictrl,
                                              CPCHAR              pcName);
 
-LW_API INT               API_SpiDrvRegister(PLW_DT_SPI_DRIVER    pspidriver);
+LW_API VOID              API_SpiCtrlUnregister(PLW_DT_SPI_CTRL   pdtspictrl);
 
-LW_API PLW_DT_SPI_DEVICE API_SpiDevCreate(VOID);
+LW_API INT               API_SpiDrvRegister(PLW_DT_SPI_DRIVER    pdtspidriver);
+
+LW_API VOID              API_SpiDrvUnregister(PLW_DT_SPI_DRIVER  pdtspidriver);
 
 LW_API INT               API_SpiDevRegister(PLW_DT_SPI_DEVICE    pdtspidev);
 

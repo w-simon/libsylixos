@@ -2035,6 +2035,22 @@ INT  packet_mmap (AF_PACKET_T *pafpacket, PLW_DEV_MMAP_AREA  pdmap)
 #endif                                                                  /*  LW_CFG_NET_PACKET_MMAP > 0  */
 }
 /*********************************************************************************************************
+** 函数名称: packet_size
+** 功能描述: file stat.st_size
+** 输　入  : pafpacket afpacket file
+** 输　出  : file size
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+size_t  packet_size (AF_PACKET_T *pafpacket)
+{
+#if LW_CFG_NET_PACKET_MMAP > 0
+    return  (pafpacket->PACKET_mmapRx.PKTB_stSize);
+#else
+    return  (0);
+#endif                                                                  /*  LW_CFG_NET_PACKET_MMAP > 0  */
+}
+/*********************************************************************************************************
 ** 函数名称: packet_unmap
 ** 功能描述: unmap
 ** 输　入  : pafpacket afpacket file

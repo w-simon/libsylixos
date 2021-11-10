@@ -58,54 +58,7 @@ static INT  __deviceTreePhandleIteratorArgs (PLW_DEVTREE_PHANDLE_ITERATOR  pdtpi
 
     return  (iCount);
 }
-/*********************************************************************************************************
-** 函数名称: __deviceTreePhandleParseWithArgs
-** 功能描述: 带有参数的 phandle 解析
-** 输　入  : pdtnDev       设备树节点
-**           pcListName    列表名称
-**           pcCellsName   cells 名称
-**           iCellCount    cells 数量
-**           iIndex        序号
-**           pdtpaOutArgs  解析出的 phandle 参数
-** 输　出  : 设备树节点
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static INT  __deviceTreePhandleParseWithArgs (const PLW_DEVTREE_NODE     pdtnDev,
-                                              CPCHAR                     pcListName,
-                                              CPCHAR                     pcCellsName,
-                                              INT                        iCellCount,
-                                              INT                        iIndex,
-                                              PLW_DEVTREE_PHANDLE_ARGS   pdtpaOutArgs)
-{
-    LW_DEVTREE_PHANDLE_ITERATOR   dtpiItor;
-    INT                           iRet;
-    INT                           iC;
-    INT                           iCurIndex = 0;
 
-    _LIST_EACH_PHANDLE(&dtpiItor, iRet, pdtnDev, pcListName, pcCellsName, iCellCount) {
-        if (iCurIndex == iIndex) {
-            if (!dtpiItor.DTPHI_uiPhandle) {
-                goto  __error_handle;
-            }
-
-            if (pdtpaOutArgs) {
-                iC = __deviceTreePhandleIteratorArgs(&dtpiItor,
-                                                     pdtpaOutArgs->DTPH_uiArgs,
-                                                     MAX_PHANDLE_ARGS);
-                pdtpaOutArgs->DTPH_pdtnDev    = dtpiItor.DTPHI_pdtnDev;
-                pdtpaOutArgs->DTPH_iArgsCount = iC;
-            }
-
-            return  (ERROR_NONE);
-        }
-
-        iCurIndex++;
-    }
-
-__error_handle:
-    return  (PX_ERROR);
-}
 /*********************************************************************************************************
 ** 函数名称: API_DeviceTreePhandleIteratorInit
 ** 功能描述: 初始化 phandle 的迭代器
@@ -219,6 +172,103 @@ __error_handle:
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
+** 函数名称: API_DeviceTreePhandleCountWithArgs
+** 功能描述: 获取列表中 phandle 数量
+** 输　入  : pdtnDev        设备树节点
+**           pcListName     列表名称
+**           pcCellsName    cells 名称
+** 输　出  : phandle 数量 or ERROR_CODE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_DeviceTreePhandleCountWithArgs (const PLW_DEVTREE_NODE     pdtnDev,
+                                         CPCHAR                     pcListName,
+                                         CPCHAR                     pcCellsName)
+{
+    LW_DEVTREE_PHANDLE_ITERATOR     dtpiItor;
+    PLW_DEVTREE_PROPERTY            pProp;
+    INT                             iSize;
+    INT                             iRet;
+    INT                             iSum = 0;
+
+    if (!pcCellsName) {
+        pProp = API_DeviceTreePropertyFind(pdtnDev, pcListName, &iSize);
+        if (!pProp) {
+            return  (PX_ERROR);
+        }
+
+        return  (iSize / sizeof(INT));
+    }
+
+    iRet = API_DeviceTreePhandleIteratorInit(&dtpiItor, pdtnDev, pcListName, pcCellsName, -1);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    while (API_DeviceTreePhandleIteratorNext(&dtpiItor) == ERROR_NONE) {
+        iSum++;
+    }
+
+    if (errno != ENOENT) {
+        return  (PX_ERROR);
+    }
+
+    return  (iSum);
+}
+/*********************************************************************************************************
+** 函数名称: API_DeviceTreePhandleParseFixedArgs
+** 功能描述: 解析带有固定数量参数的 phandle
+** 输　入  : pdtnDev       设备树节点
+**           pcListName    列表名称
+**           pcCellsName   cells 名称
+**           iCellCount    cells 数量
+**           iIndex        序号
+**           pdtpaOutArgs  解析出的 phandle 参数
+** 输　出  : ERROR_CODE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_DeviceTreePhandleParseFixedArgs (const PLW_DEVTREE_NODE     pdtnDev,
+                                          CPCHAR                     pcListName,
+                                          CPCHAR                     pcCellsName,
+                                          INT                        iCellCount,
+                                          INT                        iIndex,
+                                          PLW_DEVTREE_PHANDLE_ARGS   pdtpaOutArgs)
+{
+    LW_DEVTREE_PHANDLE_ITERATOR   dtpiItor;
+    INT                           iRet;
+    INT                           iC;
+    INT                           iCurIndex = 0;
+
+    _LIST_EACH_PHANDLE(&dtpiItor, iRet, pdtnDev, pcListName, pcCellsName, iCellCount) {
+        if (iCurIndex == iIndex) {
+            if (!dtpiItor.DTPHI_uiPhandle) {
+                _ErrorHandle(EINVAL);
+                goto  __error_handle;
+            }
+
+            if (pdtpaOutArgs) {
+                iC = __deviceTreePhandleIteratorArgs(&dtpiItor,
+                                                     pdtpaOutArgs->DTPH_uiArgs,
+                                                     MAX_PHANDLE_ARGS);
+                pdtpaOutArgs->DTPH_pdtnDev    = dtpiItor.DTPHI_pdtnDev;
+                pdtpaOutArgs->DTPH_iArgsCount = iC;
+            }
+
+            return  (ERROR_NONE);
+        }
+
+        iCurIndex++;
+    }
+
+__error_handle:
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
 ** 函数名称: API_DeviceTreePhandleParseWithArgs
 ** 功能描述: 带有参数的 phandle 解析
 ** 输　入  : pdtnDev       设备树节点
@@ -248,7 +298,8 @@ INT  API_DeviceTreePhandleParseWithArgs (const PLW_DEVTREE_NODE     pdtnDev,
         return  (PX_ERROR);
     }
 
-    return  (__deviceTreePhandleParseWithArgs(pdtnDev, pcListName, pcCellsName, 0, iIndex, pdtpaOutArgs));
+    return  (API_DeviceTreePhandleParseFixedArgs(pdtnDev, pcListName, pcCellsName,
+                                                 0, iIndex, pdtpaOutArgs));
 }
 /*********************************************************************************************************
 ** 函数名称: API_DeviceTreePhandleParse
@@ -279,8 +330,8 @@ PLW_DEVTREE_NODE  API_DeviceTreePhandleParse (const PLW_DEVTREE_NODE     pdtnDev
         return  (LW_NULL);
     }
 
-    iRet = __deviceTreePhandleParseWithArgs(pdtnDev, pcPhandleName, LW_NULL, 0,
-                                            iIndex, &dtpaOutArgs);
+    iRet = API_DeviceTreePhandleParseFixedArgs(pdtnDev, pcPhandleName, LW_NULL, 0,
+                                               iIndex, &dtpaOutArgs);
     if (iRet) {
         return  (LW_NULL);
     }

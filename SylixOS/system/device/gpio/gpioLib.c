@@ -41,12 +41,6 @@ static LW_SPINLOCK_DEFINE          (_G_slGpio);
 *********************************************************************************************************/
 #define GPIO_LOCK(pintreg)          LW_SPIN_LOCK_QUICK(&_G_slGpio, (pintreg))
 #define GPIO_UNLOCK(intreg)         LW_SPIN_UNLOCK_QUICK(&_G_slGpio, (intreg))
-
-#define GPIO_CHIP_HWGPIO(pgdesc)    ((pgdesc) - &(pgdesc)->GD_pgcChip->GC_gdDesc[0])
-#define GPIO_TO_DESC(gpio)          (&_G_gdesc[(gpio)])
-#define DESC_TO_GPIO(pgdesc)        ((pgdesc)->GD_pgcChip->GC_uiBase + GPIO_CHIP_HWGPIO(pgdesc))
-
-#define GPIO_IS_VALID(gpio)         ((gpio) < LW_CFG_MAX_GPIOS)
 /*********************************************************************************************************
 ** 函数名称: __gpioGetDirection
 ** 功能描述: 获得指定 GPIO 方向

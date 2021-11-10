@@ -92,6 +92,7 @@ static INT  __deviceTreeI2cDevInfoGet (PLW_DT_I2C_DEVICE  pdti2cdevice, PLW_DEVT
 ** 功能描述: 从设备树中解析 I2C 控制器下挂载的设备
 ** 输　入  : pdti2cadapter  I2C 控制器指针
 **           pdtnDev        I2C 控制器的设备树节点
+**           pcName         I2C 控制器名称
 ** 输　出  : ERROR_CODE
 ** 全局变量: 
 ** 调用模块:
@@ -99,12 +100,13 @@ static INT  __deviceTreeI2cDevInfoGet (PLW_DT_I2C_DEVICE  pdti2cdevice, PLW_DEVT
 *********************************************************************************************************/
 LW_API
 INT  API_DeviceTreeI2cAdapterRegister (PLW_DT_I2C_ADAPTER  pdti2cadapter,
-                                       PLW_DEVTREE_NODE    pdtnDev)
+                                       PLW_DEVTREE_NODE    pdtnDev,
+                                       CPCHAR              pcName)
 {
     PLW_DEVTREE_NODE    pdtnChild;
     INT                 iRet;
 
-    iRet = API_I2cAdapterRegister(pdti2cadapter);                       /*  先注册 I2C 控制器           */
+    iRet = API_I2cAdapterRegister(pdti2cadapter, pcName);               /*  先注册 I2C 控制器           */
     if (iRet) {
         return  (iRet);
     }
@@ -132,14 +134,17 @@ INT  API_DeviceTreeI2cDevRegister (PLW_DT_I2C_ADAPTER  pdti2cadapter,
     PLW_DT_I2C_DEVICE  pdti2cdevice;
     INT                iRet;
     
-    pdti2cdevice = API_I2cDevCreate(pdti2cadapter);                     /*  创建 I2C 设备               */
-    if (LW_NULL == pdti2cdevice) {
+    pdti2cdevice = __SHEAP_ZALLOC(sizeof(LW_DT_I2C_DEVICE));
+    if (!pdti2cdevice) {
+        _ErrorHandle(ENOMEM);
         return  (PX_ERROR);
     }
 
+    pdti2cdevice->DTI2CDEV_pdti2cadapter = pdti2cadapter;
+
     iRet = __deviceTreeI2cDevInfoGet(pdti2cdevice, pdtnDev);            /*  从设备树中获取 I2C 设备信息 */
     if (iRet) {
-        API_I2cDevDelete(pdti2cdevice);
+        __SHEAP_FREE(pdti2cdevice);
         return  (PX_ERROR);
     }
            
@@ -147,7 +152,7 @@ INT  API_DeviceTreeI2cDevRegister (PLW_DT_I2C_ADAPTER  pdti2cadapter,
     if (iRet) {
         DEVTREE_ERR("I2C device %s register failed.\r\n", 
                     pdtnDev->DTN_pcFullName);
-        API_I2cDevDelete(pdti2cdevice);
+        __SHEAP_FREE(pdti2cdevice);
 
     } else {
         DEVTREE_MSG("Register I2C device %s at addr 0x%x.\r\n", 

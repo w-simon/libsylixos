@@ -66,7 +66,7 @@
 *********************************************************************************************************/
 static BOOL                 _G_bMmuEnByBoot  = LW_TRUE;                 /*  BOOT 是否已经启动了 MMU     */
 #if defined(__SYLIXOS_CSKY_ARCH_CK860__)
-static ULONG                _G_ulMmuTlbSize  = 512;                     /*  TLB 数组大小                */
+static ULONG                _G_ulMmuTlbSize  = 1024;                    /*  TLB 数组大小                */
 #else
 static ULONG                _G_ulMmuTlbSize  = 128;                     /*  TLB 数组大小                */
 #endif

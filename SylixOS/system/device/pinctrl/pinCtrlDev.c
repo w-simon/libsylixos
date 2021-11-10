@@ -63,6 +63,29 @@ static LW_OBJECT_HANDLE                  _G_hPctlPinLock = LW_OBJECT_HANDLE_INVA
                                          } while (0)
 #define __PCTLDEV_UNLOCK_RETURN_NULL()   __PCTLDEV_UNLOCK()
 /*********************************************************************************************************
+** 函数名称: __gpioToPin
+** 功能描述: GPIO 转换为芯片引脚
+** 输　入  : ppgpiorange        GPIO 范围
+**           uiGpio             GPIO 序号
+**           puiPin             输出芯片引脚
+** 输　出  : 芯片引脚序号
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static inline INT  __gpioToPin (PLW_PINCTRL_GPIO_RANGE  ppgpiorange, UINT  uiGpio, UINT  *puiPin)
+{
+    UINT  uiOffset = uiGpio - ppgpiorange->PCTLGR_uiGpioBase;
+
+    if (uiOffset > ppgpiorange->PCTLGR_uiNPins) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    *puiPin = ppgpiorange->PCTLGR_uiPinBase + uiOffset;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: __pinCtrlPinDescRegister
 ** 功能描述: 注册一个引脚的描述
 ** 输　入  : ppinctldev         引脚控制器
@@ -153,6 +176,74 @@ static VOID  __pinCtrlPinDescsFree (PLW_PINCTRL_DEV       ppinctldev,
             __SHEAP_FREE(pindesc);
         }
     }
+}
+/*********************************************************************************************************
+** 函数名称: __pinCtrlGpioRangeMatch
+** 功能描述: 匹配 GPIO 范围
+** 输　入  : ppinctldev         引脚控制器
+**           uiGpio             GPIO 序号
+** 输　出  : 匹配到的引脚范围
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static PLW_PINCTRL_GPIO_RANGE  __pinCtrlGpioRangeMatch (PLW_PINCTRL_DEV      ppinctldev,
+                                                        UINT                 uiGpio)
+{
+    PLW_LIST_LINE           plineTemp;
+    PLW_PINCTRL_GPIO_RANGE  pRange;
+
+    for (plineTemp  = ppinctldev->PCTLD_plineGpioRange;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+
+        pRange = _LIST_ENTRY(plineTemp, LW_PINCTRL_GPIO_RANGE, PCTLGR_lineManage);
+
+        if (uiGpio >= pRange->PCTLGR_uiGpioBase &&
+            uiGpio < pRange->PCTLGR_uiGpioBase + pRange->PCTLGR_uiNPins) {
+
+            return  (pRange);
+        }
+    }
+
+    return  (LW_NULL);
+}
+/*********************************************************************************************************
+** 函数名称: __pinCtrlDevGpioRangeGet
+** 功能描述: 获取 GPIO 范围
+** 输　入  : uiGpio             GPIO 序号
+**           ppGpioRange        GPIO 范围输出参数
+** 输　出  : GPIO 范围
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static PLW_PINCTRL_DEV  __pinCtrlDevGpioRangeGet (UINT  uiGpio, PLW_PINCTRL_GPIO_RANGE  *ppGpioRange)
+{
+    PLW_PINCTRL_DEV         ppinctldev;
+    PLW_LIST_LINE           plineTemp;
+    PLW_PINCTRL_GPIO_RANGE  pRange;
+
+    if (!ppGpioRange) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
+
+    __PCTLDEV_LOCK_RETURN_NULL();
+    for (plineTemp  = _G_plinePinCtrlDevs;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+
+        ppinctldev = _LIST_ENTRY(plineTemp, LW_PINCTRL_DEV, PCTLD_lineManage);
+
+        pRange = __pinCtrlGpioRangeMatch(ppinctldev, uiGpio);
+        if (pRange) {
+            *ppGpioRange = pRange;
+            __PCTLDEV_UNLOCK_RETURN_NULL();
+            return  (ppinctldev);
+        }
+    }
+    __PCTLDEV_UNLOCK_RETURN_NULL();
+
+    return  (LW_NULL);
 }
 /*********************************************************************************************************
 ** 函数名称: API_PinCtrlPinDescGet
@@ -350,6 +441,124 @@ PLW_PINCTRL_DEV  API_PinCtrlDevCreate (PLW_PINCTRL_DESC  ppinctldesc,
     __PCTLDEV_UNLOCK();
 
     return  (ppinctldev);
+}
+/*********************************************************************************************************
+** 函数名称: API_PinCtrlGpioRangeAdd
+** 功能描述: 添加 GPIO 引脚范围
+** 输　入  : ppinctrldev           引脚控制设备
+**           ppgpiorange           引脚范围
+** 输　出  : ERROR_CODE
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PinCtrlGpioRangeAdd (PLW_PINCTRL_DEV  ppinctrldev, PLW_PINCTRL_GPIO_RANGE  ppgpiorange)
+{
+    if (!ppinctrldev || !ppgpiorange) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    __PCTLDEV_LOCK();
+    _List_Line_Add_Ahead(&ppgpiorange->PCTLGR_lineManage, &ppinctrldev->PCTLD_plineGpioRange);
+    __PCTLDEV_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PinCtrlGpioRangeRemove
+** 功能描述: 删除 GPIO 引脚范围
+** 输　入  : ppinctrldev           引脚控制设备
+**           ppgpiorange           引脚范围
+** 输　出  : ERROR_CODE
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PinCtrlGpioRangeRemove (PLW_PINCTRL_DEV  ppinctrldev, PLW_PINCTRL_GPIO_RANGE  ppgpiorange)
+{
+    if (!ppinctrldev || !ppgpiorange) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    __PCTLDEV_LOCK();
+    _List_Line_Del(&ppgpiorange->PCTLGR_lineManage, &ppinctrldev->PCTLD_plineGpioRange);
+    __PCTLDEV_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PinCtrlGpioRequest
+** 功能描述: 申请 GPIO 引脚
+** 输　入  : uiGpio       GPIO 编号
+** 输　出  : ERROR_CODE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_PinCtrlGpioRequest (UINT  uiGpio)
+{
+    PLW_PINCTRL_DEV         ppinctldev;
+    PLW_PINCTRL_GPIO_RANGE  ppgpiorange;
+    UINT                    uiPin;
+    PLW_PINMUX_OPS          ppinmuxOps;
+    INT                     iRet;
+
+    ppinctldev = __pinCtrlDevGpioRangeGet(uiGpio, &ppgpiorange);
+    if (!ppinctldev) {
+        return  (PX_ERROR);
+    }
+
+    iRet = __gpioToPin(ppgpiorange, uiGpio, &uiPin);
+    if (iRet != ERROR_NONE) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    ppinmuxOps = ppinctldev->PCTLD_ppinctldesc->PCTLD_ppinmuxops;
+    if (ppinmuxOps->pinmuxGpioRequest) {
+        iRet = ppinmuxOps->pinmuxGpioRequest(ppinctldev, ppgpiorange, uiPin);
+        if (iRet != ERROR_NONE) {
+            return  (PX_ERROR);
+        }
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_PinCtrlGpioFree
+** 功能描述: 释放 GPIO 引脚
+** 输　入  : uiGpio       GPIO 编号
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_PinCtrlGpioFree (UINT  uiGpio)
+{
+    PLW_PINCTRL_DEV         ppinctldev;
+    PLW_PINCTRL_GPIO_RANGE  ppgpiorange;
+    UINT                    uiPin;
+    PLW_PINMUX_OPS          ppinmuxOps;
+    INT                     iRet;
+
+    ppinctldev = __pinCtrlDevGpioRangeGet(uiGpio, &ppgpiorange);
+    if (!ppinctldev) {
+        return;
+    }
+
+    iRet = __gpioToPin(ppgpiorange, uiGpio, &uiPin);
+    if (iRet != ERROR_NONE) {
+        return;
+    }
+
+    ppinmuxOps = ppinctldev->PCTLD_ppinctldesc->PCTLD_ppinmuxops;
+    if (ppinmuxOps->pinmuxGpioFree) {
+        ppinmuxOps->pinmuxGpioFree(ppinctldev, ppgpiorange, uiPin);
+    }
 }
 
 #endif                                                                  /*  (LW_CFG_DEVICE_EN > 0) &&   */

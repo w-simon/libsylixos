@@ -269,6 +269,17 @@ LW_API INT                   API_DeviceTreePhandleIteratorInit(PLW_DEVTREE_PHAND
 
 LW_API INT                   API_DeviceTreePhandleIteratorNext(PLW_DEVTREE_PHANDLE_ITERATOR  pdtpiterator);
 
+LW_API INT                   API_DeviceTreePhandleCountWithArgs(const PLW_DEVTREE_NODE     pdtnDev,
+                                                                CPCHAR                     pcListName,
+                                                                CPCHAR                     pcCellsName);
+
+LW_API INT                   API_DeviceTreePhandleParseFixedArgs(const PLW_DEVTREE_NODE    pdtnDev,
+                                                                 CPCHAR                    pcListName,
+                                                                 CPCHAR                    pcCellsName,
+                                                                 INT                       iCellCount,
+                                                                 INT                       iIndex,
+                                                                 PLW_DEVTREE_PHANDLE_ARGS  pdtpaOutArgs);
+
 LW_API INT                   API_DeviceTreePhandleParseWithArgs(const PLW_DEVTREE_NODE     pdtnDev,
                                                                 CPCHAR                     pcListName,
                                                                 CPCHAR                     pcCellsName,
@@ -394,7 +405,8 @@ LW_API MDIO_DEVICE          *API_DeviceTreeMdioDevFind(PLW_DEVTREE_NODE  pdtnDev
 *********************************************************************************************************/
 
 LW_API INT                   API_DeviceTreeI2cAdapterRegister(PLW_DT_I2C_ADAPTER  pi2cadapter,
-                                                              PLW_DEVTREE_NODE    pdtnDev);
+                                                              PLW_DEVTREE_NODE    pdtnDev,
+                                                              CPCHAR              pcName);
 
 LW_API INT                   API_DeviceTreeI2cDevRegister(PLW_DT_I2C_ADAPTER  pi2cadapter,
                                                           PLW_DEVTREE_NODE    pdtnDev);
@@ -426,6 +438,30 @@ LW_API INT                   API_DeviceTreePciHostBridgeResourcesGet(PLW_DEVTREE
 LW_API INT                   API_DeviceTreePciRangesParse(PLW_DEVTREE_NODE     pdtnDev,
                                                           LW_LIST_LINE_HEADER *pplineheadResource,
                                                           PLW_DEV_RESOURCE    *pdevresBusRange);
+
+/*********************************************************************************************************
+  GPIO 相关接口
+*********************************************************************************************************/
+
+LW_API INT                   API_DeviceTreeGpioCtrlRegister(PLW_DT_GPIO_CTRL     pdtgpioctrl,
+                                                            CPCHAR               pcName);
+
+LW_API VOID                  API_DeviceTreeGpioCtrlRemove(PLW_DT_GPIO_CTRL       pdtgpioctrl);
+
+LW_API INT                   API_DeviceTreeGpioPinRangeAdd(PLW_DT_GPIO_CTRL      pdtgpioctrl,
+                                                           PLW_PINCTRL_DEV       ppinctldev,
+                                                           UINT                  uiGpioOffset,
+                                                           UINT                  uiPinOffset,
+                                                           UINT                  uiNPins);
+
+LW_API VOID                  API_DeviceTreeGpioPinRangeRemove(PLW_DT_GPIO_CTRL   pdtgpioctrl);
+
+LW_API INT                   API_DeviceTreeGpioNamedGpioGet(PLW_DEVTREE_NODE     pdtnDev,
+                                                            CPCHAR               pcListName,
+                                                            INT                  iIndex);
+
+LW_API INT                   API_DeviceTreeGpioNamedCountGet(PLW_DEVTREE_NODE    pdtnDev,
+                                                             CPCHAR              pcListName);
 
 #include "devtree_error.h"
 #include "devtree_inline.h"

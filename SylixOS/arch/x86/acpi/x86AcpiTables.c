@@ -37,6 +37,8 @@ ACPI_TABLE_FACS     *_G_pAcpiFacs        = LW_NULL;
 ACPI_TABLE_RSDT     *_G_pAcpiRsdt        = LW_NULL;
 ACPI_TABLE_XSDT     *_G_pAcpiXsdt        = LW_NULL;
 ACPI_TABLE_FADT     *_G_pAcpiFadt        = LW_NULL;
+
+CHAR                *_G_pcMultibootAcpiRsdpPtr = LW_NULL;
 /*********************************************************************************************************
 ** 函数名称: acpiChecksum
 ** 功能描述: 计算一个 ACPI 内存块的校验和
@@ -203,25 +205,17 @@ static UINT8  *acpiRsdpScanBlock (CHAR  *pcStart, UINT32  uiBufLength)
 ACPI_TABLE_RSDP  *acpiFindRsdp (VOID)
 {
     ACPI_TABLE_RSDP  *pRsdp = LW_NULL;
+
     __ACPI_DEBUG_LOG("\n**** acpiFindRsdp ****\n");
 
     /*
-     * TODO: If already provided by EFI
+     * If already provided by Multiboot
      */
-#if 0
-    pRsdp = LW_NULL;
-    pcEfi = (CHAR *)ACPI_UEFI_RSDP_SIG;
-    if (lib_memcmp(pcEfi, ACPI_SIG_RSDP, strlen(ACPI_SIG_RSDP)) == 0) {
-        pRsdp = (ACPI_TABLE_RSDP *)pcEfi;
-    }
-
-    if (pRsdp != LW_NULL) {
-        _G_pcRsdpPtr = *((CHAR **)ACPI_EFI_RSDP);
-        pRsdp = (ACPI_TABLE_RSDP *)_G_pcRsdpPtr;
-        __ACPI_DEBUG_LOG("**** acpiFindRsdp returns %p ****\n", pRsdp);
+    if (_G_pcMultibootAcpiRsdpPtr) {
+        pRsdp = (ACPI_TABLE_RSDP *)_G_pcMultibootAcpiRsdpPtr;
+        _G_pcAcpiRsdpPtr = (CHAR *)pRsdp;
         return  (pRsdp);
     }
-#endif
 
     /*
      * Extended BIOS Data Area (EBDA)

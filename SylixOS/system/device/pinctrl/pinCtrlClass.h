@@ -45,6 +45,7 @@ struct lw_pinctrl_state;
 struct lw_pinctrl_ops;
 struct lw_pinmux_ops;
 struct lw_pinconf_ops;
+struct lw_pinctrl_gpio_range;
 
 /*********************************************************************************************************
   引脚控制相关的引脚描述 (驱动中使用)
@@ -83,6 +84,7 @@ typedef struct lw_pinctrl_dev {
     struct lw_pinctrl_desc      *PCTLD_ppinctldesc;                     /*  引脚控制描述                */
     PLW_DEVTREE_NODE             PCTLD_pdtnDev;                         /*  引脚控制器的设备树节点      */
     PVOID                        PCTLD_pvData;                          /*  私有数据                    */
+    LW_LIST_LINE_HEADER          PCTLD_plineGpioRange;                  /*  GPIO 范围                   */
 } LW_PINCTRL_DEV;
 typedef LW_PINCTRL_DEV          *PLW_PINCTRL_DEV;
 
@@ -194,6 +196,19 @@ typedef struct lw_pinctrl_setting {
 typedef LW_PINCTRL_SETTING       *PLW_PINCTRL_SETTING;
 
 /*********************************************************************************************************
+  设备引脚范围 lw_pinctrl_gpio_range
+*********************************************************************************************************/
+
+typedef struct lw_pinctrl_gpio_range {
+    LW_LIST_LINE               PCTLGR_lineManage;                       /*  引脚范围管理                */
+    CPCHAR                     PCTLGR_pcName;                           /*  引脚范围名称                */
+    UINT                       PCTLGR_uiGpioBase;                       /*  GPIO 基础偏移               */
+    UINT                       PCTLGR_uiPinBase;                        /*  引脚基础偏移                */
+    UINT                       PCTLGR_uiNPins;                          /*  引脚数量                    */
+} LW_PINCTRL_GPIO_RANGE;
+typedef LW_PINCTRL_GPIO_RANGE  *PLW_PINCTRL_GPIO_RANGE;
+
+/*********************************************************************************************************
   引脚管理操作集合
 *********************************************************************************************************/
 
@@ -234,6 +249,12 @@ typedef struct lw_pinmux_ops {
                                 UINT             uiOffset);             /*  引脚申请                    */
     INT        (*pinmuxFree)(PLW_PINCTRL_DEV     ppinctldev,
                              UINT                uiOffset);             /*  引脚释放                    */
+    INT        (*pinmuxGpioRequest)(PLW_PINCTRL_DEV             ppinctldev,
+                                    PLW_PINCTRL_GPIO_RANGE      pGpioRange,
+                                    UINT                        uiPin);
+    VOID       (*pinmuxGpioFree)(PLW_PINCTRL_DEV             ppinctldev,
+                                 PLW_PINCTRL_GPIO_RANGE      pGpioRange,
+                                 UINT                        uiPin);
     INT        (*pinmuxGpioDirectionSet)(PLW_PINCTRL_DEV  ppinctldev,
                                          UINT             uiOffset,
                                          BOOL             bInput);

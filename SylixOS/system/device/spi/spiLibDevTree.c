@@ -96,6 +96,48 @@ static INT  __spiBusMatch (PLW_DEV_INSTANCE  pdevinstance, PLW_DRV_INSTANCE  pdr
                         pdrvinstance->DRVHD_pcName));                   /*  通过设备和驱动名称匹配      */
 }
 /*********************************************************************************************************
+** 函数名称: __spiGpioNumbersGet
+** 功能描述: 获取 SPI 设备树节点的片选 GPIO 号。
+** 输　入  : pdtspictrl      SPI 控制器指针
+** 输　出  : ERROR_CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __spiGpioNumbersGet (PLW_DT_SPI_CTRL  pdtspictrl)
+{
+    PLW_DEVTREE_NODE        pdtnDev;
+    INT                     iCount;
+    INT                     i;
+
+    if (!pdtspictrl || !pdtspictrl->DTSPICTRL_pdevinstance) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    pdtnDev = pdtspictrl->DTSPICTRL_pdevinstance->DEVHD_pdtnDev;
+
+    iCount = API_DeviceTreeGpioNamedCountGet(pdtnDev, "cs-gpios");
+    if (iCount <= 0) {
+        pdtspictrl->DTSPICTRL_usChipSelNums = 0;
+        return  (iCount);
+    }
+    pdtspictrl->DTSPICTRL_usChipSelNums   = iCount;
+
+    pdtspictrl->DTSPICTRL_puiChipSelGpios = (UINT32 *)__SHEAP_ZALLOC(
+            pdtspictrl->DTSPICTRL_usChipSelNums * sizeof(UINT));
+    if (!pdtspictrl->DTSPICTRL_puiChipSelGpios) {
+        _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
+        return  (PX_ERROR);
+    }
+
+    for (i = 0; i < iCount; i++) {
+        pdtspictrl->DTSPICTRL_puiChipSelGpios[i] =
+                API_DeviceTreeGpioNamedGpioGet(pdtnDev, "cs-gpios", i);
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
   SPI 总线全局变量
 *********************************************************************************************************/
 static LW_BUS_TYPE  _G_bustypeSpi = {
@@ -135,84 +177,12 @@ PLW_BUS_TYPE  API_SpiBusGet (VOID)
 {
     return  (&_G_bustypeSpi);
 }
-/*********************************************************************************************************
-** 函数名称: API_SpiCtrlAlloc
-** 功能描述: 为 SPI 控制器分配空间
-** 输　入  : pdevinstance      SPI 设备实例
-**           uiPrivDataSize    私有数据字节大小
-** 输　出  : SPI 控制器结构指针
-** 全局变量:
-** 调用模块:
-**                                            API 函数
-*********************************************************************************************************/
-LW_API
-PLW_DT_SPI_CTRL  API_SpiCtrlAlloc (PLW_DEV_INSTANCE  pdevinstance, UINT  uiPrivDataSize)
-{
-    PLW_DT_SPI_CTRL  pdtspictrl;
-    PVOID            pvMem;
 
-    if (!pdevinstance) {
-        _ErrorHandle(EINVAL);
-        return  (LW_NULL);
-    }
-
-    pvMem = __SHEAP_ZALLOC(sizeof(LW_DT_SPI_CTRL) + uiPrivDataSize);
-    if (!pvMem) {
-        return  (LW_NULL);
-    }
-
-    pdtspictrl                          = (PLW_DT_SPI_CTRL)pvMem;
-    pdevinstance->DEVHD_pvPrivData      = pdtspictrl;
-
-    pdtspictrl->DTSPICTRL_pvPriv        = pvMem + sizeof(LW_DT_SPI_CTRL);
-    pdtspictrl->DTSPICTRL_pdevinstance  = pdevinstance;
-    pdtspictrl->DTSPICTRL_usChipSelNums = 1;
-
-    return  (pdtspictrl);
-}
-/*********************************************************************************************************
-** 函数名称: API_SpiCtrlFree
-** 功能描述: 释放 SPI 控制器空间
-** 输　入  : pdtspictrl      SPI 控制器指针
-** 输　出  : NONE
-** 全局变量:
-** 调用模块:
-**                                            API 函数
-*********************************************************************************************************/
-LW_API
-VOID  API_SpiCtrlFree (PLW_DT_SPI_CTRL  pdtspictrl)
-{
-    PLW_DEV_INSTANCE  pdevinstance;
-
-    if (pdtspictrl) {
-        pdevinstance = pdtspictrl->DTSPICTRL_pdevinstance;
-        pdevinstance->DEVHD_pvPrivData = LW_NULL;
-        __SHEAP_FREE(pdtspictrl);
-    }
-}
-/*********************************************************************************************************
-** 函数名称: API_SpiCtrlGetPrivData
-** 功能描述: 获取 SPI 控制器私有数据
-** 输　入  : pdtspictrl      SPI 控制器指针
-** 输　出  : SPI 控制器私有数据指针
-** 全局变量:
-** 调用模块:
-**                                            API 函数
-*********************************************************************************************************/
-LW_API
-PVOID  API_SpiCtrlGetPrivData (PLW_DT_SPI_CTRL  pdtspictrl)
-{
-    if (!pdtspictrl) {
-        _ErrorHandle(EINVAL);
-        return  (LW_NULL);
-    }
-
-    return  (pdtspictrl->DTSPICTRL_pvPriv);
-}
 /*********************************************************************************************************
 ** 函数名称: API_SpiCtrlRegister
 ** 功能描述: SPI 总线控制器注册
 ** 输　入  : pdtspictrl      SPI 控制器指针
+**           pcName          SPI 控制器名称
 ** 输　出  : ERROR_CODE
 ** 全局变量:
 ** 调用模块:
@@ -257,27 +227,44 @@ INT  API_SpiCtrlRegister (PLW_DT_SPI_CTRL  pdtspictrl, CPCHAR  pcName)
         return  (PX_ERROR);
     }
 
+    if (__spiGpioNumbersGet(pdtspictrl) != ERROR_NONE) {
+        __SHEAP_FREE(pspiadapter);
+        return  (PX_ERROR);
+    }
+
     pdtspictrl->DTSPICTRL_pspiadapter = pspiadapter;
 
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_SpiDevCreate
-** 功能描述: SPI 设备创建
-** 输　入  : NONE
-** 输　出  : 成功返回创建的 SPI 设备指针, 失败返回 LW_NULL
+** 函数名称: API_SpiCtrlUnregister
+** 功能描述: SPI 总线控制器卸载
+** 输　入  : pdtspictrl      SPI 控制器指针
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-PLW_DT_SPI_DEVICE  API_SpiDevCreate (VOID)
+VOID  API_SpiCtrlUnregister (PLW_DT_SPI_CTRL  pdtspictrl)
 {
-    PLW_DT_SPI_DEVICE  pdtspidevice;
+    if (!pdtspictrl) {
+        return;
+    }
 
-    pdtspidevice = __SHEAP_ZALLOC(sizeof(LW_DT_SPI_DEVICE));
+    if (pdtspictrl->DTSPICTRL_hBusLock) {
+        API_SemaphoreBDelete(&pdtspictrl->DTSPICTRL_hBusLock);
+    }
 
-    return  (pdtspidevice);
+    if (pdtspictrl->DTSPICTRL_pspiadapter) {
+        __busAdapterDelete(pdtspictrl->DTSPICTRL_pspiadapter->SPIADAPTER_pbusadapter.BUSADAPTER_cName);
+        __SHEAP_FREE(pdtspictrl->DTSPICTRL_pspiadapter);
+        pdtspictrl->DTSPICTRL_pspiadapter = LW_NULL;
+    }
+
+    if (pdtspictrl->DTSPICTRL_usChipSelNums > 0) {
+        __SHEAP_FREE(pdtspictrl->DTSPICTRL_puiChipSelGpios);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_SpiDevRegister
@@ -293,23 +280,23 @@ INT  API_SpiDevRegister (PLW_DT_SPI_DEVICE  pdtspidevice)
 {
     PLW_DEV_INSTANCE  pdevinstance;
     PLW_DT_SPI_CTRL   pdtspictrl;
-    INT               iRet;
 
     if (!pdtspidevice) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
-    pdevinstance = &pdtspidevice->DTSPIDEV_devinstance;
-    pdtspictrl   = pdtspidevice->DTSPIDEV_pdtspictrl;
-
-    LW_BUS_INC_DEV_COUNT(&pdtspictrl->DTSPICTRL_pspiadapter->SPIADAPTER_pbusadapter);
-
+    pdevinstance                 = &pdtspidevice->DTSPIDEV_devinstance;
     pdevinstance->DEVHD_pbustype = &_G_bustypeSpi;                      /*  设置设备使用的总线类型      */
 
-    iRet = API_DeviceRegister(pdevinstance);                            /*  注册设备                    */
+    if (API_DeviceRegister(pdevinstance) != ERROR_NONE) {               /*  注册设备                    */
+        return  (PX_ERROR);
+    }
 
-    return  (iRet);
+    pdtspictrl = pdtspidevice->DTSPIDEV_pdtspictrl;
+    LW_BUS_INC_DEV_COUNT(&pdtspictrl->DTSPICTRL_pspiadapter->SPIADAPTER_pbusadapter);
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_SpiDevDelete
@@ -334,9 +321,9 @@ VOID  API_SpiDevDelete (PLW_DT_SPI_DEVICE  pdtspidevice)
 
     LW_BUS_DEC_DEV_COUNT(&pdtspictrl->DTSPICTRL_pspiadapter->SPIADAPTER_pbusadapter);
 
-    if (pdtspidevice) {
-        __SHEAP_FREE(pdtspidevice);
-    }
+    API_DeviceUnregister(&pdtspidevice->DTSPIDEV_devinstance);
+
+    __SHEAP_FREE(pdtspidevice);
 }
 /*********************************************************************************************************
 ** 函数名称: API_SpiDrvRegister
@@ -367,6 +354,24 @@ INT  API_SpiDrvRegister (PLW_DT_SPI_DRIVER  pdtspidriver)
     iRet = API_DriverRegister(pdrvinstance);
 
     return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: API_SpiDrvUnregister
+** 功能描述: SPI 设备驱动卸载
+** 输　入  : pdtspidriver    SPI 驱动指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_SpiDrvUnregister (PLW_DT_SPI_DRIVER  pdtspidriver)
+{
+    if (!pdtspidriver) {
+        return;
+    }
+
+    API_DriverUnregister(&pdtspidriver->DTSPIDRV_drvinstance);
 }
 /*********************************************************************************************************
 ** 函数名称: API_SpiDevSetup

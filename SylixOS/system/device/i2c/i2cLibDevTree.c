@@ -134,31 +134,25 @@ PLW_BUS_TYPE  API_I2cBusGet (VOID)
 ** 函数名称: API_I2cAdapterRegister
 ** 功能描述: I2C 总线适配器(控制器)注册
 ** 输　入  : pdti2cadapter    I2C 控制器指针
+**           pcName           I2C 控制器名称
 ** 输　出  : ERROR_CODE
 ** 全局变量: 
 ** 调用模块: 
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-INT  API_I2cAdapterRegister (PLW_DT_I2C_ADAPTER  pdti2cadapter)
+INT  API_I2cAdapterRegister (PLW_DT_I2C_ADAPTER  pdti2cadapter, CPCHAR  pcName)
 {
     PLW_I2C_ADAPTER     pi2cadapter;
     
-    if (!pdti2cadapter) {
-        _ErrorHandle(EINVAL);
-        return  (PX_ERROR);
-    }
-
-    if (LW_NULL == pdti2cadapter->DTI2CADPT_pcName) {                   /*  检查名称                    */
-        _DebugFormat(__ERRORMESSAGE_LEVEL, "I2C: Failed to register "
-                     "an adapter with no name.\r\n");
+    if (!pdti2cadapter || !pcName) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
     if (LW_NULL == pdti2cadapter->DTI2CADPT_pi2cfuncs) {                /*  检查操作函数                */
         _DebugFormat(__ERRORMESSAGE_LEVEL, "I2C: Failed to register "
-                     "adapter %s with no funcs.\r\n", pdti2cadapter->DTI2CADPT_pcName);
+                     "adapter %s with no funcs.\r\n", pcName);
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -195,8 +189,7 @@ INT  API_I2cAdapterRegister (PLW_DT_I2C_ADAPTER  pdti2cadapter)
         return  (PX_ERROR);
     }
     
-    if (__busAdapterCreate(&pi2cadapter->I2CADAPTER_pbusadapter,
-                           pdti2cadapter->DTI2CADPT_pcName) != ERROR_NONE) {
+    if (__busAdapterCreate(&pi2cadapter->I2CADAPTER_pbusadapter, pcName) != ERROR_NONE) {
         __SHEAP_FREE(pi2cadapter);
         return  (PX_ERROR);
     }
@@ -206,28 +199,31 @@ INT  API_I2cAdapterRegister (PLW_DT_I2C_ADAPTER  pdti2cadapter)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: API_I2cDevCreate
-** 功能描述: I2C 设备创建
-** 输　入  : pdti2cadapter   I2C 适配器指针
-** 输　出  : 成功返回创建的 I2C 设备指针, 失败返回 LW_NULL
-** 全局变量: 
-** 调用模块: 
+** 函数名称: API_I2cAdapterUnregister
+** 功能描述: I2C 总线适配器(控制器)卸载
+** 输　入  : pdti2cadapter    I2C 控制器指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
 **                                            API 函数
 *********************************************************************************************************/
 LW_API
-PLW_DT_I2C_DEVICE  API_I2cDevCreate (PLW_DT_I2C_ADAPTER  pdti2cadapter)
+VOID  API_I2cAdapterUnregister (PLW_DT_I2C_ADAPTER  pdti2cadapter)
 {
-    PLW_DT_I2C_DEVICE  pdti2cdevice;
-
-    pdti2cdevice = __SHEAP_ZALLOC(sizeof(LW_DT_I2C_DEVICE));
-    if (LW_NULL == pdti2cdevice) {
-        return  (LW_NULL);
+    if (!pdti2cadapter) {
+        _ErrorHandle(EINVAL);
+        return;
     }
 
-    pdti2cdevice->DTI2CDEV_pdti2cadapter              = pdti2cadapter;
-    pdti2cdevice->DTI2CDEV_devinstance.DEVHD_pbustype = &_G_bustypeI2c;
+    if (pdti2cadapter->DTI2CADPT_hBusLock) {
+        API_SemaphoreBDelete(&pdti2cadapter->DTI2CADPT_hBusLock);
+    }
 
-    return  (pdti2cdevice);
+    if (pdti2cadapter->DTI2CADPT_pi2cadapter) {
+        __busAdapterDelete(pdti2cadapter->DTI2CADPT_pi2cadapter->I2CADAPTER_pbusadapter.BUSADAPTER_cName);
+        __SHEAP_FREE(pdti2cadapter->DTI2CADPT_pi2cadapter);
+        pdti2cadapter->DTI2CADPT_pi2cadapter = LW_NULL;
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: API_I2cDevRegister
@@ -243,21 +239,23 @@ INT  API_I2cDevRegister (PLW_DT_I2C_DEVICE  pdti2cdevice)
 {
     PLW_DEV_INSTANCE    pdevinstance;
     PLW_DT_I2C_ADAPTER  pdti2cadapter;
-    INT                 iRet;
 
     if (!pdti2cdevice) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
-    pdevinstance  = &pdti2cdevice->DTI2CDEV_devinstance;
-    pdti2cadapter =  pdti2cdevice->DTI2CDEV_pdti2cadapter;
+    pdevinstance                 = &pdti2cdevice->DTI2CDEV_devinstance;
+    pdevinstance->DEVHD_pbustype = &_G_bustypeI2c;                      /*  设置设备使用的总线类型      */
 
+    if (API_DeviceRegister(pdevinstance) != ERROR_NONE) {               /*  注册设备                    */
+        return  (PX_ERROR);
+    }
+
+    pdti2cadapter = pdti2cdevice->DTI2CDEV_pdti2cadapter;
     LW_BUS_INC_DEV_COUNT(&pdti2cadapter->DTI2CADPT_pi2cadapter->I2CADAPTER_pbusadapter);
-    
-    iRet = API_DeviceRegister(pdevinstance);                            /* 注册设备                     */
 
-    return  (iRet);
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_I2cDevDelete
@@ -281,10 +279,10 @@ VOID  API_I2cDevDelete (PLW_DT_I2C_DEVICE  pdti2cdevice)
     pdti2cadapter = pdti2cdevice->DTI2CDEV_pdti2cadapter;
 
     LW_BUS_DEC_DEV_COUNT(&pdti2cadapter->DTI2CADPT_pi2cadapter->I2CADAPTER_pbusadapter);
-    
-    if (pdti2cdevice) {
-        __SHEAP_FREE(pdti2cdevice);
-    }
+
+    API_DeviceUnregister(&pdti2cdevice->DTI2CDEV_devinstance);
+
+    __SHEAP_FREE(pdti2cdevice);
 }
 /*********************************************************************************************************
 ** 函数名称: API_I2cDrvRegister
@@ -315,6 +313,24 @@ INT  API_I2cDrvRegister (PLW_DT_I2C_DRIVER  pdti2cdriver)
     iRet = API_DriverRegister(pdrvinstance);
     
     return  (iRet);
+}
+/*********************************************************************************************************
+** 函数名称: API_I2cDrvUnregister
+** 功能描述: I2C 设备驱动卸载
+** 输　入  : pdti2cdriver    I2C 驱动指针
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_I2cDrvUnregister (PLW_DT_I2C_DRIVER  pdti2cdriver)
+{
+    if (!pdti2cdriver) {
+        return;
+    }
+
+    API_DriverUnregister(&pdti2cdriver->DTI2CDRV_drvinstance);
 }
 /*********************************************************************************************************
 ** 函数名称: API_I2cBusTransfer
