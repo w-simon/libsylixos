@@ -3252,6 +3252,12 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
           *(int *)optval = udp_is_flag_set(sock->conn->pcb.udp, UDP_FLAGS_NOCHKSUM) ? 1 : 0;
           break;
 #endif /* LWIP_UDP*/
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region set */
+        case SO_SECREGION:
+          LWIP_SOCKOPT_CHECK_OPTLEN_CONN_PCB(sock, *optlen, int);
+          *(int *)optval = ip_get_pcb_security(sock->conn->pcb.ip);
+          break;
+#endif /* LW_CFG_LWIP_SEC_REGION */
         default:
           LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_getsockopt(%d, SOL_SOCKET, UNIMPL: optname=0x%x, ..)\n",
                                       s, optname));
@@ -3986,6 +3992,20 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           }
         }
         break;
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region set */
+        case SO_SECREGION:
+          LWIP_SOCKOPT_CHECK_OPTLEN_CONN(sock, optlen, int);
+          if ((*(const int *)optval < 0) || (*(const int *)optval > 255)) {
+            done_socket(sock);
+            return EINVAL;
+          }
+          if (*(const int *)optval && geteuid()) {
+            done_socket(sock);
+            return EACCES;
+          }
+          ip_set_pcb_security(sock->conn->pcb.ip, *(const int *)optval);
+          break;
+#endif /* LW_CFG_LWIP_SEC_REGION */
         default:
           LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, SOL_SOCKET, UNIMPL: optname=0x%x, ..)\n",
                                       s, optname));

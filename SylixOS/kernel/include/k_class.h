@@ -756,6 +756,7 @@ typedef struct __lw_tcb {
     
     gid_t                 TCB_suppgid[16];                              /*  附加组 (16 MAX)             */
     UINT                  TCB_iNumSuppGid;
+    UINT8                 TCB_ucSecReg;                                 /*  信息安全域                  */
     
 /*********************************************************************************************************
   MIPS FPU 模拟

@@ -80,6 +80,13 @@ typedef struct {
 #define POSIX_SPAWN_EXT_NO_FILE_INHERIT_CLOEXEC 0x00000004              /*  No file with cloexec inherit*/
 
 /*********************************************************************************************************
+  posix_spawnattr_t extend area mask.
+*********************************************************************************************************/
+
+#define POSIX_SPAWN_EXT_SEC_REGION_MASK         0xff000000              /*  Security region mask        */
+#define POSIX_SPAWN_EXT_SEC_REGION_SHIFT        24
+
+/*********************************************************************************************************
   Data structure to contain information about the actions to be
   performed in the new process with respect to file descriptors.
 *********************************************************************************************************/

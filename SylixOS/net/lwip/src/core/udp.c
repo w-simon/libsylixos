@@ -142,6 +142,13 @@ udp_input_local_match(struct udp_pcb *pcb, struct netif *inp, u8_t broadcast)
     return 0;
   }
 
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region */
+  if (netif_is_security(inp) &&
+      netif_get_security(inp) != pcb->sec_region) {
+    return 0;
+  }
+#endif /* LW_CFG_LWIP_SEC_REGION */
+
   /* Dual-stack: PCBs listening to any IP type also listen to any IP address */
   if (IP_IS_ANY_TYPE_VAL(pcb->local_ip)) {
 #if LWIP_IPV4 && IP_SOF_BROADCAST_RECV
@@ -612,6 +619,13 @@ udp_sendto_chksum(struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *dst_ip,
       netif = ip_route(&pcb->local_ip, dst_ip);
     }
   }
+
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add */
+  if (netif && netif_is_security(netif) &&
+      netif_get_security(netif) != pcb->sec_region) {
+    netif = NULL; /* Do not allow cross security region forwarding */
+  }
+#endif /* LW_CFG_LWIP_SEC_REGION */
 
   /* no outgoing network interface could be found? */
   if (netif == NULL) {
@@ -1285,6 +1299,9 @@ udp_new(void)
 #endif /* LW_CFG_LWIP_DEF_MCAST_LOOP */
     pcb->ipmc.proto = IPPROTO_UDP;
 #endif /* (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD) */
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region init */
+    pcb->sec_region = SYS_SEC_REGION_INIT();
+#endif /* LW_CFG_LWIP_SEC_REGION */
   }
   return pcb;
 }

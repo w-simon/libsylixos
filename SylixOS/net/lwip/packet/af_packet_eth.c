@@ -66,6 +66,12 @@ errno_t  __packetEthRawSendto (AF_PACKET_T          *pafpacket,
     } else {
         pnetif = netif_get_by_index(pafpacket->PACKET_iIfIndex);
     }
+#if LW_CFG_LWIP_SEC_REGION > 0
+    if (pnetif && netif_is_security(pnetif) &&
+        (netif_get_security(pnetif) != pafpacket->PACKET_ucSecReg)) {
+        pnetif = NULL;
+    }
+#endif                                                                  /*  LW_CFG_LWIP_SEC_REGION     */
     if (pnetif == LW_NULL) {
         UNLOCK_TCPIP_CORE();
         return  (ENODEV);
@@ -152,6 +158,12 @@ errno_t  __packetEthDgramSendto (AF_PACKET_T          *pafpacket,
 
     LOCK_TCPIP_CORE();
     pnetif = netif_get_by_index(psockaddrll->sll_ifindex);
+#if LW_CFG_LWIP_SEC_REGION > 0
+    if (pnetif && netif_is_security(pnetif) &&
+        (netif_get_security(pnetif) != pafpacket->PACKET_ucSecReg)) {
+        pnetif = NULL;
+    }
+#endif                                                                  /*  LW_CFG_LWIP_SEC_REGION     */
     if (pnetif == LW_NULL) {
         UNLOCK_TCPIP_CORE();
         return  (ENODEV);

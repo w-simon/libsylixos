@@ -344,6 +344,11 @@ ip4_forward(struct pbuf *p, struct ip_hdr *iphdr, struct netif *inp)
 
   /* Find network interface where to forward this IP packet to. */
   netif = ip4_route_src(ip4_current_src_addr(), ip4_current_dest_addr());
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add */
+  if (netif && !netif_cmp_security(netif, inp)) {
+    netif = NULL; /* Do not allow cross security region forwarding */
+  }
+#endif /* LW_CFG_LWIP_SEC_REGION */
   if (netif == NULL) {
     LWIP_DEBUGF(IP_DEBUG, ("ip4_forward: no forwarding route for %"U16_F".%"U16_F".%"U16_F".%"U16_F" found\n",
                            ip4_addr1_16(ip4_current_dest_addr()), ip4_addr2_16(ip4_current_dest_addr()),

@@ -86,7 +86,9 @@ extern "C" {
   /* Time To Live */                       \
   u8_t ttl;                                \
   /* SylixOS Add min TTL Support */        \
-  u8_t min_ttl                             \
+  u8_t min_ttl;                            \
+  /* SylixOS Add security region */        \
+  u8_t sec_region                          \
   /* link layer address resolution hint */ \
   IP_PCB_NETIFHINT
 
@@ -229,6 +231,13 @@ extern struct ip_globals ip_data;
 #define ip_set_option(pcb, opt)   ((pcb)->so_options = (u8_t)((pcb)->so_options | (opt)))
 /** Resets an IP pcb option (SOF_* flags) */
 #define ip_reset_option(pcb, opt) ((pcb)->so_options = (u8_t)((pcb)->so_options & ~(opt)))
+
+#ifdef SYLIXOS /* SylixOS add security region support */
+/* Gets pcb security region state */
+#define ip_get_pcb_security(pcb)        ((pcb)->sec_region)
+/* Sets pcb security region state */
+#define ip_set_pcb_security(pcb, sec)   ((pcb)->sec_region = (u8_t)(sec))
+#endif /* SYLIXOS */
 
 #if LWIP_IPV4 && LWIP_IPV6
 /**

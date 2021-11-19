@@ -970,6 +970,9 @@ tcp_listen_with_backlog_and_err(struct tcp_pcb *pcb, u8_t backlog, err_t *err)
   }
   lpcb->callback_arg = pcb->callback_arg;
   lpcb->local_port = pcb->local_port;
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region init */
+  lpcb->sec_region = pcb->sec_region;
+#endif /* LW_CFG_LWIP_SEC_REGION */
 #if TCP_LISTEN_MULTI /* SylixOS Add Listen multi-ports */
   lpcb->multi_ports = 0;
 #endif /* TCP_LISTEN_MULTI */
@@ -1191,6 +1194,12 @@ tcp_connect(struct tcp_pcb *pcb, const ip_addr_t *ipaddr, u16_t port,
     /* check if we have a route to the remote host */
     netif = ip_route(&pcb->local_ip, &pcb->remote_ip);
   }
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add */
+  if (netif && netif_is_security(netif) &&
+      netif_get_security(netif) != pcb->sec_region) {
+    netif = NULL; /* Do not allow cross security region forwarding */
+  }
+#endif /* LW_CFG_LWIP_SEC_REGION */
   if (netif == NULL) {
     /* Don't even try to send a SYN packet if we have no route since that will fail. */
     return ERR_RTE;
@@ -2003,6 +2012,9 @@ tcp_alloc(u8_t prio)
     /* Start with a window that does not need scaling. When window scaling is
        enabled and used, the window is enlarged when both sides agree on scaling. */
 #ifdef SYLIXOS /* SylixOS Add netif window size support */
+#if LW_CFG_LWIP_SEC_REGION
+    pcb->sec_region = SYS_SEC_REGION_INIT(); /* initial security region */
+#endif /* LW_CFG_LWIP_SEC_REGION */
     pcb->if_wnd = TCP_WND; /* initial window size */
 #endif /* SYLIXOS */
     pcb->rcv_wnd = pcb->rcv_ann_wnd = TCPWND_MIN16(TCP_WND);

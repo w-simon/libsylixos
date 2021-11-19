@@ -268,6 +268,14 @@ tcp_input(struct pbuf *p, struct netif *inp)
       continue;
     }
 
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region */
+    if (netif_is_security(inp) &&
+        netif_get_security(inp) != pcb->sec_region) {
+      prev = pcb;
+      continue;
+    }
+#endif /* LW_CFG_LWIP_SEC_REGION */
+
     if (pcb->remote_port == tcphdr->src &&
         pcb->local_port == tcphdr->dest &&
         ip_addr_cmp(&pcb->remote_ip, ip_current_src_addr()) &&
@@ -317,6 +325,13 @@ tcp_input(struct pbuf *p, struct netif *inp)
         continue;
       }
 
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region */
+      if (netif_is_security(inp) &&
+          netif_get_security(inp) != pcb->sec_region) {
+        continue;
+      }
+#endif /* LW_CFG_LWIP_SEC_REGION */
+
       if (pcb->remote_port == tcphdr->src &&
           pcb->local_port == tcphdr->dest &&
           ip_addr_cmp(&pcb->remote_ip, ip_current_src_addr()) &&
@@ -347,6 +362,14 @@ tcp_input(struct pbuf *p, struct netif *inp)
         prev = (struct tcp_pcb *)lpcb;
         continue;
       }
+
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region */
+      if (netif_is_security(inp) &&
+          netif_get_security(inp) != lpcb->sec_region) {
+        prev = (struct tcp_pcb *)lpcb;
+        continue;
+      }
+#endif /* LW_CFG_LWIP_SEC_REGION */
 
       if (TCP_LISTEN_CONFLICT(lpcb, tcphdr->dest)) { /* SylixOS Add Listen multi-ports */
         if (IP_IS_ANY_TYPE_VAL(lpcb->local_ip)) {
@@ -697,7 +720,10 @@ tcp_listen_input(struct tcp_pcb_listen *pcb)
     pcb->accepts_pending++;
     tcp_set_flags(npcb, TF_BACKLOGPEND);
 #endif /* TCP_LISTEN_BACKLOG */
-#ifdef SYLIXOS /* SylixOS Add netif window size support */
+#ifdef SYLIXOS /* SylixOS Add netif window size and security region support */
+#if LW_CFG_LWIP_SEC_REGION
+    npcb->sec_region = pcb->sec_region;
+#endif /* LW_CFG_LWIP_SEC_REGION */
     npcb->if_wnd = netif_get_tcp_wnd(ip_current_netif());
     npcb->rcv_wnd = npcb->rcv_ann_wnd = TCPWND_MIN16(npcb->if_wnd);
 #endif /* SYLIXOS */

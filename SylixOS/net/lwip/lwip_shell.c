@@ -534,7 +534,13 @@ static VOID  __netIfShow (CPCHAR  pcIfName, const struct netif  *netifShow)
         }
     }
     printf(" MTU:%d  Metric:%d\n", netif->mtu, netif->metric);
-    
+
+#if LW_CFG_LWIP_SEC_REGION > 0
+    if (netif_is_security(netif)) {
+        printf("%9s Security interface region: %u\n", "", netif_get_security(netif));
+    }
+#endif
+
     if (netif_is_mipif(netif)) {
         printf("\n");
         return;
@@ -1563,6 +1569,60 @@ __error:
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: __tshellIfSec
+** 功能描述: 系统命令 "ifsec"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_LWIP_SEC_REGION > 0
+
+static INT  __tshellIfSec (INT  iArgC, PCHAR  *ppcArgV)
+{
+    INT           iSock, iRet, iSecReg;
+    struct ifreq  ifreq;
+
+    if (iArgC < 3) {
+__error:
+        fprintf(stderr, "arguments error!\n");
+        return  (-ERROR_TSHELL_EPARAM);
+    }
+
+    if (sscanf(ppcArgV[2], "%d", &iSecReg) != 1) {
+        goto    __error;
+    }
+    if ((iSecReg < 0) || (iSecReg > 255)) {
+        goto    __error;
+    }
+
+    iSock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket, error: %s!\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+
+    lib_strlcpy(ifreq.ifr_name, ppcArgV[1], IFNAMSIZ);
+
+    ifreq.ifr_secreg = iSecReg;
+
+    iRet = ioctl(iSock, SIOCSIFSECREG, &ifreq);
+    if (iRet < ERROR_NONE) {
+        fprintf(stderr, "command 'SIOCSIFSECREG', error: %s!\n", lib_strerror(errno));
+        close(iSock);
+        return  (PX_ERROR);
+    }
+
+    close(iSock);
+
+    printf("Interface %s security region: %d\n", ppcArgV[1], iSecReg);
+
+    return  (ERROR_NONE);
+}
+
+#endif                                                                  /*  LW_CFG_LWIP_SEC_REGION      */
+/*********************************************************************************************************
 ** 函数名称: __tshellNetInit
 ** 功能描述: 注册网络命令
 ** 输　入  : NONE
@@ -1666,6 +1726,12 @@ VOID  __tshellNetInit (VOID)
     API_TShellHelpAdd("iftcpwnd", "Set/Get TCP Window size for net interface\n"
     "eg. iftcpwnd lo0        (get 'lo0' TCP Window size setting)\n"
     "    iftcpwnd en1 65535  (set 'en1' TCP Window size to 65535)\n");
+
+#if LW_CFG_LWIP_SEC_REGION > 0
+    API_TShellKeywordAdd("ifsec", __tshellIfSec);
+    API_TShellFormatAdd("iftsec", " [ifname] [security region]");
+    API_TShellHelpAdd("iftsec", "Set interface security region.\n");
+#endif                                                                  /*  LW_CFG_LWIP_SEC_REGION      */
 }
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */

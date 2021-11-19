@@ -244,6 +244,11 @@ INT  API_INetPing (struct in_addr  *pinaddr, INT  iTimes, INT  iDataSize, INT  i
     }
     API_ThreadCleanupPush(__inetPingCleanup, (PVOID)(LONG)iSock);       /*  加入清除函数                */
     
+    if (geteuid() == 0) {                                               /*  尝试加入安全域              */
+        i = 1;
+        setsockopt(iSock, SOL_SOCKET, SO_SECREGION, &i, sizeof(INT));
+    }
+
     setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &iTimeout, sizeof(INT));
     setsockopt(iSock, IPPROTO_IP, IP_TTL, &iTTL, sizeof(INT));
     

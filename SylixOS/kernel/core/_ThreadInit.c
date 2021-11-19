@@ -348,6 +348,7 @@ VOID  _TCBBuild (UINT8                    ucPriority,
             ptcb->TCB_suppgid[i] = ptcbCur->TCB_suppgid[i];
         }
         ptcb->TCB_iNumSuppGid = ptcbCur->TCB_iNumSuppGid;
+        ptcb->TCB_ucSecReg    = ptcbCur->TCB_ucSecReg;
     
     } else {
         ptcb->TCB_uid  = 0;                                             /*  root 权限                   */
@@ -360,6 +361,7 @@ VOID  _TCBBuild (UINT8                    ucPriority,
         ptcb->TCB_sgid = 0;
         
         ptcb->TCB_iNumSuppGid = 0;                                      /*  没有附加组信息              */
+        ptcb->TCB_ucSecReg    = 0;
     }
 
 #if LW_CFG_CPU_FPU_EN > 0

@@ -325,6 +325,22 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
     case SIOCSIFPFLAGS:                                                 /*  设置私有 flags              */
         _ErrorHandle(ENOSYS);
         break;
+
+    case SIOCGIFSECREG:                                                 /*  获得安全域设置              */
+        pifreq->ifr_secreg = netif_get_security(pnetif);
+        iRet = ERROR_NONE;
+        break;
+
+    case SIOCSIFSECREG:                                                 /*  设置网卡安全域              */
+        if (geteuid()) {
+            _ErrorHandle(EACCES);
+        } else if ((pifreq->ifr_secreg < 0) || (pifreq->ifr_secreg > 255)) {
+            _ErrorHandle(EINVAL);
+        } else {
+            pnetif->sec_region = (u8_t)pifreq->ifr_secreg;
+            iRet = ERROR_NONE;
+        }
+        break;
     }
     
     return  (iRet);
@@ -824,6 +840,8 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFTCPWND:
     case SIOCGIFPFLAGS:
     case SIOCSIFPFLAGS:
+    case SIOCGIFSECREG:
+    case SIOCSIFSECREG:
         LWIP_IF_LIST_LOCK(LW_TRUE);                                     /*  进入临界区 (独占)           */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
@@ -1001,6 +1019,8 @@ INT  __ifIoctlPacket (INT  iCmd, PVOID  pvArg)
     case SIOCSIFHWADDR:
     case SIOCGIFPFLAGS:
     case SIOCSIFPFLAGS:
+    case SIOCGIFSECREG:
+    case SIOCSIFSECREG:
         LWIP_IF_LIST_LOCK(LW_TRUE);                                     /*  进入临界区 (独占)           */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */

@@ -56,6 +56,15 @@ LW_API INT  vprocDebugFlagsSet(pid_t  pid, INT  piFlags);
 LW_API INT  vprocListGet(pid_t  pidTable[], UINT  uiMaxCnt);
 LW_API INT  vprocMemInfo(pid_t  pid, size_t  *pstStatic, size_t  *pstHeap, size_t  *pstMmap);
 
+/*********************************************************************************************************
+  进程信息安全域
+*********************************************************************************************************/
+
+LW_API INT    vprocSecRegionGet(pid_t pid, UINT8 *pucSecReg);
+LW_API INT    vprocSecRegionSet(pid_t pid, UINT8 ucSecReg);
+LW_API UINT8  vprocSecRegionGetCur(VOID);
+LW_API INT    vprocSecRegionSetCur(UINT8  ucSecReg);
+
 #ifdef __cplusplus
 }
 #endif                                                                  /*  __cplusplus                 */

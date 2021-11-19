@@ -225,6 +225,10 @@ will need to increase long long */
 #define SO_NO_CHECK     0x100a /* don't create UDP checksum */
 #define SO_BINDTODEVICE 0x100b /* bind to device */
 
+/* SylixOS extended command */
+#define SO_SECREGION    0x4001 /* Socket security region on off */
+#define SO_PRIORITY     0x4002 /* Unimplemented: socket priority */
+
 /*
  * Structure used for manipulating linger option.
  */

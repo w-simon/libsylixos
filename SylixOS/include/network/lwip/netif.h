@@ -421,6 +421,7 @@ struct netif {
   void *ext_ctl; /* net bridge or bonding or ... ctl block */
   struct netif *ext_inp; /* net bridge or bonding netif */
   void *flowctl; /* net flow ctl */
+  u8_t sec_region; /* net security region */
   u16_t vlanid; /* include tag & pri */
   int metric; /* netif metric (NOT support now) */
   /* SylixOS TCP optimization parameters */
@@ -629,6 +630,10 @@ struct netif* netif_get_by_index(u8_t idx);
 #define netif_is_mipif(netif)                   ((netif)->masterif != NULL)
 #define netif_has_mipif(netif)                  ((netif)->mipif != NULL)
 #define netif_get_masterif(netif)               ((netif)->masterif)
+
+#define netif_is_security(netif)                ((netif)->sec_region != 0)
+#define netif_get_security(netif)               ((netif)->sec_region)
+#define netif_cmp_security(netif1, netif2)      (netif_get_security(netif1) == netif_get_security(netif2))
 
 #define NETIF_MIPIF_FOREACH(netif, mipif)       for ((mipif) = netif->mipif; (mipif) != NULL; (mipif) = (mipif)->mipif)
 

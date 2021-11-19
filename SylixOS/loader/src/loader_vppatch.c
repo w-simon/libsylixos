@@ -1864,7 +1864,6 @@ INT  vprocGetPath (pid_t  pid, PCHAR  pcPath, size_t stMaxLen)
                              LW_LD_EXEC_MODULE,
                              EMOD_ringModules);                         /* 取第一个模块的路径           */
     lib_strlcpy(pcPath, pmodTemp->EMOD_pcModulePath, stMaxLen);
-
     LW_LD_UNLOCK();
 
     return  (ERROR_NONE);
@@ -1918,6 +1917,145 @@ static LW_LD_EXEC_MODULE  *vprocModuleFind (pid_t  pid, PCHAR  pcModPath)
     return  (LW_NULL);
 }
 /*********************************************************************************************************
+** 函数名称: vprocSecRegionGet
+** 功能描述: 获取指定进程信息安全域
+** 输　入  : pid         进程 ID
+**           pSecReg     安全域
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  vprocSecRegionGet (pid_t pid, UINT8 *pucSecReg)
+{
+    LW_LD_VPROC        *pvproc;
+    PLW_CLASS_TCB       ptcb;
+
+    if (!pucSecReg) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (!pvproc) {
+        LW_LD_UNLOCK();
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    __KERNEL_ENTER();                                                   /*  进入内核                    */
+    ptcb = _LIST_ENTRY(pvproc->VP_plineThread, LW_CLASS_TCB, TCB_lineProcess);
+    *pucSecReg = ptcb->TCB_ucSecReg;
+    __KERNEL_EXIT();                                                    /*  退出内核                    */
+    LW_LD_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: vprocSecRegionSet
+** 功能描述: 设置指定进程信息安全域
+** 输　入  : pid         进程 ID
+**           ucSecReg    安全域
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  vprocSecRegionSet (pid_t pid, UINT8 ucSecReg)
+{
+    LW_LD_VPROC        *pvproc;
+    PLW_CLASS_TCB       ptcb;
+    PLW_LIST_LINE       plineTemp;
+
+    if (ucSecReg && geteuid()) {
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+
+    LW_LD_LOCK();
+    pvproc = vprocGet(pid);
+    if (!pvproc) {
+        LW_LD_UNLOCK();
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
+    LW_VP_LOCK(pvproc);                                                 /*  锁定当前进程                */
+    for (plineTemp  = pvproc->VP_plineThread;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+
+        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        ptcb->TCB_ucSecReg = ucSecReg;
+    }
+    LW_VP_UNLOCK(pvproc);                                               /*  解锁当前进程                */
+    LW_LD_UNLOCK();
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: vprocSecRegionGetCur
+** 功能描述: 获取当前进程信息安全域
+** 输　入  : NONE
+** 输　出  : 安全域
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+UINT8  vprocSecRegionGetCur (VOID)
+{
+    PLW_CLASS_TCB   ptcbCur;
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    return  (ptcbCur->TCB_ucSecReg);
+}
+/*********************************************************************************************************
+** 函数名称: vprocSecRegionSetCur
+** 功能描述: 设置当前进程信息安全域
+** 输　入  : ucSecReg  安全域
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  vprocSecRegionSetCur (UINT8  ucSecReg)
+{
+    LW_LD_VPROC    *pvproc;
+    PLW_LIST_LINE   plineTemp;
+    PLW_CLASS_TCB   ptcb, ptcbCur;
+
+    if (ucSecReg && geteuid()) {
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    pvproc = (LW_LD_VPROC *)ptcbCur->TCB_pvVProcessContext;
+    if (pvproc) {
+        LW_VP_LOCK(pvproc);                                             /*  锁定当前进程                */
+        for (plineTemp  = pvproc->VP_plineThread;
+             plineTemp != LW_NULL;
+             plineTemp  = _list_line_get_next(plineTemp)) {
+
+            ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+            ptcb->TCB_ucSecReg = ucSecReg;
+        }
+        LW_VP_UNLOCK(pvproc);                                           /*  解锁当前进程                */
+
+    } else {
+        ptcbCur->TCB_ucSecReg = ucSecReg;
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: API_ModulePid
 ** 功能描述: 外部进程补丁使用本 API 获取当前进程 pid
 ** 输　入  : pvproc     进程控制块指针
@@ -1933,7 +2071,6 @@ pid_t API_ModulePid (PVOID   pvVProc)
 
     if (pvproc) {
         return  (pvproc->VP_pid);
-        
     } else {
         return  (0);
     }

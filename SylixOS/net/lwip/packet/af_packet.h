@@ -74,6 +74,7 @@ typedef struct af_packet_t {
 #define __AF_PACKET_SHUTD_W     0x02
     INT                     PACKET_iShutDFlag;                          /*  当前 shutdown 状态          */
     
+    UINT8                   PACKET_ucSecReg;                            /*  Security region             */
     BOOL                    PACKET_bRecvOut;                            /*  是否接受输出数据包          */
     INT                     PACKET_iIfIndex;                            /*  绑定的接收                  */
     AF_PACKET_Q             PACKET_pktq;                                /*  接收缓冲                    */

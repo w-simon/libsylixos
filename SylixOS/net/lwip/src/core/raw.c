@@ -80,6 +80,13 @@ raw_input_local_match(struct raw_pcb *pcb, u8_t broadcast, struct netif *inp)
     return 0;
   }
 
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region */
+  if (netif_is_security(inp) &&
+      netif_get_security(inp) != pcb->sec_region) {
+    return 0;
+  }
+#endif /* LW_CFG_LWIP_SEC_REGION */
+
 #if LWIP_IPV4 && LWIP_IPV6
   /* Dual-stack: PCBs listening to any IP type also listen to any IP address */
   if (IP_IS_ANY_TYPE_VAL(pcb->local_ip)) {
@@ -433,6 +440,13 @@ raw_sendto(struct raw_pcb *pcb, struct pbuf *p, const ip_addr_t *ipaddr)
     }
   }
 
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add */
+  if (netif && netif_is_security(netif) &&
+      netif_get_security(netif) != pcb->sec_region) {
+    netif = NULL; /* Do not allow cross security region forwarding */
+  }
+#endif /* LW_CFG_LWIP_SEC_REGION */
+
   if (netif == NULL) {
     LWIP_DEBUGF(RAW_DEBUG | LWIP_DBG_LEVEL_WARNING, ("raw_sendto: No route to "));
     ip_addr_debug_print(RAW_DEBUG | LWIP_DBG_LEVEL_WARNING, ipaddr);
@@ -693,6 +707,9 @@ raw_new(u8_t proto)
 #endif /* LW_CFG_LWIP_DEF_MCAST_LOOP */
     pcb->ipmc.proto = IPPROTO_RAW;
 #endif /* (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD) */
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add security region init */
+    pcb->sec_region = SYS_SEC_REGION_INIT();
+#endif /* LW_CFG_LWIP_SEC_REGION */
     pcb->next = raw_pcbs;
     raw_pcbs = pcb;
   }

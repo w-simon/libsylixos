@@ -394,7 +394,8 @@ netif_add(struct netif *netif,
   netif->ext_ctl = NULL;
   netif->ext_inp = NULL;
   netif->flowctl = NULL;
-  netif->vlanid = (u16_t)-1;
+  netif->sec_region = 0;
+  netif->vlanid = 0;
   netif->metric = 1;
   netif->tcp_ack_freq = LWIP_NETIF_TCP_ACK_FREQ_DEF;
   netif->tcp_wnd = TCP_WND;

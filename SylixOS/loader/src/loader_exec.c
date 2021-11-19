@@ -289,6 +289,26 @@ static LW_LD_VPROC_STOP *__spawnStopGet (__PSPAWN_ARG  psarg, LW_LD_VPROC_STOP *
     return  (pvpstop);
 }
 /*********************************************************************************************************
+** 函数名称: __spawnSecRegion
+** 功能描述: 设置当前进程安全域
+** 输　入  : psarg     spawn args
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __spawnSecRegion (__PSPAWN_ARG  psarg)
+{
+    UINT8  ucSecReg = (UINT8)((psarg->SA_spawnattr.SPA_ulExts
+                    & POSIX_SPAWN_EXT_SEC_REGION_MASK)
+                    >> POSIX_SPAWN_EXT_SEC_REGION_SHIFT);
+
+    PLW_CLASS_TCB  ptcbCur;
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    ptcbCur->TCB_ucSecReg = ucSecReg;
+}
+/*********************************************************************************************************
 ** 函数名称: __execShell
 ** 功能描述: exec shell (注意, __execShell 本身就是进程主线程, 不管装载成功与否都需要通过 vprocExit 退出)
 ** 输　入  : pvArg
@@ -313,6 +333,11 @@ static INT  __execShell (PVOID  pvArg)
     
     pvpstop = __spawnStopGet(psarg, &vpstop);                           /*  获得停止属性                */
     
+    if (psarg->SA_spawnattr.SPA_ulExts &
+        POSIX_SPAWN_EXT_SEC_REGION_MASK) {
+        __spawnSecRegion(psarg);                                        /*  设置安全域                  */
+    }
+
     iError = vprocRun(psarg->SA_pvproc, pvpstop,
                       psarg->SA_pcPath, LW_LD_DEFAULT_ENTRY, 
                       &iRet, psarg->SA_iArgs, 
@@ -360,6 +385,11 @@ static INT  __processShell (PVOID  pvArg)
     
     pvpstop = __spawnStopGet(psarg, &vpstop);                           /*  获得停止属性                */
     
+    if (psarg->SA_spawnattr.SPA_ulExts &
+        POSIX_SPAWN_EXT_SEC_REGION_MASK) {
+        __spawnSecRegion(psarg);                                        /*  设置安全域                  */
+    }
+
     iError = vprocRun(psarg->SA_pvproc, pvpstop, 
                       psarg->SA_pcPath, LW_LD_DEFAULT_ENTRY, 
                       &iRet, psarg->SA_iArgs, 
@@ -395,6 +425,14 @@ INT  __processStart (INT  mode, __PSPAWN_ARG  psarg)
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
+    if (psarg->SA_spawnattr.SPA_ulExts & POSIX_SPAWN_EXT_SEC_REGION_MASK) {
+        if (ptcbCur->TCB_euid) {
+            __spawnArgFree(psarg);
+            _ErrorHandle(EACCES);
+            return  (PX_ERROR);                                         /*  不能更改安全域设置          */
+        }
+    }
+
     ulOption = LW_OPTION_THREAD_STK_CHK
              | LW_OPTION_OBJECT_GLOBAL
              | LW_OPTION_THREAD_STK_MAIN

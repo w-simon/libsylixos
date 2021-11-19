@@ -37,6 +37,7 @@
 #include "net/if_ether.h"
 #include "net/if_flags.h"
 #include "sys/socket.h"
+#include "sys/vproc.h"
 #include "netif/etharp.h"
 #include "lwip/mem.h"
 #include "lwip/pbuf.h"
@@ -631,7 +632,11 @@ static AF_PACKET_T  *__packetCreate (INT  iType, INT  iProtocol)
     pafpacket->PACKET_tpver         = TPACKET_V1;
     pafpacket->PACKET_uiHdrLen      = TPACKET_HDRLEN;
     pafpacket->PACKET_uiReserve     = 0;
-    
+
+#if LW_CFG_LWIP_SEC_REGION > 0
+    pafpacket->PACKET_ucSecReg = vprocSecRegionGetCur();
+#endif                                                                  /*  LW_CFG_LWIP_SEC_REGION     */
+
 #if LW_CFG_NET_PACKET_MMAP > 0
     pafpacket->PACKET_bMapBusy = LW_FALSE;
     pafpacket->PACKET_bMmap    = LW_FALSE;
@@ -1009,7 +1014,14 @@ INT  packet_link_input (struct pbuf *p, struct netif *inp, BOOL bOutgo)
             (pafpacket->PACKET_iIfIndex != netif_get_index(inp))) {     /*  不是绑定的网卡              */
             continue;
         }
-        
+
+#if LW_CFG_LWIP_SEC_REGION > 0
+        if (netif_is_security(inp) &&
+            (netif_get_security(inp) != pafpacket->PACKET_ucSecReg)) {  /*  不是一个安全域              */
+            continue;
+        }
+#endif                                                                  /*  LW_CFG_LWIP_SEC_REGION     */
+
 #if LW_CFG_NET_PACKET_MMAP > 0
         if (pafpacket->PACKET_bMapBusy) {                               /*  busy 状态                   */
             continue;
@@ -1786,6 +1798,18 @@ INT  packet_setsockopt (AF_PACKET_T *pafpacket, int level, int optname,
             }
             iRet = ERROR_NONE;
             break;
+
+        case SO_SECREGION:
+            if ((optlen != sizeof(int)) ||
+                (*(INT *)optval < 0) || (*(INT *)optval > 255)) {
+                _ErrorHandle(EINVAL);
+            } else if (*(INT *)optval && geteuid()) {
+                _ErrorHandle(EACCES);
+            } else {
+                pafpacket->PACKET_ucSecReg = (UINT8)*(INT *)optval;
+                iRet = ERROR_NONE;
+            }
+            break;
         
         default:
             _ErrorHandle(ENOSYS);
@@ -1911,6 +1935,15 @@ INT  packet_getsockopt (AF_PACKET_T *pafpacket, int level, int optname, void *op
                 *(INT *)optval = (INT)__packetTicksToMs(pafpacket->PACKET_ulRecvTimeout);
             }
             iRet = ERROR_NONE;
+            break;
+
+        case SO_SECREGION:
+            if (*optlen != sizeof(int)) {
+                _ErrorHandle(EINVAL);
+            } else {
+                *(INT *)optval = pafpacket->PACKET_ucSecReg;
+                iRet = ERROR_NONE;
+            }
             break;
         
         default:

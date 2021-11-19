@@ -421,6 +421,11 @@ ip6_forward(struct pbuf *p, struct ip6_hdr *iphdr, struct netif *inp)
 
   /* Find network interface where to forward this IP packet to. */
   netif = ip6_route(IP6_ADDR_ANY6, ip6_current_dest_addr());
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add */
+  if (netif && !netif_cmp_security(netif, inp)) {
+    netif = NULL; /* Do not allow cross security region forwarding */
+  }
+#endif /* LW_CFG_LWIP_SEC_REGION */
   if (netif == NULL) {
     LWIP_DEBUGF(IP6_DEBUG, ("ip6_forward: no route for %"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F":%"X16_F"\n",
         IP6_ADDR_BLOCK1(ip6_current_dest_addr()),

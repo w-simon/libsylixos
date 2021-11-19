@@ -294,6 +294,11 @@ INT  API_INetPing6 (struct in6_addr  *pin6addr,
     }
     API_ThreadCleanupPush(__inetPing6Cleanup, (PVOID)(LONG)iSock);      /*  加入清除函数                */
     
+    if (geteuid() == 0) {                                               /*  尝试加入安全域              */
+        i = 1;
+        setsockopt(iSock, SOL_SOCKET, SO_SECREGION, &i, sizeof(INT));
+    }
+
     setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &iTimeout, sizeof(INT));
     setsockopt(iSock, IPPROTO_RAW, IPV6_CHECKSUM, &On, sizeof(INT));    /*  自动计算 checksum           */
     

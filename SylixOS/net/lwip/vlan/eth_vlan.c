@@ -54,7 +54,7 @@
 #define VLAN_PRI_OFFSET     13
 #define VLAN_PRI_GET(id)    (u16_t)(((id) >> VLAN_PRI_OFFSET) & VLAN_TAG_MASK)
 
-#define VLAN_ID_VALID(id)       ((VLAN_TAG_GET(id) != VLAN_TAG_MASK) && (VLAN_TAG_GET(id) != 0))
+#define VLAN_ID_VALID(id)       ((VLAN_TAG_GET(id) != 0) && (VLAN_TAG_GET(id) != VLAN_TAG_MASK))
 #define VLAN_ID_SET(tag, pri)   (u16_t)(((tag) & VLAN_TAG_MASK) | (((pri) & VLAN_PRI_MASK) << VLAN_PRI_OFFSET))
 
 /* vlan id get */
@@ -146,11 +146,7 @@ void ethernet_vlan_total (unsigned int *cnt)
 int ethernet_vlan_set_hook (struct netif *netif, struct pbuf *p, const struct eth_addr *src, 
                             const struct eth_addr *dst, u16_t eth_type)
 {
-  if (VLAN_ID_VALID(netif->vlanid)) {
-    return ((int)netif->vlanid);
-  }
-  
-  return (-1); /* this interface does not have a vlan id */
+  return (netif->vlanid ? netif->vlanid : -1);
 }
 
 /* lwip vlan check hook */

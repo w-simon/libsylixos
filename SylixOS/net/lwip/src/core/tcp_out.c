@@ -134,6 +134,22 @@ static err_t tcp_output_control_segment_netif(const struct tcp_pcb *pcb, struct 
 static struct netif *
 tcp_route(const struct tcp_pcb *pcb, const ip_addr_t *src, const ip_addr_t *dst)
 {
+#if LW_CFG_LWIP_SEC_REGION /* SylixOS Add */
+  struct netif *netif;
+
+  LWIP_UNUSED_ARG(src); /* in case IPv4-only and source-based routing is disabled */
+
+  if ((pcb != NULL) && (pcb->netif_idx != NETIF_NO_INDEX)) {
+    netif = netif_get_by_index(pcb->netif_idx);
+  } else {
+    netif = ip_route(src, dst);
+  }
+  if (netif && netif_is_security(netif) &&
+      netif_get_security(netif) != pcb->sec_region) {
+    netif = NULL; /* Do not allow cross security region forwarding */
+  }
+  return netif;
+#else /* LW_CFG_LWIP_SEC_REGION */
   LWIP_UNUSED_ARG(src); /* in case IPv4-only and source-based routing is disabled */
 
   if ((pcb != NULL) && (pcb->netif_idx != NETIF_NO_INDEX)) {
@@ -141,6 +157,7 @@ tcp_route(const struct tcp_pcb *pcb, const ip_addr_t *src, const ip_addr_t *dst)
   } else {
     return ip_route(src, dst);
   }
+#endif /* !LW_CFG_LWIP_SEC_REGION */
 }
 
 /**
