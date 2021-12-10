@@ -64,6 +64,7 @@ typedef struct {
     LW_HANDLE queue;
     LW_SEL_WAKEUPLIST sel_list;
     time_t time;
+    LW_OBJECT_HANDLE lock;
 } xinput_dev_t;
 
 static xinput_dev_t kdb_xinput;
@@ -88,6 +89,9 @@ static spinlock_t xinput_sl;
 static int xinput_kmqsize = MAX_INPUT_KQUEUE;
 static int xinput_mmqsize = MAX_INPUT_MQUEUE;
 
+#define XINPUT_LOCK(xinput)     API_SemaphoreMPend(xinput->lock, LW_OPTION_WAIT_INFINITE)
+#define XINPUT_UNLOCK(xinput)   API_SemaphoreMPost(xinput->lock)
+
 /*
  * xinput open
  */
@@ -101,15 +105,18 @@ static long xinput_open (xinput_dev_t *xinput, char *name, int flags, int mode)
         return  (PX_ERROR);
 
     } else {
+        XINPUT_LOCK(xinput);
         pfdnode = API_IosFdNodeAdd(&xinput->fdnode_header,
                                    (dev_t)xinput, 0,
                                    flags, mode, 0, 0, 0, NULL, &is_new);
         if (pfdnode == NULL) {
+            XINPUT_UNLOCK(xinput);
             return  (PX_ERROR);
         }
 
         LW_DEV_INC_USE_COUNT(&xinput->devhdr);
 
+        XINPUT_UNLOCK(xinput);
         return  ((long)pfdnode);
     }
 }
@@ -123,6 +130,7 @@ static int xinput_close (PLW_FD_ENTRY pfdentry)
     xinput_dev_t *xinput  = (xinput_dev_t *)pfdentry->FDENTRY_pdevhdrHdr;
 
     if (pfdentry && pfdnode) {
+        XINPUT_LOCK(xinput);
         API_IosFdNodeDec(&xinput->fdnode_header, pfdnode, NULL);
 
         LW_DEV_DEC_USE_COUNT(&xinput->devhdr);
@@ -130,6 +138,7 @@ static int xinput_close (PLW_FD_ENTRY pfdentry)
             API_MsgQueueClear(xinput->queue);
         }
 
+        XINPUT_UNLOCK(xinput);
         return  (ERROR_NONE);
     }
 
@@ -328,6 +337,10 @@ static int xinput_devadd (void)
                                           LW_OPTION_OBJECT_GLOBAL, NULL);
     SEL_WAKE_UP_LIST_INIT(&kdb_xinput.sel_list);
     kdb_xinput.time = time(NULL);
+    kdb_xinput.lock = API_SemaphoreMCreate("xkbd_l", LW_PRIO_DEF_CEILING,
+                                           LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
+                                           LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
+                                           LW_NULL);
 
     if (iosDevAddEx(&kdb_xinput.devhdr, XINPUT_NAME_KBD, xinput_drv_num, DT_CHR) != ERROR_NONE) {
         printk(KERN_ERR "xinput can not add device: %s.\n", strerror(errno));
@@ -339,6 +352,10 @@ static int xinput_devadd (void)
                                           LW_OPTION_OBJECT_GLOBAL, NULL);
     SEL_WAKE_UP_LIST_INIT(&mse_xinput.sel_list);
     mse_xinput.time = time(NULL);
+    mse_xinput.lock = API_SemaphoreMCreate("xmse_l", LW_PRIO_DEF_CEILING,
+                                           LW_OPTION_WAIT_PRIORITY | LW_OPTION_DELETE_SAFE |
+                                           LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
+                                           LW_NULL);
 
     if (iosDevAddEx(&mse_xinput.devhdr, XINPUT_NAME_MSE, xinput_drv_num, DT_CHR) != ERROR_NONE) {
         printk(KERN_ERR "xinput can not add device: %s.\n", strerror(errno));
@@ -555,6 +572,9 @@ void module_exit (void)
 
     API_MsgQueueDelete(&kdb_xinput.queue);
     API_MsgQueueDelete(&mse_xinput.queue);
+
+    API_SemaphoreMDelete(&kdb_xinput.lock);
+    API_SemaphoreMDelete(&mse_xinput.lock);
 
     SEL_WAKE_UP_LIST_TERM(&kdb_xinput.sel_list);
     SEL_WAKE_UP_LIST_TERM(&mse_xinput.sel_list);

@@ -279,7 +279,7 @@ INT API_SdCoreDevSwitchEx (PLW_SDCORE_DEVICE psdcoredevice,
     sdmsg.SDMSG_pucRdBuffer = pucResp;
     iRet = API_SdCoreDevTransfer(psdcoredevice, &sdmsg, 1);
 
-    SD_DELAYMS(10);
+    API_TimeMSleep(10);
 
     return  (iRet);
 }
@@ -694,7 +694,7 @@ INT API_SdCoreDevReset (PLW_SDCORE_DEVICE psdcoredevice)
     sdcmd.SDCMD_uiFlag   = SD_RSP_SPI_R1 | SD_RSP_NONE | SD_CMD_BC;
 
     do {
-        SD_DELAYMS(1);
+        API_TimeMSleep(1);
         iError = API_SdCoreDevCmd(psdcoredevice, &sdcmd, 0);
         if (iError != ERROR_NONE) {
             SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "send reset cmd error.\r\n");
@@ -860,7 +860,7 @@ INT API_SdCoreDevSendAppOpCond (PLW_SDCORE_DEVICE  psdcoredevice,
             }
         }
 
-        SD_DELAYMS(2);
+        API_TimeMSleep(10);
     }
 
     if (i >= SD_OPCOND_DELAY_CONTS) {                                   /*  sd¿¨Ê¶±ðÊ§°Ü                */
@@ -900,6 +900,7 @@ __mmc_ident:                                                            /*  mmc 
                 break;
             }
         }
+        API_TimeMSleep(10);
     }
 
     if (i >= SD_OPCOND_DELAY_CONTS) {

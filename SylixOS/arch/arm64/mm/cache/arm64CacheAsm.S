@@ -306,7 +306,7 @@ FUNC_DEF(arm64DCacheClearAll)
 
 FUNC_DEF(arm64DCacheInvalidateAll)
     MOV     X14 , LR                                                    ;/*  ¼ÇÂ¼·µ»ØµØÖ·                */
-    MOV     X0  , #1
+    MOV     X0  , #2
     BL      arm64DCacheAll
     MOV     LR  , X14
     RET

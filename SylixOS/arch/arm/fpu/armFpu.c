@@ -154,6 +154,8 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
         return;
     }
+
+    ARM_VFP_DISABLE(_G_pfpuop);
 #endif                                                                  /*  !__SYLIXOS_ARM_ARCH_M__     */
 }
 

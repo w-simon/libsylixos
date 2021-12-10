@@ -591,7 +591,7 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
             return  (PX_ERROR);
         }
 
-        SD_DELAYMS(10);
+        API_TimeMSleep(10);
         API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, SDARG_SETBUSWIDTH_1);
 
         iError = API_SdCoreDevReset(psdcoredevice);                     /*  cmd0 go idle                */
@@ -765,7 +765,7 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
 
     case SDADAPTER_TYPE_SPI:
         API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_POWERON, 0);
-        SD_DELAYMS(3);
+        API_TimeMSleep(3);
 
         iError = API_SdCoreDevCtl(psdcoredevice,
                                   SDBUS_CTRL_SETCLK,
@@ -2037,7 +2037,7 @@ static INT __sdMemSwitchWait (PLW_SDCORE_DEVICE psdcoredevice,
     INT     iError;
 
     if (!bSendStatus) {
-        SD_DELAYMS(uiTimeout);
+        API_TimeMSleep(uiTimeout);
         return  (ERROR_NONE);
     }
 

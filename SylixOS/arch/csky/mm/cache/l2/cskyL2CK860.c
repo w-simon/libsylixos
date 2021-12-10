@@ -248,9 +248,7 @@ static INT  cskyL2CK860Invalidate (L2C_DRVIER  *pl2cdrv, PVOID  pvPdrs, size_t  
         __asm__ __volatile__ ("dcache.civa %0\n"::"r"(ulPhyEnd):"memory");
     }
 
-    while (ulPhyStart < ulPhyEnd) {
-        __cskyL2CK860Invalidate(ulPhyStart, ulPhyEnd);
-    }
+    __cskyL2CK860Invalidate(ulPhyStart, ulPhyEnd);
 
     return  (ERROR_NONE);
 }

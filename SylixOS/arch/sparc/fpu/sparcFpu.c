@@ -95,6 +95,8 @@ VOID  archFpuSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcFpuName)
         _DebugHandle(__ERRORMESSAGE_LEVEL, "unknown fpu name.\r\n");
         return;
     }
+
+    SPARC_VFP_DISABLE(_G_pfpuop);
 }
 
 #endif                                                                  /*  LW_CFG_SMP_EN               */

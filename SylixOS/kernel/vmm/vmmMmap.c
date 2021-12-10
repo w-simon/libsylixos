@@ -424,10 +424,15 @@ static PVOID  __vmmMmapNew (size_t  stLen, INT  iFlags, ULONG  ulFlag,
             return  (LW_VMM_MAP_FAILED);
 
         } else if ((off + stLen) > stat64Fd.st_size) {                  /*  重新设置有效的映射范围      */
-            stLen -= (off + stLen - stat64Fd.st_size);
+            stLen = ROUND_UP(off + stat64Fd.st_size,
+                             LW_CFG_VMM_PAGE_SIZE);                     /*  变成页面对齐大小            */
+            if ((stat64Fd.st_size == 0) && (stLen == 0)) {              /*  对于长度为零的，仍进行映射  */
+                iFileFlag &= ~LW_VMM_FLAG_ACCESS;                       /*  但页面不能被访问            */
+                stLen      = LW_CFG_VMM_PAGE_SIZE;
+            }
         }
     }
-    
+
     pmapn = (PLW_VMM_MAP_NODE)__SHEAP_ALLOC(sizeof(LW_VMM_MAP_NODE));   /*  创建控制块                  */
     if (pmapn == LW_NULL) {
         _ErrorHandle(ENOMEM);

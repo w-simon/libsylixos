@@ -166,7 +166,7 @@ INT API_SdioCoreDevSendIoOpCond (PLW_SDCORE_DEVICE   psdcoredev, UINT32 uiOcr, U
 
         iError = PX_ERROR;
 
-        SD_DELAYMS(10);
+        API_TimeMSleep(10);
     }
 
     if (puiOcrOut) {

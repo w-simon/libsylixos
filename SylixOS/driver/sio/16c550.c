@@ -353,6 +353,19 @@ static INT  sio16c550GetBasePort (UINT16 iobase, UINT8 *key, UINT8 *index)
     return  (PX_ERROR);
 }
 /*********************************************************************************************************
+** 函数名称: bspSio16c550SetHighBaud
+** 功能描述: BSP 设置 16c550 高速波特率(弱符号函数, 允许 BSP 重新定义该函数)
+** 输　入  : psiochan      SIO CHAN
+**           baud          波特率
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+LW_WEAK INT  bspSio16c550SetHighBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
+{
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
 ** 函数名称: sio16c550SetHighBaud
 ** 功能描述: 设置高速波特率
 ** 输　入  : psiochan      SIO CHAN
@@ -375,6 +388,10 @@ static INT  sio16c550SetHighBaud (SIO16C550_CHAN *psiochan, ULONG  baud)
         return  (PX_ERROR);
     }
 #else
+    if (bspSio16c550SetHighBaud(psiochan, baud) == ERROR_NONE) {
+        return  (ERROR_NONE);
+    }
+
     if ((psiochan->iobase == 0) && (__IO_BASE__ == 0)) {
         _ErrorHandle(ENODEV);
         return  (PX_ERROR);

@@ -53,6 +53,7 @@
 #include "lwip/memp.h"
 #include "lwip/pbuf.h"
 #include "lwip/netif.h"
+#include "lwip/priv/tcp_priv.h"
 #include "lwip/priv/tcpip_priv.h"
 #include "lwip/mld6.h"
 #if LWIP_CHECKSUM_ON_COPY
@@ -4429,18 +4430,22 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
           break;
 
 #if LWIP_TCP_KEEPALIVE
+        /* SylixOS Fixed: Set to default value when optval is <= 0 */
         case TCP_KEEPIDLE:
-          sock->conn->pcb.tcp->keep_idle = 1000 * (u32_t)(*(const int *)optval);
+          sock->conn->pcb.tcp->keep_idle = (*(const int *)optval <= 0) ? TCP_KEEPIDLE_DEFAULT :
+                                           1000 * (u32_t)(*(const int *)optval);
           LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPIDLE) -> %"U32_F"\n",
                                       s, sock->conn->pcb.tcp->keep_idle));
           break;
         case TCP_KEEPINTVL:
-          sock->conn->pcb.tcp->keep_intvl = 1000 * (u32_t)(*(const int *)optval);
+          sock->conn->pcb.tcp->keep_intvl = (*(const int *)optval <= 0) ? TCP_KEEPINTVL_DEFAULT :
+                                            1000 * (u32_t)(*(const int *)optval);
           LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPINTVL) -> %"U32_F"\n",
                                       s, sock->conn->pcb.tcp->keep_intvl));
           break;
         case TCP_KEEPCNT:
-          sock->conn->pcb.tcp->keep_cnt = (u32_t)(*(const int *)optval);
+          sock->conn->pcb.tcp->keep_cnt = (*(const int *)optval <= 0) ? TCP_KEEPCNT_DEFAULT :
+                                          (u32_t)(*(const int *)optval);
           LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPCNT) -> %"U32_F"\n",
                                       s, sock->conn->pcb.tcp->keep_cnt));
           break;

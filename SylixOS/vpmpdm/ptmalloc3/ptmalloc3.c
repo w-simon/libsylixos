@@ -271,7 +271,11 @@ struct malloc_arena {
 static struct malloc_arena* _int_new_arena(size_t size);
 
 /* Buffer for the main arena. */
+#ifdef SYLIXOS
+static struct malloc_arena main_arena __attribute__ ((aligned(8)));
+#else
 static struct malloc_arena main_arena;
+#endif
 
 /* For now, store arena in footer.  This means typically 4bytes more
    overhead for each non-main-arena chunk, but is fast and easy to

@@ -25,6 +25,7 @@
 2011.03.25  修改 API_SdCoreDevCreate(), 用于底层驱动安装上层的回调.
 2015.09.15  修改 SD_OPCOND_DELAY_CONTS 由100改为5000, 使卡识别阶段具有更好的兼容性.
 2021.07.22  修正 设备初始化时涉及数据传输的缓冲区不能直接来源于栈上空间.
+2021.12.06  修改 SD_OPCOND_DELAY_CONTS 由5000改为200, 并添加延时时间.
 *********************************************************************************************************/
 
 #ifndef __SDCORE_H
@@ -38,13 +39,7 @@
 #define SDADAPTER_TYPE_SPI        1
 
 #define SD_CMD_GEN_RETRY          4
-#define SD_OPCOND_DELAY_CONTS     5000
-
-#define SD_DELAYMS(ms)                                      \
-        do {                                                \
-            ULONG   ulTimeout = LW_MSECOND_TO_TICK_1(ms);   \
-            API_TimeSleep(ulTimeout);                       \
-        } while (0)
+#define SD_OPCOND_DELAY_CONTS     200
 
 /*********************************************************************************************************
   SD 核心层设备
