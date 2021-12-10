@@ -13,6 +13,18 @@
 #include <dlfcn.h>
 #include <string.h>
 #include <execinfo.h>
+#include <pthread.h>
+
+/*
+ * fast malloc config
+ */
+#define MTRACER_FAST_MALLOC_EN       1
+
+#if MTRACER_FAST_MALLOC_EN > 0
+#define MTRACER_NODE_ATTR            __attribute__((aligned(8)))
+#else
+#define MTRACER_NODE_ATTR
+#endif
 
 /*
  * util macros
@@ -22,8 +34,8 @@
 #define MTRACER_MARK_MAGIC           0xdeadbeef
 #define MTRACER_MARK_SIZE            8
 
-#define MTRACER_LOCK()               API_SemaphoreMPend(__mtracer_locker, LW_OPTION_WAIT_INFINITE)
-#define MTRACER_UNLOCK()             API_SemaphoreMPost(__mtracer_locker)
+#define MTRACER_LOCK()               pthread_mutex_lock(&__mtracer_locker)
+#define MTRACER_UNLOCK()             pthread_mutex_unlock(&__mtracer_locker)
 
 #define MTRACER_LOG(fmt, arg...)     fdprintf(__mtracer_log_fd, fmt, ##arg)
 #define MTRACER_ERR(fmt, arg...)     fdprintf(STD_ERR, fmt, ##arg)
@@ -49,7 +61,7 @@ typedef struct mtracer_node {
     void                 *usr_mem;
     size_t               usr_size;
     int                  malloc_cnt;
-} mtracer_node_t;
+} MTRACER_NODE_ATTR mtracer_node_t;
 
 typedef struct mtracer_memhdr {
     mtracer_node_t       *node;
@@ -57,7 +69,7 @@ typedef struct mtracer_memhdr {
     char                 mark[MTRACER_MARK_SIZE];
 } mtracer_memhdr_t;
 
-static LW_OBJECT_HANDLE  __mtracer_locker;
+static pthread_mutex_t   __mtracer_locker;
 static mtracer_node_t    __mtracer_node_list;
 static int               __mtracer_backtrace_current   = 0;
 static int               __mtracer_backtrace_threshold = -1;
@@ -244,6 +256,8 @@ static void  mtracer_backtrace_show (int depth)
 __attribute__((constructor))
 int mtracer_init (void)
 {
+    int  ret;
+
     MTRACER_GET_RAW_FUNC(malloc);
     MTRACER_GET_RAW_FUNC(mallocalign);
     MTRACER_GET_RAW_FUNC(free);
@@ -251,12 +265,8 @@ int mtracer_init (void)
     __mtracer_node_list.next = &__mtracer_node_list;
     __mtracer_node_list.prev = &__mtracer_node_list;
 
-    __mtracer_locker = API_SemaphoreMCreate("mtracer_lock", LW_PRIO_DEF_CEILING,
-                                            LW_OPTION_WAIT_PRIORITY |
-                                            LW_OPTION_INHERIT_PRIORITY |
-                                            LW_OPTION_DELETE_SAFE |
-                                            LW_OPTION_OBJECT_GLOBAL, LW_NULL);
-    if (!__mtracer_locker) {
+    ret = pthread_mutex_init(&__mtracer_locker, LW_NULL);
+    if (ret) {
         MTRACER_ERR("WARNING: memtracer locker create error!\n");
     }
 
@@ -290,9 +300,7 @@ int mtracer_exit (void)
     }
     MTRACER_UNLOCK();
 
-    if (__mtracer_locker) {
-        API_SemaphoreMDelete(&__mtracer_locker);
-    }
+    pthread_mutex_destroy(&__mtracer_locker);
 
     return  (0);
 }
@@ -350,6 +358,14 @@ void *lib_malloc (size_t  nbytes)
     void              *tail;
     int               backtrace = 0;
 
+#if MTRACER_FAST_MALLOC_EN > 0
+    raw  = __mtracer_raw_malloc(sizeof(mtracer_node_t)   +
+                                sizeof(mtracer_memhdr_t) +
+                                nbytes + MTRACER_MARK_SIZE);
+    node = (mtracer_node_t *)raw;
+    usr  = mtracer_raw2usr(raw, sizeof(mtracer_node_t));
+
+#else
     node = __mtracer_raw_malloc(sizeof(mtracer_node_t));
     if (!node) {
         return  (NULL);
@@ -360,8 +376,9 @@ void *lib_malloc (size_t  nbytes)
         __mtracer_raw_free(node);
         return  (NULL);
     }
-
     usr  = mtracer_raw2usr(raw, 0);
+#endif /* MTRACER_FAST_MALLOC_EN > 0 */
+
     hdr  = mtracer_usr2hdr(usr);
     tail = mtracer_usr2tail(usr, nbytes);
 
@@ -429,8 +446,12 @@ void lib_free (void *usr)
     mtracer_node_remove(node);
     MTRACER_UNLOCK();
 
-    __mtracer_raw_free(node->raw_mem);
-    __mtracer_raw_free(node);
+    if ((void *)node != node->raw_mem) {
+        __mtracer_raw_free(node->raw_mem);
+        __mtracer_raw_free(node);
+    } else {
+        __mtracer_raw_free(node);
+    }
 }
 
 /*
@@ -514,9 +535,11 @@ void *lib_realloc (void *usr, size_t  new_size)
     char              *new;
     char              *new_usr;
     mtracer_node_t    *node;
+    mtracer_node_t    *new_node;
     mtracer_memhdr_t  *hdr;
     void              *tail;
-    int               backtrace = 0;
+    int               backtrace   = 0;
+    int               need_insert = 0;
 
     if (!usr) {
         return  (lib_malloc(new_size));
@@ -559,25 +582,48 @@ void *lib_realloc (void *usr, size_t  new_size)
 
     /*
      * malloc new memory
+     * note: if raw == node, means using fast malloc
      */
     raw = node->raw_mem;
-    new = __mtracer_raw_malloc(sizeof(mtracer_memhdr_t) + new_size + MTRACER_MARK_SIZE);
-    if (!new) {
-        return  (NULL);
+    if (raw == (char *)node) {
+        new  = __mtracer_raw_malloc(sizeof(mtracer_node_t)   +
+                                    sizeof(mtracer_memhdr_t) +
+                                    new_size + MTRACER_MARK_SIZE);
+        if (!new) {
+            return  (NULL);
+        }
+
+        new_node = (mtracer_node_t *)new;
+        new_usr  = mtracer_raw2usr(new, sizeof(mtracer_node_t));
+
+        MTRACER_LOCK();
+        mtracer_node_remove(node); /* should remove old node */
+        MTRACER_UNLOCK();
+
+        need_insert = 1; /* need insert new node */
+
+    } else {
+        new = __mtracer_raw_malloc(sizeof(mtracer_memhdr_t) + new_size + MTRACER_MARK_SIZE);
+        if (!new) {
+            return  (NULL);
+        }
+
+        new_node = node; /* not fast malloc, using old node */
+        new_usr  = mtracer_raw2usr(new, 0);
     }
 
-    new_usr = mtracer_raw2usr(new, 0);
-    hdr     = mtracer_usr2hdr(new_usr);
-    tail    = mtracer_usr2tail(new_usr, new_size);
+    memcpy(new_usr, usr, node->usr_size); /* copy usr data */
+    __mtracer_raw_free(raw); /* now we can free old memory */
+
+    node = new_node;
+    hdr  = mtracer_usr2hdr(new_usr);
+    tail = mtracer_usr2tail(new_usr, new_size);
 
     hdr->node         = node;
     hdr->node_reverse = ~((unsigned long)node);
 
     memcpy(hdr->mark, __mtracer_mem_mark, MTRACER_MARK_SIZE);
     memcpy(tail, __mtracer_mem_mark, MTRACER_MARK_SIZE);
-    memcpy(new_usr, usr, node->usr_size);
-
-    __mtracer_raw_free(raw); /* free old memory */
 
     MTRACER_LOCK();
     node->operation  = "realloc";
@@ -589,6 +635,9 @@ void *lib_realloc (void *usr, size_t  new_size)
     if ((__mtracer_backtrace_current == __mtracer_backtrace_threshold) ||
         (__mtracer_backtrace_mem == (unsigned long)new_usr)) {
         backtrace = __mtracer_backtrace_current;
+    }
+    if (need_insert) {
+        mtracer_node_insert(node); /* if using fast malloc, this is a new node */
     }
     MTRACER_UNLOCK();
 
