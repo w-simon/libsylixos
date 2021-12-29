@@ -976,6 +976,9 @@ tcp_listen_with_backlog_and_err(struct tcp_pcb *pcb, u8_t backlog, err_t *err)
 #if TCP_LISTEN_MULTI /* SylixOS Add Listen multi-ports */
   lpcb->multi_ports = 0;
 #endif /* TCP_LISTEN_MULTI */
+#ifdef SYLIXOS /* SylixOS Add TF_NODELAY inherit */
+  lpcb->flags = pcb->flags;
+#endif /* SYLIXOS */
   lpcb->state = LISTEN;
   lpcb->prio = pcb->prio;
   lpcb->so_options = pcb->so_options;

@@ -749,6 +749,11 @@ tcp_listen_input(struct tcp_pcb_listen *pcb)
 #if LWIP_CALLBACK_API || TCP_LISTEN_BACKLOG
     npcb->listener = pcb;
 #endif /* LWIP_CALLBACK_API || TCP_LISTEN_BACKLOG */
+#ifdef SYLIXOS /* SylixOS Add TF_NODELAY inherit */
+    if (tcp_is_flag_set(pcb, TF_NODELAY)) {
+      tcp_set_flags(npcb, TF_NODELAY);
+    }
+#endif /* SYLIXOS */
     /* inherit socket options */
     npcb->so_options = pcb->so_options & SOF_INHERITED;
     npcb->netif_idx = pcb->netif_idx;

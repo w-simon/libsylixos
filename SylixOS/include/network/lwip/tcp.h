@@ -238,6 +238,10 @@ struct tcp_pcb_listen {
   u16_t multi_ports;
 #endif /* TCP_LISTEN_MULTI */
 
+#ifdef SYLIXOS /* SylixOS Add flags for TF_NODELAY inherit */
+  tcpflags_t flags;
+#endif /* SYLIXOS */
+
 #if LWIP_CALLBACK_API
   /* Function to call when a listener has been connected. */
   tcp_accept_fn accept;
