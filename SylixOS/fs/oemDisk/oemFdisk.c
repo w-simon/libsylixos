@@ -194,6 +194,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
 ** 输　入  : iBlkFd             块设备文件描述符
 **           ulSecSize          扇区大小
 **           ulTotalSec         扇区总数
+**           ui64FirstLba       FirstLba偏移， 为 0 则使用默认偏移
 **           fdpPart            分区信息
 **           uiNPart            分区个数
 **           stAlign            分区对齐 (例如: SSD 需要 4K 对齐)
@@ -206,6 +207,7 @@ static INT  __oemFdisk (INT                     iBlkFd,
 static INT  __oemGptFdisk (INT                     iBlkFd,
                            ULONG                   ulSecSize,
                            ULONG                   ulTotalSec,
+                           UINT64                  ui64FirstLba,
                            const LW_OEMFDISK_PART  fdpPart[],
                            UINT                    uiNPart,
                            size_t                  stAlign)
@@ -219,7 +221,7 @@ static INT  __oemGptFdisk (INT                     iBlkFd,
 
     GPT_TABLE *pgpt;
 
-    pgpt = API_GptCreateAndInit(ulSecSize, ulTotalSec);
+    pgpt = API_GptCreateAndInitWithLba(ulSecSize, ulTotalSec, ui64FirstLba);
     if (!pgpt) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
         _ErrorHandle(ERROR_SYSTEM_LOW_MEMORY);
@@ -255,8 +257,9 @@ static INT  __oemGptFdisk (INT                     iBlkFd,
         ui64LeftSec  -= ui64lPNSec;
         ui64PSecNext += ui64lPNSec;
 
-        if (API_GptAddEntry(pgpt, ui64PStartSec, ui64lPNSec,
-                            fdpPart[i].FDP_ucPartType) != ERROR_NONE) { /*  添加到 GPT 分区表           */
+        if (API_GptAddEntryWithName(pgpt, ui64PStartSec, ui64lPNSec,    /*  添加到 GPT 分区表           */
+                                    fdpPart[i].FDP_ucPartType,
+                                    (CPCHAR)fdpPart[i].FDP_pcName) != ERROR_NONE) {
             API_GptDestroy(pgpt);
             return  (PX_ERROR);
         }
@@ -297,6 +300,30 @@ INT  API_OemFdiskEx (CPCHAR                  pcBlkDev,
                      UINT                    uiNPart,
                      size_t                  stAlign,
                      BOOL                    bGpt)
+{
+    return API_OemFdiskExWithLba(pcBlkDev, fdpPart, uiNPart, stAlign, bGpt, 0);
+}
+/*********************************************************************************************************
+** 函数名称: API_OemFdiskExWithLba
+** 功能描述: 对 OEM 磁盘设备进行分区操作
+** 输　入  : pcBlkDev           块设备文件 例如: /dev/blk/sata0
+**           fdpPart            分区参数
+**           uiNPart            分区参数个数
+**           stAlign            分区对齐 (例如: SSD 需要 4K 对齐)
+**           bGpt               是否 GPT 分区
+**           ui64FirstLba       GPT 分区 FirstLba 偏移， 为 0 则使用默认偏移
+** 输　出  : 产生的分区个数, PX_ERROR 表示错误.
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_OemFdiskExWithLba (CPCHAR                  pcBlkDev,
+                            const LW_OEMFDISK_PART  fdpPart[],
+                            UINT                    uiNPart,
+                            size_t                  stAlign,
+                            BOOL                    bGpt,
+                            UINT64                  ui64FirstLba)
 {
     INT         i;
     INT         iBlkFd;
@@ -377,7 +404,7 @@ INT  API_OemFdiskEx (CPCHAR                  pcBlkDev,
     uiNPart = i;
 #if LW_CFG_CPU_WORD_LENGHT > 32
     if (bGpt) {                                                         /*  以 GPT 格式对块设备分区     */
-        iNCnt = __oemGptFdisk(iBlkFd, ulSecSize, ulTotalSec, fdpPart, uiNPart, stAlign);
+        iNCnt = __oemGptFdisk(iBlkFd, ulSecSize, ulTotalSec, ui64FirstLba, fdpPart, uiNPart, stAlign);
     } else
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
     {
@@ -553,7 +580,11 @@ static INT  __oemGptFdiskGet (INT                  iBlkFd,
         return  (PX_ERROR);
     }
 
-    for (i = 0; i < pgpt->GPT_header.HDR_uiEntriesCount; i++) {         /*  转换分区表                  */
+    if (uiNPart > pgpt->GPT_header.HDR_uiEntriesCount) {
+        uiNPart = pgpt->GPT_header.HDR_uiEntriesCount;
+    }
+
+    for (i = 0; i < uiNPart; i++) {                                     /*  转换分区表                  */
         if (API_GptGetEntry(pgpt, i, &ui64PStartSec,
                             &ui64lPNSec, &fdpInfo[i].FDP_ucPartType) != ERROR_NONE) {
             API_GptDestroy(pgpt);
@@ -561,8 +592,8 @@ static INT  __oemGptFdiskGet (INT                  iBlkFd,
         }
 
         fdpInfo[i].FDP_bIsActive = LW_TRUE;
-        fdpInfo[i].FDP_u64Size    = ((UINT64)ui64lPNSec * ulSecSize);
-        fdpInfo[i].FDP_u64Oft     = ((UINT64)ui64PStartSec * ulSecSize);
+        fdpInfo[i].FDP_u64Size   = ((UINT64)ui64lPNSec * ulSecSize);
+        fdpInfo[i].FDP_u64Oft    = ((UINT64)ui64PStartSec * ulSecSize);
     }
 
     API_GptDestroy(pgpt);

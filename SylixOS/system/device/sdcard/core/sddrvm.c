@@ -405,7 +405,9 @@ LW_API PVOID API_SdmHostGet (PLW_SDCORE_DEVICE psdcoredev)
 *********************************************************************************************************/
 LW_API INT   API_SdmSdDrvRegister (SD_DRV *psddrv)
 {
-    if (!psddrv) {
+    if (!psddrv ||
+        !psddrv->SDDRV_pfuncDevCreate ||
+        !psddrv->SDDRV_pfuncDevDelete) {
         return  (PX_ERROR);
     }
 
@@ -958,6 +960,32 @@ static VOID  __sdmHostExtOptInit (__SDM_HOST  *psdmhost)
     psdmhost->SDMHOST_lCfgFlag        = 0;
 }
 /*********************************************************************************************************
+** 函数名称: __sdmDrvExist
+** 功能描述: 判断 SDM 管理的 SD 驱动链表中是否已存在同名驱动
+** 输    入: psddrv     待操作的驱动对象
+** 输    出: LW_TRUE :  已存在同名驱动
+**           LW_FALSE:  不存在同名驱动
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static BOOL  __sdmDrvExist (SD_DRV  *psddrv)
+{
+    SD_DRV         *psddrvTmp = LW_NULL;
+    PLW_LIST_LINE   plineTemp;
+
+    for (plineTemp  = _G_plineSddrvHeader;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {
+
+        psddrvTmp = _LIST_ENTRY(plineTemp, SD_DRV, SDDRV_lineManage);
+        if (!lib_strcmp(psddrvTmp->SDDRV_cpcName, psddrv->SDDRV_cpcName)) {
+            return  (LW_TRUE);
+        }
+    }
+
+    return  (LW_FALSE);
+}
+/*********************************************************************************************************
 ** 函数名称: __sdmDrvInsert
 ** 功能描述: 往 SDM 管理的 SD 驱动链表插入一个驱动对象
 ** 输    入: psddrv     SDM 管理的驱动对象
@@ -965,8 +993,13 @@ static VOID  __sdmHostExtOptInit (__SDM_HOST  *psdmhost)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  __sdmDrvInsert (SD_DRV *psddrv)
+static VOID  __sdmDrvInsert (SD_DRV  *psddrv)
 {
+    if (__sdmDrvExist(psddrv)) {
+        SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL, "sdm drv %s already exist.\r\n", psddrv->SDDRV_cpcName);
+        return;
+    }
+
     _List_Line_Add_Ahead(&psddrv->SDDRV_lineManage, &_G_plineSddrvHeader);
 }
 /*********************************************************************************************************
@@ -977,9 +1010,13 @@ static VOID  __sdmDrvInsert (SD_DRV *psddrv)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  __sdmDrvDelete (SD_DRV *psddrv)
+static VOID  __sdmDrvDelete (SD_DRV  *psddrv)
 {
-    _List_Line_Del(&psddrv->SDDRV_lineManage, &_G_plineSddrvHeader);
+    if (__sdmDrvExist(psddrv)) {
+        _List_Line_Del(&psddrv->SDDRV_lineManage, &_G_plineSddrvHeader);
+    } else {
+        SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL, "sdm drv %s not exist.\r\n", psddrv->SDDRV_cpcName);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __sdmCallbackInstall
@@ -1078,12 +1115,12 @@ static VOID __sdmSpiCsDis (__SDM_HOST_CHAN *psdmhostchan)
 static BOOL  __sdmDrvIgnore (__SDM_HOST *psdmhost, SD_DRV  *sddrv)
 {
     if ((psdmhost->SDMHOST_lCfgFlag & SDHOST_EXTOPT_CONFIG_SKIP_SDMEM) &&
-        ((ULONG)sddrv->SDDRV_cpcName == (ULONG)SDDRV_SDMEM_NAME)) {
+        (!lib_strcmp(sddrv->SDDRV_cpcName, SDDRV_SDMEM_NAME))) {
         return  (LW_TRUE);
     }
 
     if ((psdmhost->SDMHOST_lCfgFlag & SDHOST_EXTOPT_CONFIG_SKIP_SDIO) &&
-        ((ULONG)sddrv->SDDRV_cpcName == (ULONG)SDDRV_SDIOB_NAME)) {
+        (!lib_strcmp(sddrv->SDDRV_cpcName, SDDRV_SDIOB_NAME))) {
         return  (LW_TRUE);
     }
 

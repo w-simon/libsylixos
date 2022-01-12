@@ -38,7 +38,7 @@
 #define LW_CFG_MAX_VOLUMES                  20                          /*  系统同时支持的卷的数量      */
                                                                         /*  MAX 255                     */
                                                                         
-#define LW_CFG_MAX_DISKPARTS                10                          /*  每个物理磁盘支持的最大逻辑  */
+#define LW_CFG_MAX_DISKPARTS                16                          /*  每个物理磁盘支持的最大逻辑  */
                                                                         /*  分区数量, (包含扩展分区)    */
                                                                         /*  常见于硬盘等大容量设备      */
                                                                         

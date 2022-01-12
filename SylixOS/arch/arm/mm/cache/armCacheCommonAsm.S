@@ -86,6 +86,7 @@ FUNC_DEF(armDCacheEnable)
     MRC     p15, 0, R0, c1, c0, 0
     ORR     R0, R0, #P15_R1_C
     MCR     p15, 0, R0, c1, c0, 0
+    ARM_DSB()
     BX      LR
     FUNC_END()
 
@@ -98,7 +99,7 @@ FUNC_DEF(armICacheDisable)
     AND     R0, R0, #P15_R1_I
     CMP     R0, #0
     BEQ     icache_not_en
-    
+
     MRC     p15, 0, R0, c1, c0, 0
     BIC     R0, R0, #P15_R1_I
     MCR     p15, 0, R0, c1, c0, 0

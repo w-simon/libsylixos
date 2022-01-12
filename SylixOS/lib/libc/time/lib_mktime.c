@@ -71,25 +71,23 @@ static void __tmValidate (struct tm * tmptr	/* pointer to broken-down structure 
 		   
     tmStruct = *tmptr;
 
-    __tmNormalize (&tmStruct.tm_min, &tmStruct.tm_sec, SECSPERMIN);
-    __tmNormalize (&tmStruct.tm_hour, &tmStruct.tm_min, MINSPERHOUR);
-    __tmNormalize (&tmStruct.tm_mday, &tmStruct.tm_hour, HOURSPERDAY);
-    __tmNormalize (&tmStruct.tm_year, &tmStruct.tm_mon, MONSPERYEAR);
+    __tmNormalize(&tmStruct.tm_min, &tmStruct.tm_sec, SECSPERMIN);
+    __tmNormalize(&tmStruct.tm_hour, &tmStruct.tm_min, MINSPERHOUR);
+    __tmNormalize(&tmStruct.tm_mday, &tmStruct.tm_hour, HOURSPERDAY);
+    __tmNormalize(&tmStruct.tm_year, &tmStruct.tm_mon, MONSPERYEAR);
 
     /* tm_mday may not be in the correct range - check */
 
     jday = __julday(tmStruct.tm_year, tmStruct.tm_mon , tmStruct.tm_mday);
-
-    if (jday < 0) 
-    	{
+    if (jday < 0) {
     	tmStruct.tm_year--;
     	jday += DAYSPERYEAR;
-    	}
+    }
 
     /* Calulate month and day */
     for (mon = 0; 
          (jday > __julday(tmStruct.tm_year, mon+1, 0)) && (mon < 11); 
-         mon++ )
+         mon++)
 	;
 
     tmStruct.tm_mon  = mon;
@@ -117,7 +115,7 @@ time_t  lib_timegm (struct tm  *timeptr)
     }
 
     /* Validate tm structure */
-    __tmValidate (timeptr);
+    __tmValidate(timeptr);
 
     /* Calulate time_t value */
     /* time */
@@ -130,12 +128,12 @@ time_t  lib_timegm (struct tm  *timeptr)
 
     timeptr->tm_yday = (days - 1);
 
-    if ((timeptr->tm_year + TM_YEAR_BASE) < EPOCH_YEAR )
-    	return ((time_t) PX_ERROR);
+    if ((timeptr->tm_year + TM_YEAR_BASE) < EPOCH_YEAR)
+    	return  ((time_t)PX_ERROR);
 
     /* days in previous years */
     days = __daysSinceEpoch(timeptr->tm_year - (EPOCH_YEAR - TM_YEAR_BASE),
-    		             timeptr->tm_yday );
+    		                timeptr->tm_yday);
 
     timeptr->tm_wday = (days + EPOCH_WDAY) % DAYSPERWEEK;
 
@@ -161,7 +159,7 @@ time_t  lib_mktime (struct tm  *timeptr)
     }
 
     /* Validate tm structure */
-    __tmValidate (timeptr);
+    __tmValidate(timeptr);
 
     /* Calulate time_t value */
     /* time */
@@ -174,17 +172,16 @@ time_t  lib_mktime (struct tm  *timeptr)
 
     timeptr->tm_yday = (days - 1);
 
-    if ((timeptr->tm_year + TM_YEAR_BASE) < EPOCH_YEAR )
-    	return ((time_t) PX_ERROR);
+    if ((timeptr->tm_year + TM_YEAR_BASE) < EPOCH_YEAR)
+    	return  ((time_t)PX_ERROR);
 
     /* days in previous years */
     days = __daysSinceEpoch(timeptr->tm_year - (EPOCH_YEAR - TM_YEAR_BASE),
-    		             timeptr->tm_yday );
+    		                timeptr->tm_yday );
 
     timeptr->tm_wday = (days + EPOCH_WDAY) % DAYSPERWEEK;
 
     timeIs += (days * SECSPERDAY);
-    
     timeIs  = LOCAL2UTC(timeIs);
 
     return  (timeIs);

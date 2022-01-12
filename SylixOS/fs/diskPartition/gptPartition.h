@@ -90,21 +90,37 @@ typedef struct {
     GPT_ENTRY  GPT_entry[GPT_MAX_ENTRIES];                              /*  GPT 分区表项数组            */
 } GPT_TABLE;
 
-GPT_TABLE  *API_GptCreateAndInit(UINT ulSecSize, UINT64 uiSecCnt);      /*  分配和初始化 GPT 内存结构   */
+GPT_TABLE  *API_GptCreateAndInit(UINT    ulSecSize,
+                                 UINT64  ui64SecCnt);                   /*  分配和初始化 GPT 内存结构   */
 
-VOID  API_GptDestroy(GPT_TABLE *pgpt);                                  /*  销毁 GPT 内存结构           */
+GPT_TABLE  *API_GptCreateAndInitWithLba(UINT    ulSecSize,
+                                        UINT64  ui64SecCnt,
+                                        UINT64  ui64FirstLba);          /*  分配和初始化 GPT 内存结构   */
 
-INT   API_GptAddEntry(GPT_TABLE *pgpt, UINT64 ui64LbaNum,
-                  UINT64 ui64LbaCnt, UINT8 ucPartType);                 /*  添加 GPT 表项               */
+VOID  API_GptDestroy(GPT_TABLE  *pgpt);                                 /*  销毁 GPT 内存结构           */
 
-INT   API_GptGetEntry(GPT_TABLE *pgpt, INT iIndex, UINT64 *ui64LbaNum,
-                  UINT64 *pui64LbaCnt, UINT8 *pucPartType);             /*  获取 GPT 表项               */
+INT   API_GptAddEntry(GPT_TABLE  *pgpt,
+                      UINT64      ui64LbaNum,
+                      UINT64      ui64LbaCnt,
+                      UINT8       ucPartType);                          /*  添加 GPT 表项               */
 
-INT   API_GptPartitionSave(INT iBlkFd, GPT_TABLE *pgpt);                /*  保存 GPT 表到块设备         */
+INT   API_GptAddEntryWithName(GPT_TABLE  *pgpt,
+                              UINT64      ui64LbaNum,
+                              UINT64      ui64LbaCnt,
+                              UINT8       ucPartType,
+                              CPCHAR      cpcName);                     /*  添加 GPT 表项               */
 
-INT   API_GptPartitionLoad(INT iBlkFd, GPT_TABLE *pgpt);                /*  从块设备加载 GPT 表         */
+INT   API_GptGetEntry(GPT_TABLE  *pgpt,
+                      INT         iIndex,
+                      UINT64     *ui64LbaNum,
+                      UINT64     *pui64LbaCnt,
+                      UINT8      *pucPartType);                         /*  获取 GPT 表项               */
 
-INT   API_GptPartitionBlkLoad(PLW_BLK_DEV pblkd, GPT_TABLE *pgpt);      /*  从块设备加载 GPT 表         */
+INT   API_GptPartitionSave(INT  iBlkFd, GPT_TABLE  *pgpt);              /*  保存 GPT 表到块设备         */
+
+INT   API_GptPartitionLoad(INT  iBlkFd, GPT_TABLE  *pgpt);              /*  从块设备加载 GPT 表         */
+
+INT   API_GptPartitionBlkLoad(PLW_BLK_DEV  pblkd, GPT_TABLE  *pgpt);    /*  从块设备加载 GPT 表         */
 
 #endif                                                                  /*  (LW_CFG_MAX_VOLUMES > 0)    */
                                                                         /*  (LW_CFG_DISKPART_EN > 0)    */

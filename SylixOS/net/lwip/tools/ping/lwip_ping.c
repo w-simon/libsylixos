@@ -71,7 +71,7 @@ static VOID  __inetPingPrepare (struct  icmp_echo_hdr   *icmphdrEcho,
     *pusSeqRecv = usSeqNum;
     
     icmphdrEcho->chksum = 0;
-    icmphdrEcho->id     = 0xAFAF;                                       /*  ID                          */
+    icmphdrEcho->id     = (UINT16)API_ThreadIdSelf();                   /*  ID                          */
     icmphdrEcho->seqno  = htons(usSeqNum);
     
     /*
@@ -134,22 +134,28 @@ static INT  __inetPingSend (INT  iSock, struct in_addr  inaddr, INT  iDataSize, 
 ** 输　入  : iSock         socket
 **           usSeqRecv     需要判断的 seq
 **           piTTL         接收到的 TTL
+**           iTimeout      超时时间
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static INT  __inetPingRecv (INT  iSock, UINT16  usSeqRecv, INT  *piTTL)
+static INT  __inetPingRecv (INT  iSock, UINT16  usSeqRecv, INT  *piTTL, INT  iTimeout)
 {
              CHAR                   cBuffer[512];
              
-             INT                    iCnt = 20;                          /*  默认最多接收的数据包数      */
     REGISTER ssize_t                sstLen;
              INT                    iAddLen = sizeof(struct sockaddr_in);
              struct sockaddr_in     sockaddrinFrom;
              
              struct ip_hdr         *iphdrFrom;
              struct icmp_echo_hdr  *icmphdrFrom;
-            
+
+             ULONG                  ulTickStart;
+             ULONG                  ulTickPassed;
+             INT                    iTimeoutTick = LW_MSECOND_TO_TICK_1(iTimeout);
+
+    ulTickStart = API_TimeGet();
+
     while ((sstLen = recvfrom(iSock, cBuffer, sizeof(cBuffer), 0, 
                               (struct sockaddr *)&sockaddrinFrom, (socklen_t *)&iAddLen)) > 0) {
         
@@ -158,20 +164,27 @@ static INT  __inetPingRecv (INT  iSock, UINT16  usSeqRecv, INT  *piTTL)
             iphdrFrom   = (struct ip_hdr *)cBuffer;
             icmphdrFrom = (struct icmp_echo_hdr *)(cBuffer + (IPH_HL(iphdrFrom) * 4));
             if (ICMPH_TYPE(icmphdrFrom) == ICMP_ER) {
-                if ((icmphdrFrom->id == 0xAFAF) && (icmphdrFrom->seqno == htons(usSeqRecv))) {
+                if ((icmphdrFrom->id    == (UINT16)API_ThreadIdSelf()) &&
+                    (icmphdrFrom->seqno == htons(usSeqRecv))) {
                     *piTTL = 0;
                     *piTTL = (u8_t)IPH_TTL(iphdrFrom);
                     return  (ERROR_NONE);
-                } else {
-                    iCnt--;
                 }
             }
-
-        } else {
-            iCnt--;
         }
-        
-        if (iCnt < 0) {                                                 /*  接收到错误的数据包太多      */
+
+        /*
+         * 接收到的不是需要的 ping rsp 则重新调整 socket 超时时间并继续接收
+         */
+        ulTickPassed = API_TimeGet() - ulTickStart;
+        if (ulTickPassed < iTimeoutTick) {
+            ULONG ulTimeout = ((iTimeoutTick - ulTickPassed) * 1000) / LW_TICK_HZ;
+            setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &ulTimeout, sizeof(ulTimeout));
+            continue;
+        } else {
+            /*
+             *  接收超时：当设置的 ping 超时时间内，一直收到的是其余的 ICMP 报文时，代码会执行到此处。
+             */
             break;                                                      /*  退出                        */
         }
     }
@@ -249,7 +262,6 @@ INT  API_INetPing (struct in_addr  *pinaddr, INT  iTimes, INT  iDataSize, INT  i
         setsockopt(iSock, SOL_SOCKET, SO_SECREGION, &i, sizeof(INT));
     }
 
-    setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &iTimeout, sizeof(INT));
     setsockopt(iSock, IPPROTO_IP, IP_TTL, &iTTL, sizeof(INT));
     
     connect(iSock, (struct sockaddr *)&sockaddrinTo, 
@@ -273,8 +285,10 @@ INT  API_INetPing (struct in_addr  *pinaddr, INT  iTimes, INT  iDataSize, INT  i
             i++;                                                        /*  发送次数 ++                 */
         }
         
+        setsockopt(iSock, SOL_SOCKET, SO_RCVTIMEO, &iTimeout, sizeof(INT));
+
         lib_clock_gettime(CLOCK_MONOTONIC, &tvTime1);
-        if (__inetPingRecv(iSock, usSeqRecv, &iTTLRecv) < 0) {          /*  接收 icmp 数据包            */
+        if (__inetPingRecv(iSock, usSeqRecv, &iTTLRecv, iTimeout) < 0) {/*  接收 icmp 数据包            */
             printf("Request time out.\n");                              /*  timeout                     */
             if (i >= iTimes) {
                 break;                                                  /*  ping 结束                   */

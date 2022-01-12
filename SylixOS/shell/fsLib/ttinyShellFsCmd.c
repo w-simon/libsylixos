@@ -2021,6 +2021,9 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 {
     CHAR              cInput[512];
     LW_OEMFDISK_PART  fdpInfo[LW_CFG_MAX_DISKPARTS];
+#if LW_CFG_CPU_WORD_LENGHT > 32                                         /*  GPT 分区名称                */
+    CHAR              cPartName[LW_CFG_MAX_DISKPARTS][GPT_MAX_NAMELEN];
+#endif
     UINT              uiNPart, uiMaxPart;
     size_t            stAlign, stNum;
     struct stat       statGet;
@@ -2029,6 +2032,7 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
     CHAR              cActive, cChar, *pcStr;
     INT               iCnt, iType;
     BOOL              bGpt;
+    UINT64            ui64FirstLba = 0;
 
     if (iArgC < 2) {
         fprintf(stderr, "too few arguments!\n");
@@ -2044,6 +2048,7 @@ static INT  __tshellFsCmdFdisk (INT  iArgC, PCHAR  ppcArgV[])
 #if LW_CFG_CPU_WORD_LENGHT > 32
         } else if (lib_strcmp(ppcArgV[1], "-fgpt") == 0) {
             bGpt = LW_TRUE;
+            lib_bzero(cPartName, sizeof(cPartName));
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT > 32 */
 
         } else {
@@ -2102,6 +2107,22 @@ __input_align:
         printf("the number must be 4096 at least and must the n-th power of 2\n");
         goto    __input_align;
     }
+
+#if LW_CFG_CPU_WORD_LENGHT > 32
+__input_first_bla:
+    if (bGpt) {
+        printf("please input gpt partition first lba (%d ~ %qu) offset. 0 means use default offset %d: ",
+               GPT_DATA_LBA, (UINT64)-1, GPT_DATA_LBA);
+        fflush(stdout);
+        fpurge(stdin);
+        if (scanf("%qu", &ui64FirstLba) != 1) {
+            goto    __input_first_bla;
+        } else if ((ui64FirstLba != 0) && (ui64FirstLba < GPT_DATA_LBA)) {
+            printf("gpt partition first lba must be %d at least\n", GPT_DATA_LBA);
+            goto    __input_first_bla;
+        }
+    }
+#endif
 
     for (i = 0; i < uiNPart; i++) {
 __input_size:
@@ -2171,6 +2192,33 @@ __input_active:
             fdpInfo[i].FDP_bIsActive = LW_FALSE;
         }
 
+#if LW_CFG_CPU_WORD_LENGHT > 32
+__input_name:
+        if (bGpt) {
+            printf("please input the partition name (default is \"SylixOSPartn\", "
+                   "which n is stand for partition number): ");
+            fflush(stdout);
+            fpurge(stdin);
+            fdpInfo[i].FDP_pcName = cPartName[i];
+            for (pcStr = fdpInfo[i].FDP_pcName, stNum = 0;
+                 ((cChar = getchar()) != '\n');
+                 stNum++) {                                             /*  获得输入字符串              */
+                if (stNum >= (sizeof(cPartName[i]) - 1)) {
+                    printf("max partition name len %d, please retry\n", GPT_MAX_NAMELEN - 1);
+                    goto    __input_name;                               /*  输入错误                    */
+                }
+
+                if (cChar == EOF) {
+                    break;
+                } else {
+                    *pcStr++ = cChar;
+                }
+            }
+
+            *pcStr = PX_EOS;
+        }
+#endif
+
 __input_type:
         printf("please input the file system type\n");
 #if LW_CFG_CPU_WORD_LENGHT > 32
@@ -2220,7 +2268,7 @@ __input_type:
     }
 
     printf("making partition...\n");
-    iCnt = oemFdiskEx(pcBlkFile, fdpInfo, uiNPart, stAlign, bGpt);
+    iCnt = oemFdiskExWithLba(pcBlkFile, fdpInfo, uiNPart, stAlign, bGpt, ui64FirstLba);
     if (iCnt <= ERROR_NONE) {
         fprintf(stderr, "make partition error: %s\n", lib_strerror(errno));
         return  (PX_ERROR);

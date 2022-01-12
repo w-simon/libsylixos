@@ -154,15 +154,16 @@ static VOID  __gptInitMbr (UINT8  *ucMbr, UINT64  ui64LbaCnt)
     ucMbr[0x1ff] = 0xaa;
 }
 /*********************************************************************************************************
-** 函数名称: API_GptCreateAndInit
+** 函数名称: API_GptCreateAndInitWithLba
 ** 功能描述: 分配和初始化 GPT 内存结构
 ** 输　入  : ulSecSize          扇区大小
 **           ui64SecCnt         块设备扇区数量，为 0 则只分配内存不初始化结构
+**           ui64FirstLba       GPT分区FirstLba偏移, 为 0 则使用默认偏移
 ** 输　出  : GPT 内存结构
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-GPT_TABLE  *API_GptCreateAndInit (UINT  ulSecSize, UINT64  ui64SecCnt)
+GPT_TABLE  *API_GptCreateAndInitWithLba (UINT  ulSecSize, UINT64  ui64SecCnt, UINT64 ui64FirstLba)
 {
     GPT_TABLE   *pgpt;
     GPT_HEADER  *pgpthdr;
@@ -200,7 +201,11 @@ GPT_TABLE  *API_GptCreateAndInit (UINT  ulSecSize, UINT64  ui64SecCnt)
 
     pgpthdr->HDR_ui64HeaderLba = GPT_HEAD_LBA;
     pgpthdr->HDR_ui64BackupLba = ui64SecCnt - GPT_HEAD_LBA_CNT;
-    pgpthdr->HDR_ui64FirstLba  = GPT_DATA_LBA;
+    if (ui64FirstLba != 0) {
+        pgpthdr->HDR_ui64FirstLba  = ui64FirstLba;                      /*  使用参数指定的偏移          */
+    } else {
+        pgpthdr->HDR_ui64FirstLba  = GPT_DATA_LBA;                      /*  使用默认偏移                */
+    }
     pgpthdr->HDR_ui64LastLba   = ui64SecCnt - GPT_HEAD_LBA_CNT - GPT_ENT_LBA_CNT;
 
     uuidgen((uuid_t *)pgpthdr->HDR_ucVolumeUuid, 1);
@@ -211,6 +216,19 @@ GPT_TABLE  *API_GptCreateAndInit (UINT  ulSecSize, UINT64  ui64SecCnt)
     pgpthdr->HDR_uiEntriesCrc32 = 0;
 
     return  (pgpt);
+}
+/*********************************************************************************************************
+** 函数名称: API_GptCreateAndInit
+** 功能描述: 分配和初始化 GPT 内存结构
+** 输　入  : ulSecSize          扇区大小
+**           ui64SecCnt         块设备扇区数量，为 0 则只分配内存不初始化结构
+** 输　出  : GPT 内存结构
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+GPT_TABLE  *API_GptCreateAndInit (UINT  ulSecSize, UINT64  ui64SecCnt)
+{
+    return  API_GptCreateAndInitWithLba(ulSecSize, ui64SecCnt, 0);
 }
 /*********************************************************************************************************
 ** 函数名称: API_GptDestroy
@@ -229,20 +247,26 @@ VOID  API_GptDestroy (GPT_TABLE  *pgpt)
     __SHEAP_FREE(pgpt);
 }
 /*********************************************************************************************************
-** 函数名称: API_GptAddEntry
+** 函数名称: API_GptAddEntryWithName
 ** 功能描述: 添加分区表项
 ** 输　入  : pgpt               GPT 内存结构指针
 **           ui64LbaNum         分区起始逻辑块号
 **           ui64LbaCnt         分区逻辑块数量
 **           ucPartType         分区类型
+**           cpcName            分区名称
 ** 输　出  : ERROR CODE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-INT  API_GptAddEntry (GPT_TABLE  *pgpt, UINT64  ui64LbaNum, UINT64  ui64LbaCnt, UINT8  ucPartType)
+INT  API_GptAddEntryWithName (GPT_TABLE  *pgpt,
+                              UINT64      ui64LbaNum,
+                              UINT64      ui64LbaCnt,
+                              UINT8       ucPartType,
+                              CPCHAR      cpcName)
 {
-    INT  iIndex;
-    INT  i;
+    size_t  stLen;
+    INT     iIndex;
+    INT     i;
 
     if (!pgpt || (pgpt->GPT_header.HDR_uiVersion == 0)) {
         _ErrorHandle(EINVAL);
@@ -265,13 +289,26 @@ INT  API_GptAddEntry (GPT_TABLE  *pgpt, UINT64  ui64LbaNum, UINT64  ui64LbaCnt, 
     pgpt->GPT_entry[iIndex].ENT_ui64LastLba  = ui64LbaNum + ui64LbaCnt - 1;
     pgpt->GPT_entry[iIndex].ENT_ui64Attr     = 0;
 
-    /*
-     *  分区名称 SylixOSPart*
-     */
-    for (i = 0; i < lib_strlen(_G_acGptPartName); i++) {
-        pgpt->GPT_entry[iIndex].ENT_usName[i] = _G_acGptPartName[i];
+    stLen = lib_strlen(cpcName);
+    if (stLen > GPT_MAX_NAMELEN) {
+        stLen = GPT_MAX_NAMELEN;
     }
-    pgpt->GPT_entry[iIndex].ENT_usName[i] = iIndex;
+
+    if (stLen != 0) {
+        for (i = 0; i < stLen; i++) {
+            pgpt->GPT_entry[iIndex].ENT_usName[i] = cpcName[i];
+        }
+
+    } else {
+        /*
+         *  分区名称 SylixOSPart*
+         */
+        stLen = lib_strlen(_G_acGptPartName);
+        for (i = 0; i < stLen; i++) {
+            pgpt->GPT_entry[iIndex].ENT_usName[i] = _G_acGptPartName[i];
+        }
+        pgpt->GPT_entry[iIndex].ENT_usName[i] = iIndex;
+    }
 
     /*
      *  将分区类型保存在 GPT 分区头扇区的空闲字节中
@@ -285,6 +322,24 @@ INT  API_GptAddEntry (GPT_TABLE  *pgpt, UINT64  ui64LbaNum, UINT64  ui64LbaCnt, 
     pgpt->GPT_header.HDR_uiEntriesCount++;
 
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_GptAddEntry
+** 功能描述: 添加分区表项
+** 输　入  : pgpt               GPT 内存结构指针
+**           ui64LbaNum         分区起始逻辑块号
+**           ui64LbaCnt         分区逻辑块数量
+**           ucPartType         分区类型
+** 输　出  : ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  API_GptAddEntry (GPT_TABLE  *pgpt,
+                      UINT64      ui64LbaNum,
+                      UINT64      ui64LbaCnt,
+                      UINT8       ucPartType)
+{
+    return  API_GptAddEntryWithName(pgpt, ui64LbaNum, ui64LbaCnt, ucPartType, LW_NULL);
 }
 /*********************************************************************************************************
 ** 函数名称: API_GptGetEntry

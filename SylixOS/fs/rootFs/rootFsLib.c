@@ -488,6 +488,7 @@ INT  API_RootFsMakeNode (CPCHAR  pcName, INT  iNodeType, INT  iNodeOpt, INT  iMo
         /*
          *  避免内存分片浪费, 这里分配一整片内存.
          */
+        stLen++;                                                        /*  预留 \0 空间                */
         stAllocSize = sizeof(LW_ROOTFS_NODE) + stLen;
         prfsnNew = (PLW_ROOTFS_NODE)__SHEAP_ALLOC(stAllocSize);         /*  分配节点内存                */
         if (prfsnNew) {

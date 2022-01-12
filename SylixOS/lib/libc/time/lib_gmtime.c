@@ -38,20 +38,19 @@ BUG:
 
 int __julday (int yr, /* year */ int mon, /* month */ int day /* day */)
 {
-    static int  jdays[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+    static int jdays[13] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
     int leap = 0;
 
-    if (isleap (yr + TM_YEAR_BASE)) {
-	/*
-	 * If it is a leap year, leap only gets set if the day is
-	 * after beginning of March (SPR #4251).
-	 */
+    if (isleap(yr + TM_YEAR_BASE)) {
+        /*
+         * If it is a leap year, leap only gets set if the day is
+         * after beginning of March (SPR #4251).
+         */
     	if (mon > 1)
     	    leap = 1;
 	}
 
-    return (jdays [mon] + day + leap );
-
+    return  (jdays [mon] + day + leap);
 }
 /*********************************************************************************************************
 ** 函数名称: __gettime
@@ -63,11 +62,16 @@ int __julday (int yr, /* year */ int mon, /* month */ int day /* day */)
 *********************************************************************************************************/
 int  __daysSinceEpoch ( int year,	/* Years since epoch */ int yday 	/* days since Jan 1  */)
 {
-	if (year>=0) /* 1970 + */
-    	return ( (365 * year) + (year + 1) / 4  + yday );
-	else		/* 1969 - */
-    	return ( (365 * year) + (year - 2) / 4  + yday );
-} 
+    int adjust;
+
+    if (year >= 0) /* 1970 + */ {
+        adjust = ((year + 69) / 100 - (year + 369) / 400);
+        return ((365 * year) + (year + 1) / 4 - adjust + yday);
+    } else {       /* 1969 - */
+        adjust = ((year - 30) / 100 - (year - 30) / 400);
+        return ((365 * year) + (year - 2) / 4 - adjust + yday);
+    }
+}
 /*********************************************************************************************************
 ** 函数名称: __gettime
 ** 功能描述: 
@@ -93,27 +97,25 @@ int  __gettime (const time_t timer, struct tm *tmp)
      * to make it positive.
      */
 
-    if(timeOfDay<0)
-    	{
-	timeOfDay+=SECSPERDAY;
-	days-=1;
-    	}
+    if (timeOfDay < 0) {
+        timeOfDay += SECSPERDAY;
+        days -= 1;
+    }
 
     /* Calulate number of years since epoch */
 
     year = days / DAYSPERYEAR;
-    while ( __daysSinceEpoch((int)year, 0) > days )
+    while (__daysSinceEpoch((int)year, 0) > days)
     	year--;
 
     /* Calulate the day of the week */
-
     tmp->tm_wday = (int)((days + EPOCH_WDAY) % DAYSPERWEEK);
 
 	/*
 	 * If there is a negative weekday, add DAYSPERWEEK to make it positive
 	 */
-	if(tmp->tm_wday<0)
-		tmp->tm_wday+=DAYSPERWEEK;
+	if (tmp->tm_wday < 0)
+		tmp->tm_wday += DAYSPERWEEK;
 
     /* Find year and remaining days */
 
@@ -123,21 +125,19 @@ int  __gettime (const time_t timer, struct tm *tmp)
     /* Find month */
     /* __jullday needs years since TM_YEAR_BASE (SPR 4251) */
 
-    for  ( mon = 0; 
-          (mon < 11) && (days >= __julday ((int)(year - TM_YEAR_BASE), (int)(mon + 1), 0));
-          mon++ )
+    for (mon = 0;
+         (mon < 11) && (days >= __julday((int)(year - TM_YEAR_BASE), (int)(mon + 1), 0));
+         mon++)
 	;
 
     /* Initialise tm structure */
-
     tmp->tm_year = (int)(year - TM_YEAR_BASE); /* years since 1900 */
     tmp->tm_mon  = (int)mon;
-    tmp->tm_mday = (int)(days - __julday (tmp->tm_year, (int)mon, 0)) + 1;
-    tmp->tm_yday = (int)__julday (tmp->tm_year, (int)mon, tmp->tm_mday) - 1;
+    tmp->tm_mday = (int)(days - __julday(tmp->tm_year, (int)mon, 0)) + 1;
+    tmp->tm_yday = (int)__julday(tmp->tm_year, (int)mon, tmp->tm_mday) - 1;
     tmp->tm_hour = (int)(timeOfDay / SECSPERHOUR);
 
-    timeOfDay  %= SECSPERHOUR;
-    
+    timeOfDay %= SECSPERHOUR;
     {
         result = lib_lldiv(timeOfDay, SECSPERMIN);
     }
