@@ -279,7 +279,11 @@ ARCH_FPUFLAGS = -m$(FPU_TYPE)
 
 ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -mcpu=$(CPU_TYPE)
 ARCH_CPUFLAGS                  = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
-ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float -mno-spe -mno-altivec 
+ifeq "4" "$(TOOLCHAIN_VERSION_MAJOR)"
+ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float -mno-spe -mno-altivec
+else
+ARCH_CPUFLAGS_NOFPU            = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
+endif
 endif
 
 #*********************************************************************************************************

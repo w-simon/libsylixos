@@ -104,6 +104,7 @@ VOID    archDbgApRemove(addr_t   ulAddr, ULONG   ulIns);
 VOID    archDbgBpPrefetch(addr_t ulAddr);
 UINT    archDbgTrapType(addr_t   ulAddr, PVOID   pvArch);
 VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);
+BOOL    archDbgIsStep(pid_t  pid, addr_t  ulAddr);
 VOID    archDbgSetStepMode(ARCH_REG_CTX  *pregctx, BOOL  bEnable);
 VOID    archDbgSchedHook(PLW_CLASS_TCB  ptcbOld, PLW_CLASS_TCB  ptcbNew);
 

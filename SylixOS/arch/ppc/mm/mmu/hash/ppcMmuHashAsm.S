@@ -87,7 +87,7 @@ FUNC_DEF(ppcHashMmuInvalidateTLBNr)
 
 LINE_LABEL(tlbloop)
     ISYNC
-    TLBIE   R4
+    TLBIE   R4, 0
     EIEIO
     TLBSYNC
     SYNC
@@ -102,7 +102,7 @@ LINE_LABEL(tlbloop)
 
 FUNC_DEF(ppcHashMmuInvalidateTLBEA)
     SYNC
-    TLBIE   R3
+    TLBIE   R3, 0
     EIEIO
     TLBSYNC
     SYNC
@@ -123,7 +123,7 @@ FUNC_DEF(ppcHashMmuHashPageTblPteSet)
     EIEIO
     STW     R4, 0(R3)
     SYNC
-    TLBIE   R6
+    TLBIE   R6, 0
     EIEIO
     TLBSYNC
     SYNC

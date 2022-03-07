@@ -72,6 +72,26 @@
 #if __GNUC__ < 2  || (__GNUC__ == 2 && __GNUC_MINOR__ < 5)
 #error must use GCC include "__attribute__((...))" function.
 #endif /*  __GNUC__ < 2  || ...        */
+/*
+ * fixed qt which compiled with old version gcc.
+ */
+#if __GNUC__ > 4
+extern double ceil (double);
+extern int __fpclassifyf (float x);
+extern double rint (double);
+
+void* libm_import_ceil(double d)
+{
+    d = rint(d); /* import symbol rint */
+    __fpclassifyf((float)d); /* import symbol __fpclassifyf */
+    return (void*)(ceil); /* import symbol ceil and avoid optimization*/
+}
+
+int matherr(void *p)
+{
+    return 0; /* matherr is removed from gcc10, it returns 0 in gcc4.9 */
+}
+#endif /*  __GNUC__ > 4                */
 #endif /*  __GNUC__                    */
 
 /*

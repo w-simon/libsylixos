@@ -440,6 +440,13 @@ static VOID  _DebugFmtPrint (VOIDFUNCPTR pfuncPrint, CPCHAR  pcFmt, va_list ap)
                 switch (*pcPos) {
                 
                 case 'l':
+                    if (iFlag & LONG_ARG) {
+                        iFlag = LONG_LONG_ARG;
+                    } else {
+                        iFlag = LONG_ARG;
+                    }
+                    break;
+
                 case 'z':
                     iFlag = LONG_ARG;
                     break;

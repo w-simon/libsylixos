@@ -32,7 +32,7 @@
   Xfer:features:read:arch-core.xml 回应包
 *********************************************************************************************************/
 static const CHAR   _G_cSparcCoreXml[] = \
-    "<?xml version=\"1.0\"?>"
+    "l<?xml version=\"1.0\"?>"
     "<!-- Copyright (C) 2006-2017 ACOINFO co.,ltd."
          "Copying and distribution of this file, with or without modification,"
          "are permitted in any medium without royalty provided the copyright"
@@ -78,43 +78,6 @@ CPCHAR  archGdbTargetXml (VOID)
 CPCHAR  archGdbCoreXml (VOID)
 {
     return  (_G_cSparcCoreXml);
-}
-/*********************************************************************************************************
-** 函数名称: __archBackTracePc
-** 功能描述: 回溯并返回调用栈中第一个不在内核地址空间中的栈帧返回地址
-** 输　入  : ulFp           FP 寄存器值
-**           ulI7           I7 寄存器值
-**           ulPc           PC 寄存器值
-** 输　出  : 第一个不在内核地址空间中的栈帧返回地址，如果 PC 不在内核地址空间，则返回 PC
-** 全局变量:
-** 调用模块:
-*********************************************************************************************************/
-static ULONG  __archBackTracePc (ULONG  ulFp, ULONG  ulI7, ULONG  ulPc)
-{
-    struct layout  *pCurrent;
-
-    if (API_VmmVirtualIsInside(ulPc)) {
-        return  (ulPc);
-    }
-
-    if (API_VmmVirtualIsInside(ulI7)) {
-        return  (ulI7);
-    }
-
-    pCurrent = (struct layout *)(ulFp);
-    if (pCurrent == LW_NULL) {
-        return  (ulPc);
-    }
-
-    while (!API_VmmVirtualIsInside((addr_t)pCurrent->return_address)) {
-        if (!pCurrent->next) {
-            break;
-        }
-
-        pCurrent = (struct layout *)(pCurrent->next);
-    }
-
-    return  ((ULONG)pCurrent->return_address);
 }
 /*********************************************************************************************************
 ** 函数名称: archGdbRegsGet
@@ -164,13 +127,7 @@ INT  archGdbRegsGet (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread, GDB_REG_SET  *
     iIndex++;
     iIndex++;
 
-    /*
-     * 如果 PC 在内核地址空间，回溯并取得调用栈中第一个不在内核地址空间中的栈帧返回地址作为 PC，
-     * 用于欺骗 gdb，否则在多线程调试时 SPARC gdb 会试图在内核空间内断点
-     */
-    pregset->regArr[iIndex++].GDBRA_ulValue = __archBackTracePc(regctx.REG_uiFp,
-                                                                regctx.REG_uiInput[7],
-                                                                regctx.REG_uiPc);
+    pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiPc;
     pregset->regArr[iIndex++].GDBRA_ulValue = regctx.REG_uiNPc;
 
     return  (ERROR_NONE);

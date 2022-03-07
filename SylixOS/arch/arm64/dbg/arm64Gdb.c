@@ -434,9 +434,9 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
 *********************************************************************************************************/
 BOOL  archGdbGetStepSkip (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, addr_t ulAddr)
 {
-    if ((*(UINT32 *)ulAddr         == 0x910003fd) ||
-        (*(((UINT32 *)ulAddr) + 1) == 0x910003fd) ||
-        (*(((UINT32 *)ulAddr) + 2) == 0x910003fd)) {
+    if (((*(UINT32 *)ulAddr & 0x910003fd)         == 0x910003fd) ||
+        ((*(((UINT32 *)ulAddr) + 1) & 0x910003fd) == 0x910003fd) ||
+        ((*(((UINT32 *)ulAddr) + 2) & 0x910003fd) == 0x910003fd)) {
         return  (LW_TRUE);
     }
 

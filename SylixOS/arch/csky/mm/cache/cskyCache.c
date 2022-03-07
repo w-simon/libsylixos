@@ -43,6 +43,7 @@
 #define L1_CACHE_D_EN                      0x02
 #define L1_CACHE_EN                        (L1_CACHE_I_EN | L1_CACHE_D_EN)
 #define L1_CACHE_DIS                       0x00
+#define L2_CACHE_EN                        0x04
 
 static INT      iCacheStatus = L1_CACHE_DIS;
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -152,6 +153,7 @@ static INT  cskyCacheEnable (LW_CACHE_TYPE  cachetype)
     if ((LW_CPU_GET_CUR_ID() == 0) &&
         (iCacheStatus == L1_CACHE_EN)) {
         cskyL2Enable();
+        iCacheStatus |= L2_CACHE_EN;
     }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
 
@@ -189,8 +191,9 @@ static INT  cskyCacheDisable (LW_CACHE_TYPE  cachetype)
 
 #if LW_CFG_CSKY_CACHE_L2 > 0
     if ((LW_CPU_GET_CUR_ID() == 0) &&
-        (iCacheStatus == L1_CACHE_DIS)) {
+        ((iCacheStatus & L1_CACHE_EN) == 0)) {
         cskyL2Disable();
+        iCacheStatus &= ~L2_CACHE_EN;
     }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
 
@@ -337,7 +340,9 @@ INT  cskyCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 
     if (cachetype == DATA_CACHE) {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        return  (cskyL2Flush(pvAdrs, stBytes));                         /*  L2 包含了 L1                */
+        if (iCacheStatus & L2_CACHE_EN) {
+            return  (cskyL2Flush(pvAdrs, stBytes));                     /*  L2 包含了 L1                */
+        }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
         if (stBytes >= CSKY_L1_CACHE_LOOP_OP_MAX_SIZE) {
             cskyDCacheFlushAll();                                       /*  全部回写                    */
@@ -369,7 +374,9 @@ static INT  cskyCacheFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID  
 
     if (cachetype == DATA_CACHE) {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        return  (cskyL2Flush(pvAdrs, stBytes));                         /*  L2 包含了 L1                */
+        if (iCacheStatus & L2_CACHE_EN) {
+            return  (cskyL2Flush(pvAdrs, stBytes));                     /*  L2 包含了 L1                */
+        }
 #endif
         if (stBytes >= CSKY_L1_CACHE_LOOP_OP_MAX_SIZE) {
             cskyDCacheFlushAll();                                       /*  全部回写                    */
@@ -410,7 +417,9 @@ static INT  cskyCacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
 #if LW_CFG_CSKY_CACHE_L2 > 0
-            return  (cskyL2Invalidate(pvAdrs, stBytes));                /*  虚拟与物理地址必须相同      */
+            if (iCacheStatus & L2_CACHE_EN) {
+                return  (cskyL2Invalidate(pvAdrs, stBytes));            /*  虚拟与物理地址必须相同      */
+            }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
             addr_t  ulStart = (addr_t)pvAdrs;
                     ulEnd   = ulStart + stBytes;
@@ -464,7 +473,9 @@ static INT  cskyCacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
 #if LW_CFG_CSKY_CACHE_L2 > 0
-            return  (cskyL2Invalidate(pvAdrs, stBytes));                /*  虚拟与物理地址必须相同      */
+            if (iCacheStatus & L2_CACHE_EN) {
+                return  (cskyL2Invalidate(pvAdrs, stBytes));            /*  虚拟与物理地址必须相同      */
+            }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
             addr_t  ulStart = (addr_t)pvAdrs;
                     ulEnd   = ulStart + stBytes;
@@ -517,7 +528,9 @@ static INT  cskyCacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
 
     } else {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        return  (cskyL2Clear(pvAdrs, stBytes));
+        if (iCacheStatus & L2_CACHE_EN) {
+            return  (cskyL2Clear(pvAdrs, stBytes));
+        }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
         if (stBytes >= CSKY_L1_CACHE_LOOP_OP_MAX_SIZE) {
             cskyDCacheClearAll();                                       /*  全部回写并无效              */
@@ -557,7 +570,9 @@ static INT  cskyCacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvP
 
     } else {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        return  (cskyL2Clear(pvAdrs, stBytes));
+        if (iCacheStatus & L2_CACHE_EN) {
+            return  (cskyL2Clear(pvAdrs, stBytes));
+        }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
         if (stBytes >= CSKY_L1_CACHE_LOOP_OP_MAX_SIZE) {
             cskyDCacheClearAll();                                       /*  全部回写并无效              */

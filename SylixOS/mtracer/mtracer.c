@@ -253,7 +253,7 @@ static void  mtracer_backtrace_show (int depth)
     }
 }
 
-__attribute__((constructor))
+LW_CONSTRUCTOR_BEGIN
 int mtracer_init (void)
 {
     int  ret;
@@ -272,11 +272,12 @@ int mtracer_init (void)
 
     return  (0);
 }
+LW_CONSTRUCTOR_END(mtracer_init)
 
 /*
  * finished memtracer
  */
-__attribute__((destructor))
+LW_DESTRUCTOR_BEGIN
 int mtracer_exit (void)
 {
     mtracer_node_t  *node;
@@ -304,6 +305,7 @@ int mtracer_exit (void)
 
     return  (0);
 }
+LW_DESTRUCTOR_END(mtracer_exit)
 
 /*
  * config memtracer by usr

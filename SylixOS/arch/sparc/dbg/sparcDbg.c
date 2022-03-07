@@ -24,6 +24,7 @@
   裁减配置
 *********************************************************************************************************/
 #if LW_CFG_GDB_EN > 0
+#include "../SylixOS/loader/include/loader_vppatch.h"
 #include "dtrace.h"
 /*********************************************************************************************************
   SPARC 断点指令
@@ -202,6 +203,35 @@ UINT  archDbgTrapType (addr_t  ulAddr, PVOID   pvArch)
 *********************************************************************************************************/
 VOID  archDbgBpAdjust (PVOID  pvDtrace, PVOID   pvtm)
 {
+}
+/*********************************************************************************************************
+** 函数名称: archDbgIsStep
+** 功能描述: 是否为单步断点，部分使用普通断点命令实现单步，此时需允许内核断点
+** 输　入  : pid       进程ID
+**           ulAddr    断点地址
+** 输　出  : BOOL
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  archDbgIsStep (pid_t  pid, addr_t  ulAddr)
+{
+    LW_LD_VPROC   *pvproc  = vprocGet(pid);
+    PLW_CLASS_TCB  ptcb;
+    PLW_LIST_LINE  plineTemp;
+
+    LW_VP_LOCK(pvproc);                                         /*  锁定当前进程                */
+    for (plineTemp  = pvproc->VP_plineThread;
+         plineTemp != LW_NULL;
+         plineTemp  = _list_line_get_next(plineTemp)) {         /*  遍历进程所有线程            */
+
+        ptcb = _LIST_ENTRY(plineTemp, LW_CLASS_TCB, TCB_lineProcess);
+        if (ulAddr == ptcb->TCB_archRegCtx.REG_uiNPc) {         /*  断点地址为线程下一条指令    */
+            break;
+        }
+    }
+    LW_VP_UNLOCK(pvproc);                                       /*  解锁当前进程                */
+
+    return  ((plineTemp == LW_NULL) ? LW_FALSE : LW_TRUE);
 }
 
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */

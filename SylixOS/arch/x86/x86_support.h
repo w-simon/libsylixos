@@ -110,6 +110,7 @@ VOID    archDbgBpPrefetch(addr_t ulAddr);
 UINT    archDbgTrapType(addr_t   ulAddr, PVOID   pvArch);
 VOID    archDbgBpAdjust(PVOID  pvDtrace, PVOID   pvtm);
 VOID    archDbgSetStepMode(ARCH_REG_CTX  *pregctx, BOOL  bEnable);
+BOOL    archDbgIsStep(pid_t  pid, addr_t  ulAddr);
 #endif                                                                  /*  LW_CFG_GDB_EN > 0           */
 
 /*********************************************************************************************************

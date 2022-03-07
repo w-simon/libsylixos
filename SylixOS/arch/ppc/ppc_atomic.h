@@ -180,7 +180,7 @@ static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
   atomic64 cas op
 *********************************************************************************************************/
 
-static LW_INLINE INT64  archAtomicCas (atomic64_t  *v, INT64  i64Old, INT64  i64New)
+static LW_INLINE INT64  archAtomic64Cas (atomic64_t  *v, INT64  i64Old, INT64  i64New)
 {
     INT64  i64OldValue;
 

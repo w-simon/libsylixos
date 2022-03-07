@@ -64,6 +64,7 @@
 #include "sys/vproc.h"
 #if LW_CFG_GDB_EN > 0
 #include "dtrace.h"
+#include "arch/arch_gdb.h"
 #endif
 #if LW_CFG_POSIX_EN > 0
 #include "dlfcn.h"
@@ -2407,7 +2408,7 @@ ssize_t  vprocGetModsInfo (pid_t  pid, PCHAR  pcBuff, size_t stMaxLen)
     LW_LD_VPROC        *pvproc;
     LW_LD_EXEC_MODULE  *pmodTemp;
     size_t              stXmlLen;
-    
+
     if (!pcBuff || !stMaxLen) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -2432,7 +2433,7 @@ ssize_t  vprocGetModsInfo (pid_t  pid, PCHAR  pcBuff, size_t stMaxLen)
         stXmlLen = bnprintf(pcBuff, stMaxLen, stXmlLen, 
                             "<library name=\"%s\"><segment address=\"0x%llx\"/></library>",
                             pmodTemp->EMOD_pcModulePath,
-                            (INT64)(LONG)pmodTemp->EMOD_pvBaseAddr);
+                            (GDB_ADDR64)(GDB_ADDR)pmodTemp->EMOD_pvBaseAddr);
     }
     LW_VP_UNLOCK(pvproc);
     LW_LD_UNLOCK();

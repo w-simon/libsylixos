@@ -921,7 +921,8 @@ ULONG  API_DtraceBreakpointInsert (PVOID  pvDtrace, addr_t  ulAddr, size_t stSiz
     
     if (!(pdtrace->DTRACE_uiFlag & LW_DTRACE_F_KBP)) {                  /*  内核断点禁能                */
 #if LW_CFG_VMM_EN > 0
-        if (!API_VmmVirtualIsInside(ulAddr)) {
+        if (!API_VmmVirtualIsInside(ulAddr) &&
+            !archDbgIsStep(pdtrace->DTRACE_pid, ulAddr)) {
             _ErrorHandle(ERROR_KERNEL_MEMORY);
             return  (ERROR_KERNEL_MEMORY);
         }
@@ -1032,6 +1033,29 @@ ULONG  API_DtraceContinueThread (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread)
     }
 
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_DtraceIsThreadStopped
+** 功能描述: 判断线程是否处于停止状态
+** 输　入  : pvDtrace      dtrace 节点
+**           ulThread      线程句柄
+** 输　出  : BOOL
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+BOOL  API_DtraceIsThreadStopped (PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread)
+{
+    LW_CLASS_TCB_DESC    tcbdesc;
+
+    if (API_ThreadDesc(ulThread, &tcbdesc) == ERROR_NONE) {
+        if (tcbdesc.TCBD_usStatus & (LW_THREAD_STATUS_SUSPEND | LW_THREAD_STATUS_STOP)) {
+            return  (LW_TRUE);
+        }
+    }
+
+    return  (LW_FALSE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_DtraceStopProcess

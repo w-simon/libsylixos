@@ -119,6 +119,7 @@ LW_API ULONG    API_DtraceWatchpointInsert(PVOID  pvDtrace, addr_t  ulAddr, size
 LW_API ULONG    API_DtraceWatchpointRemove(PVOID  pvDtrace, addr_t  ulAddr, size_t stSize);
 LW_API ULONG    API_DtraceStopThread(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread);
 LW_API ULONG    API_DtraceContinueThread(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread);
+LW_API BOOL     API_DtraceIsThreadStopped(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThread);
 LW_API ULONG    API_DtraceStopProcess(PVOID  pvDtrace);
 LW_API ULONG    API_DtraceContinueProcess(PVOID  pvDtrace);
 LW_API ULONG    API_DtraceProcessThread(PVOID  pvDtrace, LW_OBJECT_HANDLE ulThread[], 
