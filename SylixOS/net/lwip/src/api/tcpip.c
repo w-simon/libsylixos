@@ -172,18 +172,31 @@ tcpip_qos_hook(struct netif *inp, struct pbuf *p, u8_t ipver,
 }
 
 /**
+ * Get DSCP to set priority & dd
+ */
+static u8_t
+tcpip_qos_dscp(u8_t tos, u8_t *dont_drop)
+{
+  u8_t dscp = tos  >> 2;
+  u8_t prio = dscp >> 3;
+  u8_t drop = dscp & 0x7;
+
+  if (prio > 5) {
+      *dont_drop = 1;
+  } else if (prio > 0) {
+      *dont_drop = drop == 2 ? 1 : 0;
+  } else {
+      *dont_drop = 0;
+  }
+
+  return (prio);
+}
+
+/**
  * Set IP QoS support
  * @param p the received packet
  * @param inp the network interface on which the packet was received
  * @return priority
- * 111 - Network Control
- * 110 - Internetwork Control
- * 101 - CRITIC/ECP
- * 100 - Flash Override
- * 011 - Flash
- * 010 - Immediate
- * 001 - Priority
- * 000 - Routine
  */
 static u8_t
 tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
@@ -232,13 +245,7 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
 #if LWIP_IPV4
   iphdr = (struct ip_hdr *)((char *)p->payload + iphdr_offset);
   if (IPH_V(iphdr) == 4) {
-    if (IPH_TOS(iphdr) & 0x10) { /* IPTOS_LOWDELAY */
-      prio = 5; /* CRITIC/ECP */
-    } else {
-      prio = (u8_t)(IPH_TOS(iphdr) >> 5);
-    }
-    
-    *dont_drop = 0;
+    prio = tcpip_qos_dscp(IPH_TOS(iphdr), dont_drop);
     prio = tcpip_qos_hook(inp, p, 4, prio, iphdr_offset, dont_drop);
     if (*dont_drop) {
       tcpip_ip_dontdrop++;
@@ -252,9 +259,7 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
 #if LWIP_IPV6
     struct ip6_hdr *ip6hdr = (struct ip6_hdr *)((char *)p->payload + iphdr_offset);
     if (IP6H_V(ip6hdr) == 6) {
-      prio = (u8_t)(IP6H_TC(ip6hdr) >> 5);
-      
-      *dont_drop = 0;
+      prio = tcpip_qos_dscp(IP6H_TC(ip6hdr), dont_drop);
       prio = tcpip_qos_hook(inp, p, 6, prio, iphdr_offset, dont_drop);
       if (*dont_drop) {
         tcpip_ip6_dontdrop++;

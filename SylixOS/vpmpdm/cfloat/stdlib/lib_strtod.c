@@ -141,6 +141,7 @@ double  lib_strtod (const char *nptr, char **endptr)
     int           c, neg, ndigits, iexp, iexp1, legal;
     double        val, adj_exp;
     const double  *fp;
+    char          *p;
     
     if (endptr) {
         *endptr = (char *)nptr;
@@ -159,6 +160,53 @@ double  lib_strtod (const char *nptr, char **endptr)
         break;
     }
     
+    p = (char *)nptr - 1;
+
+    /* INF or INFINITY.  */
+    if ((p[0] == 'i' || p[0] == 'I') &&
+        (p[1] == 'n' || p[1] == 'N') &&
+        (p[2] == 'f' || p[2] == 'F')) {
+
+        val = INFINITY;
+        if (neg) {
+            val = -val;
+        }
+
+        if ((p[3] == 'i' || p[3] == 'I') &&
+            (p[4] == 'n' || p[4] == 'N') &&
+            (p[5] == 'i' || p[5] == 'I') &&
+            (p[6] == 't' || p[6] == 'T') &&
+            (p[7] == 'y' || p[7] == 'Y')) {
+            *endptr = p + 8;
+            return  (val);
+
+        } else {
+            *endptr = p + 3;
+            return  (val);
+        }
+    }
+
+    /* NAN or NAN(foo).  */
+    if ((p[0] == 'n' || p[0] == 'N') &&
+        (p[1] == 'a' || p[1] == 'A') &&
+        (p[2] == 'n' || p[2] == 'N')) {
+        p += 3;
+        if (*p == '(') {
+            ++p;
+
+            while (*p != '\0' && *p != ')') {
+                ++p;
+            }
+
+            if (*p == ')') {
+                ++p;
+            }
+        }
+
+        *endptr = p;
+        return  (NAN);
+    }
+
     legal = 0;
     ndigits = 0;
     iexp = 0;

@@ -880,7 +880,7 @@ ULONG  API_VmmVirtualStatus (UINT32    uiType,
     } else {
         __VMM_UNLOCK();
         _ErrorHandle(EINVAL);
-        return  (ERROR_NONE);
+        return  (EINVAL);
     }
 }
 /*********************************************************************************************************
