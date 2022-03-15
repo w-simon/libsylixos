@@ -62,6 +62,7 @@
 2016.04.13  加入 _HeapGetMax() 获取最大内存空闲段大小.
 2016.12.20  修正当 heap 添加内存后删除 heap 时, 使用情况判断错误.
 2017.06.23  加入外部内存跟踪接口.
+2022.03.15  内存错误时需要打印调用栈.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -154,8 +155,11 @@ VOIDFUNCPTR _K_pfuncHeapTraceFree;
   当出现需要归还的内存不在内存堆时, 需要打印如下信息
 *********************************************************************************************************/
 #define __DEBUG_MEM_ERROR(caller, heap, error, addr)  \
-        _DebugFormat(__ERRORMESSAGE_LEVEL, "\'%s\' heap %s memory is %s, address %p.\r\n",  \
-                     caller, heap, error, addr)
+        do { \
+            _DebugFormat(__ERRORMESSAGE_LEVEL, "\'%s\' heap %s memory is %s, address %p.\r\n",  \
+                         caller, heap, error, addr); \
+            API_BacktraceShow(-1, 100); \
+        } while (0)
 /*********************************************************************************************************
   需要内存越界检查
 *********************************************************************************************************/

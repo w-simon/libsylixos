@@ -118,7 +118,6 @@ static LW_INLINE void *VP_MEM_ALLOC_ALIGN (PLW_CLASS_HEAP pheap, size_t nbytes, 
     return  (ret);
 }
 
-
 /*
  * re-allocate memory
  */

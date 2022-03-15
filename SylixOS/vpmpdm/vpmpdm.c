@@ -293,9 +293,18 @@ void __vp_patch_ctor (void *pvproc, PVOIDFUNCPTR *ppfuncMalloc, VOIDFUNCPTR *ppf
 
     ctx.proc = pvproc; /* save this process handle, dlopen will use this */
 
+#if LW_CFG_VP_HEAP_ALGORITHM == 1 && LW_CFG_VP_TLSF_LOCK_TYPE
+    /*
+     * In the case of tlfs using spinlock,
+     * the memory must be accessible when adding pool,
+     * and page faults cannot be generated.
+     */
+    ctx.memdirect = 1;
+#else
     if (API_TShellVarGetRt("SO_MEM_DIRECT", buf, sizeof(buf)) > 0) { /* must not use getenv() */
         ctx.memdirect = lib_atoi(buf);
     }
+#endif
 
     if (API_TShellVarGetRt("SO_MEM_CONTIN", buf, sizeof(buf)) > 0) { /* must not use getenv() */
         ctx.memcontin = lib_atoi(buf);
