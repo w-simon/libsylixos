@@ -986,6 +986,11 @@ static INT  __sigqueue (LW_OBJECT_HANDLE  ulId, INT   iSigNo, PVOID  psigvalue)
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     
+    if (ulId == LW_OBJECT_HANDLE_INVALID) {
+        _ErrorHandle(ESRCH);
+        return  (PX_ERROR);
+    }
+
     usIndex = _ObjectGetIndex(ulId);
     
     if (iSigNo == 0) {                                                  /*  测试目标是否存在            */

@@ -63,7 +63,8 @@ VOID  vprocItimerMainHook (VOID)
          plineTemp  = _list_line_get_next(plineTemp)) {                 /*  ITIMER_REAL 定时器          */
          
         pvproc = _LIST_ENTRY(plineTemp, LW_LD_VPROC, VP_lineManage);
-        if (pvproc == &_G_vprocKernel) {
+        if ((pvproc == &_G_vprocKernel) ||
+            (pvproc->VP_ulMainThread == LW_OBJECT_HANDLE_INVALID)) {    /*  内核与僵尸进程跳过          */
             continue;
         }
         
@@ -100,6 +101,9 @@ VOID  vprocItimerEachHook (PLW_CLASS_CPU  pcpu, LW_LD_VPROC  *pvproc)
     siginfoTimer.si_code  = SI_TIMER;
     
     ulThreadId = pvproc->VP_ulMainThread;                               /*  主线程                      */
+    if (ulThreadId == LW_OBJECT_HANDLE_INVALID) {
+        return;                                                         /*  忽略僵尸进程                */
+    }
     
     if (pcpu->CPU_iKernelCounter == 0) {                                /*  ITIMER_VIRTUAL 定时器       */
         pvptimer = &pvproc->VP_vptimer[ITIMER_VIRTUAL];

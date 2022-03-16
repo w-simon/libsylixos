@@ -1134,6 +1134,7 @@ __recheck:
         __resReclaimReq((PVOID)pvproc);                                 /*  请求释放进程资源            */
     }
 
+    pvproc->VP_ulMainThread = LW_OBJECT_HANDLE_INVALID;                 /*  清除主线程 ID               */
     API_ThreadForceDelete(&ulId, (PVOID)(LONG)pvproc->VP_iExitCode);    /*  这个线程彻底删除时, 才会回收*/
 }
 /*********************************************************************************************************
