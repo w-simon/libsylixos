@@ -50,6 +50,7 @@
 2017.12.20  加入流控接口支持.
 2018.07.17  加入 QoS 接口.
 2018.08.01  简化 select 查找算法, 提高效率.
+2022.03.23  加入 DNS 设置接口.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -62,12 +63,15 @@
 #include "sys/un.h"
 #include "lwip/mem.h"
 #include "lwip/dns.h"
+#include "lwip/tcpip.h"
+#include "lwip/netifapi.h"
 #include "net/if.h"
 #include "net/if_arp.h"
 #include "net/if_vlan.h"
 #include "net/route.h"
-#include "lwip_arpctl.h"
+#include "lwip_if.h"
 #include "lwip_ifctl.h"
+#include "lwip_arpctl.h"
 #include "lwip_vlanctl.h"
 /*********************************************************************************************************
   QoS
@@ -2233,6 +2237,55 @@ INT  get_dns_server_info_4 (UINT iIndex, struct in_addr *inaddr)
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
+** 函数名称: set_dns_server_info_4
+** 功能描述: set lwip dns server for IPv4
+** 输　入  : iIndex   dns server index
+**           iIfidx   interface index (0 global default)
+**           inaddr   DNS Server
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  set_dns_server_info_4 (UINT iIndex, UINT iIfidx, const struct in_addr *inaddr)
+{
+    ip_addr_t ipdns;
+    struct netif *netif;
+
+    if ((iIndex >= DNS_MAX_SERVERS) || !inaddr) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (geteuid()) {
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+
+    IP_SET_TYPE_VAL(ipdns, IPADDR_TYPE_V4);
+    inet_addr_to_ip4addr(ip_2_ip4(&ipdns), inaddr);
+
+    if (iIfidx) {
+        LOCK_TCPIP_CORE();                                              /*  锁定协议栈                  */
+        dns_setserver((u8_t)iIndex, &ipdns);
+        UNLOCK_TCPIP_CORE();                                            /*  解锁协议栈                  */
+
+    } else {
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  锁定网络接口                */
+        netif = netif_get_by_index((u8_t)iIfidx);
+        if (!netif) {
+            LWIP_IF_LIST_UNLOCK();
+            _ErrorHandle(ENODEV);
+            return  (PX_ERROR);
+        }
+        netifapi_netif_set_dns(netif, (u8_t)iIndex, &ipdns);
+        LWIP_IF_LIST_UNLOCK();                                          /*  解锁网络接口                */
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
 ** 函数名称: get_dns_server_info_6
 ** 功能描述: get lwip dns server for IPv6
 ** 输　入  : iIndex   dns server index
@@ -2259,6 +2312,55 @@ INT  get_dns_server_info_6 (UINT iIndex, struct in6_addr *in6addr)
     }
     
     inet6_addr_from_ip6addr(in6addr, ip_2_ip6(ipdns));
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: set_dns_server_info_6
+** 功能描述: set lwip dns server for IPv6
+** 输　入  : iIndex   dns server index
+**           iIfidx   interface index (0 global default)
+**           in6addr  DNS Server
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  set_dns_server_info_6 (UINT iIndex, UINT iIfidx, const struct in6_addr *in6addr)
+{
+    ip_addr_t ipdns;
+    struct netif *netif;
+
+    if ((iIndex >= DNS_MAX_SERVERS) || !in6addr) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if (geteuid()) {
+        _ErrorHandle(EACCES);
+        return  (PX_ERROR);
+    }
+
+    IP_SET_TYPE_VAL(ipdns, IPADDR_TYPE_V6);
+    inet6_addr_to_ip6addr(ip_2_ip6(&ipdns), in6addr);
+
+    if (iIfidx) {
+        LOCK_TCPIP_CORE();                                              /*  锁定协议栈                  */
+        dns_setserver((u8_t)iIndex, &ipdns);
+        UNLOCK_TCPIP_CORE();                                            /*  解锁协议栈                  */
+
+    } else {
+        LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  锁定网络接口                */
+        netif = netif_get_by_index((u8_t)iIfidx);
+        if (!netif) {
+            LWIP_IF_LIST_UNLOCK();
+            _ErrorHandle(ENODEV);
+            return  (PX_ERROR);
+        }
+        netifapi_netif_set_dns(netif, (u8_t)iIndex, &ipdns);
+        LWIP_IF_LIST_UNLOCK();                                          /*  解锁网络接口                */
+    }
 
     return  (ERROR_NONE);
 }

@@ -221,6 +221,10 @@ static INT  __oemGptFdisk (INT                     iBlkFd,
 
     GPT_TABLE *pgpt;
 
+    if (ui64FirstLba == 0) {
+        ui64FirstLba = ROUND_UP(GPT_DATA_LBA, (stAlign / ulSecSize));
+    }
+
     pgpt = API_GptCreateAndInitWithLba(ulSecSize, ulTotalSec, ui64FirstLba);
     if (!pgpt) {
         _DebugHandle(__ERRORMESSAGE_LEVEL, "system low memory.\r\n");
@@ -591,7 +595,11 @@ static INT  __oemGptFdiskGet (INT                  iBlkFd,
             return  (PX_ERROR);
         }
 
-        fdpInfo[i].FDP_bIsActive = LW_TRUE;
+        if (fdpInfo[i].FDP_ucPartType == LW_DISK_PART_TYPE_EFI) {
+            fdpInfo[i].FDP_bIsActive = LW_TRUE;
+        } else {
+            fdpInfo[i].FDP_bIsActive = LW_FALSE;
+        }
         fdpInfo[i].FDP_u64Size   = ((UINT64)ui64lPNSec * ulSecSize);
         fdpInfo[i].FDP_u64Oft    = ((UINT64)ui64PStartSec * ulSecSize);
     }

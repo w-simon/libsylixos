@@ -2111,8 +2111,8 @@ __input_align:
 #if LW_CFG_CPU_WORD_LENGHT > 32
 __input_first_bla:
     if (bGpt) {
-        printf("please input gpt partition first lba (%d ~ %qu) offset. 0 means use default offset %d: ",
-               GPT_DATA_LBA, (UINT64)-1, GPT_DATA_LBA);
+        printf("please input gpt partition first lba (%d ~ %qu) offset. 0 means use default offset: ",
+               GPT_DATA_LBA, (UINT64)-1);
         fflush(stdout);
         fpurge(stdin);
         if (scanf("%qu", &ui64FirstLba) != 1) {
@@ -2172,24 +2172,26 @@ __input_size:
         }
 
 __input_active:
-        printf("is this partition active(y/n) : ");
-        fflush(stdout);
-        fpurge(stdin);
-        do {
-            cActive = (CHAR)getchar();
-        } while ((cActive == '\r') || (cActive == '\n'));
-        if ((cActive != 'y') &&
-            (cActive != 'Y') &&
-            (cActive != 'n') &&
-            (cActive != 'N')) {
-            printf("please use y or n\n");
-            goto    __input_active;
-        }
+        if (!bGpt) {
+            printf("is this partition active(y/n) : ");
+            fflush(stdout);
+            fpurge(stdin);
+            do {
+                cActive = (CHAR)getchar();
+            } while ((cActive == '\r') || (cActive == '\n'));
+            if ((cActive != 'y') &&
+                (cActive != 'Y') &&
+                (cActive != 'n') &&
+                (cActive != 'N')) {
+                printf("please use y or n\n");
+                goto    __input_active;
+            }
 
-        if ((cActive == 'y') || (cActive == 'Y')) {
-            fdpInfo[i].FDP_bIsActive = LW_TRUE;
-        } else {
-            fdpInfo[i].FDP_bIsActive = LW_FALSE;
+            if ((cActive == 'y') || (cActive == 'Y')) {
+                fdpInfo[i].FDP_bIsActive = LW_TRUE;
+            } else {
+                fdpInfo[i].FDP_bIsActive = LW_FALSE;
+            }
         }
 
 #if LW_CFG_CPU_WORD_LENGHT > 32
@@ -2222,11 +2224,20 @@ __input_name:
 __input_type:
         printf("please input the file system type\n");
 #if LW_CFG_CPU_WORD_LENGHT > 32
-        printf("1: FAT   2: TPSFS   3: LINUX   4: RESERVED  5:EFI\n");
-        fpurge(stdin);
-        if ((scanf("%d", &iType) != 1) || ((iType < 1) || (iType > 5))) {
-            printf("please use 1 2 3 4 or 5\n");
-            goto    __input_type;
+        if (bGpt) {
+            printf("1: FAT   2: TPSFS   3: LINUX   4: RESERVED  5:EFI\n");
+            fpurge(stdin);
+            if ((scanf("%d", &iType) != 1) || ((iType < 1) || (iType > 5))) {
+                printf("please use 1 2 3 4 or 5\n");
+                goto    __input_type;
+            }
+        } else {
+            printf("1: FAT   2: TPSFS   3: LINUX   4: RESERVED\n");
+            fpurge(stdin);
+            if ((scanf("%d", &iType) != 1) || ((iType < 1) || (iType > 4))) {
+                printf("please use 1 2 3 or 4\n");
+                goto    __input_type;
+            }
         }
 #else
         printf("1: FAT   2: TPSFS   3: LINUX   4: RESERVED\n");
