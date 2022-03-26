@@ -71,7 +71,7 @@
   
   编译进程时, 需要加入 SylixOS 提供的相关补丁, 这些补丁的源码和说明可以在 doc/vpmpdm 目录下找到. 
   
-  每一个进程拥有一个自己私有的内存堆, 这个内存对通过缺页中断分配, 默认大小为环境变量 SO_MEM_PAGES 决定, 在
+  每一个进程拥有一个自己私有的内存堆, 这个内存堆通过缺页中断分配, 默认大小为环境变量 SO_MEM_PAGES 决定, 在
   进程退出时, 整个空间将会被释放. 
     
   注意: dlopen() 装载时, RTLD_GLOBAL 如果有效, 则此库的符号将可以在本进程内被动态引用. 记住, 与 linux 系统
@@ -309,20 +309,19 @@ static INT moduleDelAndDestory (LW_LD_EXEC_MODULE *pmodule)
 /*********************************************************************************************************
 ** 函数名称: moduleGetLibPath
 ** 功能描述: 获得库文件的路径
-** 输　入  : pcParam       用户路径参数
+** 输　入  : pcFileName    用户路径参数
 **           pcPathBuffer  查找到的文件路径缓冲
 **           stMaxLen      缓冲区大小
 **           pcEnv         环境变量名
 **           pstatFile     获取文件 stat
-** 输　出  : 0
+** 输　出  : ERROR_NONE 表示没有错误, PX_ERROR 表示错误
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
 static INT moduleGetLibPath (CPCHAR  pcFileName, PCHAR  pcPathBuffer,
-                             size_t  stMaxLen, CPCHAR  pcEnv, struct stat *pstatFile)
+                             size_t  stMaxLen, CPCHAR  pcEnv, struct stat  *pstatFile)
 {
     CHAR    cBuffer[MAX_FILENAME_LENGTH];
-
     PCHAR   pcStart;
     PCHAR   pcDiv;
 
@@ -845,13 +844,13 @@ INT  API_ModuleStatus (CPCHAR  pcFile, INT  iFd)
              (iMode == GLOBAL && pvVProc == NULL 此模块在整个内核都有效)
 ** 输　入  : pcFile        文件路径
 **           iMode         装载模式 (全局还是局部)
-**           pcInit        初始化函数名，如果为LW_NULL，表示不需要条用初始化函数
+**           pcInit        初始化函数名，如果为LW_NULL，表示不需要调用初始化函数
 **           pcExit        模块退出时运行的函数, 如果为LW_NULL，表示不需要退出函数
 **           pvVProc       指向的进程主模块
 ** 输　出  : 模块句柄
 ** 全局变量:
 ** 调用模块:
-** 注  意  : 函数不装在 pcInit 到符号表.
+** 注  意  : 函数不装载 pcInit 到符号表.
                                            API 函数
 *********************************************************************************************************/
 LW_API
@@ -865,11 +864,11 @@ PVOID  API_ModuleLoad (CPCHAR  pcFile,
 }
 /*********************************************************************************************************
 ** 函数名称: API_ModuleLoad
-** 功能描述: 以模块方式加载elf文件. 仅从指定的 sect 中加载符号表, 主要用于装在系统模块 
+** 功能描述: 以模块方式加载elf文件. 仅从指定的 sect 中加载符号表, 主要用于装载系统模块
              (iMode == GLOBAL && pvVProc == NULL 此模块在整个内核都有效)
 ** 输　入  : pcFile        文件路径
 **           iMode         装载模式 (全局还是局部)
-**           pcInit        初始化函数名，如果为LW_NULL，表示不需要条用初始化函数
+**           pcInit        初始化函数名，如果为LW_NULL，表示不需要调用初始化函数
 **           pcExit        模块退出时运行的函数, 如果为LW_NULL，表示不需要退出函数
 **           pcEntry       模块入口函数
 **           pcSection     指定的 section
@@ -877,7 +876,7 @@ PVOID  API_ModuleLoad (CPCHAR  pcFile,
 ** 输　出  : 模块句柄
 ** 全局变量:
 ** 调用模块:
-** 注  意  : 函数不装在 pcInit 到符号表.
+** 注  意  : 函数不装载 pcInit 到符号表.
                                            API 函数
 *********************************************************************************************************/
 LW_API

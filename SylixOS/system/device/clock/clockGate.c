@@ -52,7 +52,11 @@ static INT  __clockGateEnable (PLW_CLOCK  pclk)
 {
     PLW_CLOCK_GATE  pclkgate  = __CLK_TO_CLK_GATE(pclk);
 
-    return  (pclkgate->CLKG_pfuncEnable());
+    if (pclkgate->CLKG_pfuncEnable) {
+        return  (pclkgate->CLKG_pfuncEnable(pclk));
+    }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __clockGateDisable
@@ -66,7 +70,9 @@ static VOID __clockGateDisable (PLW_CLOCK  pclk)
 {
     PLW_CLOCK_GATE  pclkgate  = __CLK_TO_CLK_GATE(pclk);
 
-    pclkgate->CLKG_pfuncDisable();
+    if (pclkgate->CLKG_pfuncDisable) {
+        pclkgate->CLKG_pfuncDisable(pclk);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __clockGateIsEnabled
@@ -80,7 +86,11 @@ static BOOL __clockGateIsEnabled (PLW_CLOCK  pclk)
 {
     PLW_CLOCK_GATE  pclkgate  = __CLK_TO_CLK_GATE(pclk);
 
-    return  (pclkgate->CLKG_pfuncIsEnabled());
+    if (pclkgate->CLKG_pfuncIsEnabled) {
+        return  (pclkgate->CLKG_pfuncIsEnabled(pclk));
+    }
+
+    return  (LW_TRUE);
 }
 /*********************************************************************************************************
 ** 函数名称: API_ClockGateRegister

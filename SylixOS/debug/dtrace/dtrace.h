@@ -145,7 +145,8 @@ LW_API ULONG    API_DtraceThreadStepSet(PVOID  pvDtrace, LW_OBJECT_HANDLE  ulThr
 
 #if !defined(LW_DTRACE_HW_ISTEP) || defined(__ARCH_DBG_SCHED_HOOK)
 LW_API VOID     API_DtraceSchedHook(LW_OBJECT_HANDLE  ulThreadOld, LW_OBJECT_HANDLE  ulThreadNew);
-#endif
+#endif                                                                  /*  !LW_DTRACE_HW_ISTEP         */
+                                                                        /*  __ARCH_DBG_SCHED_HOOK       */
 
 /*********************************************************************************************************
   API (SylixOS internal use only!)

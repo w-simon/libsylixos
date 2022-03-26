@@ -42,7 +42,7 @@ typedef PLW_LIST_RING        LW_LIST_RING_HEADER;                       /*  环表
 *********************************************************************************************************/
 
 typedef struct __list_line {
-	struct __list_line      *LINE_plistNext;                            /*  线形表前向指针              */
+    struct __list_line      *LINE_plistNext;                            /*  线形表前向指针              */
     struct __list_line      *LINE_plistPrev;                            /*  线形表后向指针              */
 } LW_LIST_LINE;
 typedef LW_LIST_LINE        *PLW_LIST_LINE;
@@ -53,7 +53,7 @@ typedef PLW_LIST_LINE        LW_LIST_LINE_HEADER;                       /*  线形
 *********************************************************************************************************/
 
 typedef struct __list_mono {
-	struct __list_mono      *MONO_plistNext;                            /*  资源表前向指针              */
+    struct __list_mono      *MONO_plistNext;                            /*  资源表前向指针              */
 } LW_LIST_MONO;
 typedef LW_LIST_MONO        *PLW_LIST_MONO;
 typedef PLW_LIST_MONO        LW_LIST_MONO_HEADER;                       /*  资源表表头                  */

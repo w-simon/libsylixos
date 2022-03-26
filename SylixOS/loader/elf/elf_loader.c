@@ -272,7 +272,7 @@ static INT elfRelRelocate (LW_LD_EXEC_MODULE *pmodule,
 #endif                                                                  /*  LW_CFG_CPU_ARCH_MIPS64      */
         pcSymName = pcStrTab + psym->st_name;
         if (SHN_UNDEF == psym->st_shndx) {                              /*  外部符号需查找符号表        */
-            if (lib_strlen(pcSymName) == 0) {                           /* 特殊符号，和体系结构相关     */
+            if (lib_strlen(pcSymName) == 0) {                           /*  特殊符号，和体系结构相关    */
                 symVal = 0;
             
             } else {
@@ -648,11 +648,11 @@ static INT elfModuleMemoryInit (LW_LD_EXEC_MODULE *pmodule, Elf_Shdr *pshdrArr)
 
             } else if (SHN_COMMON == psym->st_shndx) {                  /*  公共块                      */
                 ulAlign = psym->st_value < sizeof(ULONG) ? sizeof(ULONG) : psym->st_value;
-                ulCommonSize += ulAlign - 1;                            /*  st_value中保存了对齐值      */
-                ulCommonSize = (ulCommonSize/ulAlign) * ulAlign;
+                ulCommonSize  += ulAlign - 1;                           /*  st_value中保存了对齐值      */
+                ulCommonSize   = (ulCommonSize / ulAlign) * ulAlign;
                 psym->st_shndx = (Elf32_Half)pmodule->EMOD_ulSegCount;
                 psym->st_value = ulCommonSize;
-                ulCommonSize += psym->st_size;
+                ulCommonSize  += psym->st_size;
                 if (ulAlign > ulMaxAlign) {
                     ulMaxAlign = ulAlign;
                 }

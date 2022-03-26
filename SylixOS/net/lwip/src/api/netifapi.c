@@ -405,7 +405,34 @@ netifapi_netif_set_addr(struct netif *netif,
 }
 #endif /* LWIP_IPV4 */
 
-#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add netif dns server set */
+#ifdef SYLIXOS
+/**
+ * @ingroup netif
+ * Set netif flag2.
+ *
+ * @param netif the network interface
+ * @param type 0: clear 1: add
+ * @param flags flags to add or clear
+ */
+int
+netifapi_netif_update_flags2(struct netif *netif, int add, int flags)
+{
+#if LWIP_TCPIP_CORE_LOCKING
+    LOCK_TCPIP_CORE();
+    if (add) {
+      netif->flags2 |= flags;
+    } else {
+      netif->flags2 &= ~flags;
+    }
+    UNLOCK_TCPIP_CORE();
+#else
+#error "Must use LWIP_TCPIP_CORE_LOCKING"
+#endif
+
+    return netif->flags2;
+}
+
+#if LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add netif dns server set */
 /**
  * @ingroup dns
  * Initialize one of the DNS servers.
@@ -430,7 +457,8 @@ netifapi_netif_set_dns(struct netif *netif, u8_t numdns, const ip_addr_t *dnsser
 
   return err;
 }
-#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
+#endif /* LW_CFG_LWIP_DNS_SWITCH */
+#endif /* SYLIXOS */
 
 /**
  * call the "errtfunc" (or the "voidfunc" if "errtfunc" is NULL) in a thread-safe

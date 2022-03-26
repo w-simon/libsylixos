@@ -92,9 +92,13 @@ err_t netifapi_netif_set_addr(struct netif *netif, const ip4_addr_t *ipaddr,
                               const ip4_addr_t *netmask, const ip4_addr_t *gw);
 #endif /* LWIP_IPV4*/
 
-#if defined(SYLIXOS) && LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add netif dns server set */
+#ifdef SYLIXOS
+int netifapi_netif_update_flags2(struct netif *netif, int add, int flags);
+
+#if LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add netif dns server set */
 err_t netifapi_netif_set_dns(struct netif *netif, u8_t numdns, const ip_addr_t *dnsserver);
-#endif /* SYLIXOS && LW_CFG_LWIP_DNS_SWITCH */
+#endif /* LW_CFG_LWIP_DNS_SWITCH */
+#endif /* SYLIXOS */
 
 err_t netifapi_netif_common(struct netif *netif, netifapi_void_fn voidfunc,
                             netifapi_errt_fn errtfunc);

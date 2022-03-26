@@ -412,10 +412,11 @@ struct netif {
   u8_t (*outer_qos)(void *, struct pbuf *p, u8_t ipver, u8_t prio, u16_t iphdr_offset, u8_t *dont_drop);
   /* SylixOS externed flags */
   int flags2;
-#define NETIF_FLAG2_DHCP        1
-#define NETIF_FLAG2_DHCP6       8
-#define NETIF_FLAG2_PROMISC     2
-#define NETIF_FLAG2_ALLMULTI    4
+#define NETIF_FLAG2_DHCP        0x01
+#define NETIF_FLAG2_DHCP6       0x08
+#define NETIF_FLAG2_PROMISC     0x02
+#define NETIF_FLAG2_ALLMULTI    0x04
+#define NETIF_FLAG2_RESTATE     0x10 /* Need to quickly reset the state of the network interface */
   int priv_flags;
   void *ext_eth; /* net bridge or bonding or ... eth node */
   void *ext_ctl; /* net bridge or bonding or ... ctl block */

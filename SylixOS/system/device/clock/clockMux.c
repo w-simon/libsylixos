@@ -51,11 +51,15 @@ static UINT8  __clockMuxParentGet (PLW_CLOCK  pclk)
     PLW_CLOCK_MUX        pclkmux      = __CLK_TO_CLK_MUX(pclk);
     PLW_CLOCK_MUX_TABLE  pclkmuxtable = pclkmux->CLKM_pclktable;
     UINT                 uiNumParents = pclk->CLK_uiNumParents;
-    UINT                 uiVal        = pclkmux->CLKM_pfuncValGet();
+    UINT                 uiVal        = pclkmux->CLKM_pfuncValGet(pclk);
     UINT                 i;
 
     uiVal &= pclkmux->CLKM_uiMask;
     uiVal  = uiVal >> pclkmux->CLKM_uiShift;
+
+    if (pclk->CLK_ulFlags & LW_CLOCK_IS_MUX) {
+        return  (uiVal);
+    }
 
     for (i = 0; i < uiNumParents; i++) {
         if (pclkmuxtable[i].CLKMT_uiVal == uiVal) {
@@ -79,7 +83,7 @@ static INT  __clockMuxParentSet (PLW_CLOCK  pclk, UINT8  ucIndex)
     PLW_CLOCK_MUX        pclkmux      = __CLK_TO_CLK_MUX(pclk);
     PLW_CLOCK_MUX_TABLE  pclkmuxtable = pclkmux->CLKM_pclktable;
     UINT                 uiNumParents = pclk->CLK_uiNumParents;
-    UINT                 uiVal        = pclkmux->CLKM_pfuncValGet();
+    UINT                 uiVal        = pclkmux->CLKM_pfuncValGet(pclk);
     UINT                 uiRegVal;
     UINT                 i;
 
@@ -90,11 +94,11 @@ static INT  __clockMuxParentSet (PLW_CLOCK  pclk, UINT8  ucIndex)
     }
 
     uiVal     = uiVal << pclkmux->CLKM_uiShift;
-    uiRegVal  = pclkmux->CLKM_pfuncValGet();
+    uiRegVal  = pclkmux->CLKM_pfuncValGet(pclk);
     uiRegVal &= ~pclkmux->CLKM_uiMask;
     uiRegVal |= uiVal;
 
-    return  (pclkmux->CLKM_pfuncValSet(uiVal));
+    return  (pclkmux->CLKM_pfuncValSet(pclk, uiVal));
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_ClockDividerRegister

@@ -289,8 +289,8 @@ LW_API int      nice(int incr);
 LW_API long     sysconf(int name);
 LW_API long     fpathconf(int fd, int name);
 LW_API long     pathconf(const char *path, int name);
-LW_API int	    gethostname(char *name, size_t namelen);
-LW_API int	    sethostname(const char *name, size_t namelen);
+LW_API int      gethostname(char *name, size_t namelen);
+LW_API int      sethostname(const char *name, size_t namelen);
 #endif                                                                  /*  LW_CFG_POSIX_EN > 0         */
 
 #ifdef __cplusplus

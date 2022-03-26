@@ -34,6 +34,8 @@
 #else
 #define AP_BOOT_STACK_SIZE          (64 * LW_CFG_KB_SIZE)               /*  AP 初始化过程堆栈大小       */
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
+#define CPU_UP_READY                0                                   /*  CPU 多核同步完成标志        */
+#define CPU_UP_BUSY                 1                                   /*  CPU 等待多核同步标志        */
 /*********************************************************************************************************
   全局变量定义
 *********************************************************************************************************/
@@ -80,7 +82,7 @@ static const UINT8  _G_ucX86ApEntryCode[] = {                           /*  x86-
 };
 #endif                                                                  /*  LW_CFG_CPU_WORD_LENGHT == 32*/
 
-static LW_SPINLOCK_DEFINE(_G_slX86ApLock);                              /*  AP 启动自旋锁               */
+static atomic_t   _G_atomicCpuUpSync;                                   /*  AP 启动原子量               */
 /*********************************************************************************************************
 ** 函数名称: x86CpuIpiStartSecondary
 ** 功能描述: 启动 AP Processor
@@ -174,7 +176,8 @@ LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
     }
     pulEntryAddr = (ULONG *)AP_BOOT_ENTRY_ADDR;
 
-    archSpinLockRaw(&_G_slX86ApLock);
+    while (API_AtomicCas(&_G_atomicCpuUpSync, CPU_UP_READY, CPU_UP_BUSY)) {
+    }
 
     lib_memcpy(pulEntryAddr, _G_ucX86ApEntryCode, (size_t)sizeof(_G_ucX86ApEntryCode));
 
@@ -236,7 +239,7 @@ LW_WEAK VOID   bspCpuUp (ULONG  ulCPUId)
 *********************************************************************************************************/
 LW_WEAK VOID  bspCpuUpDone (VOID)
 {
-    archSpinUnlockRaw(&_G_slX86ApLock);
+    API_AtomicSet(CPU_UP_READY, &_G_atomicCpuUpSync);
 }
 /*********************************************************************************************************
 ** 函数名称: bspSecondaryCpusUp
@@ -254,6 +257,8 @@ LW_WEAK VOID  bspSecondaryCpusUp (VOID)
     if (LW_NCPUS <= 1) {
         return;
     }
+
+    API_AtomicSet(CPU_UP_READY, &_G_atomicCpuUpSync);
 
     if (X86_HAS_SMT) {                                                  /*  存在超线程                  */
         LW_CPU_FOREACH_EXCEPT(ulCPUId, 0) {

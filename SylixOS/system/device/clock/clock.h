@@ -35,6 +35,7 @@
 #define LW_CLOCK_SET_RATE_PARENT            0x0002
 #define LW_CLOCK_GET_RATE_NOCACHE           0x0004
 #define LW_CLOCK_DIVIDER_ROUND_CLOSEST      0x0008
+#define LW_CLOCK_IS_MUX                     0x0010
 
 #define __HW_FLAGS_GET(clk)                 (clk->CLK_ulFlags)
 #define __HW_PARENT_GET(clk)                (clk->CLK_clkparent ? clk->CLK_clkparent : LW_NULL)
@@ -78,6 +79,7 @@ typedef struct lw_clk {
 
     ULONG                      CLK_ulRate;                              /*  时钟频率                    */
     UINT                       CLK_uiEnableCount;                       /*  时钟使能计数                */
+    PVOID                      CLK_pvClkInfo;                           /*  指向外部定义的时钟信息集合  */
 } LW_CLOCK;
 typedef LW_CLOCK              *PLW_CLOCK;
 
@@ -170,16 +172,17 @@ typedef struct lw_clk_divider {                                         /*  可调
     struct lw_clk_div_table   *CLKD_pclkdivtable;                       /*  分频值表格                  */
     UINT                       CLKD_uiMask;                             /*  寄存器对应掩码              */
     UINT                       CLKD_uiShift;                            /*  寄存器对应移位              */
-    UINT                     (*CLKD_pfuncValGet)(VOID);                 /*  寄存器数值获取              */
-    INT                      (*CLKD_pfuncValSet)(UINT  uiVal);          /*  寄存器数值设置              */
+    UINT                     (*CLKD_pfuncValGet)(PLW_CLOCK  pclk);      /*  寄存器数值获取              */
+    INT                      (*CLKD_pfuncValSet)(PLW_CLOCK  pclk,       /*  寄存器数值设置              */
+                                                 UINT       uiVal);
 } LW_CLOCK_DIVIDER;
 typedef LW_CLOCK_DIVIDER      *PLW_CLOCK_DIVIDER;
 
 typedef struct lw_clk_gate {                                            /*  时钟控制门                  */
     struct lw_clk             CLKG_clk;                                 /*  时钟管理单元                */
-    INT                     (*CLKG_pfuncEnable)(VOID);                  /*  时钟使能                    */
-    INT                     (*CLKG_pfuncDisable)(VOID);                 /*  时钟禁能                    */
-    BOOL                    (*CLKG_pfuncIsEnabled)(VOID);               /*  时钟是否使能                */
+    INT                     (*CLKG_pfuncEnable)(PLW_CLOCK     pclk);    /*  时钟使能                    */
+    INT                     (*CLKG_pfuncDisable)(PLW_CLOCK    pclk);    /*  时钟禁能                    */
+    BOOL                    (*CLKG_pfuncIsEnabled)(PLW_CLOCK  pclk);    /*  时钟是否使能                */
 } LW_CLOCK_GATE;
 typedef LW_CLOCK_GATE        *PLW_CLOCK_GATE;
 
@@ -188,8 +191,9 @@ typedef struct lw_clk_mux {                                             /*  多路
     struct lw_clk_mux_table  *CLKM_pclktable;                           /*  多路复选表格                */
     UINT                      CLKM_uiMask;                              /*  寄存器对应掩码              */
     UINT                      CLKM_uiShift;                             /*  寄存器对应移位              */
-    UINT                    (*CLKM_pfuncValGet)(VOID);                  /*  寄存器数值获取              */
-    INT                     (*CLKM_pfuncValSet)(UINT  uiVal);           /*  寄存器数值设置              */
+    UINT                    (*CLKM_pfuncValGet)(PLW_CLOCK  pclk);       /*  寄存器数值获取              */
+    INT                     (*CLKM_pfuncValSet)(PLW_CLOCK  pclk,        /*  寄存器数值设置              */
+                                                UINT       uiVal);
 } LW_CLOCK_MUX;
 typedef LW_CLOCK_MUX         *PLW_CLOCK_MUX;
 

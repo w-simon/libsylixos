@@ -60,11 +60,12 @@ LW_API INT                   if_down(const char *ifname);       /* net interface
 LW_API INT                   if_up(const char *ifname);         /* net interface up                     */
 LW_API INT                   if_isup(const char *ifname);       /* net interface is up                  */
 LW_API INT                   if_islink(const char *ifname);     /* net interface is on link             */
+LW_API INT                   if_restate(const char *ifname, int dhcp, int dhcp6, int stateless);
 LW_API INT                   if_get_dhcp(const char *ifname);   /* get net if dhcp flag                 */
 LW_API INT                   if_set_dhcp(const char *ifname, int en);   
                                                                 /* set net if dhcp flag                 */
-LW_API INT                   if_set_dhcp6(const char *ifname, int en, int stateless);
 LW_API INT                   if_get_dhcp6(const char *ifname);
+LW_API INT                   if_set_dhcp6(const char *ifname, int en, int stateless);
 #endif                                                          /* __SYLIXOS_EXTEND                     */
 
 LW_API unsigned              if_nametoindex(const char *ifname);

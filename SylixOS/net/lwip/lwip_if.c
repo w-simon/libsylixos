@@ -110,7 +110,7 @@ INT  if_list_unlock (VOID)
 ** 函数名称: if_down
 ** 功能描述: 关闭网卡
 ** 输　入  : ifname        if name
-** 输　出  : 关闭是否成功
+** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
@@ -151,7 +151,7 @@ INT  if_down (const char *ifname)
 ** 函数名称: if_up
 ** 功能描述: 打开网卡
 ** 输　入  : ifname        if name
-** 输　出  : 网卡是否打开
+** 输　出  : ERROR or OK
 ** 全局变量: 
 ** 调用模块: 
                                            API 函数
@@ -190,6 +190,78 @@ INT  if_up (const char *ifname)
 #endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: if_restate
+** 功能描述: 重开网卡回复状态, 主要用来切换 DHCP 状态, 此函数返回后网卡自动使能
+** 输　入  : ifname        if name
+**           dhcp          是否使能 DHCP
+**           dhcp6         是否使能 DHCPv6
+**           stateless     1: stateless  0: stateful (NOT support now)
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  if_restate (const char *ifname, int dhcp, int dhcp6, int stateless)
+{
+    struct netif  *pnetif;
+
+    LWIP_IF_LIST_LOCK(LW_FALSE);                                        /*  进入临界区                  */
+    pnetif = netif_find(ifname);
+    if (pnetif == LW_NULL) {
+        LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */
+        _ErrorHandle(ENXIO);
+        return  (PX_ERROR);
+    }
+
+    if (netif_is_up(pnetif)) {                                          /*  已经 up 需要先 down         */
+        pnetif->flags2 |= NETIF_FLAG2_RESTATE;
+
+#if LWIP_DHCP > 0
+        netifapi_dhcp_release_and_stop(pnetif);
+#endif                                                                  /*  LWIP_DHCP > 0               */
+#if LWIP_AUTOIP > 0
+        netifapi_autoip_stop(pnetif);
+#endif                                                                  /*  LWIP_AUTOIP > 0             */
+#if LWIP_IPV6_DHCP6 > 0
+        netifapi_dhcp6_disable(pnetif);
+#endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
+        netifapi_netif_set_down(pnetif);
+    }
+
+    if (dhcp) {
+        pnetif->flags2 |= NETIF_FLAG2_DHCP;
+    } else {
+        pnetif->flags2 &= ~NETIF_FLAG2_DHCP;
+    }
+
+    if (dhcp6) {
+        pnetif->flags2 |= NETIF_FLAG2_DHCP6;
+    } else {
+        pnetif->flags2 &= ~NETIF_FLAG2_DHCP6;
+    }
+
+    netifapi_netif_set_up(pnetif);
+
+#if LWIP_DHCP > 0
+    if (pnetif->flags2 & NETIF_FLAG2_DHCP) {
+        netifapi_netif_set_addr(pnetif, IP4_ADDR_ANY4, IP4_ADDR_ANY4, IP4_ADDR_ANY4);
+        netifapi_dhcp_start(pnetif);
+    }
+#endif                                                                  /*  LWIP_DHCP > 0               */
+
+#if LWIP_IPV6_DHCP6 > 0
+    if (pnetif->flags2 & NETIF_FLAG2_DHCP6) {
+        netifapi_dhcp6_enable_stateless(pnetif);
+    }
+#endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
+
+    pnetif->flags2 &= ~NETIF_FLAG2_RESTATE;
+    LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
+
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
@@ -510,7 +582,7 @@ size_t if_nameindex_bufsize (void)
     return  (sizeof(struct if_nameindex) * (size_t)iNum);
 }
 /*********************************************************************************************************
-** 函数名称: if_nameindex
+** 函数名称: if_nameindex_rnp
 ** 功能描述: return all network interface names and indexes
 ** 输　入  : buffer    缓存位置
 **           bufsize   缓存大小

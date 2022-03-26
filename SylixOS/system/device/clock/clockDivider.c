@@ -402,9 +402,9 @@ static ULONG  __clockDividerRateRecalc (PLW_CLOCK  pclk, ULONG  ulParentRate)
     UINT32             uiRegVal;
     UINT32             uiDiv;
 
-    uiRegVal  = pclkdivider->CLKD_pfuncValGet();
-    uiRegVal &= pclkdivider->CLKD_uiMask;
+    uiRegVal  = pclkdivider->CLKD_pfuncValGet(pclk);
     uiRegVal  = uiRegVal >> pclkdivider->CLKD_uiShift;
+    uiRegVal &= pclkdivider->CLKD_uiMask;
     uiDiv     = __clockTableDivGet(pclkdivider->CLKD_pclkdivtable, uiRegVal);
 
     return  (DIV_ROUND_UP_ULL((UINT64)ulParentRate, uiDiv));
@@ -425,16 +425,16 @@ static INT  __clockDividerRateSet (PLW_CLOCK  pclk, ULONG  ulRate, ULONG  ulPare
     UINT               uiRegVal;
     INT                iVal;
 
-    iVal = __clockDividerValGet(pclkdivider->CLKD_pclkdivtable, ulRate, ulParentRate);
+    iVal = __clockDividerValGet(pclkdivider->CLKD_pclkdivtable, ulParentRate, ulRate);
     if (iVal < 0) {
         return  (iVal);
     }
 
-    uiRegVal  = pclkdivider->CLKD_pfuncValGet();
-    uiRegVal &= ~pclkdivider->CLKD_uiMask;
+    uiRegVal  = pclkdivider->CLKD_pfuncValGet(pclk);
+    uiRegVal &= ~((pclkdivider->CLKD_uiMask) << (pclkdivider->CLKD_uiShift));
     uiRegVal |= iVal << pclkdivider->CLKD_uiShift;
 
-    return  (pclkdivider->CLKD_pfuncValSet(iVal));
+    return  (pclkdivider->CLKD_pfuncValSet(pclk, uiRegVal));
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: __clockDividerRateRound

@@ -962,13 +962,16 @@ netif_set_up(struct netif *netif)
 
     NETIF_STATUS_CALLBACK(netif);
 
+    /* SylixOS Add restate */
+    if (!(netif->flags2 & NETIF_FLAG2_RESTATE)) {
 #if LWIP_NETIF_EXT_STATUS_CALLBACK
-    {
-      netif_ext_callback_args_t args;
-      args.status_changed.state = 1;
-      netif_invoke_ext_callback(netif, LWIP_NSC_STATUS_CHANGED, &args);
-    }
+      {
+        netif_ext_callback_args_t args;
+        args.status_changed.state = 1;
+        netif_invoke_ext_callback(netif, LWIP_NSC_STATUS_CHANGED, &args);
+      }
 #endif
+    }
 
     netif_issue_reports(netif, NETIF_REPORT_TYPE_IPV4 | NETIF_REPORT_TYPE_IPV6);
 #if LWIP_IPV6
@@ -1034,14 +1037,17 @@ netif_set_down(struct netif *netif)
     netif_clear_flags(netif, NETIF_FLAG_UP);
     MIB2_COPY_SYSUPTIME_TO(&netif->ts);
 
-    /* SylixOS Changed clear up flag must before this */
+    /* SylixOS Add restate */
+    if (!(netif->flags2 & NETIF_FLAG2_RESTATE)) {
+      /* SylixOS Changed clear up flag must before this */
 #if LWIP_NETIF_EXT_STATUS_CALLBACK
-    {
-      netif_ext_callback_args_t args;
-      args.status_changed.state = 0;
-      netif_invoke_ext_callback(netif, LWIP_NSC_STATUS_CHANGED, &args);
-    }
+      {
+        netif_ext_callback_args_t args;
+        args.status_changed.state = 0;
+        netif_invoke_ext_callback(netif, LWIP_NSC_STATUS_CHANGED, &args);
+      }
 #endif
+    }
 
 #if LWIP_IPV4 && LWIP_ARP
     if (netif->flags & NETIF_FLAG_ETHARP) {

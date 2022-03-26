@@ -2266,7 +2266,7 @@ INT  set_dns_server_info_4 (UINT iIndex, UINT iIfidx, const struct in_addr *inad
     IP_SET_TYPE_VAL(ipdns, IPADDR_TYPE_V4);
     inet_addr_to_ip4addr(ip_2_ip4(&ipdns), inaddr);
 
-    if (iIfidx) {
+    if (iIfidx == NETIF_NO_INDEX) {
         LOCK_TCPIP_CORE();                                              /*  锁定协议栈                  */
         dns_setserver((u8_t)iIndex, &ipdns);
         UNLOCK_TCPIP_CORE();                                            /*  解锁协议栈                  */
@@ -2345,7 +2345,7 @@ INT  set_dns_server_info_6 (UINT iIndex, UINT iIfidx, const struct in6_addr *in6
     IP_SET_TYPE_VAL(ipdns, IPADDR_TYPE_V6);
     inet6_addr_to_ip6addr(ip_2_ip6(&ipdns), in6addr);
 
-    if (iIfidx) {
+    if (iIfidx == NETIF_NO_INDEX) {
         LOCK_TCPIP_CORE();                                              /*  锁定协议栈                  */
         dns_setserver((u8_t)iIndex, &ipdns);
         UNLOCK_TCPIP_CORE();                                            /*  解锁协议栈                  */

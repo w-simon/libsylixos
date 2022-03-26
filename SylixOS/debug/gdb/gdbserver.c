@@ -2602,7 +2602,8 @@ static VOID gdbExit (INT iSigNo)
                                  LW_OPTION_THREAD_SWAP_HOOK);           /* 删除线程切换HOOK，           */
         }
     }
-#endif
+#endif                                                                  /*  !LW_DTRACE_HW_ISTEP         */
+                                                                        /*  __ARCH_DBG_SCHED_HOOK       */
 }
 /*********************************************************************************************************
 ** 函数名称: gdbMain
@@ -2808,7 +2809,8 @@ static INT gdbMain (INT argc, CHAR **argv)
         API_SystemHookAdd(API_DtraceSchedHook,
                           LW_OPTION_THREAD_SWAP_HOOK);                  /* 添加线程切换HOOK             */
     }
-#endif
+#endif                                                                  /*  !LW_DTRACE_HW_ISTEP         */
+                                                                        /*  __ARCH_DBG_SCHED_HOOK       */
 
     if (pparam->GDB_byCommType == COMM_TYPE_TCP) {
         pparam->GDB_iCommFd = gdbTcpSockInit(pparam, ui32Ip, usPort);   /* 初始化socket，获取连接句柄   */
