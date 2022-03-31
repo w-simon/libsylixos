@@ -473,6 +473,11 @@ u32_t sys_jiffies(void);
  */
 u32_t sys_now(void);
 
+/**
+ * SylixOS Add calculate time difference
+ */
+u32_t sys_time_diff(u32_t now, u32_t last);
+
 /* Critical Region Protection */
 /* These functions must be implemented in the sys_arch.c file.
    In some implementations they can provide a more light-weight protection

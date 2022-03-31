@@ -1043,8 +1043,8 @@ lwip_netconn_do_close_internal(struct netconn *conn  WRITE_DELAYED_PARAM)
         if (netconn_is_nonblocking(conn)) {
           /* data left on a nonblocking netconn -> cannot linger */
           err = ERR_WOULDBLOCK;
-        } else if ((s32_t)(sys_now() - conn->current_msg->msg.sd.time_started) >=
-                   (conn->linger * 1000)) {
+        } else if ((s32_t)(sys_time_diff(sys_now(), conn->current_msg->msg.sd.time_started)) >=
+                   (conn->linger * 1000)) { /* SylixOS Fixed time difference overflow */
           /* data left but linger timeout has expired (this happens on further
              calls to this function through poll_tcp */
           tcp_abort(tpcb);
@@ -1092,7 +1092,8 @@ lwip_netconn_do_close_internal(struct netconn *conn  WRITE_DELAYED_PARAM)
         close_timeout = conn->linger * 1000U;
       }
 #endif
-      if ((s32_t)(sys_now() - conn->current_msg->msg.sd.time_started) >= close_timeout) {
+      /* SylixOS Fixed time difference overflow */
+      if ((s32_t)(sys_time_diff(sys_now(), conn->current_msg->msg.sd.time_started)) >= close_timeout) {
 #else /* LWIP_SO_SNDTIMEO || LWIP_SO_LINGER */
       if (conn->current_msg->msg.sd.polls_left == 0) {
 #endif /* LWIP_SO_SNDTIMEO || LWIP_SO_LINGER */
@@ -1717,7 +1718,7 @@ lwip_netconn_do_writemore(struct netconn *conn  WRITE_DELAYED_PARAM)
 
 #if LWIP_SO_SNDTIMEO
   if ((conn->send_timeout != 0) &&
-      ((s32_t)(sys_now() - conn->current_msg->msg.w.time_started) >= conn->send_timeout)) {
+      ((s32_t)(sys_time_diff(sys_now(), conn->current_msg->msg.w.time_started)) >= conn->send_timeout)) { /* SylixOS Fixed time difference overflow */
     write_finished = 1;
     if (conn->current_msg->msg.w.offset == 0) {
       /* nothing has been written */
