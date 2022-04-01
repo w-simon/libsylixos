@@ -2251,7 +2251,6 @@ LW_API
 INT  set_dns_server_info_4 (UINT iIndex, UINT iIfidx, const struct in_addr *inaddr)
 {
     ip_addr_t ipdns;
-    struct netif *netif;
 
     if ((iIndex >= DNS_MAX_SERVERS) || !inaddr) {
         _ErrorHandle(EINVAL);
@@ -2272,6 +2271,9 @@ INT  set_dns_server_info_4 (UINT iIndex, UINT iIfidx, const struct in_addr *inad
         UNLOCK_TCPIP_CORE();                                            /*  解锁协议栈                  */
 
     } else {
+#if LW_CFG_LWIP_DNS_SWITCH > 0
+        struct netif *netif;
+
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  锁定网络接口                */
         netif = netif_get_by_index((u8_t)iIfidx);
         if (!netif) {
@@ -2281,6 +2283,10 @@ INT  set_dns_server_info_4 (UINT iIndex, UINT iIfidx, const struct in_addr *inad
         }
         netifapi_netif_set_dns(netif, (u8_t)iIndex, &ipdns);
         LWIP_IF_LIST_UNLOCK();                                          /*  解锁网络接口                */
+#else                                                                   /*  LW_CFG_LWIP_DNS_SWITCH > 0  */
+        _ErrorHandle(ENOSYS);
+        return  (PX_ERROR);
+#endif                                                                  /*  !LW_CFG_LWIP_DNS_SWITCH     */
     }
 
     return  (ERROR_NONE);
@@ -2330,7 +2336,6 @@ LW_API
 INT  set_dns_server_info_6 (UINT iIndex, UINT iIfidx, const struct in6_addr *in6addr)
 {
     ip_addr_t ipdns;
-    struct netif *netif;
 
     if ((iIndex >= DNS_MAX_SERVERS) || !in6addr) {
         _ErrorHandle(EINVAL);
@@ -2351,6 +2356,9 @@ INT  set_dns_server_info_6 (UINT iIndex, UINT iIfidx, const struct in6_addr *in6
         UNLOCK_TCPIP_CORE();                                            /*  解锁协议栈                  */
 
     } else {
+#if LW_CFG_LWIP_DNS_SWITCH > 0
+        struct netif *netif;
+
         LWIP_IF_LIST_LOCK(LW_FALSE);                                    /*  锁定网络接口                */
         netif = netif_get_by_index((u8_t)iIfidx);
         if (!netif) {
@@ -2360,6 +2368,10 @@ INT  set_dns_server_info_6 (UINT iIndex, UINT iIfidx, const struct in6_addr *in6
         }
         netifapi_netif_set_dns(netif, (u8_t)iIndex, &ipdns);
         LWIP_IF_LIST_UNLOCK();                                          /*  解锁网络接口                */
+#else                                                                   /*  LW_CFG_LWIP_DNS_SWITCH > 0  */
+        _ErrorHandle(ENOSYS);
+        return  (PX_ERROR);
+#endif                                                                  /*  !LW_CFG_LWIP_DNS_SWITCH     */
     }
 
     return  (ERROR_NONE);
