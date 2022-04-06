@@ -27,6 +27,7 @@
             (SSL VPN 虚拟网卡使用多线程同时操作同一个 socket. LWIP_TCPIP_CORE_LOCKING 仍处于测试阶段!)
 2011.05.24  TCP_SND_BUF 始终设置为 64KB - 1, 可以在 non-blocking 时发送最大数据包.
 2017.12.06  加入对 LW_CFG_LWIP_MEM_TLSF 的支持.
+2022.04.06  允许使用更大的 TCP_SND_BUF 进行发送包缓冲.
 *********************************************************************************************************/
 
 #ifndef __LWIP_CONFIG_H
@@ -36,7 +37,7 @@
 #include "string.h"                                                     /*  memcpy                      */
 
 /*********************************************************************************************************
-  prof config
+  Performance configure
 *********************************************************************************************************/
 
 #include "../SylixOS/config/net/net_perf_cfg.h"
@@ -385,9 +386,10 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define LWIP_WND_SCALE                  1
 
 #define TCP_WND                         LW_CFG_LWIP_TCP_WND
-#define TCP_SND_BUF                     LWIP_MIN(LW_CFG_LWIP_TCP_SND, 0xffff)
+#define TCP_SND_BUF                     LWIP_MIN(LW_CFG_LWIP_TCP_SND, LW_CFG_LWIP_TCP_WND)
 #define TCP_RCV_SCALE                   LW_CFG_LWIP_TCP_SCALE
 #define TCP_WND_UPDATE_THRESHOLD        (pcb->if_wnd >> 1)              /*  1/2 window size             */
+#define TCP_SNDLOWAT                    LWIP_MIN((TCP_SND_BUF / 2), (0xffff - (4 * TCP_MSS) - 1))
 
 /*********************************************************************************************************
   TCP ISN

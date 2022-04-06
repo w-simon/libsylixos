@@ -3215,7 +3215,7 @@ lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *opt
 #if defined(SYLIXOS) && LWIP_SO_SNDBUF /* SylixOS Add SO_SNDBUF Only for compatibility. */
         case SO_SNDBUF:
           LWIP_SOCKOPT_CHECK_OPTLEN_CONN(sock, *optlen, int);
-          *(int *)optval = TCP_SND_BUF * TCP_SND_QUEUELEN; /* default */
+          *(int *)optval = TCP_SND_BUF; /* default */
           break;
 #endif /* LWIP_SO_SNDBUF */
 #if LWIP_SO_RCVBUF
@@ -4867,7 +4867,7 @@ lwip_ioctl(int s, long cmd, void *argp)
           if (sock->conn->pcb.tcp) {
             enum tcp_state state = sock->conn->pcb.tcp->state;
             if (state == ESTABLISHED || state == CLOSE_WAIT || state == SYN_SENT || state == SYN_RCVD) {
-              *((int *)argp) = tcp_sndbuf(sock->conn->pcb.tcp);
+              *((int *)argp) = (int)(sock->conn->pcb.tcp->snd_buf);
             } else {
               *((int *)argp) = 0;
             }
