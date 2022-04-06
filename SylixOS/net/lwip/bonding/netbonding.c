@@ -803,7 +803,7 @@ int  netbd_add_dev (const char *bddev, int bdindex, const char *sub, int sub_is_
         if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make IFF_PROMISC */
           _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
         } else {
-          netif->flags2 |= NETIF_FLAG2_PROMISC;
+          netifapi_netif_update_flags2(netif, 1, NETIF_FLAG2_PROMISC);
         }
       }
     }
@@ -903,7 +903,7 @@ int  netbd_delete_dev (const char *bddev, int bdindex, const char *sub, int sub_
       if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make Non IFF_PROMISC */
         _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
       } else {
-        netif->flags2 &= ~NETIF_FLAG2_PROMISC;
+        netifapi_netif_update_flags2(netif, 0, NETIF_FLAG2_PROMISC);
       }
     }
   }
@@ -1328,7 +1328,7 @@ int  netbd_delete (const char *bddev, int bdindex)
         if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) {
           _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
         } else {
-          netif->flags2 &= ~NETIF_FLAG2_PROMISC;
+          netifapi_netif_update_flags2(netif, 0, NETIF_FLAG2_PROMISC);
         }
       }
     }
@@ -1497,7 +1497,7 @@ void  netbd_sub_delete_hook (netdev_t *netdev)
       if (netif->ioctl(netif, SIOCSIFFLAGS, &ifreq)) { /* make Non IFF_PROMISC */
         _PrintHandle("sub ethernet device can not support IFF_PROMISC!\r\n");
       } else {
-        netif->flags2 &= ~NETIF_FLAG2_PROMISC;
+        netifapi_netif_update_flags2(netif, 0, NETIF_FLAG2_PROMISC);
       }
     }
   }

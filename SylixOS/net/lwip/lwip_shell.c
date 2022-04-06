@@ -820,9 +820,9 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
 #if LWIP_DHCP > 0
     if (bUseDHCP && !netif_is_mipif(netif) &&
         (netif->flags & NETIF_FLAG_BROADCAST)) {
-        netif->flags2 |= NETIF_FLAG2_DHCP;                              /*  使用 DHCP 启动              */
+        netifapi_netif_update_flags2(netif, 1, NETIF_FLAG2_DHCP);       /*  使用 DHCP 启动              */
     } else if (bShutDownDHCP) {
-        netif->flags2 &= ~NETIF_FLAG2_DHCP;                             /*  强制关闭 DHCP               */
+        netifapi_netif_update_flags2(netif, 0, NETIF_FLAG2_DHCP);       /*  强制关闭 DHCP               */
     }
 
     if (netif->flags2 & NETIF_FLAG2_DHCP) {
@@ -843,9 +843,9 @@ static INT  __tshellIfUp (INT  iArgC, PCHAR  *ppcArgV)
 #if LWIP_IPV6_DHCP6 > 0
     if (bUseDHCP6 && !netif_is_mipif(netif) &&
         (netif->flags & NETIF_FLAG_BROADCAST)) {
-        netif->flags2 |= NETIF_FLAG2_DHCP6;                             /*  使用 DHCP 启动              */
+        netifapi_netif_update_flags2(netif, 1, NETIF_FLAG2_DHCP6);      /*  使用 DHCP6 启动             */
     } else if (bShutDownDHCP6) {
-        netif->flags2 &= ~NETIF_FLAG2_DHCP6;                            /*  强制关闭 DHCP               */
+        netifapi_netif_update_flags2(netif, 0, NETIF_FLAG2_DHCP6);      /*  强制关闭 DHCP6              */
     }
     
     if (netif->flags2 & NETIF_FLAG2_DHCP6) {

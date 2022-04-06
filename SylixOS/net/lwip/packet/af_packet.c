@@ -41,6 +41,7 @@
 #include "netif/etharp.h"
 #include "lwip/mem.h"
 #include "lwip/pbuf.h"
+#include "lwip/netifapi.h"
 #include "af_packet.h"
 #include "af_packet_eth.h"
 /*********************************************************************************************************
@@ -274,7 +275,7 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
                 ifreq.ifr_flags |= IFF_PROMISC;
                 iRet = pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq);
                 if (iRet == ERROR_NONE) {
-                    pnetif->flags2 |= NETIF_FLAG2_PROMISC;
+                    netifapi_netif_update_flags2(pnetif, 1, NETIF_FLAG2_PROMISC);
                 }
             } else {
                 iRet = ERROR_NONE;
@@ -284,7 +285,7 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
                 ifreq.ifr_flags &= ~IFF_PROMISC;
                 iRet = pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq);
                 if (iRet == ERROR_NONE) {
-                    pnetif->flags2 &= ~NETIF_FLAG2_PROMISC;
+                    netifapi_netif_update_flags2(pnetif, 0, NETIF_FLAG2_PROMISC);
                 }
             } else {
                 iRet = ERROR_NONE;
@@ -299,7 +300,7 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
                 ifreq.ifr_flags |= IFF_ALLMULTI;
                 iRet = pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq);
                 if (iRet == ERROR_NONE) {
-                    pnetif->flags2 |= NETIF_FLAG2_ALLMULTI;
+                    netifapi_netif_update_flags2(pnetif, 1, NETIF_FLAG2_ALLMULTI);
                 }
             } else {
                 iRet = ERROR_NONE;
@@ -309,7 +310,7 @@ static INT  __packetSetMembership (AF_PACKET_T *pafpacket, INT  iCmd, struct pac
                 ifreq.ifr_flags &= ~IFF_ALLMULTI;
                 iRet = pnetif->ioctl(pnetif, SIOCSIFFLAGS, &ifreq);
                 if (iRet == ERROR_NONE) {
-                    pnetif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+                    netifapi_netif_update_flags2(pnetif, 0, NETIF_FLAG2_ALLMULTI);
                 }
             } else {
                 iRet = ERROR_NONE;

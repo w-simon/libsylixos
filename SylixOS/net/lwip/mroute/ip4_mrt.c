@@ -50,6 +50,7 @@
 #include "lwip/tcpip.h"
 #include "lwip/timeouts.h"
 #include "lwip/inet_chksum.h"
+#include "lwip/netifapi.h"
 
 extern u16_t *ip4_get_ip_id(void);
 
@@ -422,7 +423,7 @@ static u8_t ip4_mrt_down (struct raw_pcb *pcb)
               ((struct sockaddr_in *)&(ifr.ifr_addr))->sin_addr.s_addr = INADDR_ANY;
               ifp->ioctl(ifp, SIOCDELMULTI, &ifr);
             } else {
-              ifp->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+              netifapi_netif_update_flags2(ifp, 0, NETIF_FLAG2_ALLMULTI);
             }
           }
         }
@@ -572,7 +573,7 @@ static u8_t ip4_mrt_add_vif (struct vifctl *vifcp)
             if (ifp->ioctl(ifp, SIOCADDMULTI, &ifr)) {
               return (EOPNOTSUPP);
             } else {
-              ifp->flags2 |= NETIF_FLAG2_ALLMULTI;
+              netifapi_netif_update_flags2(ifp, 1, NETIF_FLAG2_ALLMULTI);
             }
           }
         } else {
@@ -637,7 +638,7 @@ static u8_t ip4_mrt_del_vif (const vifi_t *vifip)
             ((struct sockaddr_in *)&(ifr.ifr_addr))->sin_addr.s_addr = INADDR_ANY;
             ifp->ioctl(ifp, SIOCDELMULTI, &ifr);
           } else {
-            ifp->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+            netifapi_netif_update_flags2(ifp, 0, NETIF_FLAG2_ALLMULTI);
           }
         }
       }

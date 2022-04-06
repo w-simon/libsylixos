@@ -180,16 +180,12 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
             if (iRet < ERROR_NONE) {
                 break;
             }
-            if (pifreq->ifr_flags & IFF_PROMISC) {
-                pnetif->flags2 |= NETIF_FLAG2_PROMISC;
-            } else {
-                pnetif->flags2 &= ~NETIF_FLAG2_PROMISC;
-            }
-            if (pifreq->ifr_flags & IFF_ALLMULTI) {
-                pnetif->flags2 |= NETIF_FLAG2_ALLMULTI;
-            } else {
-                pnetif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
-            }
+            netifapi_netif_update_flags2(pnetif,
+                                         pifreq->ifr_flags & IFF_PROMISC,
+                                         NETIF_FLAG2_PROMISC);
+            netifapi_netif_update_flags2(pnetif,
+                                         pifreq->ifr_flags & IFF_ALLMULTI,
+                                         NETIF_FLAG2_ALLMULTI);
             if (pifreq->ifr_flags & IFF_UP) {
                 netifapi_netif_set_up(pnetif);
             } else {

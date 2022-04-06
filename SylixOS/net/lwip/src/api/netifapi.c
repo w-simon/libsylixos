@@ -408,7 +408,7 @@ netifapi_netif_set_addr(struct netif *netif,
 #ifdef SYLIXOS
 /**
  * @ingroup netif
- * Set netif flag2.
+ * Set netif flags2.
  *
  * @param netif the network interface
  * @param type 0: clear 1: add
@@ -417,19 +417,21 @@ netifapi_netif_set_addr(struct netif *netif,
 int
 netifapi_netif_update_flags2(struct netif *netif, int add, int flags)
 {
-#if LWIP_TCPIP_CORE_LOCKING
-    LOCK_TCPIP_CORE();
-    if (add) {
-      netif->flags2 |= flags;
-    } else {
-      netif->flags2 &= ~flags;
-    }
-    UNLOCK_TCPIP_CORE();
-#else
-#error "Must use LWIP_TCPIP_CORE_LOCKING"
-#endif
+  SYS_ARCH_DECL_PROTECT(level);
 
-    return netif->flags2;
+  SYS_ARCH_PROTECT(level);
+
+  if (add) {
+    netif->flags2 |= flags;
+  } else {
+    netif->flags2 &= ~flags;
+  }
+
+  flags = netif->flags2;
+
+  SYS_ARCH_UNPROTECT(level);
+
+  return flags;
 }
 
 #if LW_CFG_LWIP_DNS_SWITCH > 0 /* SylixOS Add netif dns server set */

@@ -209,7 +209,7 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
       flags = netif_get_flags(netif);
       if (flags & IFF_ALLMULTI) {
         NETDEV_RXMODE(netdev, flags & ~IFF_ALLMULTI);
-        netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+        netifapi_netif_update_flags2(netif, 0, NETIF_FLAG2_ALLMULTI);
       }
     }
 #endif /* NETDEV_ALWAYS_ALLMULTI > 0 */
@@ -238,7 +238,7 @@ static err_t  netdev_netif_igmp_mac_filter (struct netif *netif,
     flags = netif_get_flags(netif);
     if (!(flags & IFF_ALLMULTI)) {
       NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
-      netif->flags2 |= NETIF_FLAG2_ALLMULTI;
+      netifapi_netif_update_flags2(netif, 1, NETIF_FLAG2_ALLMULTI);
     }
 #endif /* NETDEV_ALWAYS_ALLMULTI > 0 */
   }
@@ -300,7 +300,7 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
       flags = netif_get_flags(netif);
       if (flags & IFF_ALLMULTI) {
         NETDEV_RXMODE(netdev, flags & ~IFF_ALLMULTI);
-        netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+        netifapi_netif_update_flags2(netif, 0, NETIF_FLAG2_ALLMULTI);
       }
     }
 #endif /* NETDEV_ALWAYS_ALLMULTI > 0 */
@@ -329,7 +329,7 @@ static err_t  netdev_netif_mld_mac_filter (struct netif *netif,
     flags = netif_get_flags(netif);
     if (!(flags & IFF_ALLMULTI)) {
       NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
-      netif->flags2 |= NETIF_FLAG2_ALLMULTI;
+      netifapi_netif_update_flags2(netif, 1, NETIF_FLAG2_ALLMULTI);
     }
 #endif /* NETDEV_ALWAYS_ALLMULTI > 0 */
   }
@@ -1588,7 +1588,7 @@ int  netdev_macfilter_add (netdev_t *netdev, const UINT8 hwaddr[])
     flags = netif_get_flags(netif);
     if (!(flags & IFF_ALLMULTI)) {
       NETDEV_RXMODE(netdev, flags | IFF_ALLMULTI);
-      netif->flags2 |= NETIF_FLAG2_ALLMULTI;
+      netifapi_netif_update_flags2(netif, 1, NETIF_FLAG2_ALLMULTI);
     }
 #else /* NETDEV_ALWAYS_ALLMULTI > 0 */
     flags = netif_get_flags(netif);
@@ -1636,7 +1636,7 @@ int  netdev_macfilter_delete (netdev_t *netdev, const UINT8 hwaddr[])
     flags = netif_get_flags(netif);
     if (flags & IFF_ALLMULTI) {
       NETDEV_RXMODE(netdev, flags & ~IFF_ALLMULTI);
-      netif->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+      netifapi_netif_update_flags2(netif, 0, NETIF_FLAG2_ALLMULTI);
     }
 #else /* NETDEV_ALWAYS_ALLMULTI > 0 */
     flags = netif_get_flags(netif);

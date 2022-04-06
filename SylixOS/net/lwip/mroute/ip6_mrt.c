@@ -50,6 +50,7 @@
 #include "lwip/tcpip.h"
 #include "lwip/timeouts.h"
 #include "lwip/inet_chksum.h"
+#include "lwip/netifapi.h"
 
 /* VIFI_INVALID */
 #define MIFI_INVALID ((mifi_t)-1)
@@ -285,7 +286,7 @@ static u8_t ip6_mrt_down (struct raw_pcb *pcb)
               ((struct sockaddr_in6 *)&(ifr.ifr_addr))->sin6_addr = in6addr_any;
               ifp->ioctl(ifp, SIOCDELMULTI, &ifr);
             } else {
-              ifp->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+              netifapi_netif_update_flags2(ifp, 0, NETIF_FLAG2_ALLMULTI);
             }
           }
         }
@@ -379,7 +380,7 @@ static u8_t ip6_mrt_add_mif (struct mif6ctl *mifcp)
           if (ifp->ioctl(ifp, SIOCADDMULTI, &ifr)) {
             return (EOPNOTSUPP);
           } else {
-            ifp->flags2 |= NETIF_FLAG2_ALLMULTI;
+            netifapi_netif_update_flags2(ifp, 1, NETIF_FLAG2_ALLMULTI);
           }
         }
       } else {
@@ -436,7 +437,7 @@ static u8_t ip6_mrt_del_mif (mifi_t *mifip)
           ((struct sockaddr_in6 *)&(ifr.ifr_addr))->sin6_addr = in6addr_any;
           ifp->ioctl(ifp, SIOCDELMULTI, &ifr);
         } else {
-          ifp->flags2 &= ~NETIF_FLAG2_ALLMULTI;
+          netifapi_netif_update_flags2(ifp, 0, NETIF_FLAG2_ALLMULTI);
         }
       }
     }

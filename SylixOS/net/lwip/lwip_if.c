@@ -218,7 +218,7 @@ INT  if_restate (const char *ifname, int dhcp, int dhcp6, int stateless)
     }
 
     if (netif_is_up(pnetif)) {                                          /*  已经 up 需要先 down         */
-        pnetif->flags2 |= NETIF_FLAG2_RESTATE;
+        netifapi_netif_update_flags2(pnetif, 1, NETIF_FLAG2_RESTATE);
 
 #if LWIP_DHCP > 0
         netifapi_dhcp_release_and_stop(pnetif);
@@ -232,17 +232,9 @@ INT  if_restate (const char *ifname, int dhcp, int dhcp6, int stateless)
         netifapi_netif_set_down(pnetif);
     }
 
-    if (dhcp) {
-        pnetif->flags2 |= NETIF_FLAG2_DHCP;
-    } else {
-        pnetif->flags2 &= ~NETIF_FLAG2_DHCP;
-    }
+    netifapi_netif_update_flags2(pnetif, dhcp,  NETIF_FLAG2_DHCP);
 
-    if (dhcp6) {
-        pnetif->flags2 |= NETIF_FLAG2_DHCP6;
-    } else {
-        pnetif->flags2 &= ~NETIF_FLAG2_DHCP6;
-    }
+    netifapi_netif_update_flags2(pnetif, dhcp6, NETIF_FLAG2_DHCP6);
 
     netifapi_netif_set_up(pnetif);
 
@@ -259,7 +251,7 @@ INT  if_restate (const char *ifname, int dhcp, int dhcp6, int stateless)
     }
 #endif                                                                  /*  LWIP_IPV6_DHCP6 > 0         */
 
-    pnetif->flags2 &= ~NETIF_FLAG2_RESTATE;
+    netifapi_netif_update_flags2(pnetif, 0, NETIF_FLAG2_RESTATE);
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
 
     return  (ERROR_NONE);
@@ -349,11 +341,7 @@ INT  if_set_dhcp (const char *ifname, int en)
         return  (PX_ERROR);
     }
     
-    if (en) {
-        pnetif->flags2 |= NETIF_FLAG2_DHCP;
-    } else {
-        pnetif->flags2 &= ~NETIF_FLAG2_DHCP;
-    }
+    netifapi_netif_update_flags2(pnetif, en, NETIF_FLAG2_DHCP);
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
     
     return  (ERROR_NONE);
@@ -421,11 +409,7 @@ INT  if_set_dhcp6 (const char *ifname, int en, int stateless)
         return  (PX_ERROR);
     }
     
-    if (en) {
-        pnetif->flags2 |= NETIF_FLAG2_DHCP6;
-    } else {
-        pnetif->flags2 &= ~NETIF_FLAG2_DHCP6;
-    }
+    netifapi_netif_update_flags2(pnetif, en, NETIF_FLAG2_DHCP6);
     LWIP_IF_LIST_UNLOCK();                                              /*  退出临界区                  */
 
     return  (ERROR_NONE);
