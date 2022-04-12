@@ -397,6 +397,7 @@ ULONG  __tshellStrGetToken (CPCHAR  pcCmd, PCHAR  *ppcNext)
 {
     REGISTER PCHAR  pcCommand       = (PCHAR)pcCmd;
     
+             BOOL   bDoubleQuote    = LW_FALSE;
              INT    iQuotationMarks = 0;                                /*  引号数量                    */
              INT    iTransCharMarks = 0;                                /*  转义字符                    */
     
@@ -417,9 +418,27 @@ ULONG  __tshellStrGetToken (CPCHAR  pcCmd, PCHAR  *ppcNext)
         } else {
             iNeedClearTranMark = 1;                                     /*  执行完后需要清除转义标志    */
         }
-        
+
         if ((*pcCommand == '\"') && (iTransCharMarks == 0)) {           /*  非转义 "                    */
-            iQuotationMarks = (iQuotationMarks > 0) ? 0 : 1;            /*  测算非转义 " 的个数         */
+            if (iQuotationMarks) {
+                if (bDoubleQuote) {
+                    iQuotationMarks = 0;
+                }
+            } else {
+                iQuotationMarks = 1;
+                bDoubleQuote    = LW_TRUE;
+            }
+        
+        } else if ((*pcCommand == '\'') && (iTransCharMarks == 0)) {    /*  非转义 '                    */
+            if (iQuotationMarks) {
+                if (!bDoubleQuote) {
+                    iQuotationMarks = 0;
+                }
+            } else {
+                iQuotationMarks = 1;
+                bDoubleQuote    = LW_FALSE;
+            }
+
         } else if (*pcCommand == ' ') {                                 /*  为空格                      */
             if (iQuotationMarks == 0) {                                 /*  不存在没有配对的空格        */
                 break;
@@ -444,7 +463,7 @@ ULONG  __tshellStrGetToken (CPCHAR  pcCmd, PCHAR  *ppcNext)
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellStrDelTransChar
-** 功能描述: 删除转义字符和非转义的"
+** 功能描述: 删除转义字符和非转义的 " 或者 '
 ** 输　入  : pcCmd               shell 命令
 **           pcCmdOut            替换后的命令串
 ** 输　出  : 错误代码.
@@ -455,6 +474,8 @@ ULONG  __tshellStrDelTransChar (CPCHAR  pcCmd, PCHAR  pcCmdOut)
 {
     REGISTER PCHAR  pcCommand       = (PCHAR)pcCmd;
     REGISTER PCHAR  pcOut           = pcCmdOut;
+             BOOL   bQuotationMarks = LW_FALSE;
+             BOOL   bDoubleQuote    = LW_FALSE;
              INT    iTransCharMarks = 0;                                /*  转义字符                    */
     
     for (; *pcCommand != '\0'; pcCommand++) {                           /*  拷贝关键字                  */
@@ -467,9 +488,27 @@ ULONG  __tshellStrDelTransChar (CPCHAR  pcCmd, PCHAR  pcCmdOut)
             }
         } else {
             if ((*pcCommand == '\"') && (iTransCharMarks == 0)) {       /*  非转义 "                    */
-                /*
-                 *  这里忽略非转义字符的引号
-                 */
+                if (bQuotationMarks) {
+                    if (bDoubleQuote) {
+                        bQuotationMarks = LW_FALSE;
+                    } else {
+                        *pcOut++ = *pcCommand;
+                    }
+                } else {
+                    bQuotationMarks = LW_TRUE;
+                    bDoubleQuote    = LW_TRUE;
+                }
+            } else if ((*pcCommand == '\'') && (iTransCharMarks == 0)) {/*  非转义 '                    */
+                if (bQuotationMarks) {
+                    if (bDoubleQuote) {
+                        *pcOut++ = *pcCommand;
+                    } else {
+                        bQuotationMarks = LW_FALSE;
+                    }
+                } else {
+                    bQuotationMarks = LW_TRUE;
+                    bDoubleQuote    = LW_FALSE;
+                }
             } else if ((*pcCommand == 'r') && (iTransCharMarks == 1)) { /*  \r 转义                     */
                 *pcOut++ = 0x0D;
             } else if ((*pcCommand == 'n') && (iTransCharMarks == 1)) { /*  \n 转义                     */
