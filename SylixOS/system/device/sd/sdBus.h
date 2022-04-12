@@ -296,10 +296,13 @@ typedef struct lw_sd_funcs {
 #define SDBUS_CTRL_STARTCLK       6
 #define SDBUS_CTRL_DELAYCLK       7
 #define SDBUS_CTRL_GETOCR         8                                     /*  获得适配器的电压情况        */
+#define SDBUS_CTRL_TUNING_EXEC    9
 
 #define SDARG_SETCLK_LOW          400000
 #define SDARG_SETCLK_NORMAL       25000000
 #define SDARG_SETCLK_MAX          50000000
+#define SDARG_SETCLK_HS200        200000000
+#define SDARG_SETCLK_HS400        400000000
 
 #define SDARG_SETBUSWIDTH_1       SDBUS_WIDTH_1
 #define SDARG_SETBUSWIDTH_4       SDBUS_WIDTH_4

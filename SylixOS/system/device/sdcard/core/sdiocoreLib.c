@@ -577,7 +577,7 @@ INT API_SdioCoreDevRwExtend (PLW_SDCORE_DEVICE   psdcoredev,
 
     iDevSta = API_SdCoreDevStaView(psdcoredev);
     if (iDevSta != SD_DEVSTA_EXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device does not exist.\r\n");
         return  (PX_ERROR);
     }
 
@@ -682,7 +682,7 @@ INT API_SdioCoreDevRwExtendX (PLW_SDCORE_DEVICE   psdcoredev,
 
     iDevSta = API_SdCoreDevStaView(psdcoredev);
     if (iDevSta != SD_DEVSTA_EXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device does not exist.\r\n");
         return  (PX_ERROR);
     }
 

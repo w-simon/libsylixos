@@ -437,7 +437,7 @@ name:
 #endif
 
 #if (LW_CFG_MIPS_WEAK_REORDERING_BEYOND_LLSC) > 0 && (LW_CFG_SMP_EN > 0)
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
 #define KN_WEAK_LLSC_MB_INST        .set push; .set mips32r2; SYNCI 0; .set pop
 #else
 #define KN_WEAK_LLSC_MB_INST        KN_SYNC_INST
@@ -454,7 +454,7 @@ name:
 *********************************************************************************************************/
 
 #if (LW_CFG_MIPS_WEAK_REORDERING_BEYOND_LLSC) > 0 && (LW_CFG_SMP_EN > 0)
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
 #define KN_WEAK_LLSC_MB             "   .set push\n .set mips32r2\n synci 0\n .set pop  \n"
 #else
 #define KN_WEAK_LLSC_MB             "   sync    \n"

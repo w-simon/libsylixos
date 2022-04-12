@@ -72,7 +72,7 @@ TOOLCHAIN_CXX_EXCEPT_CFLAGS    = -fexceptions -frtti
 TOOLCHAIN_NO_CXX_EXCEPT_CFLAGS = -fno-exceptions -fno-rtti
 TOOLCHAIN_GCOV_CFLAGS          = -fprofile-arcs -ftest-coverage
 TOOLCHAIN_OMP_CFLAGS           = -fopenmp
-TOOLCHAIN_COMMONFLAGS          = -Wall -fmessage-length=0 -fsigned-char -fno-short-enums -fno-strict-aliasing
+TOOLCHAIN_COMMONFLAGS          = -Wall -fmessage-length=0 -fsigned-char -fno-short-enums
 TOOLCHAIN_ASFLAGS              = -x assembler-with-cpp
 TOOLCHAIN_NO_UNDEF_SYM_FLAGS   = @$(SYLIXOS_BASE_PATH)/libsylixos/$(OUTDIR)/symbol.ld
 

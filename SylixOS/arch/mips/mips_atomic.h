@@ -96,7 +96,7 @@ static LW_INLINE INT  archAtomicNand (INT  i, atomic_t  *v)
 
 static LW_INLINE VOID  archAtomicSet (INT  i, atomic_t  *v)
 {
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
     __asm__ __volatile__(
         "   .set    push                \n"
         "   .set    noreorder           \n"
@@ -269,7 +269,7 @@ static LW_INLINE INT64  archAtomic64Nand (INT64  i, atomic64_t  *v)
 
 static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
 {
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
     __asm__ __volatile__(
         "   .set    push                \n"
         "   .set    noreorder           \n"

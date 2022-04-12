@@ -255,6 +255,7 @@ static INT __sdhciIoCtl(PLW_SD_ADAPTER  psdadapter,
   FOR I\O CONTROL PRIVATE
 *********************************************************************************************************/
 static INT __sdhciClockSet(__PSDHCI_HOST     psdhcihost, UINT32 uiSetClk);
+static INT __sdhciClockSetHS200(__PSDHCI_HOST  psdhcihost, UINT32 uiSetClk);
 static INT __sdhciClockStop(__PSDHCI_HOST    psdhcihost);
 static INT __sdhciBusWidthSet(__PSDHCI_HOST  psdhcihost, UINT32 uiBusWidth);
 static INT __sdhciPowerOn(__PSDHCI_HOST      psdhcihost);
@@ -263,6 +264,9 @@ static INT __sdhciPowerSetVol(__PSDHCI_HOST  psdhcihost,
                               UINT8          ucVol,
                               BOOL           bIsOn);
 static INT __sdhciHighSpeedEn(__PSDHCI_HOST  psdhcihost,  BOOL bEnable);
+static INT __sdhciExecuteTuning(__PSDHCI_HOST  psdhcihost, UINT32 uiOpcode);
+static VOID __sdhciStartTuning(__PSDHCI_HOST  psdhcihost);
+static VOID __sdhciEndTuning(__PSDHCI_HOST  psdhcihost);
 /*********************************************************************************************************
   FOR SDM LAYER
 *********************************************************************************************************/
@@ -1137,7 +1141,7 @@ static INT __sdhciIoCtl (PLW_SD_ADAPTER  psdadapter,
         break;
 
     case SDBUS_CTRL_SETCLK:
-        if (lArg == SDARG_SETCLK_MAX) {
+        if (lArg >= SDARG_SETCLK_MAX) {
             iError = __sdhciHighSpeedEn(psdhcihost, LW_TRUE);
             if (iError != ERROR_NONE) {
                 break;
@@ -1145,7 +1149,12 @@ static INT __sdhciIoCtl (PLW_SD_ADAPTER  psdadapter,
         } else {
             __sdhciHighSpeedEn(psdhcihost, LW_FALSE);
         }
-        iError = __sdhciClockSet(psdhcihost, (UINT32)lArg);
+
+        if (lArg == SDARG_SETCLK_HS200) {
+            iError = __sdhciClockSetHS200(psdhcihost, (UINT32)lArg);
+        } else {
+            iError = __sdhciClockSet(psdhcihost, (UINT32)lArg);
+        }
         break;
 
     case SDBUS_CTRL_STOPCLK:
@@ -1162,6 +1171,12 @@ static INT __sdhciIoCtl (PLW_SD_ADAPTER  psdadapter,
     case SDBUS_CTRL_GETOCR:
         *(UINT32 *)lArg = psdhcihost->SDHCIHS_sdhcicap.SDHCICAP_uiVoltage;
         iError = ERROR_NONE;
+        break;
+
+    case SDBUS_CTRL_TUNING_EXEC:
+        __sdhciStartTuning(psdhcihost);
+        iError = __sdhciExecuteTuning(psdhcihost, (UINT32)lArg);
+        __sdhciEndTuning(psdhcihost);
         break;
 
     default:
@@ -1246,6 +1261,310 @@ static VOID __sdhciHostCapDecode (PLW_SDHCI_HOST_ATTR psdhcihostattr, __PSDHCI_C
     printk("can high speed : %s\n", psdhcicap->SDHCICAP_bCanHighSpeed ? "yes" : "no");
     printk("voltage support: %08x\n", psdhcicap->SDHCICAP_uiVoltage);
 #endif                                                                  /*  __SYLIXOS_DEBUG             */
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciStartTuning
+** 功能描述: 控制器发送 TUNING 命令之前准备工作
+** 输    入: psdhcihost      SDHCI HOST 结构指针
+** 输    出: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID __sdhciStartTuning (__PSDHCI_HOST  psdhcihost)
+{
+    UINT16              usCtrl;
+    PLW_SDHCI_HOST_ATTR psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+
+    usCtrl  = SDHCI_READW(psdhcihostattr, SDHCI_HOST_CONTROL2);
+    usCtrl |= SDHCI_HCTRL_EXEC_TUNING;
+    SDHCI_WRITEW(psdhcihostattr, SDHCI_HOST_CONTROL2, usCtrl);
+
+    /*
+     *  TUNING 只会产生读数据中断,为了防止有控制器硬件 BUG ,这里只使能读数据中断
+     */
+    __sdhciIntStatusDisAndEn(psdhcihost, SDHCI_INT_ALL_MASK, SDHCI_INT_DATA_AVAIL);
+    __sdhciIntSignalDisAndEn(psdhcihost, SDHCI_INT_ALL_MASK, SDHCI_INT_DATA_AVAIL);
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciEndTuning
+** 功能描述: 控制器发送 TUNING 命令成功之后工作
+** 输    入: psdhcihost      SDHCI HOST 结构指针
+** 输    出: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID __sdhciEndTuning (__PSDHCI_HOST  psdhcihost)
+{
+    __sdhciIntStatusDisAndEn(psdhcihost,
+                             SDHCI_INT_ALL_MASK | SDHCI_INT_CARD_INT,
+                             __SDHCI_INT_EN_MASK);
+    __sdhciIntSignalDisAndEn(psdhcihost,
+                             SDHCI_INT_ALL_MASK | SDHCI_INT_CARD_INT,
+                             __SDHCI_INT_EN_MASK);
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciResetTuning
+** 功能描述: 控制器取消 TUNING
+** 输    入: psdhcihost      SDHCI HOST 结构指针
+** 输    出: NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID __sdhciResetTuning (__PSDHCI_HOST  psdhcihost)
+{
+    UINT16              usCtrl;
+    PLW_SDHCI_HOST_ATTR psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+
+    usCtrl  = SDHCI_READW(psdhcihostattr, SDHCI_HOST_CONTROL2);
+    usCtrl &= ~(SDHCI_HCTRL_EXEC_TUNING | SDHCI_HCTRL_TUNED_CLK);
+    SDHCI_WRITEW(psdhcihostattr, SDHCI_HOST_CONTROL2, usCtrl);
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciSendTuning
+** 功能描述: 控制器发送 TUNING 命令
+**           SDHCI TUNING 命令不需要准备缓冲区来存放数据,控制器硬件会自动处理
+** 输    入: psdhcihost      SDHCI HOST 结构指针
+**           uiOpcode        操作码
+** 输    出: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdhciSendTuning (__PSDHCI_HOST  psdhcihost, UINT32 uiOpcode)
+{
+    INT                 iRet;
+    __PSDHCI_TRANS      psdhcitrans;
+    PLW_SDHCI_HOST_ATTR psdhcihostattr;
+    LW_SD_COMMAND       sdcmd;
+    LW_SD_MESSAGE       sdmsg;
+    UINT8               ucCtl;
+
+    psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+    psdhcitrans    = psdhcihost->SDHCIHS_psdhcitrans;
+
+    lib_bzero(&sdcmd, sizeof(sdcmd));
+    lib_bzero(&sdmsg, sizeof(sdmsg));
+
+    sdcmd.SDCMD_uiOpcode  = uiOpcode;
+    sdcmd.SDCMD_uiFlag    = SD_RSP_R1 | SD_CMD_ADTC;
+    sdmsg.SDMSG_psdcmdCmd = &sdcmd;
+
+    ucCtl = SDHCI_READB(psdhcihostattr, SDHCI_HOST_CONTROL);
+
+    /*
+     * 根据设备实际工作的线宽来设置 TUNING 需要传输的数据大小
+     */
+    if ((uiOpcode == SD_SEND_TUNING_BLOCK_HS200) && (ucCtl & SDHCI_HCTRL_8BITBUS)) {
+        SDHCI_WRITEW(psdhcihostattr, SDHCI_BLOCK_SIZE, SDHCI_MAKE_BLKSZ(7, 128));
+    } else {
+        SDHCI_WRITEW(psdhcihostattr, SDHCI_BLOCK_SIZE, SDHCI_MAKE_BLKSZ(7, 64));
+    }
+
+    /*
+     * TUNING 数据由设备发往控制器,设置控制器为读模式
+     */
+    SDHCI_WRITEW(psdhcihostattr, SDHCI_TRANSFER_MODE, SDHCI_TRNS_READ);
+
+    /*
+     *  发送 TUNING 命令
+     */
+    iRet = __sdhciTransPrepare(psdhcitrans, &sdmsg, __SDHIC_TRANS_NORMAL);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    iRet = __sdhciTransStart(psdhcitrans);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    iRet = __sdhciTransFinishWait(psdhcitrans);
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    __sdhciTransClean(psdhcitrans);
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciExecuteTuning
+** 功能描述: 控制器执行 TUNING
+** 输    入: psdhcihost      SDHCI HOST 结构指针
+**           uiOpcode        操作码
+** 输    出: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdhciExecuteTuning (__PSDHCI_HOST  psdhcihost, UINT32 uiOpcode)
+{
+#define MAX_TUNING_LOOP 40
+
+    INT                 i, iRet;
+    UINT16              usCtrl;
+    PLW_SDHCI_HOST_ATTR psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+
+    /*
+     *  发送 TUNING 命令,执行 TUNING 功能
+     */
+    for (i = 0; i < MAX_TUNING_LOOP; i++) {
+        iRet = __sdhciSendTuning(psdhcihost, uiOpcode);
+        if (iRet) {
+            return  (iRet);
+        }
+
+        usCtrl = SDHCI_READW(psdhcihostattr, SDHCI_HOST_CONTROL2);
+        if (!(usCtrl & SDHCI_HCTRL_EXEC_TUNING)) {
+            if (usCtrl & SDHCI_HCTRL_TUNED_CLK) {
+                return  (ERROR_NONE);
+            }
+            break;
+        }
+    }
+
+    /*
+     *  TUNING 执行失败,恢复默认状态
+     */
+    __sdhciResetTuning(psdhcihost);
+
+    return  (PX_ERROR);
+}
+/*********************************************************************************************************
+** 函数名称: __sdhciClockSetHS200
+** 功能描述: 时钟频率设置并使能 (HS200 模式)
+** 输    入: psdhcihost      SDHCI HOST 结构指针
+**           uiSetClk        要设置的时钟频率
+** 输    出: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdhciClockSetHS200 (__PSDHCI_HOST  psdhcihost, UINT32 uiSetClk)
+{
+    PLW_SDHCI_HOST_ATTR psdhcihostattr = &psdhcihost->SDHCIHS_sdhcihostattr;
+    UINT32              uiMaxClk       = 0;
+    UINT16              usDivClk       = 0;
+    UINT32              uiClkMul       = 0;
+    UINT16              usClkMode      = 0;
+    UINT32              uiCaps         = 0;
+    UINT32              uiCaps1        = 0;
+    UINT16              usCtrl2        = 0;
+    UINT                uiTimeout      = 30;
+
+#define SDHCI_MAX_DIV_SPEC_200  256
+#define SDHCI_MAX_DIV_SPEC_300  2046
+
+    if ((uiSetClk == psdhcihost->SDHCIHS_uiClkCurr) &&
+        (psdhcihost->SDHCIHS_bClkEnable)) {
+        return  (ERROR_NONE);
+    }
+
+    /*
+     *  控制器需要切换到 1.8v, UHS 相关设置为 HS200 模式
+     */
+    __sdhciPowerSetVol(psdhcihost, SDHCI_POWCTL_180, LW_TRUE);
+
+    usCtrl2 = SDHCI_READW(psdhcihostattr, SDHCI_HOST_CONTROL2);
+    usCtrl2 &= ~(SDHCI_HCTRL_UHS_MASK | SDHCI_HCTRL_DRV_TYPE_MASK);
+    usCtrl2 |= SDHCI_HCTRL_VDD_180 | SDHCI_HCTRL_UHS_SDR104 | SDHCI_HCTRL_DRV_TYPE_A;
+    SDHCI_WRITEW(psdhcihostattr, SDHCI_HOST_CONTROL2, usCtrl2);
+
+    /*
+     *  根据手册，切换电压需要5ms来使电压稳定
+     */
+    SDHCI_DELAYMS(5);
+
+    /*
+     *  调用硬件平台相关的时钟处理
+     */
+    if (psdhcihostattr->SDHCIHOST_pquirkop &&
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncClockSet) {
+        psdhcihostattr->SDHCIHOST_pquirkop->SDHCIQOP_pfuncClockSet(psdhcihostattr, uiSetClk);
+        goto __ret;
+    }
+
+    /*
+     *  计算内部最大时钟频率
+     */
+    uiCaps = SDHCI_READL(psdhcihostattr, SDHCI_CAPABILITIES);
+    if (psdhcihost->SDHCIHS_uiVersion >= SDHCI_HVER_SPEC_300) {
+        uiCaps1  = SDHCI_READL(psdhcihostattr, SDHCI_CAPABILITIES_1);
+        uiClkMul = (uiCaps1 & SDHCI_CAP1_CLOCK_MUL_MASK) >> SDHCI_CAP1_CLOCK_MUL_SHIFT;
+        uiMaxClk = (uiCaps & SDHCI_CAP_BASECLK_V3_MASK) >> SDHCI_CAP_BASECLK_SHIFT;
+    } else {
+        uiMaxClk = (uiCaps & SDHCI_CAP_BASECLK_MASK) >> SDHCI_CAP_BASECLK_SHIFT;
+    }
+
+    uiMaxClk *= 1000000;
+    if (uiClkMul) {
+        uiMaxClk *= uiClkMul;
+    }
+
+    SDHCI_WRITEW(psdhcihostattr, SDHCI_CLOCK_CONTROL, 0);
+
+    if (psdhcihost->SDHCIHS_uiVersion >= SDHCI_HVER_SPEC_300) {
+        /*
+         *  检测控制器是否支持 Programmable Clock 模式
+         */
+        if (uiClkMul) {
+            for (usDivClk = 1; usDivClk <= 1024; usDivClk++) {
+                if ((uiMaxClk / usDivClk) <= uiSetClk) {
+                    break;
+                }
+            }
+
+            usClkMode = SDHCI_CLKCTL_PROG_CLOCK_MODE;
+            usDivClk--;
+        } else {
+            if (uiMaxClk <= uiSetClk) {
+                usDivClk = 1;
+            } else {
+                for (usDivClk = 2; usDivClk < SDHCI_MAX_DIV_SPEC_300; usDivClk += 2) {
+                    if ((uiMaxClk / usDivClk) <= uiSetClk) {
+                        break;
+                    }
+                }
+            }
+            usDivClk >>= 1;
+        }
+    } else {
+        for (usDivClk = 1; usDivClk < SDHCI_MAX_DIV_SPEC_200; usDivClk *= 2) {
+            if ((uiMaxClk / usDivClk) <= uiSetClk) {
+                break;
+            }
+        }
+        usDivClk >>= 1;
+    }
+
+    usClkMode |= (usDivClk & SDHCI_CLKCTL_DIV_MASK) << SDHCI_CLKCTL_DIVIDER_SHIFT;
+    usClkMode |= ((usDivClk & SDHCI_CLKCTL_DIV_HI_MASK) >> SDHCI_CLKCTL_DIV_MASK_LEN)
+                 << SDHCI_CLKCTL_DIVIDER_HI_SHIFT;
+    usClkMode |= SDHCI_CLKCTL_INTER_EN;
+    SDHCI_WRITEW(psdhcihostattr, SDHCI_CLOCK_CONTROL, usClkMode);
+
+    /*
+     * 等待时钟稳定
+     */
+    while (1) {
+        usDivClk = SDHCI_READW(psdhcihostattr, SDHCI_CLOCK_CONTROL);
+        if (usDivClk & SDHCI_CLKCTL_INTER_STABLE) {
+            break;
+        }
+
+        uiTimeout--;
+        if (uiTimeout == 0) {
+            SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "wait internal clock to be stable timeout.\r\n");
+            return  (PX_ERROR);
+        }
+        SDHCI_DELAYMS(1);
+    }
+
+    usClkMode |= SDHCI_CLKCTL_CLOCK_EN;                                 /*  SDCLK 设备时钟使能          */
+    SDHCI_WRITEW(psdhcihostattr, SDHCI_CLOCK_CONTROL, usClkMode);
+
+__ret:
+    psdhcihost->SDHCIHS_uiClkCurr  = uiSetClk;
+    psdhcihost->SDHCIHS_bClkEnable = LW_TRUE;
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __sdhciClockSet
@@ -1626,6 +1945,14 @@ static __SDHCI_SDM_HOST *__sdhciSdmHostNew (__PSDHCI_HOST   psdhcihost)
     					SDHCI_QUIRK_FLG_SD_FORCE_1BIT)) {
         iCapablity |= SDHOST_CAP_SD_FORCE_1BIT;
     }
+    if (SDHCI_QUIRK_FLG(&psdhcihost->SDHCIHS_sdhcihostattr,
+                        SDHCI_QUIRK_FLG_FORCE_HS200)) {
+        iCapablity |= SDHOST_CAP_HS200;
+    }
+    if (SDHCI_QUIRK_FLG(&psdhcihost->SDHCIHS_sdhcihostattr,
+                        SDHCI_QUIRK_FLG_FORCE_HS400)) {
+        iCapablity |= SDHOST_CAP_HS400;
+    }
 
     psdhost = &psdhcisdmhost->SDHCISDMH_sdhost;
 
@@ -1932,7 +2259,7 @@ static INT  __sdhciCmdSend (__PSDHCI_HOST   psdhcihost,
     if (SD_CMD_TEST_RSP(psdcmd, SD_RSP_OPCODE)) {
         iCmdFlg |= SDHCI_CMD_INDEX_CHK;
     }
-    if (psddat) {
+    if (psddat || (psdcmd->SDCMD_uiOpcode == SD_SEND_TUNING_BLOCK_HS200)) {
         iCmdFlg |= SDHCI_CMD_DATA;                                      /*  命令类型                    */
     }
 
@@ -2310,6 +2637,14 @@ static VOID __sdhciTransferIntSet (__PSDHCI_HOST  psdhcihost)
     }
 
     uiEnMask |= SDHCI_INT_RESPONSE | SDHCI_INT_DATA_END;
+
+    /*
+     *  HS200 TUNING 需要特殊设置
+     */
+    if (psdhcitrans->SDHCITS_psdcmd->SDCMD_uiOpcode == SD_SEND_TUNING_BLOCK_HS200) {
+        uiEnMask &= ~SDHCI_INT_RESPONSE;
+        uiEnMask |= SDHCI_INT_DATA_AVAIL;
+    }
 
     /*
      * 因为这两个寄存器的位标位置都完全相同,
@@ -3058,6 +3393,14 @@ static INT __sdhciTransDatHandle (__SDHCI_TRANS *psdhcitrans, UINT32 uiIntSta)
     LW_SD_COMMAND       *psdcmd;
     BOOL                 bStop;
 
+    if (uiIntSta & SDHCI_INT_DATA_AVAIL) {
+        psdcmd = psdhcitrans->SDHCITS_psdcmd;
+        if (psdcmd->SDCMD_uiOpcode == SD_SEND_TUNING_BLOCK_HS200) {
+            psdhcitrans->SDHCITS_bTransFinish = LW_TRUE;
+            return  (ERROR_NONE);
+        }
+    }
+
     /*
      * 当没有数据传输时, 如果命令包含了 忙等待信号, 则也会产生数据完成中断
      * 详见 SDHCI 规范 2.2.17(page64)
@@ -3391,7 +3734,7 @@ static INT  __sdhciRegAccessDrvInit (PLW_SDHCI_HOST_ATTR  psdhcihostattr)
         __SDHCI_DRV_COMPLETE(sdhciWriteB);
         __SDHCI_DRV_COMPLETE(sdhciWriteW);
         __SDHCI_DRV_COMPLETE(sdhciWriteL);
-#undef __SDHCI_DRV_OVERWRITE
+#undef __SDHCI_DRV_COMPLETE
 
     } else {
         psdhcihostattr->SDHCIHOST_pdrvfuncs = &_G_sdhcidrvfuncTbl[iType];

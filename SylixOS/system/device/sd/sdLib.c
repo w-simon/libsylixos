@@ -172,7 +172,7 @@ INT API_SdAdapterDelete (CPCHAR pcName)
     PLW_SD_ADAPTER  psdadapter = __sdAdapterFind(pcName);
 
     if (psdadapter == LW_NULL) {
-        __SD_DEBUG_MSG(__ERRORMESSAGE_LEVEL,"adapter is not exist.\r\n");
+        __SD_DEBUG_MSG(__ERRORMESSAGE_LEVEL,"adapter does not exist.\r\n");
         _ErrorHandle(ERROR_KERNEL_OBJECT_NULL);                         /*  Œ¥’“µΩ                      */
         return  (PX_ERROR);
     }
@@ -215,7 +215,7 @@ PLW_SD_ADAPTER   API_SdAdapterGet (CPCHAR pcName)
     PLW_SD_ADAPTER  psdadapter = __sdAdapterFind(pcName);
 
     if (psdadapter == LW_NULL) {
-       __SD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "adapter is not exist.\r\n");
+       __SD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "adapter does not exist.\r\n");
        _ErrorHandle(ERROR_KERNEL_OBJECT_NULL);                          /*  Œ¥’“µΩ                      */
        return  (LW_NULL);
     }

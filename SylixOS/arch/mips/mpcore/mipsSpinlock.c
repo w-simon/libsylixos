@@ -112,7 +112,7 @@ static LW_INLINE UINT32  mipsSpinTryLock (SPINLOCKTYPE *psld)
         "2:                                                 \n"
         "   .subsection 2                                   \n"
         "3:                                                 \n"
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
         "   sync                                            \n"
 #endif
         "   b       2b                                      \n"
@@ -137,7 +137,7 @@ static LW_INLINE UINT32  mipsSpinTryLock (SPINLOCKTYPE *psld)
 *********************************************************************************************************/
 static LW_INLINE VOID  mipsSpinUnlock (SPINLOCKTYPE *psld)
 {
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
     INT  iTemp1, iTemp2;
 
     __asm__ __volatile__(

@@ -43,15 +43,15 @@
 #define SD_ALL_SEND_CID          2                                      /*  bcr                     R2  */
 #define SD_SEND_RELATIVE_ADDR    3                                      /*  bcr  [31:16] RCA        R1  */
 #define SD_SET_DSR               4                                      /*  bc   [31:16] RCA            */
-#define SD_CMD5_RESERVED      	 5
+#define SD_CMD5_RESERVED         5
 #define SD_SELECT_CARD           7                                      /*  ac   [31:16] RCA        R1  */
 #define SD_SEND_IF_COND          8                                      /*  bcr  [11:8]vhs[7:0]chk  R1  */
 #define SD_SEND_CSD              9                                      /*  ac   [31:16] RCA        R2  */
 #define SD_SEND_CID             10                                      /*  ac   [31:16] RCA        R2  */
-#define SD_VOL_SWITCH			11                                      /*  ac   		            R1  */
+#define SD_VOL_SWITCH           11                                      /*  ac   		            R1  */
 #define SD_STOP_TRANSMISSION    12                                      /*  ac                      R1b */
 #define SD_SEND_STATUS          13                                      /*  ac   [31:16] RCA  R1\R2(SPI)*/
-#define SD_CMD14_RESERVED		14
+#define SD_CMD14_RESERVED       14
 #define SD_GO_INACTIVE_STATE    15                                      /*  ac   [31:16] RCA            */
 #define SD_SPI_READ_OCR         58                                      /*  spi                  spi_R3 */
 #define SD_SPI_CRC_ON_OFF       59                                      /*  spi  [0:0] flag      spi_R1 */
@@ -60,14 +60,15 @@
    Class 2
 *********************************************************************************************************/
 
-#define SD_SET_BLOCKLEN         16                                      /*  ac   [31:0] block len   R1  */
-#define SD_READ_SINGLE_BLOCK    17                                      /*  adtc [31:0] data addr   R1  */
-#define SD_READ_MULTIPLE_BLOCK  18                                      /*  adtc [31:0] data addr   R1  */
-#define SD_SEND_TUNING_BLOCK	19                                      /*  adtc                    R1  */
-#define SD_SPEED_CLASS_CONTROL	20                                      /*  ac   [31:28]scc         R1b */
-#define SD_CMD21_RESERVED		21
-#define SD_CMD22_RESERVED		22
-#define SD_SET_BLOCK_COUNT		23                                      /*  ac   [31:0]blk count    R1  */
+#define SD_SET_BLOCKLEN             16                                  /*  ac   [31:0] block len   R1  */
+#define SD_READ_SINGLE_BLOCK        17                                  /*  adtc [31:0] data addr   R1  */
+#define SD_READ_MULTIPLE_BLOCK      18                                  /*  adtc [31:0] data addr   R1  */
+#define SD_SEND_TUNING_BLOCK        19                                  /*  adtc                    R1  */
+#define SD_SPEED_CLASS_CONTROL      20                                  /*  ac   [31:28]scc         R1b */
+#define SD_CMD21_RESERVED           21
+#define SD_SEND_TUNING_BLOCK_HS200  21
+#define SD_CMD22_RESERVED           22
+#define SD_SET_BLOCK_COUNT          23                                  /*  ac   [31:0]blk count    R1  */
 
 /*********************************************************************************************************
    Class 4
@@ -85,7 +86,7 @@
 #define SD_SET_WRITE_PROT       28                                      /*  ac   [31:0] data addr   R1b */
 #define SD_CLR_WRITE_PROT       29                                      /*  ac   [31:0] data addr   R1b */
 #define SD_SEND_WRITE_PROT      30                                      /*  adtc [31:0] wpdata addr R1  */
-#define SD_CMD31_RESERVED		31
+#define SD_CMD31_RESERVED       31
 
 /*********************************************************************************************************
    Class 5
@@ -100,8 +101,8 @@
    Class 7
 *********************************************************************************************************/
 
-#define SD_LOCK_SET_BLK_LEN		16                                      /*  ac  [31:0] block len     R1 */
-#define SD_CMD40_RESERVED		40
+#define SD_LOCK_SET_BLK_LEN     16                                      /*  ac  [31:0] block len     R1 */
+#define SD_CMD40_RESERVED       40
 #define SD_LOCK_UNLOCK          42                                      /*  adtc                     R1 */
 
 /*********************************************************************************************************
@@ -132,26 +133,26 @@
 #define SD_SWITCH_CHECK         0
 #define SD_SWITCH_SWITCH        1
 
-#define SD_EXFUNC_34			34
-#define SD_EXFUNC_35			35
-#define SD_EXFUNC_36			36
-#define SD_EXFUNC_37			37
-#define SD_EXFUNC_50			50
-#define SD_EXFUNC_57			57                                      /*  在CMD6后可能有效的扩展功能  */
+#define SD_EXFUNC_34            34
+#define SD_EXFUNC_35            35
+#define SD_EXFUNC_36            36
+#define SD_EXFUNC_37            37
+#define SD_EXFUNC_50            50
+#define SD_EXFUNC_57            57                                      /*  在CMD6后可能有效的扩展功能  */
 
 /*********************************************************************************************************
    应用命令
 *********************************************************************************************************/
 
-#define APP_CMD1_RESERVED		 1
-#define APP_CMD2_RESERVED		 2
-#define APP_CMD3_RESERVED		 3
-#define APP_CMD4_RESERVED		 4
-#define APP_CMD5_RESERVED		 5
-#define APP_SET_BUS_WIDTH		 6                                      /*  ac  [1:0]bus width      R1  */
-#define APP_CMD7_RESERVED		 7
-#define APP_CMD8_RESERVED		 8
-#define APP_CMD9_RESERVED		 9
+#define APP_CMD1_RESERVED        1
+#define APP_CMD2_RESERVED        2
+#define APP_CMD3_RESERVED        3
+#define APP_CMD4_RESERVED        4
+#define APP_CMD5_RESERVED        5
+#define APP_SET_BUS_WIDTH        6                                      /*  ac  [1:0]bus width      R1  */
+#define APP_CMD7_RESERVED        7
+#define APP_CMD8_RESERVED        8
+#define APP_CMD9_RESERVED        9
 #define APP_CMD10_RESERVED      10
 #define APP_CMD11_RESERVED      11
 #define APP_CMD12_RESERVED      12
@@ -241,10 +242,20 @@
 #define EXT_CSD_PWR_CL_8BIT_SHIFT       4
 #define EXT_CSD_PWR_CL_4BIT_SHIFT       0
 
+#define EXT_CSD_TIMING_BC               0
+#define EXT_CSD_TIMING_HS               1
+#define EXT_CSD_TIMING_HS200            2
+#define EXT_CSD_TIMING_HS400            3
+#define EXT_CSD_DRV_STR_SHIFT           4
+
 #define MMC_HS_TIMING                   0x00000100
 #define MMC_HS_52MHZ                    (0x1 << 1)
 #define MMC_HS_52MHZ_1_8V_3V_IO         (0x1 << 2)
 #define MMC_HS_52MHZ_1_2V_IO            (0x1 << 3)
+#define MMC_HS_200MHZ_1_8V_IO           (0x1 << 4)
+#define MMC_HS_200MHZ_1_2V_IO           (0x1 << 5)
+#define MMC_HS_400MHZ_1_8V_IO           (0x1 << 6)
+#define MMC_HS_400MHZ_1_2V_IO           (0x1 << 7)
 
 #define MMC_MODE_HS                     SDHOST_CAP_HIGHSPEED            /*  这里与 SDM 层定义一致       */
 #define MMC_MODE_HS_52MHz               0x00100000

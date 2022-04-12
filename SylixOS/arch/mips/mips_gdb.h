@@ -26,7 +26,7 @@
   ×î´ó¼Ä´æÆ÷Êý
 *********************************************************************************************************/
 
-#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_CPU_DSP_EN > 0) && (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
 #define GDB_MAX_REG_CNT     (128 + 128)
 #else
 #define GDB_MAX_REG_CNT     128

@@ -25,7 +25,7 @@
 #*********************************************************************************************************
 ifneq (,$(findstring i386,$(TOOLCHAIN_PREFIX)))
 ARCH             = x86
-ARCH_COMMONFLAGS = -mlong-double-64 -fno-omit-frame-pointer
+ARCH_COMMONFLAGS = -mlong-double-64 -fno-omit-frame-pointer -fno-strict-aliasing
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
@@ -56,7 +56,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring x86_64,$(TOOLCHAIN_PREFIX)))
 ARCH             = x64
-ARCH_COMMONFLAGS = -mlong-double-64 -mno-red-zone -fno-omit-frame-pointer
+ARCH_COMMONFLAGS = -mlong-double-64 -mno-red-zone -fno-omit-frame-pointer -fno-strict-aliasing
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
@@ -87,7 +87,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring arm,$(TOOLCHAIN_PREFIX)))
 ARCH             = arm
-ARCH_COMMONFLAGS = -mno-unaligned-access
+ARCH_COMMONFLAGS = -mno-unaligned-access -fno-strict-aliasing
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
@@ -132,7 +132,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring aarch64,$(TOOLCHAIN_PREFIX)))
 ARCH             = arm64
-ARCH_COMMONFLAGS = -fno-omit-frame-pointer -mstrict-align -ffixed-x18
+ARCH_COMMONFLAGS = -fno-omit-frame-pointer -mstrict-align -ffixed-x18 -fno-strict-aliasing
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC 
@@ -160,7 +160,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring mips-sylixos,$(TOOLCHAIN_PREFIX)))
 ARCH             = mips
-ARCH_COMMONFLAGS = 
+ARCH_COMMONFLAGS = -fno-strict-aliasing
 
 ifneq ($(MAX_PAGE_SIZE),)
 ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
@@ -206,7 +206,11 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring mips64,$(TOOLCHAIN_PREFIX)))
 ARCH             = mips64
-ARCH_COMMONFLAGS = 
+ifneq (,$(findstring mips64-hcwsylixos,$(TOOLCHAIN_PREFIX)))
+ARCH_COMMONFLAGS =
+else
+ARCH_COMMONFLAGS = -fno-strict-aliasing
+endif
 
 ifneq ($(MAX_PAGE_SIZE),)
 ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
@@ -240,7 +244,11 @@ else
 ARCH_FPUFLAGS = -m$(FPU_TYPE)
 endif
 
+ifneq (,$(findstring mips64-hcwsylixos,$(TOOLCHAIN_PREFIX)))
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -mips64r2 -EL -G 0 -mno-branch-likely -mabi=64
+else
 ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -EL -G 0 -mno-branch-likely -mabi=64
+endif
 ifneq (,$(findstring mips64-hrsylixos,$(TOOLCHAIN_PREFIX)))
 ARCH_CPUFLAGS_WITHOUT_FPUFLAGS += -fno-delayed-branch
 endif
@@ -255,7 +263,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring ppc,$(TOOLCHAIN_PREFIX)))
 ARCH             = ppc
-ARCH_COMMONFLAGS = -G 0 -mstrict-align
+ARCH_COMMONFLAGS = -G 0 -mstrict-align -fno-strict-aliasing
 
 ifneq ($(MAX_PAGE_SIZE),)
 ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
@@ -305,7 +313,8 @@ ARCH_COMMONFLAGS = \
     -D__extension__= -D__nothrow__= -D__SIZE_TYPE__="unsigned int" \
     -D__WINT_TYPE__="unsigned int" -D__WCHAR_TYPE__="unsigned int" \
     -D__gnuc_va_list=va_list -D__EXCLIB_STDARG --mem_model:data=far \
-    --multithread -D__TI_SHARED_DATA_SYNCHRONIZATION -D__TI_RECURSIVE_RESOURCE_MUTEXES
+    --multithread -D__TI_SHARED_DATA_SYNCHRONIZATION -D__TI_RECURSIVE_RESOURCE_MUTEXES \
+    -fno-strict-aliasing
 
 ARCH_PIC_ASFLAGS = --pic
 ARCH_PIC_CFLAGS  = --pic
@@ -332,7 +341,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring sparc,$(TOOLCHAIN_PREFIX)))
 ARCH             = sparc
-ARCH_COMMONFLAGS = 
+ARCH_COMMONFLAGS = -fno-strict-aliasing
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
@@ -359,7 +368,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring riscv,$(TOOLCHAIN_PREFIX)))
 ARCH             = riscv
-ARCH_COMMONFLAGS = -mstrict-align -mcmodel=medany -mno-save-restore
+ARCH_COMMONFLAGS = -mstrict-align -mcmodel=medany -mno-save-restore -fno-strict-aliasing
 
 ARCH_PIC_ASFLAGS = 
 ARCH_PIC_CFLAGS  = -fPIC
@@ -389,7 +398,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring csky,$(TOOLCHAIN_PREFIX)))
 ARCH             = csky
-ARCH_COMMONFLAGS = -fno-omit-frame-pointer
+ARCH_COMMONFLAGS = -fno-omit-frame-pointer -fno-strict-aliasing
 
 ifneq ($(MAX_PAGE_SIZE),)
 ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)

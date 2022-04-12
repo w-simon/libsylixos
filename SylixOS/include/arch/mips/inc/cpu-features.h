@@ -117,7 +117,7 @@
 # define cpu_has_mips_2     LW_TRUE
 #endif
 
-#if defined(_MIPS_ARCH_MIPS64R2) || defined(_MIPS_ARCH_HR2)
+#if defined(_MIPS_ARCH_MIPS64R2) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
 # define cpu_has_mips64r6   LW_FALSE
 # define cpu_has_mips32r6   LW_FALSE
 # define cpu_has_mips64r2   LW_TRUE

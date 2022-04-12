@@ -278,7 +278,7 @@ static INT  __tshellFsCmdXmodemr (INT  iArgC, PCHAR  ppcArgV[])
         close(iFile);                                                   /*  关闭文件                    */
         
 __re_select:
-        printf("destination file is exist, overwrite? (Y/N)\n");
+        printf("destination file already exists, overwrite? (Y/N)\n");
         read(0, ucTemp, __LW_XMODEM_DATA_LEN);
         if ((ucTemp[0] == 'N') ||
             (ucTemp[0] == 'n')) {                                       /*  不覆盖                      */

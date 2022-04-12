@@ -100,7 +100,7 @@ static const CHAR   cTargetSystem[] = \
 #define GDB_REG_INDEX_FCSR      (38 + 32 + 0)                           /*  浮点控制状态寄存器          */
 #define GDB_REG_INDEX_FIR       (38 + 32 + 1)                           /*  浮点实现寄存器              */
 
-#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_CPU_DSP_EN > 0) && (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
 #define GDB_REG_INDEX_HR2_V(n, sn)  \
                                 (38 + 34 + (n) * 4 + (sn))              /*  32 个向量数据寄存器         */
 #define GDB_REG_NR              (38 + 34 + 129)                         /*  寄存器总数                  */
@@ -244,7 +244,7 @@ INT  archGdbRegsGet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_CPU_DSP_EN > 0) && (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
     if (regctx.REG_ulCP0Status & ST0_CU2) {
         ARCH_DSP_CTX    dspctx;
 
@@ -358,7 +358,7 @@ INT  archGdbRegsSet (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET *pre
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_CPU_DSP_EN > 0) && (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
     if (regctx.REG_ulCP0Status & ST0_CU2) {
         ARCH_DSP_CTX    dspctx;
 
@@ -442,7 +442,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
     }
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_CPU_DSP_EN > 0) && (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
     ARCH_DSP_CTX        dspctx;
     UINT32              uiVccr;
 
@@ -626,7 +626,7 @@ ULONG  archGdbGetNextPc (PVOID pvDtrace, LW_OBJECT_HANDLE ulThread, GDB_REG_SET 
             npc = pc + 8;
         }
 
-#if (LW_CFG_CPU_DSP_EN > 0) && defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_CPU_DSP_EN > 0) && (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
     } else if ((machInstr & 0xffff0000) == 0xe8000000) {                /*  BC2F vcc 为 false 时分支    */
         __GET_DSP_CTX(1);
         if (!uiVccr) {

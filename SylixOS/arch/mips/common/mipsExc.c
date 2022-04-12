@@ -619,7 +619,7 @@ static VOID  archFloatPointExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr,
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-#if defined(_MIPS_ARCH_HR2)
+#if defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW)
 
 static VOID  archCoProc2ExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortAddr)
 {
@@ -661,7 +661,7 @@ static VOID  archCoProcUnusableExceptHandle (addr_t  ulRetAddr, addr_t  ulAbortA
         break;
 #endif                                                                  /*  LW_CFG_CPU_FPU_EN > 0       */
 
-#if defined(_MIPS_ARCH_HR2) && (LW_CFG_CPU_DSP_EN > 0)
+#if (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW)) && (LW_CFG_CPU_DSP_EN > 0)
     case 2:
         if (archDspUndHandle(ptcbCur) == ERROR_NONE) {                  /*  进行 DSP 指令探测           */
             return;
@@ -789,7 +789,7 @@ static MIPS_EXCEPT_HANDLE   _G_mipsExceptHandle[32] = {
     [EXCCODE_MSAFPE]   = (PVOID)archDefaultExceptHandle,                /*  MSA floating point exception*/
     [EXCCODE_FPE]      = (PVOID)archFloatPointExceptHandle,             /*  Floating point exception    */
     [EXCCODE_GSEXC]    = (PVOID)archDefaultExceptHandle,                /*  Loongson cpu exception      */
-#if defined(_MIPS_ARCH_HR2)
+#if defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW)
     [EXCCODE_C2E]      = (PVOID)archCoProc2ExceptHandle,                /*  Coprocessor 2 exception     */
 #endif                                                                  /*  defined(_MIPS_ARCH_HR2)     */
     /*

@@ -182,6 +182,11 @@
 
 #define SDHCI_CLOCK_CONTROL             0x2c
 #define SDHCI_CLKCTL_DIVIDER_SHIFT      8
+#define SDHCI_CLKCTL_DIVIDER_HI_SHIFT   6
+#define SDHCI_CLKCTL_DIV_MASK           0xff
+#define SDHCI_CLKCTL_DIV_MASK_LEN       8
+#define SDHCI_CLKCTL_DIV_HI_MASK        0x300
+#define SDHCI_CLKCTL_PROG_CLOCK_MODE    0x0020
 #define SDHCI_CLKCTL_CLOCK_EN           0x0004
 #define SDHCI_CLKCTL_INTER_STABLE       0x0002
 #define SDHCI_CLKCTL_INTER_EN           0x0001
@@ -364,6 +369,28 @@
 #define SDHCI_EACMD12_CMDISSUE          0x0080
 
 /*********************************************************************************************************
+    主控器控制寄存器2.
+*********************************************************************************************************/
+
+#define SDHCI_HOST_CONTROL2             0x3e
+#define SDHCI_HCTRL_UHS_MASK            0x0007
+#define SDHCI_HCTRL_UHS_SDR12           0x0000
+#define SDHCI_HCTRL_UHS_SDR25           0x0001
+#define SDHCI_HCTRL_UHS_SDR50           0x0002
+#define SDHCI_HCTRL_UHS_SDR104          0x0003
+#define SDHCI_HCTRL_UHS_DDR50           0x0004
+#define SDHCI_HCTRL_UHS_HS400           0x0005
+#define SDHCI_HCTRL_VDD_180             0x0008
+#define SDHCI_HCTRL_DRV_TYPE_MASK       0x0030
+#define SDHCI_HCTRL_DRV_TYPE_B          0x0000
+#define SDHCI_HCTRL_DRV_TYPE_A          0x0010
+#define SDHCI_HCTRL_DRV_TYPE_C          0x0020
+#define SDHCI_HCTRL_DRV_TYPE_D          0x0030
+#define SDHCI_HCTRL_EXEC_TUNING         0x0040
+#define SDHCI_HCTRL_TUNED_CLK           0x0080
+#define SDHCI_HCTRL_PRESET_VAL_ENABLE   0x8000
+
+/*********************************************************************************************************
   主控功能寄存器.
 *********************************************************************************************************/
 
@@ -372,6 +399,7 @@
 #define SDHCI_CAP_TIMEOUT_CLK_SHIFT     0
 #define SDHCI_CAP_TIMEOUT_CLK_UNIT      0x00000080
 #define SDHCI_CAP_BASECLK_MASK          0x00003f00
+#define SDHCI_CAP_BASECLK_V3_MASK       0x0000ff00
 #define SDHCI_CAP_BASECLK_SHIFT         8
 #define SDHCI_CAP_MAXBLK_MASK           0x00030000
 #define SDHCI_CAP_MAXBLK_SHIFT          16
@@ -383,6 +411,14 @@
 #define SDHCI_CAP_CAN_VDD_300           0x02000000
 #define SDHCI_CAP_CAN_VDD_180           0x04000000
 #define SDHCI_CAP_CAN_64BIT             0x10000000
+
+/*********************************************************************************************************
+  主控功能寄存器1.
+*********************************************************************************************************/
+
+#define SDHCI_CAPABILITIES_1            0x44
+#define SDHCI_CAP1_CLOCK_MUL_MASK       0x00FF0000
+#define SDHCI_CAP1_CLOCK_MUL_SHIFT      16
 
 /*********************************************************************************************************
   Maximum current capability register.
@@ -434,6 +470,7 @@
 #define SDHCI_HVER_SPEC_VER_SHIFT       0
 #define SDHCI_HVER_SPEC_100             0x0000
 #define SDHCI_HVER_SPEC_200             0x0001
+#define SDHCI_HVER_SPEC_300             0x0002
 
 /*********************************************************************************************************
   其他宏定义.
@@ -583,6 +620,8 @@ typedef struct lw_sdhci_host_attr {
 #define SDHCI_QUIRK_FLG_SDIO_FORCE_1BIT                       (1 << 16) /*  SDIO 卡强制使用1位总线      */
 #define SDHCI_QUIRK_FLG_HAS_DATEND_IRQ_WHEN_NOT_BUSY          (1 << 17) /*  当卡不忙时会产生数据完成中断*/
 #define SDHCI_QUIRK_FLG_SD_FORCE_1BIT                         (1 << 18) /*  SD 卡强制使用1位总线        */
+#define SDHCI_QUIRK_FLG_FORCE_HS200                           (1 << 19) /*  强制使用 HS200 模式         */
+#define SDHCI_QUIRK_FLG_FORCE_HS400                           (1 << 20) /*  强制使用 HS400 模式         */
 
     VOID            *SDHCIHOST_pvUsrSpec;                               /*  用户驱动特殊数据            */
 

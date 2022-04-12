@@ -997,7 +997,7 @@ INT API_MiiPhyIsolate (PHY_DEV *pPhyDev)
     INT     i;
     INT     iRet;
 
-    if (pPhyDev->PHY_ucPhyAddr == 0xFF) {                               /* PHY is NOT Exist             */
+    if (pPhyDev->PHY_ucPhyAddr == 0xFF) {                               /* PHY does NOT Exist           */
         return  (MII_OK);
     }
 

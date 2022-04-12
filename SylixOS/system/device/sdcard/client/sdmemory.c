@@ -34,6 +34,7 @@
 2018.05.22  增加对 SD 卡仅能使用1位模式的处理.
 2018.12.10  修改对 MMC/eMMC 初始化和读写操作的兼容性提升.
 2018.12.29  增加对 MMC/eMMC 电源类别配置和DDR模式支持.
+2022.04.02  增加对 MMC/eMMC HS200 模式支持(葛文彬).
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -139,6 +140,9 @@ static INT __sdMemMmcFreqChange(PLW_SDCORE_DEVICE  psdcoredevice,
 static INT __sdMemMmcBusWidthChange(PLW_SDCORE_DEVICE psdcoredevice,
                                     INT               iCardCap,
                                     LW_SDDEV_EXT_CSD *psddevextcsd);
+static INT __sdMemMmcBusWidthChangeHS200(PLW_SDCORE_DEVICE psdcoredevice,
+                                         INT               iCardCap,
+                                         LW_SDDEV_EXT_CSD *psddevextcsd);
 static INT __sdMemMmcSelectPwrClass(PLW_SDCORE_DEVICE psdcoredevice,
                                     INT               iCardCap,
                                     UINT32            uiBusWidth,
@@ -737,10 +741,13 @@ static INT __sdMemInit (PLW_SDCORE_DEVICE psdcoredevice)
                 return  (PX_ERROR);
             }
 
-            iError = __sdMemMmcBusWidthChange(psdcoredevice, iCardCap, &sddevextcsd);
+            iError = __sdMemMmcBusWidthChangeHS200(psdcoredevice, iCardCap, &sddevextcsd);
             if (iError != ERROR_NONE) {
-                SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "mmc change bus width error.\r\n");
-                return  (PX_ERROR);
+                iError = __sdMemMmcBusWidthChange(psdcoredevice, iCardCap, &sddevextcsd);
+                if (iError != ERROR_NONE) {
+                    SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "mmc change bus width error.\r\n");
+                    return  (PX_ERROR);
+                }
             }
 
             /*
@@ -886,7 +893,7 @@ static INT __sdMemWrtSingleBlk (PLW_SDCORE_DEVICE  psdcoredevice,
 
     iDevSta = API_SdCoreDevStaView(psdcoredevice);
     if (iDevSta != SD_DEVSTA_EXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device does not exist.\r\n");
         return  (PX_ERROR);
     }
 
@@ -949,7 +956,7 @@ static INT __sdMemWrtMultiBlk (PLW_SDCORE_DEVICE  psdcoredevice,
 
     iDevSta = API_SdCoreDevStaView(psdcoredevice);
     if (iDevSta != SD_DEVSTA_EXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device does not exist.\r\n");
         return  (PX_ERROR);
     }
 
@@ -1027,7 +1034,7 @@ static INT __sdMemRdSingleBlk (PLW_SDCORE_DEVICE  psdcoredevice,
 
     iDevSta = API_SdCoreDevStaView(psdcoredevice);
     if (iDevSta != SD_DEVSTA_EXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device does not exist.\r\n");
         return  (PX_ERROR);
     }
 
@@ -1082,7 +1089,7 @@ static INT __sdMemRdMultiBlk (PLW_SDCORE_DEVICE   psdcoredevice,
 
     iDevSta = API_SdCoreDevStaView(psdcoredevice);
     if (iDevSta != SD_DEVSTA_EXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device does not exist.\r\n");
         return  (PX_ERROR);
     }
 
@@ -1156,7 +1163,7 @@ static INT __sdMemBlkWrt (__PSD_BLK_DEV   psdblkdevice,
 
     iDevSta = API_SdCoreDevStaView(psdcoredevice);
     if (iDevSta != SD_DEVSTA_EXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device does not exist.\r\n");
         return  (PX_ERROR);
     }
 
@@ -1244,7 +1251,7 @@ static INT __sdMemBlkRd (__PSD_BLK_DEV   psdblkdevice,
 
     iDevSta = API_SdCoreDevStaView(psdcoredevice);
     if (iDevSta != SD_DEVSTA_EXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "device does not exist.\r\n");
         return  (PX_ERROR);
     }
 
@@ -1724,7 +1731,7 @@ static INT __sdMemMmcFreqChange (PLW_SDCORE_DEVICE  psdcoredevice,
                                  LW_SDDEV_CSD      *psdcsd,
                                  INT               *piCardCap)
 {
-    UINT8   ucExtCSD[512];
+    UINT8  *pucExtCsd = psdcoredevice->COREDEV_pucExtBuf;
     CHAR    cCardType;
     INT     iError;
     INT     iCapab  = 0;
@@ -1733,21 +1740,31 @@ static INT __sdMemMmcFreqChange (PLW_SDCORE_DEVICE  psdcoredevice,
         return  (ERROR_NONE);
     }
 
-    iError = API_SdCoreDevSendExtCSD(psdcoredevice, ucExtCSD);
+    iError = API_SdCoreDevSendExtCSD(psdcoredevice, pucExtCsd);
     if (iError) {
         return  (iError);
     }
 
-    if (ucExtCSD[212] || ucExtCSD[213] || ucExtCSD[214] || ucExtCSD[215]) {
+    if (pucExtCsd[212] || pucExtCsd[213] || pucExtCsd[214] || pucExtCsd[215]) {
         COREDEV_HIGHSPEED_SET(psdcoredevice);
     }
 
-    cCardType = ucExtCSD[196] & 0xf;
+    cCardType = pucExtCsd[196] & 0xff;
 
     /*
      * 这里的功能位标使用 sddrvm.h里面的定义,
      * 这样在后面可以直接使用位与的方式得到实际需要使用的功能
+     * 对于 HS200/HS400 这两种模式目前只考虑支持 1.8v 电压
      */
+    if (cCardType & MMC_HS_200MHZ_1_8V_IO) {
+        iCapab |= SDHOST_CAP_HS200
+               |  SDHOST_CAP_DATA_4BIT
+               |  SDHOST_CAP_DATA_8BIT;
+    }
+    if (cCardType & MMC_HS_400MHZ_1_8V_IO) {
+        iCapab |= SDHOST_CAP_HS400
+               |  SDHOST_CAP_DATA_8BIT;
+    }
     if (cCardType & MMC_HS_52MHZ_1_8V_3V_IO) {
         iCapab |= MMC_MODE_HS_52MHz_DDR_18_3V
                |  MMC_MODE_HS_52MHz
@@ -1765,6 +1782,136 @@ static INT __sdMemMmcFreqChange (PLW_SDCORE_DEVICE  psdcoredevice,
     }
 
     *piCardCap = iCapab;
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __sdMemMmcBusWidthChangeHS200
+** 功能描述: 设置 MMC 卡的总线位宽 (HS200 模式)
+** 输    入: psdcoredevice   核心设备对象
+**           iCardCap        MMC卡支持的位宽功能
+**           psddevextcsd    扩展CSD信息
+** 输    出: NONE
+** 返    回: ERROR CODE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT __sdMemMmcBusWidthChangeHS200 (PLW_SDCORE_DEVICE  psdcoredevice,
+                                          INT                iCardCap,
+                                          LW_SDDEV_EXT_CSD  *psddevextcsd)
+{
+    UINT puiExtCsdBits[] = {
+        EXT_CSD_BUS_WIDTH_8,
+        EXT_CSD_BUS_WIDTH_4,
+    };
+    UINT puiBusWidth[] = {
+        SDBUS_WIDTH_8,
+        SDBUS_WIDTH_4,
+    };
+
+    INT iError   = ERROR_NONE;
+    INT iHostCap = 0;
+    UINT uiIndex, uiBuswidth;
+
+    /*
+     *  1. 设置线宽(8线或者4线模式)
+     */
+
+    /*
+     *  获取主控制器支持的属性
+     */
+    iError = API_SdmHostCapGet(psdcoredevice, &iHostCap);
+    if (iError != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    if (!(iHostCap & (SDHOST_CAP_DATA_4BIT | SDHOST_CAP_DATA_8BIT))) {
+        return  (PX_ERROR);
+    }
+
+    /*
+     *  检查主控制器和设备是否都支持 HS200 模式
+     */
+    iCardCap = iCardCap & iHostCap;
+    if (!(iCardCap & SDHOST_CAP_HS200)) {
+        return  (PX_ERROR);
+    }
+
+    uiIndex = (iCardCap & SDHOST_CAP_DATA_8BIT) ? 0 : 1;
+
+    /*
+     *  控制器无法知晓 MMC 设备支持的线宽，因此需要依次尝试设置。
+     */
+    for (; uiIndex < 2; uiIndex++) {
+        iError = API_SdCoreDevSwitch(psdcoredevice,
+                                     EXT_CSD_CMD_SET_NORMAL,
+                                     EXT_CSD_BUS_WIDTH,
+                                     puiExtCsdBits[uiIndex]);
+        if (iError == ERROR_NONE) {
+            iError = __sdMemSwitchWait(psdcoredevice,
+                                       psddevextcsd->DEVEXTCSD_uiCmd6Timeout,
+                                       LW_TRUE);
+        }
+
+        if (iError) {
+            continue;
+        }
+
+        uiBuswidth = puiBusWidth[uiIndex];
+
+        iError = API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETBUSWIDTH, uiBuswidth);
+        if (!iError) {
+            break;
+        }
+    }
+
+    if (iError != ERROR_NONE) {
+        SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL, "hs200 switch to 4bit & 8bit buswidth both failed.\r\n");
+        return  (PX_ERROR);
+    }
+
+    /*
+     *  2. 切换至 HS200 模式，设置时钟
+     */
+    iError = API_SdCoreDevSwitch(psdcoredevice,
+                                 EXT_CSD_CMD_SET_NORMAL,
+                                 EXT_CSD_HS_TIMING,
+                                 EXT_CSD_TIMING_HS200);
+    if (iError == ERROR_NONE) {
+        iError = API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_SETCLK, SDARG_SETCLK_HS200);
+    }
+
+    if (iError != ERROR_NONE) {
+        SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL, "switch to hs200 mode failed.\r\n");
+        return  (PX_ERROR);
+    }
+
+    /*
+     *  3. 执行 HS200 TUNING
+     */
+    iError = API_SdCoreDevCtl(psdcoredevice, SDBUS_CTRL_TUNING_EXEC, SD_SEND_TUNING_BLOCK_HS200);
+    if (iError != ERROR_NONE) {
+        SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL, "execute hs200 tuning failed.\r\n");
+        return  (PX_ERROR);
+    }
+
+    /*
+     *  4. 设置设备电压类别
+     */
+    iError = __sdMemMmcSelectPwrClass(psdcoredevice,
+                                      iCardCap,
+                                      puiExtCsdBits[uiIndex],
+                                      psddevextcsd);
+
+    __sdMemSwitchWait(psdcoredevice,
+                      psddevextcsd->DEVEXTCSD_uiCmd6Timeout,
+                      LW_TRUE);
+
+    if (iError != ERROR_NONE) {
+        SDCARD_DEBUG_MSGX(__ERRORMESSAGE_LEVEL,
+                          "hs200 select power class to bus width %d error.\r\n",
+                          (puiBusWidth == SDBUS_WIDTH_8) ? 8 : 4);
+    }
 
     return  (ERROR_NONE);
 }
@@ -1814,7 +1961,7 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice,
         iError = API_SdCoreDevSwitch(psdcoredevice,
                                      EXT_CSD_CMD_SET_NORMAL,
                                      EXT_CSD_HS_TIMING,
-                                     1);
+                                     EXT_CSD_TIMING_HS);
         if (iError == ERROR_NONE) {
             API_SdCoreDevCtl(psdcoredevice,
                              SDBUS_CTRL_SETCLK,
@@ -1825,7 +1972,7 @@ static INT __sdMemMmcBusWidthChange (PLW_SDCORE_DEVICE psdcoredevice,
         iError = API_SdCoreDevSwitch(psdcoredevice,
                                      EXT_CSD_CMD_SET_NORMAL,
                                      EXT_CSD_HS_TIMING,
-                                     0);
+                                     EXT_CSD_TIMING_BC);
     }
 
     if (iError != ERROR_NONE) {
@@ -1947,6 +2094,10 @@ static INT __sdMemMmcSelectPwrClass (PLW_SDCORE_DEVICE psdcoredevice,
 
     } else {
         uiClock = SDARG_SETCLK_NORMAL;
+    }
+
+    if (iCardCap & SDHOST_CAP_HS200) {
+        uiClock = SDARG_SETCLK_HS200;
     }
 
     if (uiBusWidth == EXT_CSD_BUS_WIDTH_1) {

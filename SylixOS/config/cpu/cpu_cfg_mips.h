@@ -28,7 +28,7 @@
 
 #define LW_CFG_CPU_ARCH_MIPS            1                               /*  CPU 架构                    */
 
-#if defined(_MIPS_ARCH_MIPS64R2) || defined(_MIPS_ARCH_HR2)
+#if defined(_MIPS_ARCH_MIPS64R2) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
 #define LW_CFG_CPU_ARCH_FAMILY          "MIPS64R2(R)"                   /*  MIPS64R2 family             */
 
 #elif defined(_MIPS_ARCH_MIPS64)
@@ -103,7 +103,7 @@
 #define LW_CFG_MIPS_HAS_CLZ_INSTR       1                               /*  是否支持前导零 CLZ 指令     */
 #define LW_CFG_MIPS_HAS_SYNC_INSTR      1                               /*  是否支持 SYNC 指令          */
 #define LW_CFG_MIPS_HAS_MSA_INSTR       0                               /*  是否支持 MSA(SIMD) 指令     */
-#if defined(_MIPS_ARCH_MIPS64R2) || defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_MIPS32R2)
+#if defined(_MIPS_ARCH_MIPS64R2) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW)) || defined(_MIPS_ARCH_MIPS32R2)
 #define LW_CFG_MIPS_HAS_RDHWR_INSTR     1                               /*  MIPS32/64R2 支持 RDHWR 指令 */
 #else
 #define LW_CFG_MIPS_HAS_RDHWR_INSTR     0                               /*  是否支持 RDHWR 指令         */
@@ -118,7 +118,7 @@
         2  : 4 个 SSNOP.
 *********************************************************************************************************/
 
-#if defined(_MIPS_ARCH_HR2)
+#if defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW)
 #define LW_CFG_MIPS_CP0_HAZARD_INSTR    1                               /*  华睿2号使用 SYNC 指令       */
 #else
 #define LW_CFG_MIPS_CP0_HAZARD_INSTR    0                               /*  使用 EHB 指令               */
@@ -134,13 +134,13 @@
 #define LW_CFG_MIPS_CPU_LOONGSON2K      0                               /*  Loongson-2K                 */
 #define LW_CFG_MIPS_CPU_LOONGSON3       1                               /*  Loongson-2G/2H/3A/3B        */
 
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
 #define LW_CFG_MIPS_LOONGSON_LLSC_WAR   1                               /*  龙芯3号，华睿2号 LLSC 竞争  */
 #else
 #define LW_CFG_MIPS_LOONGSON_LLSC_WAR   0
 #endif
 
-#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || defined(_MIPS_ARCH_HR2)
+#if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
 #define LW_CFG_MIPS_WEAK_REORDERING             1
 #define LW_CFG_MIPS_WEAK_REORDERING_BEYOND_LLSC 1
 #else

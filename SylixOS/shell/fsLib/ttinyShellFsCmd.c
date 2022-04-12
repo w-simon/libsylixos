@@ -295,7 +295,7 @@ static INT  __tshellFsCmdRmdir (INT  iArgC, PCHAR  ppcArgV[])
     iError = rmdir(ppcArgV[1]);
     if (iError) {
         if (API_GetLastError() == ENOENT) {
-            fprintf(stderr, "directory is not exist!\n");
+            fprintf(stderr, "directory does not exist!\n");
         } else {
             fprintf(stderr, "can not remove directory, error: %s\n", lib_strerror(errno));
         }
@@ -346,7 +346,7 @@ static INT  __tshellFsCmdRm (INT  iArgC, PCHAR  ppcArgV[])
     iError = unlink(pcFile);
     if (iError) {
         if (API_GetLastError() == ENOENT) {
-            fprintf(stderr, "file is not exist!\n");
+            fprintf(stderr, "file does not exist!\n");
         } else {
             fprintf(stderr, "can not remove this file, error: %s\n", lib_strerror(errno));
         }
@@ -384,7 +384,7 @@ static INT  __tshellFsCmdMv (INT  iArgC, PCHAR  ppcArgV[])
     iError = access(ppcArgV[2], 0);                                     /*  检测目标文件是否存在        */
     if (iError != PX_ERROR) {
 __re_select:
-        printf("destination file is exist, overwrite? (Y/N)\n");
+        printf("destination file already exists, overwrite? (Y/N)\n");
         read(0, cTemp, 16);
         if ((cTemp[0] == 'N') ||
             (cTemp[0] == 'n')) {                                        /*  不覆盖                      */
@@ -956,7 +956,7 @@ static INT  __tshellFsCmdCp (INT  iArgC, PCHAR  ppcArgV[])
         iError = access(cDstFile, 0);                                   /*  检测目标文件是否存在        */
         if (iError == ERROR_NONE) {
 __re_select:
-            printf("destination file is exist, overwrite? (Y/N)\n");
+            printf("destination file already exists, overwrite? (Y/N)\n");
             read(0, cTemp, 128);
             if ((cTemp[0] == 'N') || (cTemp[0] == 'n')) {               /*  不覆盖                      */
                 iError = PX_ERROR;

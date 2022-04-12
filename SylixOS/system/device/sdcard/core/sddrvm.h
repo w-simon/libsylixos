@@ -110,6 +110,8 @@ struct sd_host {
 #define SDHOST_CAP_MMC_FORCE_1BIT       (1 << 5)                    /*  MMC卡 强制使用 1 位总线         */
 #define SDHOST_CAP_SDIO_FORCE_1BIT      (1 << 6)                    /*  SDIO 卡 强制使用 1 位总线       */
 #define SDHOST_CAP_SD_FORCE_1BIT        (1 << 7)                    /*  SD 卡 强制使用 1 位总线         */
+#define SDHOST_CAP_HS200                (1 << 8)                    /*  支持 HS200 模式                 */
+#define SDHOST_CAP_HS400                (1 << 9)                    /*  支持 HS400 模式                 */
 
     VOID          (*SDHOST_pfuncSpicsEn)(SD_HOST *psdhost);
     VOID          (*SDHOST_pfuncSpicsDis)(SD_HOST *psdhost);

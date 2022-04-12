@@ -56,7 +56,7 @@ VOID  archDspPrimaryInit (CPCHAR  pcMachineName, CPCHAR  pcDspName)
                (lib_strcmp(pcDspName, MIPS_DSP_V3) == 0)) {
         _G_pdspop = mipsDspPrimaryInit(pcMachineName, pcDspName);
 
-#if defined(_MIPS_ARCH_HR2)
+#if defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW)
     } else if (lib_strcmp(pcDspName, MIPS_DSP_HR2_VECTOR) == 0) {
         _G_pdspop = mipsHr2VectorPrimaryInit(pcMachineName, pcDspName);
 #endif                                                                  /*  defined(_MIPS_ARCH_HR2)     */
@@ -102,7 +102,7 @@ VOID  archDspSecondaryInit (CPCHAR  pcMachineName, CPCHAR  pcDspName)
                (lib_strcmp(pcDspName, MIPS_DSP_V3) == 0)) {
         mipsDspSecondaryInit(pcMachineName, pcDspName);
 
-#if defined(_MIPS_ARCH_HR2)
+#if defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW)
     } else if (lib_strcmp(pcDspName, MIPS_DSP_HR2_VECTOR) == 0) {
         mipsHr2VectorSecondaryInit(pcMachineName, pcDspName);
 #endif                                                                  /*  defined(_MIPS_ARCH_HR2)     */

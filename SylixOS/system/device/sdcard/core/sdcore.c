@@ -337,7 +337,7 @@ LW_API INT  API_SdCoreDevCtl (PLW_SDCORE_DEVICE    psdcoredevice,
 
     iError = API_SdCoreDevStaView(psdcoredevice);
     if (iError == SD_DEVSTA_UNEXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "dev is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "dev does not exist.\r\n");
         return  (PX_ERROR);
     }
 
@@ -374,7 +374,7 @@ LW_API INT  API_SdCoreDevTransfer (PLW_SDCORE_DEVICE  psdcoredevice,
 
     iError = API_SdCoreDevStaView(psdcoredevice);
     if (iError == SD_DEVSTA_UNEXIST) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "dev is not exist.\r\n");
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "dev does not exist.\r\n");
         return  (PX_ERROR);
     }
 
