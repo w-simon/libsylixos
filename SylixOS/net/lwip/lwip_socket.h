@@ -110,6 +110,7 @@ LW_API ssize_t      sendmsg(int  s, const struct msghdr *msg, int flags);
 
 #ifdef __SYLIXOS_KERNEL
 VOID  __socketInit(VOID);
+INT   __socketNew(int domain, void *context, void (*setfile)(void *context, void *sock));
 #endif                                                                  /*  __SYLIXOS_KERNEL            */
 
 #ifdef __cplusplus

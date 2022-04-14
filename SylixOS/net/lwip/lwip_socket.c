@@ -51,6 +51,7 @@
 2018.07.17  加入 QoS 接口.
 2018.08.01  简化 select 查找算法, 提高效率.
 2022.03.23  加入 DNS 设置接口.
+2022.04.14  加入 SCTP 协议支持.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "SylixOS.h"
@@ -114,6 +115,9 @@
 #if LW_CFG_NET_ROUTER > 0
 #include "./route/af_route.h"
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+#if LW_CFG_NET_SCTP_EN > 0
+#include "./sctp/af_sctp.h"
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
 /*********************************************************************************************************
   ipv6 extern vars
 *********************************************************************************************************/
@@ -137,7 +141,12 @@ typedef struct {
 #if LW_CFG_NET_ROUTER > 0
         AF_ROUTE_T     *SOCKF_pafroute;                                 /*  AF_ROUTE 控制块             */
 #endif
+#if LW_CFG_NET_SCTP_EN > 0
+        AF_SCTP_T      *SOCKF_pafsctp;                                  /*  AF_SCTP 控制块              */
+#endif
         AF_PACKET_T    *SOCKF_pafpacket;                                /*  AF_PACKET 控制块            */
+
+        PVOID           SOCKF_pvContext;
     } SOCK_family;
     
     INT                 SOCK_iSoErr;                                    /*  最后一次错误                */
@@ -148,6 +157,7 @@ typedef struct {
 #define SOCK_pafunix    SOCK_family.SOCKF_pafunix
 #define SOCK_pafroute   SOCK_family.SOCKF_pafroute
 #define SOCK_pafpacket  SOCK_family.SOCKF_pafpacket
+#define SOCK_pafsctp    SOCK_family.SOCKF_pafsctp
 /*********************************************************************************************************
   驱动声明
 *********************************************************************************************************/
@@ -178,6 +188,10 @@ extern void             __route_set_sockfile(AF_ROUTE_T *pafroute, void *file);
 #endif
 extern int              __packet_have_event(AF_PACKET_T *pafpacket, int type, int  *piSoErr);
 extern void             __packet_set_sockfile(AF_PACKET_T *pafpacket, void *file);
+#if LW_CFG_NET_SCTP_EN > 0
+extern int              __kmsctp_have_event(AF_SCTP_T *pafsctp, int type, int  *piSoErr);
+extern void             __kmsctp_set_sockfile(AF_SCTP_T *pafsctp, void *file);
+#endif
 /*********************************************************************************************************
   socket fd 有效性检查
 *********************************************************************************************************/
@@ -236,6 +250,39 @@ VOID  __socketInit (VOID)
                                             LW_OPTION_INHERIT_PRIORITY | LW_OPTION_OBJECT_GLOBAL,
                                             LW_NULL);
     _BugHandle(!_G_hSockSelMutex, LW_TRUE, "socksel_lock create error!\r\n");
+}
+/*********************************************************************************************************
+** 函数名称: __socketCreate
+** 功能描述: 创建一个 sylixos socket file 系统
+** 输　入  : NONE
+** 输　出  : 文件描述符
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+INT  __socketNew (int domain, void *context, void (*setfile)(void *context, void *sock))
+{
+    int         iFd;
+    SOCKET_T   *psock;
+
+    iFd = open(LWIP_SYLIXOS_SOCKET_NAME, O_RDWR);
+    if (iFd < 0) {
+        return  (PX_ERROR);
+    }
+
+    psock = (SOCKET_T *)iosFdValue(iFd);
+    if (psock == (SOCKET_T *)PX_ERROR) {
+        close(iFd);
+        return  (PX_ERROR);
+    }
+
+    psock->SOCK_iFamily = domain;
+    psock->SOCK_family.SOCKF_pvContext = context;
+
+    if (setfile) {
+        setfile(context, psock);
+    }
+
+    return  (iFd);
 }
 /*********************************************************************************************************
 ** 函数名称: __socketOpen
@@ -301,6 +348,14 @@ static INT  __socketClose (SOCKET_T *psock)
         }
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        if (psock->SOCK_pafsctp) {
+            kmsctp_close(psock->SOCK_pafsctp);
+        }
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:                                                            /*  其他使用 lwip               */
         if (psock->SOCK_iLwipFd >= 0) {
             lwip_close(psock->SOCK_iLwipFd);
@@ -352,6 +407,14 @@ static ssize_t  __socketRead (SOCKET_T *psock, PVOID  pvBuffer, size_t  stLen)
         }
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        if (psock->SOCK_pafsctp) {
+            sstNum = kmsctp_recv(psock->SOCK_pafsctp, pvBuffer, stLen, 0);
+        }
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:                                                            /*  其他使用 lwip               */
         if (psock->SOCK_iLwipFd >= 0) {
             sstNum = lwip_read(psock->SOCK_iLwipFd, pvBuffer, stLen);
@@ -407,6 +470,14 @@ static ssize_t  __socketWrite (SOCKET_T *psock, CPVOID  pvBuffer, size_t  stLen)
         }
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        if (psock->SOCK_pafsctp) {
+            sstNum = kmsctp_send(psock->SOCK_pafsctp, pvBuffer, stLen, 0);
+        }
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:                                                            /*  其他使用 lwip               */
         if (psock->SOCK_iLwipFd >= 0) {
             sstNum = lwip_write(psock->SOCK_iLwipFd, pvBuffer, stLen);
@@ -594,6 +665,35 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
         }
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        if (psock->SOCK_pafsctp) {
+            switch (iCmd) {
+
+            case FIOSELECT:
+                pselwun = (PLW_SEL_WAKEUPNODE)pvArg;
+                SEL_WAKE_NODE_ADD(&psock->SOCK_selwulist, pselwun);
+                if (__kmsctp_have_event(psock->SOCK_pafsctp,
+                                      pselwun->SELWUN_seltypType,
+                                      &psock->SOCK_iSoErr)) {
+                    SEL_WAKE_UP(pselwun);
+                }
+                iRet = ERROR_NONE;
+                break;
+
+            case FIOUNSELECT:
+                SEL_WAKE_NODE_DELETE(&psock->SOCK_selwulist, (PLW_SEL_WAKEUPNODE)pvArg);
+                iRet = ERROR_NONE;
+                break;
+
+            default:
+                iRet = kmsctp_ioctl(psock->SOCK_pafsctp, iCmd, pvArg);
+                break;
+            }
+        }
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:                                                            /*  其他使用 lwip               */
         if (psock->SOCK_iLwipFd >= 0) {
             switch (iCmd) {
@@ -1006,6 +1106,9 @@ int  socket (int domain, int type, int protocol)
 #if LW_CFG_NET_ROUTER > 0
     AF_ROUTE_T  *pafroute  = LW_NULL;
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
+#if LW_CFG_NET_SCTP_EN > 0
+    AF_SCTP_T   *pafsctp   = LW_NULL;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
     AF_PACKET_T *pafpacket = LW_NULL;
     
     INT          iCloExec;
@@ -1058,10 +1161,22 @@ int  socket (int domain, int type, int protocol)
     
     case AF_INET:                                                       /*  IPv4 / v6                   */
     case AF_INET6:
-        iLwipFd = lwip_socket(domain, type, protocol);
-        if (iLwipFd < 0) {
-            __KERNEL_SPACE_EXIT();
-            goto    __error_handle;
+#if LW_CFG_NET_SCTP_EN > 0
+        if (protocol == IPPROTO_SCTP) {
+            pafsctp = kmsctp_socket(domain, type, protocol);
+            if (pafsctp == LW_NULL) {
+                __KERNEL_SPACE_EXIT();
+                goto    __error_handle;
+            }
+            domain = AF_SCTP;
+        } else
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+        {
+            iLwipFd = lwip_socket(domain, type, protocol);
+            if (iLwipFd < 0) {
+                __KERNEL_SPACE_EXIT();
+                goto    __error_handle;
+            }
         }
         break;
         
@@ -1103,6 +1218,13 @@ int  socket (int domain, int type, int protocol)
         __packet_set_sockfile(pafpacket, psock);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        psock->SOCK_pafsctp = pafsctp;
+        __kmsctp_set_sockfile(pafsctp, psock);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         psock->SOCK_iLwipFd = iLwipFd;                                  /*  save lwip fd                */
         __lwip_set_sockfile(iLwipFd, psock);
@@ -1141,6 +1263,12 @@ __error_handle:
     }
 #endif                                                                  /*  LW_CFG_NET_ROUTER > 0       */
 
+#if LW_CFG_NET_SCTP_EN > 0
+    if (pafsctp) {
+        kmsctp_close(pafsctp);
+    }
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     if (pafpacket) {
         packet_close(pafpacket);
         
@@ -1172,7 +1300,9 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
 #if LW_CFG_NET_UNIX_EN > 0
     AF_UNIX_T   *pafunix   = LW_NULL;
 #endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
-
+#if LW_CFG_NET_SCTP_EN > 0
+    AF_SCTP_T   *pafsctp   = LW_NULL;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
     AF_PACKET_T *pafpacket = LW_NULL;
     INT          iRet      = PX_ERROR;
     INT          iFdNew    = PX_ERROR;
@@ -1219,6 +1349,16 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
         }
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        pafsctp = kmsctp_accept(psock->SOCK_pafsctp, addr, addrlen);
+        if (pafsctp == LW_NULL) {
+            __KERNEL_SPACE_EXIT();
+            goto    __error_handle;
+        }
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_accept(psock->SOCK_iLwipFd, addr, addrlen);         /*  lwip_accept                 */
         if (iRet < 0) {
@@ -1250,6 +1390,13 @@ int  accept4 (int s, struct sockaddr *addr, socklen_t *addrlen, int flags)
         __packet_set_sockfile(pafpacket, psockNew);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        psockNew->SOCK_pafsctp = pafsctp;
+        __kmsctp_set_sockfile(pafsctp, psockNew);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         psockNew->SOCK_iLwipFd = iRet;                                  /*  save lwip fd                */
         __lwip_set_sockfile(iRet, psockNew);
@@ -1280,6 +1427,12 @@ __error_handle:
     }
 #endif                                                                  /*  LW_CFG_NET_UNIX_EN > 0      */
     
+#if LW_CFG_NET_SCTP_EN > 0
+    if (pafsctp) {
+        kmsctp_close(pafsctp);
+    }
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     if (pafpacket) {
         packet_close(pafpacket);
     
@@ -1340,6 +1493,12 @@ int  bind (int s, const struct sockaddr *name, socklen_t namelen)
         iRet = packet_bind(psock->SOCK_pafpacket, name, namelen);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        iRet = kmsctp_bind(psock->SOCK_pafsctp, name, namelen);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_bind(psock->SOCK_iLwipFd, name, namelen);
         break;
@@ -1396,6 +1555,12 @@ int  shutdown (int s, int how)
         iRet = packet_shutdown(psock->SOCK_pafpacket, how);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        iRet = kmsctp_shutdown(psock->SOCK_pafsctp, how);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_shutdown(psock->SOCK_iLwipFd, how);
         break;
@@ -1449,6 +1614,12 @@ int  connect (int s, const struct sockaddr *name, socklen_t namelen)
         iRet = packet_connect(psock->SOCK_pafpacket, name, namelen);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        iRet = kmsctp_connect(psock->SOCK_pafsctp, name, namelen);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_connect(psock->SOCK_iLwipFd, name, namelen);
         break;
@@ -1500,6 +1671,12 @@ int  getsockname (int s, struct sockaddr *name, socklen_t *namelen)
         iRet = packet_getsockname(psock->SOCK_pafpacket, name, namelen);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        iRet = kmsctp_getsockname(psock->SOCK_pafsctp, name, namelen);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_getsockname(psock->SOCK_iLwipFd, name, namelen);
         break;
@@ -1547,6 +1724,12 @@ int  getpeername (int s, struct sockaddr *name, socklen_t *namelen)
         iRet = packet_getpeername(psock->SOCK_pafpacket, name, namelen);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        iRet = kmsctp_getpeername(psock->SOCK_pafsctp, name, namelen);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_getpeername(psock->SOCK_iLwipFd, name, namelen);
         break;
@@ -1602,6 +1785,12 @@ int  setsockopt (int s, int level, int optname, const void *optval, socklen_t op
         iRet = packet_setsockopt(psock->SOCK_pafpacket, level, optname, optval, optlen);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        iRet = kmsctp_setsockopt(psock->SOCK_pafsctp, level, optname, optval, optlen);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_setsockopt(psock->SOCK_iLwipFd, level, optname, optval, optlen);
         break;
@@ -1678,6 +1867,12 @@ int  getsockopt (int s, int level, int optname, void *optval, socklen_t *optlen)
         iRet = packet_getsockopt(psock->SOCK_pafpacket, level, optname, optval, optlen);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        iRet = kmsctp_getsockopt(psock->SOCK_pafsctp, level, optname, optval, optlen);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_getsockopt(psock->SOCK_iLwipFd, level, optname, optval, optlen);
         break;
@@ -1724,6 +1919,12 @@ int listen (int s, int backlog)
         iRet = packet_listen(psock->SOCK_pafpacket, backlog);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        iRet = kmsctp_listen(psock->SOCK_pafsctp, backlog);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         iRet = lwip_listen(psock->SOCK_iLwipFd, backlog);
         break;
@@ -1784,6 +1985,12 @@ ssize_t  recv (int s, void *mem, size_t len, int flags)
         sstRet = (ssize_t)packet_recv(psock->SOCK_pafpacket, mem, len, flags);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        sstRet = (ssize_t)kmsctp_recv(psock->SOCK_pafsctp, mem, len, flags);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         sstRet = (ssize_t)lwip_recv(psock->SOCK_iLwipFd, mem, len, flags);
         break;
@@ -1847,6 +2054,12 @@ ssize_t  recvfrom (int s, void *mem, size_t len, int flags,
         sstRet = (ssize_t)packet_recvfrom(psock->SOCK_pafpacket, mem, len, flags, from, fromlen);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        sstRet = (ssize_t)kmsctp_recvfrom(psock->SOCK_pafsctp, mem, len, flags, from, fromlen);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         sstRet = (ssize_t)lwip_recvfrom(psock->SOCK_iLwipFd, mem, len, flags, from, fromlen);
         break;
@@ -1906,6 +2119,12 @@ ssize_t  recvmsg (int  s, struct msghdr *msg, int flags)
         sstRet = (ssize_t)packet_recvmsg(psock->SOCK_pafpacket, msg, flags);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        sstRet = (ssize_t)kmsctp_recvmsg(psock->SOCK_pafsctp, msg, flags);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         sstRet = (ssize_t)lwip_recvmsg(psock->SOCK_iLwipFd, msg, flags);
         break;
@@ -1966,6 +2185,12 @@ ssize_t  send (int s, const void *data, size_t size, int flags)
         sstRet = (ssize_t)packet_send(psock->SOCK_pafpacket, data, size, flags);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        sstRet = (ssize_t)kmsctp_send(psock->SOCK_pafsctp, data, size, flags);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         sstRet = (ssize_t)lwip_send(psock->SOCK_iLwipFd, data, size, flags);
         break;
@@ -2027,6 +2252,12 @@ ssize_t  sendto (int s, const void *data, size_t size, int flags,
         sstRet = (ssize_t)packet_sendto(psock->SOCK_pafpacket, data, size, flags, to, tolen);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        sstRet = (ssize_t)kmsctp_sendto(psock->SOCK_pafsctp, data, size, flags, to, tolen);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         sstRet = (ssize_t)lwip_sendto(psock->SOCK_iLwipFd, data, size, flags, to, tolen);
         break;
@@ -2086,6 +2317,12 @@ ssize_t  sendmsg (int  s, const struct msghdr *msg, int flags)
         sstRet = (ssize_t)packet_sendmsg(psock->SOCK_pafpacket, msg, flags);
         break;
         
+#if LW_CFG_NET_SCTP_EN > 0
+    case AF_SCTP:                                                       /*  SCTP                        */
+        sstRet = (ssize_t)kmsctp_sendmsg(psock->SOCK_pafsctp, msg, flags);
+        break;
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
+
     default:
         sstRet = (ssize_t)lwip_sendmsg(psock->SOCK_iLwipFd, msg, flags);
         break;

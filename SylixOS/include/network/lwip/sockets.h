@@ -251,6 +251,7 @@ struct linger {
 #define  SOL_ICMPV6  IPPROTO_ICMPV6
 #define  SOL_UDPLITE IPPROTO_UDPLITE
 #define  SOL_RAW     IPPROTO_RAW
+#define  SOL_SCTP    IPPROTO_SCTP
 #define  SOL_PACKET  263
 
 #define AF_UNSPEC       0
@@ -262,7 +263,7 @@ struct linger {
 #define AF_PACKET       17
 
 #define PF_UNIX         AF_UNIX
-#define PF_LOCAL        PF_UNIX
+#define PF_LOCAL        AF_LOCAL
 #define PF_INET         AF_INET
 #define PF_INET6        AF_INET6
 #define PF_ROUTE        AF_ROUTE
@@ -275,6 +276,7 @@ struct linger {
 #define IPPROTO_UDP     17
 #define IPPROTO_IPV6    41     /* SylixOS Remove #if LWIP_IPV6 */
 #define IPPROTO_ICMPV6  58
+#define IPPROTO_SCTP    132    /* SylixOS Add */
 #define IPPROTO_UDPLITE 136
 #define IPPROTO_RAW     255
 
@@ -289,6 +291,7 @@ struct linger {
 #define MSG_NOSIGNAL        0x4000
 #define MSG_EOR             0x8000
 #define MSG_CMSG_CLOEXEC    0x40000
+#define MSG_NOTIFICATION    0x80000 /* SCTP notification */
 
 /*
  * Options for level IPPROTO_IP

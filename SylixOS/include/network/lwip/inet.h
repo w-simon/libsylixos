@@ -62,9 +62,11 @@ struct in_addr {
 struct in6_addr {
   union {
     u8_t  u8_addr[16]; /* SylixOS move u8_addr upper */
+    u8_t  u16_addr[8]; /* SylixOS Add u16_addr */
     u32_t u32_addr[4];
   } un;
 #define s6_addr    un.u8_addr
+#define s6_addr16  un.u16_addr /* SylixOS Add s6_addr16 */
 #define s6_addr32  un.u32_addr /* SylixOS Add s6_addr32 */
 };
 

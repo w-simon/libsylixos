@@ -1716,6 +1716,7 @@ SylixOS/net/lwip/tools/vlan/lwip_vlan.c \
 SylixOS/net/lwip/tools/vpn/lwip_vpn.c \
 SylixOS/net/lwip/unix/af_unix.c \
 SylixOS/net/lwip/unix/af_unix_msg.c \
+SylixOS/net/lwip/sctp/af_sctp.c \
 SylixOS/net/lwip/vlan/eth_vlan.c \
 SylixOS/net/lwip/wireless/lwip_wlext.c \
 SylixOS/net/lwip/wireless/lwip_wlpriv.c \
