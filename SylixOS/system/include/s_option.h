@@ -99,6 +99,7 @@
 #define FIOPIPEBLOCK        LW_OSIO( 'f', 15)                   /* block until events happen            */
 #define FIOPIPERDONLY       LW_OSIO( 'f', 18)                   /* make pipe rdwr fd to rdonly          */
 #define FIOPIPENOSIG        LW_OSIOD('f', 40, INT)              /* no write broken pipe raise signal    */
+#define FIOPIPEAUTONOMY     LW_OSIOD('f', 45, INT)              /* autonomy select no peer influence    */
 #endif
 
 #define FIOGETOPTIONS       LW_OSIOR('f', 19, INT)              /* get options                          */

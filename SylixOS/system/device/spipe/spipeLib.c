@@ -52,6 +52,7 @@
   EXT MODE
 *********************************************************************************************************/
 #define LW_SPIPE_EXT_MODE_NOSIG     0x1
+#define LW_SPIPE_EXT_MODE_AUTONOMY  0x2
 /*********************************************************************************************************
   共享锁操作
 *********************************************************************************************************/
@@ -386,18 +387,16 @@ ssize_t  _SpipeRead (PLW_SPIPE_FILE  pspipefil,
     
     pspipedev->SPIPEDEV_iAbortFlag &= ~OPT_RABORT;                      /*  清除 abort                  */
     
-    if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {                          /*  没有写端且没有数据          */
-        if (pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes == 0) {
-            if (!(pspipefil->SPIPEFIL_iExtMode & LW_SPIPE_EXT_MODE_NOSIG)) {
-                return  (0);
-            }
+    if ((pspipedev->SPIPEDEV_uiWriteCnt == 0) &&                        /*  没有写端且没有数据          */
+        (pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes == 0)) {
+        if (!(pspipefil->SPIPEFIL_iExtMode & LW_SPIPE_EXT_MODE_NOSIG)) {
+            return  (0);
         }
     }
     
     if (pspipefil->SPIPEFIL_iFlags & O_NONBLOCK) {                      /*  非阻塞 IO                   */
         ulTimeout = LW_OPTION_NOT_WAIT;
         bNonblock = LW_TRUE;
-    
     } else {
         ulTimeout = pspipedev->SPIPEDEV_ulRTimeout;
         bNonblock = LW_FALSE;
@@ -785,7 +784,8 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
             if (__spipe_can_read(pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stMsgBytes,
                                  pspipedev->SPIPEDEV_ringbufferBuffer.RINGBUFFER_stTotalBytes)) {
                 SEL_WAKE_UP(pselwunNode);                               /*  唤醒节点                    */
-            } else if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {
+            } else if ((pspipedev->SPIPEDEV_uiWriteCnt == 0) &&
+                       !(pspipefil->SPIPEFIL_iExtMode & LW_SPIPE_EXT_MODE_AUTONOMY)) {
                 SEL_WAKE_UP(pselwunNode);                               /*  没有写端也需要唤醒节点      */
             }
             break;
@@ -867,6 +867,16 @@ INT  _SpipeIoctl (PLW_SPIPE_FILE pspipefil,
             pspipefil->SPIPEFIL_iExtMode |= LW_SPIPE_EXT_MODE_NOSIG;
         } else {
             pspipefil->SPIPEFIL_iExtMode &= ~LW_SPIPE_EXT_MODE_NOSIG;
+        }
+        LW_SPIPE_UNLOCK(pspipedev);
+        break;
+
+    case FIOPIPEAUTONOMY:                                               /*  select 不受对端影响         */
+        LW_SPIPE_LOCK(pspipedev, return (PX_ERROR));
+        if ((INT)(LONG)piArgPtr) {
+            pspipefil->SPIPEFIL_iExtMode |= LW_SPIPE_EXT_MODE_AUTONOMY;
+        } else {
+            pspipefil->SPIPEFIL_iExtMode &= ~LW_SPIPE_EXT_MODE_AUTONOMY;
         }
         LW_SPIPE_UNLOCK(pspipedev);
         break;

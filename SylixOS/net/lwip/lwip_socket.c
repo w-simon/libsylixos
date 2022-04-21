@@ -1162,7 +1162,8 @@ int  socket (int domain, int type, int protocol)
     case AF_INET:                                                       /*  IPv4 / v6                   */
     case AF_INET6:
 #if LW_CFG_NET_SCTP_EN > 0
-        if (protocol == IPPROTO_SCTP) {
+        if ((protocol == IPPROTO_SCTP) &&
+            (type == SOCK_STREAM || type == SOCK_SEQPACKET)) {          /*  需要使用 SCTP 协议栈        */
             pafsctp = kmsctp_socket(domain, type, protocol);
             if (pafsctp == LW_NULL) {
                 __KERNEL_SPACE_EXIT();
