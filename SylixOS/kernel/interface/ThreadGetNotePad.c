@@ -123,31 +123,20 @@ ULONG  API_ThreadCurNotePad (UINT8  ucNoteIndex)
 ** 调用模块:
                                            API 函数
 *********************************************************************************************************/
-#if ((defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_FAST_TCB_CUR > 0)) || \
-     (defined(LW_CFG_CPU_ARCH_X86)   && (LW_CFG_X64_FAST_TCB_CUR > 0)))
-
 LW_API
 ULONG  API_ThreadFastNotePad (UINT8  ucNoteIndex)
 {
-#if (defined(LW_CFG_CPU_ARCH_ARM64) && (LW_CFG_ARM64_FAST_TCB_CUR > 0))
-    REGISTER PLW_CLASS_TCB  ptcbCur asm("x18");                         /*  x18 saved current tcb       */
-
-    return  (ptcbCur->TCB_notepadThreadNotePad.NOTEPAD_ulNotePad[ucNoteIndex]);
-#else
+#if defined(LW_CFG_CPU_FAST_TLS) && (LW_CFG_CPU_FAST_TLS > 0)
+    REGISTER PLW_CLASS_TCB  ptcbCur = __ARCH_FAST_TLS_TCB();
+#else                                                                   /*  LW_CFG_CPU_FAST_TLS > 0     */
     REGISTER PLW_CLASS_TCB  ptcbCur;
-    REGISTER UINT16         usIndex;
 
-    __asm__ __volatile__("movw %%fs:%P1, %q0"
-                         : "=r" (usIndex)
-                         : "i" (offsetof(LW_CLASS_TCB, TCB_usIndex)));
-
-    ptcbCur = _K_ptcbTCBIdTable[usIndex];
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+#endif                                                                  /*  LW_CFG_CPU_FAST_TLS == 0    */
 
     return  (ptcbCur->TCB_notepadThreadNotePad.NOTEPAD_ulNotePad[ucNoteIndex]);
-#endif
 }
 
-#endif                                                                  /*  LW_CFG_ARM64_FAST_TCB_CUR   */
 #endif                                                                  /*  (LW_CFG_THREAD_NOTE_PAD_... */
                                                                         /*  (LW_CFG_MAX_NOTEPADS > 0)   */
 /*********************************************************************************************************

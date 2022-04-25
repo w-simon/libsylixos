@@ -97,6 +97,25 @@ VOID        archIntCtxSaveReg(PLW_CLASS_CPU  pcpu,
 PLW_STACK   archCtxStackEnd(const ARCH_REG_CTX  *pregctx);
 
 /*********************************************************************************************************
+  MIPS 处理器快速获取线程上下文相关接口
+*********************************************************************************************************/
+
+#if LW_CFG_CPU_FAST_TLS > 0
+#define __ARCH_FAST_TLS_TID() \
+({ \
+    PLW_CLASS_TCB ptcb; \
+    __asm__ __volatile__("rdhwr %0, $29" : "=r" (ptcb)); \
+    ptcb->TCB_ulId; \
+})
+#define __ARCH_FAST_TLS_TCB() \
+({ \
+    PLW_CLASS_TCB ptcb; \
+    __asm__ __volatile__("rdhwr %0, $29" : "=r" (ptcb)); \
+    ptcb; \
+})
+#endif                                                                  /*  LW_CFG_CPU_FAST_TLS > 0     */
+
+/*********************************************************************************************************
   MIPS Idle Hook Prob
 *********************************************************************************************************/
 

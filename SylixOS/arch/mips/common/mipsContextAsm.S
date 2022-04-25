@@ -48,12 +48,35 @@
     EXPORT_LABEL(archSigCtxLoad)
 
 ;/*********************************************************************************************************
+;  设置 UserLocal 寄存器为当前任务控制块指针
+;  参数为当前任务控制块, 即 T9 为当前任务控制块指针
+;*********************************************************************************************************/
+
+MACRO_DEF(SET_USERLOCAL)
+#if LW_CFG_MIPS_FAST_TCB_CUR > 0
+    .set    push
+    .set    noat
+
+#if LW_CFG_CPU_WORD_LENGHT == 32
+    MTC0        T9 , CP0_USERLOCAL
+#else
+    DMTC0       T9 , CP0_USERLOCAL
+#endif
+    MIPS_EHB
+
+    .set    pop
+#endif
+    MACRO_END()
+
+;/*********************************************************************************************************
 ;  当前 CPU 开始运行多任务执行
 ;  参数为当前 CPU 控制块, 即 A0 为当前 CPU 控制块指针
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
     REG_L       T9 , 0(A0)                                              ;/*  获取当前 TCB 的 REG_CTX 地址*/
+
+    SET_USERLOCAL                                                       ;/*  设置 UserLocal 寄存器       */
 
     RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archTaskCtxStart)
@@ -85,6 +108,8 @@ FUNC_DEF(archTaskCtxSwitch)
     REG_ADDU    SP , ARCH_STK_VAR_SIZE
 
     REG_L       T9 , 0(A0)                                              ;/*  获取当前 TCB 的 REG_CTX 地址*/
+
+    SET_USERLOCAL                                                       ;/*  设置 UserLocal 寄存器       */
 
     RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archTaskCtxSwitch)
@@ -120,6 +145,8 @@ FUNC_DEF(archCrtCtxSwitch)
 
 FUNC_DEF(archIntCtxLoad)
     REG_L       T9 , 0(A0)                                              ;/*  获取当前 TCB 的 REG_CTX 地址*/
+
+    SET_USERLOCAL                                                       ;/*  设置 UserLocal 寄存器       */
 
     RESTORE_REGS                                                        ;/*  恢复所有寄存器              */
     FUNC_END(archIntCtxLoad)

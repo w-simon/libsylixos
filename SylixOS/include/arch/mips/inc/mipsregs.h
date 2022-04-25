@@ -109,6 +109,7 @@
 #define CP0_TAGHI $29
 #define CP0_ERROREPC $30
 #define CP0_DESAVE $31
+#define CP0_USERLOCAL $4, 2
 
 /*
  * R4640/R4650 cp0 register names.  These registers are listed

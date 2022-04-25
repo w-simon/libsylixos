@@ -332,6 +332,9 @@ vfprintf(fp, fmt0, ap)
 	char buf[BUF];		/* space for %c, %[diouxX], %[eEfgG] */
 	char ox[2];		/* space for 0x hex-prefix */
 
+	/* For the %m format we may need the current `errno' value.  */
+	int save_errno = errno;
+
 	/*
 	 * Choose PADSIZE to trade efficiency vs. size.  If larger printf
 	 * fields occur frequently, increase PADSIZE and make the initialisers
@@ -637,6 +640,9 @@ fp_begin:		_double = va_arg(ap, double);
 		case 's':
 			if ((cp = va_arg(ap, char *)) == NULL)
 				cp = "(null)";
+		case 'm':
+			if (ch == 'm')
+				cp = lib_strerror(save_errno);
 			if (prec >= 0) {
 				/*
 				 * can't use strlen; can only look for the

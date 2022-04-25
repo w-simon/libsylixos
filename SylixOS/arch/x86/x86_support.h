@@ -95,6 +95,29 @@ VOID        archIntCtxSaveReg(PLW_CLASS_CPU  pcpu,
 PLW_STACK   archCtxStackEnd(const ARCH_REG_CTX  *pregctx);
 
 /*********************************************************************************************************
+  x86 处理器快速获取线程上下文相关接口
+*********************************************************************************************************/
+
+#if LW_CFG_CPU_FAST_TLS > 0
+#define __ARCH_FAST_TLS_TID() \
+({ \
+    LW_OBJECT_HANDLE tid; \
+    __asm__ __volatile__("movq %%fs:%P1, %q0" \
+                         : "=r" (tid) \
+                         : "i" (offsetof(LW_CLASS_TCB, TCB_ulId))); \
+    tid; \
+})
+#define __ARCH_FAST_TLS_TCB() \
+({ \
+    UINT16 index; \
+    __asm__ __volatile__("movw %%fs:%P1, %q0" \
+                         : "=r" (index) \
+                         : "i" (offsetof(LW_CLASS_TCB, TCB_usIndex))); \
+    _K_ptcbTCBIdTable[index]; \
+})
+#endif                                                                  /*  LW_CFG_CPU_FAST_TLS > 0     */
+
+/*********************************************************************************************************
   x86 处理器调试接口
 *********************************************************************************************************/
 

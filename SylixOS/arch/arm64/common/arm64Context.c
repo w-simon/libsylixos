@@ -71,7 +71,7 @@ PLW_STACK  archTaskCtxCreate (ARCH_REG_CTX          *pregctx,
     pregctx->REG_ulPc       = (ARCH_REG_T)pfuncTask;
     pregctx->REG_ulSp       = (ARCH_REG_T)pfpctx;
 
-#if LW_CFG_ARM64_FAST_TCB_CUR > 0
+#if LW_CFG_CPU_FAST_TLS > 0
     pregctx->REG_ulReg[18]  = (ARCH_REG_T)ptcb;                         /*  FAST_TCB_CUR                */
 #endif
 
