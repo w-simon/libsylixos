@@ -49,6 +49,7 @@ static INT  __tshellNatWan(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatMap(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatAlias(INT  iArgC, PCHAR  ppcArgV[]);
 static INT  __tshellNatShow(INT  iArgC, PCHAR  ppcArgV[]);
+static INT  __tshellNatTraffic(INT  iArgC, PCHAR  ppcArgV[]);
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
 ** 函数名称: API_INetNatInit
@@ -109,6 +110,10 @@ VOID  API_INetNatInit (VOID)
                                      
     API_TShellKeywordAdd("nats", __tshellNatShow);
     API_TShellHelpAdd("nats",   "show NAT networking infomation.\n");
+
+    API_TShellKeywordAdd("nattraffic", __tshellNatTraffic);
+    API_TShellFormatAdd("nattraffic",  " ['on' / 'off']");
+    API_TShellHelpAdd("nattraffic",    "Turn On / Off or show nat traffic state.\n");
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
     
     bIsInit = LW_TRUE;
@@ -433,6 +438,40 @@ INT  API_INetNatAliasDelete (CPCHAR  pcAliasIp)
     return  (iRet);
 }
 /*********************************************************************************************************
+** 函数名称: API_INetNatTrafficStatSet
+** 功能描述: NAT 打开 / 关闭节点流量统计功能
+** 输　入  : bTurnOn       是否打开
+** 输　出  : ERROR or OK
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_INetNatTrafficStatSet (BOOL  bTurnOn)
+{
+    if (bTurnOn) {
+        __natTrafficOn();
+    } else {
+        __natTrafficOff();
+    }
+
+    return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_INetNatTrafficStatGet
+** 功能描述: NAT 获取节点流量统计功能
+** 输　入  : NONE
+** 输　出  : 是否打开
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+BOOL  API_INetNatTrafficStatGet (VOID)
+{
+    return  (__natTrafficIsOn());
+}
+/*********************************************************************************************************
 ** 函数名称: __tshellNat
 ** 功能描述: 系统命令 "nat"
 ** 输　入  : iArgC         参数个数
@@ -711,6 +750,39 @@ static INT  __tshellNatShow (INT  iArgC, PCHAR  ppcArgV[])
     close(iFd);
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellNatTraffic
+** 功能描述: 系统命令 "nattraffic"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellNatTraffic (INT  iArgC, PCHAR  ppcArgV[])
+{
+    BOOL  bIsOn;
+
+    if (iArgC == 2) {
+        if (lib_strcasecmp(ppcArgV[1], "on") == 0) {
+            __natTrafficOn();
+            return  (ERROR_NONE);
+
+        } else if (lib_strcasecmp(ppcArgV[1], "off") == 0) {
+            __natTrafficOff();
+            return  (ERROR_NONE);
+
+        } else {
+            fprintf(stderr, "on / off option error!\n");
+            return  (-ERROR_TSHELL_EPARAM);
+        }
+
+    } else {
+        bIsOn = __natTrafficIsOn();
+        printf("NAT traffic statistics %s\n", bIsOn ? "on" : "off");
+        return  (ERROR_NONE);
+    }
 }
 
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */

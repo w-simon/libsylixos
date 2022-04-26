@@ -106,6 +106,9 @@ INT         __natAliasAdd(const ip4_addr_t  *pipaddrAlias,
                           const ip4_addr_t  *ipaddrSLocalIp,
                           const ip4_addr_t  *ipaddrELocalIp);
 INT         __natAliasDelete(const ip4_addr_t  *pipaddrAlias);
+VOID        __natTrafficOn(VOID);
+VOID        __natTrafficOff(VOID);
+BOOL        __natTrafficIsOn(VOID);
 
 #if LW_CFG_PROCFS_EN > 0
 VOID        __procFsNatInit(VOID);

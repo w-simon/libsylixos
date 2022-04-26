@@ -43,6 +43,8 @@
 2020.02.25  三大协议皆使用 Hash 表, 提高转发查找速度.
 2020.06.30  增加网络接口退出 NAT 功能.
 2020.07.22  不拦截本机 DHCP 端口.
+2022.04.26  加入 Traffic 统计信息.
+            防疫政策层层加码, 好无奈啊.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -73,6 +75,10 @@
   NAT 安全配置
 *********************************************************************************************************/
 #define __NAT_STRONG_RULE   1                                           /*  不符合规定的数据包是否隔离  */
+/*********************************************************************************************************
+  NAT 定时器周期 (s)
+*********************************************************************************************************/
+#define __NAT_TIMER_PERIOD  5
 /*********************************************************************************************************
   NAT 操作锁
 *********************************************************************************************************/
@@ -136,6 +142,204 @@ static LW_LIST_LINE_HEADER  _G_plineNatalias = LW_NULL;
   NAT 外网主动连接
 *********************************************************************************************************/
 static LW_LIST_LINE_HEADER  _G_plineNatmap = LW_NULL;
+/*********************************************************************************************************
+  NAT Traffic On/Off
+*********************************************************************************************************/
+static BOOL     _G_bNatTraffic  = LW_FALSE;
+static UINT32   _G_uiTrafficCnt = 0;
+/*********************************************************************************************************
+  NAT Traffic 宏
+*********************************************************************************************************/
+#define __NAT_TRAFFIC_IS_ON()   (_G_bNatTraffic)
+/*********************************************************************************************************
+  NAT Traffic 节点
+*********************************************************************************************************/
+typedef struct {
+    LW_LIST_LINE    NATT_lineHash;                                      /*  Traffic hash                */
+    ip4_addr_t      NATT_ipaddrLocal;                                   /*  本地 IP 地址                */
+    UINT64          NATT_ullInBytes;                                    /*  IN / OUT Bytes              */
+    UINT64          NATT_ullOutBytes;
+    UINT32          NATT_uiInOnce;                                      /*  IN / OUT Once timer         */
+    UINT32          NATT_uiOutOnce;
+    UINT32          NATT_uiInRate;                                      /*  IN / OUT 速率               */
+    UINT32          NATT_uiOutRate;
+} __NAT_TRAFFIC;
+typedef __NAT_TRAFFIC   *__PNAT_TRAFFIC;
+/*********************************************************************************************************
+  NAT Traffic Hash table
+*********************************************************************************************************/
+static LW_LIST_LINE_HEADER  _G_plineNatTraffic[__NAT_HASH_SIZE];
+/*********************************************************************************************************
+** 函数名称: __natTrafficOn
+** 功能描述: NAT 启动 Traffic 统计
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  __natTrafficOn (VOID)
+{
+    _G_bNatTraffic = LW_TRUE;
+    KN_SMP_WMB();
+}
+/*********************************************************************************************************
+** 函数名称: __natTrafficOff
+** 功能描述: NAT 关闭 Traffic 统计
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+VOID  __natTrafficOff (VOID)
+{
+    INT             i;
+    __PNAT_TRAFFIC  ptraffic;
+
+    if (!__NAT_TRAFFIC_IS_ON()) {
+        return;
+    }
+
+    __NAT_LOCK();
+    _G_bNatTraffic  = LW_FALSE;
+    _G_uiTrafficCnt = 0;
+
+    __NAT_HASH_FOR_EACH (i) {
+        while (_G_plineNatTraffic[i]) {
+            ptraffic = (__PNAT_TRAFFIC)_G_plineNatTraffic[i];
+            _List_Line_Del(&ptraffic->NATT_lineHash, &_G_plineNatTraffic[i]);
+            mem_free(ptraffic);
+        }
+    }
+    __NAT_UNLOCK();
+}
+/*********************************************************************************************************
+** 函数名称: __natTrafficIsOn
+** 功能描述: NAT 是否启动 Traffic 统计
+** 输　入  : NONE
+** 输　出  : BOOL
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+BOOL  __natTrafficIsOn (VOID)
+{
+    return  (__NAT_TRAFFIC_IS_ON());
+}
+/*********************************************************************************************************
+** 函数名称: __natTrafficInput
+** 功能描述: NAT Traffic 统计输入 (有 NAT 锁)
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __natTrafficInput (ip4_addr_t *local, UINT32  len)
+{
+    UINT32          uiHBO   = ntohl(local->addr);
+    UINT32          uiIndex = __NAT_HASH(uiHBO);
+    PLW_LIST_LINE   pline;
+    __PNAT_TRAFFIC  ptraffic;
+
+    for (pline  = _G_plineNatTraffic[uiIndex];
+         pline != LW_NULL;
+         pline  = _list_line_get_next(pline)) {
+        ptraffic = (__PNAT_TRAFFIC)pline;
+        if (ptraffic->NATT_ipaddrLocal.addr == local->addr) {
+            break;
+        }
+    }
+
+    if (pline) {
+        ptraffic->NATT_ullInBytes += len;
+        ptraffic->NATT_uiInOnce   += len;
+
+    } else {
+        ptraffic = (__PNAT_TRAFFIC)mem_malloc(sizeof(__NAT_TRAFFIC));
+        if (!ptraffic) {
+            return;
+        }
+
+        ptraffic->NATT_ipaddrLocal.addr = local->addr;
+        ptraffic->NATT_ullInBytes  = len;
+        ptraffic->NATT_ullOutBytes = 0;
+        ptraffic->NATT_uiInOnce    = len;
+        ptraffic->NATT_uiOutOnce   = 0;
+        ptraffic->NATT_uiInRate    = len;
+        ptraffic->NATT_uiOutRate   = 0;
+        _List_Line_Add_Tail(&ptraffic->NATT_lineHash, &_G_plineNatTraffic[uiIndex]);
+        _G_uiTrafficCnt++;
+    }
+}
+/*********************************************************************************************************
+** 函数名称: __natTrafficOutput
+** 功能描述: NAT Traffic 统计输出 (有 NAT 锁)
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __natTrafficOutput (ip4_addr_t *local, UINT32  len)
+{
+    UINT32          uiHBO   = ntohl(local->addr);
+    UINT32          uiIndex = __NAT_HASH(uiHBO);
+    PLW_LIST_LINE   pline;
+    __PNAT_TRAFFIC  ptraffic;
+
+    for (pline  = _G_plineNatTraffic[uiIndex];
+         pline != LW_NULL;
+         pline  = _list_line_get_next(pline)) {
+        ptraffic = (__PNAT_TRAFFIC)pline;
+        if (ptraffic->NATT_ipaddrLocal.addr == local->addr) {
+            break;
+        }
+    }
+
+    if (pline) {
+        ptraffic->NATT_ullOutBytes += len;
+        ptraffic->NATT_uiOutOnce   += len;
+
+    } else {
+        ptraffic = (__PNAT_TRAFFIC)mem_malloc(sizeof(__NAT_TRAFFIC));
+        if (!ptraffic) {
+            return;
+        }
+
+        ptraffic->NATT_ipaddrLocal.addr = local->addr;
+        ptraffic->NATT_ullInBytes  = 0;
+        ptraffic->NATT_ullOutBytes = len;
+        ptraffic->NATT_uiInOnce    = 0;
+        ptraffic->NATT_uiOutOnce   = len;
+        ptraffic->NATT_uiInRate    = 0;
+        ptraffic->NATT_uiOutRate   = len;
+        _List_Line_Add_Tail(&ptraffic->NATT_lineHash, &_G_plineNatTraffic[uiIndex]);
+        _G_uiTrafficCnt++;
+    }
+}
+/*********************************************************************************************************
+** 函数名称: __natTrafficTimer
+** 功能描述: NAT Traffic 统计定时器 (有 NAT 锁)
+** 输　入  : NONE
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __natTrafficTimer (VOID)
+{
+    INT             i;
+    PLW_LIST_LINE   pline;
+    __PNAT_TRAFFIC  ptraffic;
+
+    __NAT_HASH_FOR_EACH (i) {
+        for (pline  = _G_plineNatTraffic[i];
+             pline != LW_NULL;
+             pline  = _list_line_get_next(pline)) {
+            ptraffic = (__PNAT_TRAFFIC)pline;
+            ptraffic->NATT_uiInRate  = ptraffic->NATT_uiInOnce;
+            ptraffic->NATT_uiOutRate = ptraffic->NATT_uiOutOnce;
+            ptraffic->NATT_uiInOnce  = 0;
+            ptraffic->NATT_uiOutOnce = 0;
+        }
+    }
+}
 /*********************************************************************************************************
 ** 函数名称: nat_netif_add_hook
 ** 功能描述: NAT 网络接口加入回调
@@ -810,6 +1014,10 @@ static VOID  __natTimer (ULONG  ulPeriod)
             }
         }
     }
+
+    if (__NAT_TRAFFIC_IS_ON()) {
+        __natTrafficTimer();                                            /*  Traffic 速率计算            */
+    }
     __NAT_UNLOCK();
 }
 /*********************************************************************************************************
@@ -953,6 +1161,10 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
                 pnatcb->NAT_ulIdleTimer = 0;                            /*  刷新空闲时间                */
             }
         
+            if (__NAT_TRAFFIC_IS_ON()) {
+                __natTrafficInput((ip4_addr_t *)&ipaddr, p->len);       /*  统计输入 Traffic 信息       */
+            }
+
             /*
              *  将数据包目标转为本地内网目标地址
              */
@@ -1003,6 +1215,10 @@ static INT  __natApInput (struct pbuf *p, struct netif *netifIn)
         if (pnatcb) {                                                   /*  如果找到控制块              */
             pnatcb->NAT_ulIdleTimer = 0;                                /*  刷新空闲时间                */
             
+            if (__NAT_TRAFFIC_IS_ON()) {
+                __natTrafficInput(&pnatcb->NAT_ipaddrLocal, p->len);    /*  统计输入 Traffic 信息       */
+            }
+
             /*
              *  将数据包目标转为本地内网目标地址
              */
@@ -1173,6 +1389,10 @@ static INT  __natApOutput (struct pbuf *p, struct netif  *pnetifIn, struct netif
     if (pnatcb) {
         pnatcb->NAT_ulIdleTimer = 0;                                    /*  刷新空闲时间                */
         
+        if (__NAT_TRAFFIC_IS_ON()) {
+            __natTrafficOutput((ip4_addr_t *)&(iphdr->src), p->len);    /*  统计输出 Traffic 信息       */
+        }
+
         /*
          *  将数据包转换为本机 AP 外网网络接口发送的数据包
          *  如果别名有效, 则使用别名作为源地址.
@@ -1476,8 +1696,9 @@ INT  __natStart (CPCHAR  pcLocal, CPCHAR  pcAp)
     }
     __NAT_UNLOCK();
     
-    API_TimerStart(_G_ulNatcbTimer, (LW_TICK_HZ * 10), LW_OPTION_AUTO_RESTART,
-                   (PTIMER_CALLBACK_ROUTINE)__natTimer, (PVOID)10);
+    API_TimerStart(_G_ulNatcbTimer,
+                   (LW_TICK_HZ * __NAT_TIMER_PERIOD), LW_OPTION_AUTO_RESTART,
+                   (PTIMER_CALLBACK_ROUTINE)__natTimer, (PVOID)__NAT_TIMER_PERIOD);
     
     _G_bNatStart = LW_TRUE;
     KN_SMP_WMB();
@@ -1754,6 +1975,10 @@ static ssize_t  __procFsNatAssNodeRead(PLW_PROCFS_NODE  p_pfsn,
                                        PCHAR            pcBuffer, 
                                        size_t           stMaxBytes,
                                        off_t            oft);
+static ssize_t  __procFsNatTrafficRead(PLW_PROCFS_NODE  p_pfsn,
+                                       PCHAR            pcBuffer,
+                                       size_t           stMaxBytes,
+                                       off_t            oft);
 /*********************************************************************************************************
   NAT proc 文件操作函数组
 *********************************************************************************************************/
@@ -1762,6 +1987,9 @@ static LW_PROCFS_NODE_OP        _G_pfsnoNatSummaryFuncs = {
 };
 static LW_PROCFS_NODE_OP        _G_pfsnoNatAssNodeFuncs = {
     __procFsNatAssNodeRead, LW_NULL
+};
+static LW_PROCFS_NODE_OP        _G_pfsnoNatTrafficFuncs = {
+    __procFsNatTrafficRead, LW_NULL
 };
 /*********************************************************************************************************
   NAT proc 文件目录树
@@ -1784,6 +2012,12 @@ static LW_PROCFS_NODE           _G_pfsnNat[] =
                         (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH), 
                         &_G_pfsnoNatAssNodeFuncs, 
                         "A",
+                        0),
+
+    LW_PROCFS_INIT_NODE("traffic",
+                        (S_IFREG | S_IRUSR | S_IRGRP | S_IROTH),
+                        &_G_pfsnoNatTrafficFuncs,
+                        "T",
                         0),
 };
 /*********************************************************************************************************
@@ -2174,6 +2408,97 @@ static ssize_t  __procFsNatAssNodeRead (PLW_PROCFS_NODE  p_pfsn,
     return  ((ssize_t)stCopeBytes);
 }
 /*********************************************************************************************************
+** 函数名称: __procFsNatTrafficRead
+** 功能描述: procfs 读一个内核 nat/traffic proc 文件
+** 输　入  : p_pfsn        节点控制块
+**           pcBuffer      缓冲区
+**           stMaxBytes    缓冲区大小
+**           oft           文件指针
+** 输　出  : 实际读取的数目
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static ssize_t  __procFsNatTrafficRead (PLW_PROCFS_NODE  p_pfsn,
+                                        PCHAR            pcBuffer,
+                                        size_t           stMaxBytes,
+                                        off_t            oft)
+{
+    const CHAR   cNatInfoHeader[] = "\n"
+    "    LOCAL IP     OUT (Kbps)  IN (Kbps)    OUT KB    IN KB\n"
+    "--------------- ----------- ----------- --------- ---------\n";
+
+          PCHAR     pcFileBuffer;
+          size_t    stRealSize;                                         /*  实际的文件内容大小          */
+          size_t    stCopeBytes;
+
+    /*
+     *  由于预置内存大小为 0 , 所以打开后第一次读取需要手动开辟内存.
+     */
+    pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);
+    if (pcFileBuffer == LW_NULL) {                                      /*  还没有分配内存              */
+        size_t          stNeedBufferSize;
+        BOOL            bNatTraffic;
+
+        stNeedBufferSize = 256;                                         /*  初始大小                    */
+
+        __NAT_LOCK();
+        bNatTraffic = __NAT_TRAFFIC_IS_ON();
+        if (bNatTraffic) {
+            stNeedBufferSize += (64 * _G_uiTrafficCnt);
+        }
+        __NAT_UNLOCK();
+
+        if (API_ProcFsAllocNodeBuffer(p_pfsn, stNeedBufferSize)) {
+            _ErrorHandle(ENOMEM);
+            return  (0);
+        }
+        pcFileBuffer = (PCHAR)API_ProcFsNodeBuffer(p_pfsn);             /*  重新获得文件缓冲区地址      */
+
+        stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, 0, cNatInfoHeader);
+                                                                        /*  打印头信息                  */
+        __NAT_LOCK();
+        if (bNatTraffic && __NAT_TRAFFIC_IS_ON()) {
+            INT             i;
+            PLW_LIST_LINE   pline;
+            __PNAT_TRAFFIC  ptraffic;
+            struct in_addr  inaddr;
+            CHAR            cIpBuffer[INET_ADDRSTRLEN];
+
+            __NAT_HASH_FOR_EACH(i) {
+                for (pline  = _G_plineNatTraffic[i];
+                     pline != LW_NULL;
+                     pline  = _list_line_get_next(pline)) {
+
+                    ptraffic = (__PNAT_TRAFFIC)pline;
+                    inaddr.s_addr = ptraffic->NATT_ipaddrLocal.addr;
+
+                    inet_ntoa_r(inaddr, cIpBuffer, INET_ADDRSTRLEN);
+                    stRealSize = bnprintf(pcFileBuffer, stNeedBufferSize, stRealSize,
+                                          "%-15s %11u %11u %9llu %9llu\n", cIpBuffer,
+                                          (ptraffic->NATT_uiOutRate / __NAT_TIMER_PERIOD) / 128,
+                                          (ptraffic->NATT_uiInRate / __NAT_TIMER_PERIOD) / 128,
+                                          ptraffic->NATT_ullOutBytes / 1024,
+                                          ptraffic->NATT_ullInBytes / 1024);
+                }
+            }
+        }
+        __NAT_UNLOCK();
+
+        API_ProcFsNodeSetRealFileSize(p_pfsn, stRealSize);
+    } else {
+        stRealSize = API_ProcFsNodeGetRealFileSize(p_pfsn);
+    }
+    if (oft >= stRealSize) {
+        _ErrorHandle(ENOSPC);
+        return  (0);
+    }
+
+    stCopeBytes  = __MIN(stMaxBytes, (size_t)(stRealSize - oft));       /*  计算实际拷贝的字节数        */
+    lib_memcpy(pcBuffer, (CPVOID)(pcFileBuffer + oft), (UINT)stCopeBytes);
+
+    return  ((ssize_t)stCopeBytes);
+}
+/*********************************************************************************************************
 ** 函数名称: __procFsNatInit
 ** 功能描述: procfs 初始化内核 NAT 文件
 ** 输　入  : NONE
@@ -2186,6 +2511,7 @@ VOID  __procFsNatInit (VOID)
     API_ProcFsMakeNode(&_G_pfsnNat[0], "/net");
     API_ProcFsMakeNode(&_G_pfsnNat[1], "/net/nat");
     API_ProcFsMakeNode(&_G_pfsnNat[2], "/net/nat");
+    API_ProcFsMakeNode(&_G_pfsnNat[3], "/net/nat");
 }
 
 #endif                                                                  /*  LW_CFG_PROCFS_EN > 0        */

@@ -42,20 +42,24 @@ LW_API INT          API_INetNatMapDelete(CPCHAR  pcLocalIp, UINT16  usLocalPort,
                                          UINT16  usAssPort, UINT8   ucProto);
 LW_API INT          API_INetNatAliasAdd(CPCHAR  pcAliasIp, CPCHAR  pcSLocalIp, CPCHAR  pcELocalIp);
 LW_API INT          API_INetNatAliasDelete(CPCHAR  pcAliasIp);
+LW_API INT          API_INetNatTrafficStatSet(BOOL  bTurnOn);
+LW_API BOOL         API_INetNatTrafficStatGet(VOID);
 
-#define inetNatInit         API_INetNatInit
-#define inetNatStart        API_INetNatStart
-#define inetNatStop         API_INetNatStop
-#define inetNatIpFragSet    API_INetNatIpFragSet
-#define inetNatIpFragGet    API_INetNatIpFragGet
-#define inetNatLocalAdd     API_INetNatLocalAdd
-#define inetNatLocalDelete  API_INetNatLocalDelete
-#define inetNatWanAdd       API_INetNatWanAdd
-#define inetNatWanDelete    API_INetNatWanDelete
-#define inetNatMapAdd       API_INetNatMapAdd
-#define inetNatMapDelete    API_INetNatMapDelete
-#define inetNatAliasAdd     API_INetNatAliasAdd
-#define inetNatAliasDelete  API_INetNatAliasDelete
+#define inetNatInit             API_INetNatInit
+#define inetNatStart            API_INetNatStart
+#define inetNatStop             API_INetNatStop
+#define inetNatIpFragSet        API_INetNatIpFragSet
+#define inetNatIpFragGet        API_INetNatIpFragGet
+#define inetNatLocalAdd         API_INetNatLocalAdd
+#define inetNatLocalDelete      API_INetNatLocalDelete
+#define inetNatWanAdd           API_INetNatWanAdd
+#define inetNatWanDelete        API_INetNatWanDelete
+#define inetNatMapAdd           API_INetNatMapAdd
+#define inetNatMapDelete        API_INetNatMapDelete
+#define inetNatAliasAdd         API_INetNatAliasAdd
+#define inetNatAliasDelete      API_INetNatAliasDelete
+#define inetNatTrafficStatSet   API_INetNatTrafficStatSet
+#define inetNatTrafficStatGet   API_INetNatTrafficStatGet
 
 #endif                                                                  /*  LW_CFG_NET_EN > 0           */
                                                                         /*  LW_CFG_NET_ROUTER > 0       */
