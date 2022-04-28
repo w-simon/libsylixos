@@ -97,15 +97,25 @@ static LW_INLINE INT  archAtomicNand (INT  i, atomic_t  *v)
 static LW_INLINE VOID  archAtomicSet (INT  i, atomic_t  *v)
 {
 #if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
+    INT  iTemp;
+
+    KN_SMP_MB_BEFORE_ATOMIC();
+
     __asm__ __volatile__(
         "   .set    push                \n"
         "   .set    noreorder           \n"
-        "   sync                        \n"
-        "   sw      %1, %0              \n"
-        "   sync                        \n"
+        "   move    %1, %2              \n"
+        "1:                             \n"
+        KN_WEAK_LLSC_MB
+        "   ll      $0, %0              \n"
+        "   sc      %1, %0              \n"
+        "   beqz    %1, 1b              \n"
+        "   move    %1, %2              \n"
         "   .set    pop                 \n"
-        : "+m" (v->counter)
+        : "+m" (v->counter), "=&r" (iTemp)
         : "r" (i));
+
+    KN_SMP_MB_AFTER_ATOMIC();
 #else
     LW_ACCESS_ONCE(INT, v->counter) = i;
 #endif
@@ -270,15 +280,25 @@ static LW_INLINE INT64  archAtomic64Nand (INT64  i, atomic64_t  *v)
 static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
 {
 #if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (LW_CFG_MIPS_CPU_LOONGSON2K > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
+    INT64  i64Temp;
+
+    KN_SMP_MB_BEFORE_ATOMIC();
+
     __asm__ __volatile__(
         "   .set    push                \n"
         "   .set    noreorder           \n"
-        "   sync                        \n"
-        "   sd      %1, %0              \n"
-        "   sync                        \n"
+        "   move    %1, %2              \n"
+        "1:                             \n"
+        KN_WEAK_LLSC_MB
+        "   lld     $0, %0              \n"
+        "   scd     %1, %0              \n"
+        "   beqz    %1, 1b              \n"
+        "   move    %1, %2              \n"
         "   .set    pop                 \n"
-        : "+m" (v->counter)
+        : "+m" (v->counter), "=&r" (i64Temp)
         : "r" (i));
+
+    KN_SMP_MB_AFTER_ATOMIC();
 #else
     LW_ACCESS_ONCE(INT64, v->counter) = i;
 #endif
