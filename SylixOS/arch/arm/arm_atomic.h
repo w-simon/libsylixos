@@ -209,7 +209,39 @@ static LW_INLINE INT64  archAtomic64Nand (INT64  i, atomic64_t  *v)
   On ARM, ordinary assignment (str instruction) doesn't clear the local
   strexd/ldrexd monitor on some implementations. The reason we can use it for
   archAtomic64Set() is the clrexd or dummy strexd done on every exception return.
+  To ease page table updates with 64-bit descriptors, CPUs implementing
+  LPAE are required to implement ldrd/strd as atomic operations.
 *********************************************************************************************************/
+
+#if LW_CFG_CPU_PHYS_ADDR_64BIT > 0
+
+static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
+{
+    INT64  i64Temp;
+
+    ARM_PREFETCH_W(&v->counter);
+
+    __asm__ __volatile__(
+        "   strd    %2, %H2, [%1]"
+            : "=Qo" (v->counter)
+            : "r" (&v->counter), "r" (i)
+            );
+}
+
+static LW_INLINE INT64  archAtomic64Get (atomic64_t  *v)
+{
+    INT64  i64Result;
+
+    __asm__ __volatile__(
+        "   ldrd    %0, %H0, [%1]"
+            : "=&r" (i64Result)
+            : "r" (&v->counter), "Qo" (v->counter)
+            );
+
+    return  (i64Result);
+}
+
+#else
 
 static LW_INLINE VOID  archAtomic64Set (INT64  i, atomic64_t  *v)
 {
@@ -239,6 +271,8 @@ static LW_INLINE INT64  archAtomic64Get (atomic64_t  *v)
 
     return  (i64Result);
 }
+
+#endif                                                                  /*  LW_CFG_CPU_PHYS_ADDR_64BIT>0*/
 
 /*********************************************************************************************************
   atomic64 cas op
