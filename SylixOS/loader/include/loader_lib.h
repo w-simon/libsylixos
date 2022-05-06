@@ -190,6 +190,11 @@ typedef struct {
 #ifdef LW_CFG_CPU_ARCH_CSKY
     PVOID                   EMOD_pvCSkyDynamicAddr;                     /*  .dynamic ¶ÎµÄÄÚ´æµØÖ·       */
 #endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
+
+#ifdef LW_CFG_CPU_ARCH_LOONGARCH
+    INT64                   EMOD_i64RelaStack[LA_RELA_STACK_DEPTH];     /*  RELA Õ»                     */
+    size_t                  EMOD_stRelaStackTop;                        /*  RELA Õ»¶¥                   */
+#endif                                                                  /*  LW_CFG_CPU_ARCH_CSKY        */
 } LW_LD_EXEC_MODULE;
 
 /*********************************************************************************************************

@@ -59,10 +59,18 @@ endif
 # Do NOT use -O3 and -Os, -Os is not align for function loop and jump.
 #                         -O3 default use inline function.
 #*********************************************************************************************************
+ifneq (,$(findstring loongarch,$(TOOLCHAIN_PREFIX)))
+ifeq ($(DEBUG_LEVEL), debug)
+TOOLCHAIN_OPTIMIZE = -O0 -g -gdwarf-2
+else
+TOOLCHAIN_OPTIMIZE = -O2 -g -gdwarf-2
+endif
+else
 ifeq ($(DEBUG_LEVEL), debug)
 TOOLCHAIN_OPTIMIZE = -O0 -g3 -gdwarf-2
 else
 TOOLCHAIN_OPTIMIZE = -O2 -g1 -gdwarf-2
+endif
 endif
 
 #*********************************************************************************************************

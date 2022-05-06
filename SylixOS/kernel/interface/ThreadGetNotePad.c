@@ -45,9 +45,9 @@ ULONG  API_ThreadGetNotePad (LW_OBJECT_HANDLE  ulId,
     REGISTER PLW_CLASS_TCB         ptcb;
     
     REGISTER ULONG                 ulValTemp;
-	
+
     usIndex = _ObjectGetIndex(ulId);
-	
+
 #if LW_CFG_ARG_CHK_EN > 0
     if (ucNoteIndex >= LW_CFG_MAX_NOTEPADS) {                           /*  检查记事本索引              */
         _DebugHandle(__ERRORMESSAGE_LEVEL, "notepad invalidate.\r\n");

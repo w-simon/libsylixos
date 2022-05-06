@@ -53,7 +53,7 @@
 ** 调用模块:
 ** 注  意  : 自旋结束时, 操作系统会调用内存屏障, 所以这里不需要调用.
 *********************************************************************************************************/
-static LW_INLINE VOID  mipsSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
+static LW_INLINE VOID  mipsSpinLock (SPINLOCKTYPE  *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
     UINT32          uiNewVal;
     UINT32          uiInc = 1 << LW_SPINLOCK_TICKET_SHIFT;
@@ -91,7 +91,7 @@ static LW_INLINE VOID  mipsSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll,
 ** 调用模块:
 ** 注  意  : 自旋结束时, 操作系统会调用内存屏障, 所以这里不需要调用.
 *********************************************************************************************************/
-static LW_INLINE UINT32  mipsSpinTryLock (SPINLOCKTYPE *psld)
+static LW_INLINE UINT32  mipsSpinTryLock (SPINLOCKTYPE  *psld)
 {
     UINT32  uiRes, uiTemp1, uiTemp2;
     UINT32  uiInc = 1 << LW_SPINLOCK_TICKET_SHIFT;
@@ -135,7 +135,7 @@ static LW_INLINE UINT32  mipsSpinTryLock (SPINLOCKTYPE *psld)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static LW_INLINE VOID  mipsSpinUnlock (SPINLOCKTYPE *psld)
+static LW_INLINE VOID  mipsSpinUnlock (SPINLOCKTYPE  *psld)
 {
 #if (LW_CFG_MIPS_CPU_LOONGSON3 > 0) || (defined(_MIPS_ARCH_HR2) || defined(_MIPS_ARCH_HCW))
     INT  iTemp1, iTemp2;

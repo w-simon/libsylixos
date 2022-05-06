@@ -417,6 +417,26 @@ SylixOS/vpmpdm/arch/csky/strcpy.S \
 SylixOS/vpmpdm/arch/csky/strlen.S
 
 #*********************************************************************************************************
+# LoongArch32 source
+#*********************************************************************************************************
+LOCAL_LOONGARCH32_SRCS =
+
+#*********************************************************************************************************
+# LoongArch64 source
+#*********************************************************************************************************
+LOCAL_LOONGARCH64_SRCS = \
+SylixOS/vpmpdm/arch/loongarch64/memcpy.S \
+SylixOS/vpmpdm/arch/loongarch64/memmove.S \
+SylixOS/vpmpdm/arch/loongarch64/memset.S \
+SylixOS/vpmpdm/arch/loongarch64/strchr.S \
+SylixOS/vpmpdm/arch/loongarch64/strchrnul.S \
+SylixOS/vpmpdm/arch/loongarch64/strcmp.S \
+SylixOS/vpmpdm/arch/loongarch64/strcpy.S \
+SylixOS/vpmpdm/arch/loongarch64/strlen.S \
+SylixOS/vpmpdm/arch/loongarch64/strncmp.S \
+SylixOS/vpmpdm/arch/loongarch64/strnlen.S 
+
+#*********************************************************************************************************
 # Header file search path (eg. LOCAL_INC_PATH := -I"Your hearder files search path")
 #*********************************************************************************************************
 LOCAL_INC_PATH := -I"SylixOS/vpmpdm/arch" 

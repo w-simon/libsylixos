@@ -54,6 +54,9 @@
 
 #elif defined(LW_CFG_CPU_ARCH_CSKY)
 #include "arch/csky/elf/cskyElf.h"
+
+#elif defined(LW_CFG_CPU_ARCH_LOONGARCH)
+#include "arch/loongarch/elf/loongarchElf.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 /*********************************************************************************************************
@@ -231,6 +234,7 @@ typedef SINT64   Elf64_Sxword;
 #define EM_FRV          0x5441                                          /* Fujitsu FR-V                 */
 #define EM_AVR32        0x18ad                                          /* Atmel AVR32                  */
 #define EM_ALPHA        0x9026                                          /* Alpha                        */
+#define EM_LOONGARCH    258                                             /* Loongson LoongArch           */
 
 /*********************************************************************************************************
   This info is needed when parsing the symbol table 

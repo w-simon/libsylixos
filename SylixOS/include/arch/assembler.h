@@ -50,6 +50,9 @@
 
 #elif defined(LW_CFG_CPU_ARCH_CSKY)
 #include "csky/asm/assembler.h"
+
+#elif defined(LW_CFG_CPU_ARCH_LOONGARCH)
+#include "loongarch/asm/assembler.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_ASSEMBLER_H          */

@@ -49,6 +49,9 @@
 
 #elif defined(__csky__)
 #include "cpu_cfg_csky.h"
+
+#elif defined(__loongarch__)
+#include "cpu_cfg_loongarch.h"
 #endif
 
 #else

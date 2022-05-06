@@ -426,5 +426,85 @@ ARCH_CPUFLAGS_NOFPU = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -msoft-float
 endif
 
 #*********************************************************************************************************
+# LoongArch32
+# loongarch32-sylixos-elf-ld default max page size is 4KB.
+# The max page size of LoongArch32 in SylixOS is 64KB.
+#*********************************************************************************************************
+ifneq (,$(findstring loongarch32,$(TOOLCHAIN_PREFIX)))
+ARCH             = loongarch32
+ARCH_COMMONFLAGS = 
+
+ifneq ($(MAX_PAGE_SIZE),)
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
+else
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=65536
+endif
+
+ARCH_PIC_ASFLAGS = 
+ARCH_PIC_CFLAGS  = -fPIC
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared $(ARCH_MAX_PAGE_SIZE)
+
+ARCH_KO_CFLAGS   = -Wa,-mla-global-with-abs,-mla-local-with-abs
+ARCH_KO_LDFLAGS  = -nostdlib -r $(ARCH_MAX_PAGE_SIZE)
+
+ARCH_KLIB_CFLAGS = 
+
+ARCH_KERNEL_CFLAGS  = -Wa,-mla-global-with-pcrel
+ARCH_KERNEL_LDFLAGS = $(ARCH_MAX_PAGE_SIZE)
+
+ifeq ($(FPU_TYPE), double-float)
+ARCH_FPUFLAGS = -mabi=ilp32d -mdouble-float
+else ifeq ($(FPU_TYPE), single-float)
+ARCH_FPUFLAGS = -mabi=ilp32f -msingle-float
+else
+ARCH_FPUFLAGS = -mabi=ilp32s -msoft-float
+endif
+
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -G 0
+ARCH_CPUFLAGS       = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
+ARCH_CPUFLAGS_NOFPU = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -mabi=ilp32s -msoft-float
+endif
+
+#*********************************************************************************************************
+# LoongArch64
+# loongarch64-sylixos-elf-ld default max page size is 4KB.
+# The max page size of LoongArch64 in SylixOS is 64KB.
+#*********************************************************************************************************
+ifneq (,$(findstring loongarch64,$(TOOLCHAIN_PREFIX)))
+ARCH             = loongarch64
+ARCH_COMMONFLAGS = 
+
+ifneq ($(MAX_PAGE_SIZE),)
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
+else
+ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=65536
+endif
+
+ARCH_PIC_ASFLAGS = 
+ARCH_PIC_CFLAGS  = -fPIC
+ARCH_PIC_LDFLAGS = -Wl,-shared -fPIC -shared $(ARCH_MAX_PAGE_SIZE)
+
+ARCH_KO_CFLAGS   = -Wa,-mla-global-with-abs,-mla-local-with-abs
+ARCH_KO_LDFLAGS  = -nostdlib -r $(ARCH_MAX_PAGE_SIZE)
+
+ARCH_KLIB_CFLAGS = 
+
+ARCH_KERNEL_CFLAGS  = -Wa,-mla-global-with-pcrel
+ARCH_KERNEL_LDFLAGS = $(ARCH_MAX_PAGE_SIZE)
+
+ifeq ($(FPU_TYPE), double-float)
+ARCH_FPUFLAGS = -mabi=lp64d -mdouble-float
+else ifeq ($(FPU_TYPE), single-float)
+ARCH_FPUFLAGS = -mabi=lp64f -msingle-float
+else
+ARCH_FPUFLAGS = -mabi=lp64s -msoft-float
+endif
+
+ARCH_CPUFLAGS_WITHOUT_FPUFLAGS = -march=$(CPU_TYPE) -G 0
+ARCH_CPUFLAGS       = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) $(ARCH_FPUFLAGS)
+ARCH_CPUFLAGS_NOFPU = $(ARCH_CPUFLAGS_WITHOUT_FPUFLAGS) -mabi=lp64s -msoft-float
+endif
+
+#*********************************************************************************************************
 # End
 #*********************************************************************************************************

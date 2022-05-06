@@ -4,6 +4,9 @@ HISTORY
 
 ++ New features:
 
+    2022-05-05: Qin.Fei & Wang.Ziyang
+    加入 LoongArch 支持.
+
     2021-01-01: han.hui
     加入 fastlock 库, 现实用户态非严格顺序的快速 pthread mutex cond semaphore 实现.
 

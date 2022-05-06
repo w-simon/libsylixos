@@ -50,6 +50,9 @@
 
 #elif defined(LW_CFG_CPU_ARCH_CSKY)
 #include "./csky/csky_gdb.h"
+
+#elif defined(LW_CFG_CPU_ARCH_LOONGARCH)
+#include "./loongarch/loongarch_gdb.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_GDB_H                */

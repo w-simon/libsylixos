@@ -1293,7 +1293,8 @@ static INT dynPhdrParse (LW_LD_EXEC_MODULE *pmodule,
      *  TODO: 目前认为JMPREL跟在REL或RELA表之后，如果没有找到REL表和RELA表，则使用JMPREL表。
      */
 #if !defined(LW_CFG_CPU_ARCH_PPC) && !defined(LW_CFG_CPU_ARCH_C6X) && \
-    !defined(LW_CFG_CPU_ARCH_SPARC) && !defined(LW_CFG_CPU_ARCH_RISCV)
+    !defined(LW_CFG_CPU_ARCH_SPARC) && !defined(LW_CFG_CPU_ARCH_RISCV) && \
+    !defined(LW_CFG_CPU_ARCH_LOONGARCH)
     if (pdyndir->pvJmpRTable) {
         if (DT_REL == pdyndir->ulPltRel) {
             if (!pdyndir->prelTable) {

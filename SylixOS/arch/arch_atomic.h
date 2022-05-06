@@ -50,6 +50,10 @@
 
 #elif defined(LW_CFG_CPU_ARCH_CSKY)
 #include "./csky/csky_atomic.h"
+
+#elif defined(LW_CFG_CPU_ARCH_LOONGARCH)
+#include "./loongarch/loongarch_atomic.h"
+
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_ATOMIC_H             */

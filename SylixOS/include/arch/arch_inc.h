@@ -107,6 +107,15 @@
 #include "csky/arch_regs.h"
 #include "csky/arch_mmu.h"
 #include "csky/arch_mpu.h"
+
+#elif defined(LW_CFG_CPU_ARCH_LOONGARCH)
+#include "loongarch/arch_types.h"
+#include "loongarch/arch_def.h"
+#include "loongarch/arch_compiler.h"
+#include "loongarch/arch_float.h"
+#include "loongarch/arch_limits.h"
+#include "loongarch/arch_regs.h"
+#include "loongarch/arch_mmu.h"
 #endif                                                                  /*  LW_CFG_CPU_ARCH_ARM         */
 
 #endif                                                                  /*  __ARCH_INC_H                */
