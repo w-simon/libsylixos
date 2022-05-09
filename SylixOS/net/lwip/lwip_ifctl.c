@@ -337,6 +337,22 @@ static INT  __ifSubIoctlIf (INT  iCmd, PVOID  pvArg)
             iRet = ERROR_NONE;
         }
         break;
+
+#if LWIP_IPV6
+    case SIOCGIFAUTOCFG:                                                /*  获取 AUTOCFG 属性           */
+        pifreq->ifr_autocfg = netif_get_ip6_autoconfig_enabled(pnetif);
+        iRet = ERROR_NONE;
+        break;
+
+    case SIOCSIFAUTOCFG:                                                /*  设置 AUTOCFG 属性           */
+        if (pifreq->ifr_autocfg !=
+            netif_get_ip6_autoconfig_enabled(pnetif)) {
+            netif_set_ip6_autoconfig_enabled(pnetif, (u8_t)pifreq->ifr_autocfg);
+            netif_set_neighbor_flush(pnetif, LW_NULL, LW_NULL);
+        }
+        iRet = ERROR_NONE;
+        break;
+#endif                                                                  /*  LWIP_IPV6                   */
     }
     
     return  (iRet);
@@ -838,6 +854,10 @@ INT  __ifIoctlInet (INT  iCmd, PVOID  pvArg)
     case SIOCSIFPFLAGS:
     case SIOCGIFSECREG:
     case SIOCSIFSECREG:
+#if LWIP_IPV6
+    case SIOCGIFAUTOCFG:
+    case SIOCSIFAUTOCFG:
+#endif
         LWIP_IF_LIST_LOCK(LW_TRUE);                                     /*  进入临界区 (独占)           */
         iRet = __ifSubIoctlIf(iCmd, pvArg);
         LWIP_IF_LIST_UNLOCK();                                          /*  退出临界区                  */

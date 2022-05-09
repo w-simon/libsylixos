@@ -409,6 +409,11 @@ netif_add(struct netif *netif,
 #if LW_CFG_LWIP_DNS_SWITCH > 0
   lib_bzero(netif->dns_save, sizeof(netif->dns_save));
 #endif /* LW_CFG_LWIP_DNS_SWITCH */
+#if LWIP_IPV6
+  for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+    netif->ip6_addr_is_autocfg[i] = 0;
+  }
+#endif /* LWIP_IPV6 */
 #endif /* SYLIXOS */
 
   /* call user specified initialization function for netif */
@@ -1062,6 +1067,43 @@ netif_set_down(struct netif *netif)
     NETIF_STATUS_CALLBACK(netif);
   }
 }
+
+#ifdef SYLIXOS /* SylixOS Add neighbor flush */
+/**
+ * @ingroup netif
+ * Bring an interface down, disabling any traffic processing.
+ */
+void
+netif_set_neighbor_flush(struct netif *netif, void (*hook)(struct netif *netif, void *arg), void *arg)
+{
+  LWIP_ASSERT_CORE_LOCKED();
+
+  LWIP_ERROR("netif_set_restate: invalid netif", netif != NULL, return);
+
+  if (netif->flags & NETIF_FLAG_UP) {
+#if LWIP_IPV4 && LWIP_ARP
+    if (netif->flags & NETIF_FLAG_ETHARP) {
+      etharp_cleanup_netif(netif);
+    }
+#endif /* LWIP_IPV4 && LWIP_ARP */
+
+#if LWIP_IPV6
+    nd6_cleanup_netif(netif);
+#endif /* LWIP_IPV6 */
+  }
+
+  if (hook) {
+    hook(netif, arg);
+  }
+
+  if (netif->flags & NETIF_FLAG_UP) {
+    netif_issue_reports(netif, NETIF_REPORT_TYPE_IPV4 | NETIF_REPORT_TYPE_IPV6);
+#if LWIP_IPV6
+    nd6_restart_netif(netif);
+#endif /* LWIP_IPV6 */
+  }
+}
+#endif /* SYLIXOS */
 
 #if LWIP_NETIF_STATUS_CALLBACK
 /**

@@ -772,6 +772,8 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
             case SIOCSIFPFLAGS:
             case SIOCGIFSECREG:
             case SIOCSIFSECREG:
+            case SIOCGIFAUTOCFG:
+            case SIOCSIFAUTOCFG:
             case SIOCGSIZIFREQ6:
             case SIOCSIFADDR6:
             case SIOCSIFNETMASK6:

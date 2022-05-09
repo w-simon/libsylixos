@@ -444,6 +444,9 @@ struct netif {
 #if LW_CFG_LWIP_DNS_SWITCH > 0
   ip_addr_t dns_save[DNS_MAX_SERVERS];
 #endif /* LW_CFG_LWIP_DNS_SWITCH */
+#if LWIP_IPV6
+  u8_t ip6_addr_is_autocfg[LWIP_IPV6_NUM_ADDRESSES];
+#endif
 #endif /* SYLIXOS */
 };
 
@@ -522,6 +525,10 @@ void netif_set_down(struct netif *netif);
  */
 #define netif_is_up(netif) (((netif)->flags & NETIF_FLAG_UP) ? (u8_t)1 : (u8_t)0)
 
+#ifdef SYLIXOS /* SylixOS Add neighbor flush */
+void netif_set_neighbor_flush(struct netif *netif, void (*hook)(struct netif *netif, void *arg), void *arg);
+#endif /* SYLIXOS */
+
 #if LWIP_NETIF_STATUS_CALLBACK
 void netif_set_status_callback(struct netif *netif, netif_status_callback_fn status_callback);
 #endif /* LWIP_NETIF_STATUS_CALLBACK */
@@ -584,6 +591,7 @@ s8_t netif_get_ip6_addr_match(struct netif *netif, const ip6_addr_t *ip6addr);
 void netif_create_ip6_linklocal_address(struct netif *netif, u8_t from_mac_48bit);
 err_t netif_add_ip6_address(struct netif *netif, const ip6_addr_t *ip6addr, s8_t *chosen_idx);
 #define netif_set_ip6_autoconfig_enabled(netif, action) do { if(netif) { (netif)->ip6_autoconfig_enabled = (action); }}while(0)
+#define netif_get_ip6_autoconfig_enabled(netif) ((netif)->ip6_autoconfig_enabled) /* SylixOS Add get macro */
 #if LWIP_IPV6_ADDRESS_LIFETIMES
 #define netif_ip6_addr_valid_life(netif, i)  \
     (((netif) != NULL) ? ((netif)->ip6_addr_valid_life[i]) : IP6_ADDR_LIFE_STATIC)

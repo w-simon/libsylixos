@@ -289,6 +289,10 @@ nd6_process_autoconfig_prefix(struct netif *netif,
   netif_ip6_addr_set_valid_life(netif, free_idx, valid_life);
   netif_ip6_addr_set_pref_life(netif, free_idx, pref_life);
   netif_ip6_addr_set_state(netif, free_idx, IP6_ADDR_TENTATIVE);
+
+#ifdef SYLIXOS /* SylixOS save autoconfig address index */
+  netif->ip6_addr_is_autocfg[free_idx] = 1;
+#endif /* SYLIXOS */
 }
 #endif /* LWIP_IPV6_AUTOCONFIG */
 
@@ -2424,6 +2428,18 @@ nd6_cleanup_netif(struct netif *netif)
    * invalid for one of several reasons. As destination cache entries have no
    * netif association, use a sledgehammer approach (this can be improved). */
   nd6_clear_destination_cache();
+
+#ifdef SYLIXOS /* SylixOS Free autoconfig address */
+  for (i = 0; i < LWIP_IPV6_NUM_ADDRESSES; i++) {
+    if (netif->ip6_addr_is_autocfg[i]) {
+      netif->ip6_addr_is_autocfg[i] = 0;
+      ip6_addr_set_any(ip_2_ip6(&((netif)->ip6_addr[i])));
+      netif_ip6_addr_set_valid_life(netif, i, 0);
+      netif_ip6_addr_set_pref_life(netif, i, 0);
+      netif_ip6_addr_set_state(netif, i, IP6_ADDR_INVALID);
+    }
+  }
+#endif /* SYLIXOS */
 }
 
 #if LWIP_IPV6_MLD

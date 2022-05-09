@@ -128,6 +128,7 @@ struct ifreq {
         int                 ifru_tcpaf;
         int                 ifru_tcpwnd;
         int                 ifru_secreg;
+        int                 ifru_autocfg;
         void               *ifru_data;
     } ifr_ifru;
 };
@@ -147,6 +148,7 @@ struct ifreq {
 #define ifr_tcpaf           ifr_ifru.ifru_tcpaf                 /* 2 ~ 127                              */
 #define ifr_tcpwnd          ifr_ifru.ifru_tcpwnd
 #define ifr_secreg          ifr_ifru.ifru_secreg
+#define ifr_autocfg         ifr_ifru.ifru_autocfg
 #define ifr_data            ifr_ifru.ifru_data
 
 struct ifaliasreq {
@@ -219,6 +221,9 @@ struct ifconf {
 
 #define SIOCGIFSECREG       _IOWR('i', 68, struct ifreq)
 #define SIOCSIFSECREG       _IOW('i',  69, struct ifreq)
+
+#define SIOCGIFAUTOCFG      _IOWR('i', 70, struct ifreq)
+#define SIOCSIFAUTOCFG      _IOW('i',  71, struct ifreq)
 
 /*********************************************************************************************************
   sylixos if6 structures

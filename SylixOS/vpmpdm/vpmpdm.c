@@ -63,7 +63,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "2.1.6" /* vp patch version */
+#define __VP_PATCH_VERSION      "2.1.7" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -77,12 +77,14 @@
  */
 #if __GNUC__ > 4
 extern double ceil (double);
+extern int __fpclassifyd (double x);
 extern int __fpclassifyf (float x);
 extern double rint (double);
 
 void* libm_import_ceil(double d)
 {
     d = rint(d); /* import symbol rint */
+    __fpclassifyd(d); /* import symbol __fpclassifyd */
     __fpclassifyf((float)d); /* import symbol __fpclassifyf */
     return (void*)(ceil); /* import symbol ceil and avoid optimization*/
 }

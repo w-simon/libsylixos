@@ -37,6 +37,7 @@ static const CHAR   _G_cIpv6Help[] = {
     "add/delete IPv6 address\n"
     "address   [ifname [address%prefixlen]]  add an ipv6 address for given interface\n"
     "noaddress [ifname [address%prefixlen]]  delete an ipv6 address for given interface\n"
+    "autocfg   [ifname yes | no]             enable or disable auto configure for given interface\n"
 };
 /*********************************************************************************************************
 ** 函数名称: __ifreq6Init
@@ -48,11 +49,14 @@ static const CHAR   _G_cIpv6Help[] = {
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static VOID  __ifreq6Init (struct in6_ifreq *pifeq6, CPCHAR pcIf, PCHAR pcIpv6)
+static INT  __ifreq6Init (struct in6_ifreq *pifeq6, CPCHAR pcIf, PCHAR pcIpv6)
 {
     PCHAR pcDiv;
 
     pifeq6->ifr6_ifindex = if_nametoindex(pcIf);
+    if (!pifeq6->ifr6_ifindex) {
+        return  (PX_ERROR);
+    }
     
     pcDiv = lib_strchr(pcIpv6, '%');
     if (pcDiv) {
@@ -65,6 +69,8 @@ static VOID  __ifreq6Init (struct in6_ifreq *pifeq6, CPCHAR pcIf, PCHAR pcIpv6)
         inet6_aton(pcIpv6, &pifeq6->ifr6_addr_array->ifr6a_addr);
         pifeq6->ifr6_addr_array->ifr6a_prefixlen = 64;                  /*  default prefixlen           */
     }
+
+    return  (ERROR_NONE);
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellIpv6Address
@@ -83,26 +89,29 @@ static INT  __tshellIpv6Address (INT  iArgC, PCHAR  *ppcArgV)
     INT iSock;
     
     if (iArgC < 4) {
-        printf("%s", _G_cIpv6Help);
-        return  (ERROR_NONE);
+        fprintf(stderr, "%s", _G_cIpv6Help);
+        return  (PX_ERROR);
     }
     
     ifeq6.ifr6_len = sizeof(struct in6_ifr_addr);
     ifeq6.ifr6_addr_array = &ifraddr6;
     
-    __ifreq6Init(&ifeq6, ppcArgV[2], ppcArgV[3]);
+    if (__ifreq6Init(&ifeq6, ppcArgV[2], ppcArgV[3])) {
+        fprintf(stderr, "invalid interface.\n");
+        return  (PX_ERROR);
+    }
     
     iSock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (iSock < 0) {
         fprintf(stderr, "can not create socket error: %s\n", lib_strerror(errno));
-        return  (ERROR_NONE);
+        return  (PX_ERROR);
     }
     
     if (ioctl(iSock, SIOCSIFADDR6, &ifeq6)) {
         INT   iErrNo = errno;
         close(iSock);
         fprintf(stderr, "can not set/add ipv6 address error: %s\n", lib_strerror(iErrNo));
-        return  (ERROR_NONE);
+        return  (PX_ERROR);
     }
     
     close(iSock);
@@ -126,31 +135,97 @@ static INT  __tshellIpv6Noaddress (INT  iArgC, PCHAR  *ppcArgV)
     INT iSock;
     
     if (iArgC < 4) {
-        printf("%s", _G_cIpv6Help);
-        return  (ERROR_NONE);
+        fprintf(stderr, "%s", _G_cIpv6Help);
+        return  (PX_ERROR);
     }
     
     ifeq6.ifr6_len = sizeof(struct in6_ifr_addr);
     ifeq6.ifr6_addr_array = &ifraddr6;
     
-    __ifreq6Init(&ifeq6, ppcArgV[2], ppcArgV[3]);
+    if (__ifreq6Init(&ifeq6, ppcArgV[2], ppcArgV[3])) {
+        fprintf(stderr, "invalid interface.\n");
+        return  (PX_ERROR);
+    }
     
     iSock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (iSock < 0) {
         fprintf(stderr, "can not create socket error: %s\n", lib_strerror(errno));
-        return  (ERROR_NONE);
+        return  (PX_ERROR);
     }
     
     if (ioctl(iSock, SIOCDIFADDR6, &ifeq6)) {
         INT   iErrNo = errno;
         close(iSock);
         fprintf(stderr, "can not delete ipv6 address error: %s\n", lib_strerror(iErrNo));
-        return  (ERROR_NONE);
+        return  (PX_ERROR);
     }
     
     close(iSock);
     
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: __tshellIpv6Autocfg
+** 功能描述: 系统命令 "ipv6 autocfg"
+** 输　入  : iArgC         参数个数
+**           ppcArgV       参数表
+** 输　出  : 0
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static INT  __tshellIpv6Autocfg (INT  iArgC, PCHAR  *ppcArgV)
+{
+    struct ifreq ifreq;
+
+    INT iSock;
+
+    if (iArgC < 3) {
+        fprintf(stderr, "%s", _G_cIpv6Help);
+        return  (PX_ERROR);
+    }
+
+    if (strnlen(ppcArgV[2], IFNAMSIZ) >= IFNAMSIZ) {
+        fprintf(stderr, "ifname to long.\n");
+        return  (PX_ERROR);
+    }
+
+    lib_strcpy(ifreq.ifr_name, ppcArgV[2]);
+
+    iSock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    if (iSock < 0) {
+        fprintf(stderr, "can not create socket error: %s\n", lib_strerror(errno));
+        return  (PX_ERROR);
+    }
+
+    if (iArgC == 3) {
+        if (ioctl(iSock, SIOCGIFAUTOCFG, &ifreq)) {
+            INT   iErrNo = errno;
+            close(iSock);
+            fprintf(stderr, "can not get IPv6 auto configure setting: %s\n", lib_strerror(iErrNo));
+            return  (PX_ERROR);
+        }
+
+        close(iSock);
+        printf("interface %s IPv6 auto configure: %s\n",
+               ppcArgV[2], ifreq.ifr_autocfg ? "yes" : "no");
+        return  (ERROR_NONE);
+
+    } else {
+        if (*ppcArgV[3] == 'y' || *ppcArgV[3] == 'Y') {
+            ifreq.ifr_autocfg = 1;
+        } else {
+            ifreq.ifr_autocfg = 0;
+        }
+        if (ioctl(iSock, SIOCSIFAUTOCFG, &ifreq)) {
+            INT   iErrNo = errno;
+            close(iSock);
+            fprintf(stderr, "can not set IPv6 auto configure setting: %s\n", lib_strerror(iErrNo));
+            return  (PX_ERROR);
+        }
+
+        close(iSock);
+        return  (ERROR_NONE);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __tshellIpv6
@@ -164,7 +239,7 @@ static INT  __tshellIpv6Noaddress (INT  iArgC, PCHAR  *ppcArgV)
 static INT  __tshellIpv6 (INT  iArgC, PCHAR  *ppcArgV)
 {
     if (iArgC < 2) {
-        printf("%s", _G_cIpv6Help);
+        fprintf(stderr, "%s", _G_cIpv6Help);
         return  (ERROR_NONE);
     }
     
@@ -174,8 +249,11 @@ static INT  __tshellIpv6 (INT  iArgC, PCHAR  *ppcArgV)
     } else if (lib_strcmp(ppcArgV[1], "noaddress") == 0) {              /*  删除 ipv6 地址              */
         return  (__tshellIpv6Noaddress(iArgC, ppcArgV));
     
+    } else if (lib_strcmp(ppcArgV[1], "autocfg") == 0) {                /*  设置 auto config 选项       */
+        return  (__tshellIpv6Autocfg(iArgC, ppcArgV));
+
     } else {
-        printf("%s", _G_cIpv6Help);
+        fprintf(stderr, "%s", _G_cIpv6Help);
         return  (ERROR_NONE);
     }
 }
