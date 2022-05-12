@@ -632,6 +632,17 @@ INT  API_PciAutoDeviceSetup (PCI_CTRL_HANDLE         hCtrl,
                 uiBar += 4;
                 API_PciConfigOutDword(iBus, iDev, iFunc, uiBar, (UINT32)(addrBarValue >> 32));
             }
+
+        } else {
+            if (iMem64En) {
+                uiBar += 4;
+            }
+
+            PCI_AUTO_LOG(PCI_AUTO_LOG_ERR,
+                         "%02x:%02x.%01x BAR %d, type %s %s, size=0x%qx, Region allocate failed.\r\n",
+                         iBus, iDev, iFunc, iBarIndex,
+                         iMem64En ? "64bit" : "32bit",
+                         (hBarRegion == hRegionPrefetch) ? "Prf" : "Mem", (UINT64)stBarSize);
         }
 
         usCmdStatus |= (uiBarResponse & PCI_BASE_ADDRESS_SPACE) ? PCI_COMMAND_IO : PCI_COMMAND_MEMORY;
