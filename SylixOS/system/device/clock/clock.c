@@ -126,6 +126,7 @@ static PLW_CLOCK  __clockTreeFind (CPCHAR  pcName)
 static PLW_CLOCK  __clockParentGetByIndex (PLW_CLOCK  pclk, UINT8  ucIndex)
 {
     if (ucIndex >= pclk->CLK_uiNumParents) {                            /*  父时钟序号无效              */
+        _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
 
@@ -178,7 +179,7 @@ static INT  __clockParentIndexFetch (PLW_CLOCK  pclk, PLW_CLOCK  pclkParent)
         }
     }
 
-    _ErrorHandle(EINVAL);
+    _ErrorHandle(ENOENT);
 
     return  (PX_ERROR);
 }
@@ -326,29 +327,30 @@ INT  API_ClockParentSet (PLW_CLOCK  pclk, PLW_CLOCK  pclkParent)
 LW_API
 INT  API_ClockRateSet (PLW_CLOCK  pclk, ULONG  ulReqRate)
 {
-    ULONG    ulRate;
+    LONG    lRate;
 
     if (!pclk) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
     if (pclk->CLK_clkops->clockRateRound) {                             /*  获得最接近的时钟            */
-        ulRate = pclk->CLK_clkops->clockRateRound(pclk,
-                                                  ulReqRate,
-                                                  &pclk->CLK_clkparent->CLK_ulRate);
+        lRate = pclk->CLK_clkops->clockRateRound(pclk,
+                                                 ulReqRate,
+                                                 &pclk->CLK_clkparent->CLK_ulRate);
     } else {
-        ulRate = ulReqRate;
+        lRate = ulReqRate;
     }
 
-    if (ulRate < 0) {
-        return  (ulRate);
+    if (lRate < 0) {
+        return  (PX_ERROR);
     }
 
-    if (ulRate == API_ClockRateGet(pclk)) {                             /*  如果和当前时钟相等，返回    */
+    if (lRate == API_ClockRateGet(pclk)) {                             /*  如果和当前时钟相等，返回    */
         return  (ERROR_NONE);
     }
 
-    pclk->CLK_clkops->clockRateSet(pclk, ulRate, pclk->CLK_clkparent->CLK_ulRate);
+    pclk->CLK_clkops->clockRateSet(pclk, lRate, pclk->CLK_clkparent->CLK_ulRate);
 
     return  (ERROR_NONE);
 }
@@ -367,6 +369,7 @@ ULONG  API_ClockRateGet (PLW_CLOCK  pclk)
     ULONG  ulRate;
 
     if (!pclk) {                                                        /*  参数无效                    */
+        _ErrorHandle(EINVAL);
         return  (0);
     }
 
@@ -378,6 +381,7 @@ ULONG  API_ClockRateGet (PLW_CLOCK  pclk)
         return  (ulRate);
 
     } else if (!pclk->CLK_clkparent) {                                  /*  有父时钟，但父时钟还未有效  */
+        _ErrorHandle(EAGAIN);
         return  (0);
     }
 
@@ -397,8 +401,10 @@ LW_API
 LONG  API_ClockRateRound (PLW_CLOCK  pclk, ULONG  ulRate)
 {
     ULONG  ulParentRate;
+    LONG   lRet;
 
     if (!pclk) {
+        _ErrorHandle(EINVAL);
         return  (0);
     }
 
@@ -409,18 +415,16 @@ LONG  API_ClockRateRound (PLW_CLOCK  pclk, ULONG  ulRate)
     }
 
     if (pclk->CLK_clkops->clockRateRound) {
-        ulRate = pclk->CLK_clkops->clockRateRound(pclk,
-                                                  ulRate,
-                                                  &ulParentRate);
-        if (ulRate < 0) {
-            return  (ulRate);
+        lRet = pclk->CLK_clkops->clockRateRound(pclk, ulRate, &ulParentRate);
+        if (lRet < 0) {
+            return  (lRet);
         }
 
     } else {
-        return  (pclk->CLK_ulRate);
+        return  (ulParentRate);
     }
 
-    return  (ulRate);
+    return  (lRet);
 }
 /*********************************************************************************************************
 ** 函数名称: API_ClockSimpleGet
@@ -456,6 +460,11 @@ INT  API_ClockProviderAdd (PLW_DEVTREE_NODE  pdtnDev,
 {
     PLW_CLOCK_PROVIDER  pclkprovider;
 
+    if (!pdtnDev || !pfuncClkGet) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
     pclkprovider = __SHEAP_ALLOC(sizeof(LW_CLOCK_PROVIDER));
     if (!pclkprovider) {
         _ErrorHandle(ENOMEM);
@@ -485,9 +494,9 @@ INT  API_ClockProviderAdd (PLW_DEVTREE_NODE  pdtnDev,
 LW_API
 PLW_CLOCK  API_ClockGetFromProvider (PLW_DEVTREE_PHANDLE_ARGS  pdtpaClkSpec)
 {
-    PLW_CLOCK_PROVIDER pclkprovider;
-    PLW_CLOCK          pclk = LW_NULL;
-    PLW_LIST_LINE      plineTemp;
+    PLW_CLOCK_PROVIDER  pclkprovider;
+    PLW_CLOCK           pclk = LW_NULL;
+    PLW_LIST_LINE       plineTemp;
 
     if (!pdtpaClkSpec) {
         _ErrorHandle(EINVAL);
@@ -534,6 +543,7 @@ LW_API
 PLW_CLOCK  API_ClockFind (CPCHAR  pcName)
 {
     if (!pcName) {
+        _ErrorHandle(EINVAL);
         return  (LW_NULL);
     }
 
@@ -553,7 +563,8 @@ INT  API_ClockEnable (PLW_CLOCK  pclk)
 {
     INT  iRet;
 
-    if (!pclk){
+    if (!pclk) {
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
@@ -593,6 +604,11 @@ LW_API
 VOID  API_ClockDisable (PLW_CLOCK  pclk)
 {
     if (!pclk) {
+        _ErrorHandle(EINVAL);
+        return;
+    }
+
+    if (pclk->CLK_ulFlags & LW_CLOCK_IS_ROOT) {                         /*  根时钟类型不可关闭          */
         return;
     }
 
@@ -602,14 +618,12 @@ VOID  API_ClockDisable (PLW_CLOCK  pclk)
 
     if (pclk->CLK_uiEnableCount > 0) {
         pclk->CLK_uiEnableCount--;
-        return;
-    }
 
-    if (pclk->CLK_clkops->clockDisable) {
-        pclk->CLK_clkops->clockDisable(pclk);
+        if ((pclk->CLK_uiEnableCount == 0) && pclk->CLK_clkops->clockDisable) {
+            pclk->CLK_clkops->clockDisable(pclk);
+            API_ClockDisable(pclk->CLK_clkparent);
+        }
     }
-
-    API_ClockDisable(pclk->CLK_clkparent);
 }
 /*********************************************************************************************************
 ** 函数名称: API_ClockInitDataSet
@@ -635,7 +649,12 @@ INT  API_ClockInitDataSet (PLW_CLOCK      pclk,
 {
     INT  i;
 
-    if (!pclk || !pclkops) {
+    if (!pclk || !pclkops || !pcName) {
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
+
+    if ((uiParentNum > 0) && !ppcParentName) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -708,7 +727,7 @@ __error_handle2:
     __SHEAP_FREE(pclk->CLK_ppcParentNames);
 
 __error_handle1:
-    __SHEAP_FREE(pclk->CLK_pcName);
+    lib_free(pclk->CLK_pcName);
 
 __error_handle0:
     return  (PX_ERROR);
@@ -730,6 +749,7 @@ INT  API_ClockRegister (PLW_CLOCK  pclk)
     PLW_CLOCK       pclkparent;
 
     if (!pclk) {                                                        /*  参数判断                    */
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
@@ -757,6 +777,7 @@ INT  API_ClockRegister (PLW_CLOCK  pclk)
         pclk->CLK_clkops->clockInit(pclk);
     }
 
+    __CLOCK_LIST_LOCK();
     for (plineTemp  = _G_plineClockOrphan;
          plineTemp != LW_NULL;                                          /*  检查孤立树中是否有可移除的  */
          plineTemp  = _list_line_get_next(plineTemp)) {                 /*  更新时钟拓扑中的结构        */
@@ -767,6 +788,7 @@ INT  API_ClockRegister (PLW_CLOCK  pclk)
             __clockParentUpdate(pclkorphan, pclkparent);                /*  父时钟更新                  */
         }
     }
+    __CLOCK_LIST_UNLOCK();
 
     return  (ERROR_NONE);
 }

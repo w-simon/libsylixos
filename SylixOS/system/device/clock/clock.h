@@ -242,7 +242,7 @@ LW_API PLW_CLOCK  API_ClockDividerRegister(CPCHAR               pcName,
                                            FUNCPTR              pfuncValSet);
 
 LW_API PLW_CLOCK  API_ClockFixedFactorRegister(CPCHAR  pcName,
-                                               CHAR  **pcParentName,
+                                               PCHAR  *ppcParentName,
                                                ULONG   ulFlags,
                                                UINT    uiFixedMult,
                                                UINT    uiFixedDiv);
@@ -252,14 +252,14 @@ LW_API PLW_CLOCK  API_ClockFixedRateRegister(CPCHAR    pcName,
                                              ULONG     ulFixedRate);
 
 LW_API PLW_CLOCK  API_ClockGateRegister(CPCHAR       pcName,
-                                        CHAR       **pcParentName,
+                                        PCHAR       *ppcParentName,
                                         ULONG        ulFlags,
                                         FUNCPTR      pfuncEnable,
                                         FUNCPTR      pfuncDisable,
                                         BOOLFUNCPTR  pfuncIsEnabled);
 
 LW_API PLW_CLOCK  API_ClockMuxRegister(CPCHAR               pcName,
-                                       CHAR               **pcParentName,
+                                       PCHAR               *ppcParentName,
                                        ULONG                ulFlags,
                                        UINT                 uiParentNum,
                                        PLW_CLOCK_MUX_TABLE  pclkmuxtable,

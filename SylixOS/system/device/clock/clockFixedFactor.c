@@ -77,9 +77,9 @@ static LONG  __clockFixedFactorRateRound (PLW_CLOCK  pclk, ULONG  ulRate, ULONG 
     ULONG                   ulBestParent;
 
     if (__HW_FLAGS_GET(pclk) & LW_CLOCK_SET_RATE_PARENT) {              /*  同时设置父时钟的频率        */
-        ulBestParent  = (ulRate / pclkfixedfactor->CLKFF_uiFixedMult) *
-                        pclkfixedfactor->CLKFF_uiFixedDiv;
-       *pulParentRate = API_ClockRateRound(__HW_PARENT_GET(pclk), ulBestParent);
+        ulBestParent   = (ulRate / pclkfixedfactor->CLKFF_uiFixedMult) *
+                         pclkfixedfactor->CLKFF_uiFixedDiv;
+        *pulParentRate = API_ClockRateRound(__HW_PARENT_GET(pclk), ulBestParent);
     }
 
     return  ((*pulParentRate / pclkfixedfactor->CLKFF_uiFixedDiv) *
@@ -114,7 +114,7 @@ static INT  __clockFixedFactorRateSet (PLW_CLOCK  pclk, ULONG  ulRate, ULONG  ul
 *********************************************************************************************************/
 LW_API
 PLW_CLOCK  API_ClockFixedFactorRegister (CPCHAR  pcName,
-                                         CHAR  **pcParentName,
+                                         PCHAR  *ppcParentName,
                                          ULONG   ulFlags,
                                          UINT    uiFixedMult,
                                          UINT    uiFixedDiv)
@@ -122,6 +122,11 @@ PLW_CLOCK  API_ClockFixedFactorRegister (CPCHAR  pcName,
     PLW_CLOCK_FIXED_FACTOR   pclkfixedfactor;
     PLW_CLOCK                pclk;
     INT                      iRet;
+
+    if (!pcName || !ppcParentName) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
 
     pclkfixedfactor = __SHEAP_ZALLOC(sizeof(LW_CLOCK_FIXED_FACTOR));
     if (!pclkfixedfactor) {
@@ -133,7 +138,7 @@ PLW_CLOCK  API_ClockFixedFactorRegister (CPCHAR  pcName,
                                 pcName,
                                 &_G_clkopsFixedFactor,
                                 ulFlags,
-                                pcParentName,
+                                ppcParentName,
                                 1);
     if (iRet) {
         __SHEAP_FREE(pclkfixedfactor);

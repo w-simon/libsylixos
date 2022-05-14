@@ -95,10 +95,10 @@ static INT  __clockMuxParentSet (PLW_CLOCK  pclk, UINT8  ucIndex)
 
     uiVal     = uiVal << pclkmux->CLKM_uiShift;
     uiRegVal  = pclkmux->CLKM_pfuncValGet(pclk);
-    uiRegVal &= ~pclkmux->CLKM_uiMask;
+    uiRegVal &= ~(pclkmux->CLKM_uiMask << pclkmux->CLKM_uiShift);
     uiRegVal |= uiVal;
 
-    return  (pclkmux->CLKM_pfuncValSet(pclk, uiVal));
+    return  (pclkmux->CLKM_pfuncValSet(pclk, uiRegVal));
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_ClockDividerRegister
@@ -118,7 +118,7 @@ static INT  __clockMuxParentSet (PLW_CLOCK  pclk, UINT8  ucIndex)
 *********************************************************************************************************/
 LW_API
 PLW_CLOCK  API_ClockMuxRegister (CPCHAR               pcName,
-                                 CHAR               **pcParentName,
+                                 PCHAR               *ppcParentName,
                                  ULONG                ulFlags,
                                  UINT                 uiParentNum,
                                  PLW_CLOCK_MUX_TABLE  pclkmuxtable,
@@ -131,6 +131,11 @@ PLW_CLOCK  API_ClockMuxRegister (CPCHAR               pcName,
     PLW_CLOCK           pclk;
     INT                 iRet;
 
+    if (!pcName || !ppcParentName || !pclkmuxtable || !pfuncValGet || !pfuncValSet) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
+
     pclkmux = __SHEAP_ZALLOC(sizeof(LW_CLOCK_MUX));
     if (!pclkmux) {
         _ErrorHandle(ENOMEM);
@@ -141,7 +146,7 @@ PLW_CLOCK  API_ClockMuxRegister (CPCHAR               pcName,
                                 pcName,
                                 &_G_clkopsMux,
                                 ulFlags,
-                                pcParentName,
+                                ppcParentName,
                                 uiParentNum);
     if (iRet) {
         __SHEAP_FREE(pclkmux);

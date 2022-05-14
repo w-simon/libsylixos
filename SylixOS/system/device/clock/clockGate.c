@@ -108,7 +108,7 @@ static BOOL __clockGateIsEnabled (PLW_CLOCK  pclk)
 *********************************************************************************************************/
 LW_API
 PLW_CLOCK  API_ClockGateRegister (CPCHAR       pcName,
-                                  CHAR       **pcParentName,
+                                  PCHAR       *ppcParentName,
                                   ULONG        ulFlags,
                                   FUNCPTR      pfuncEnable,
                                   FUNCPTR      pfuncDisable,
@@ -117,6 +117,11 @@ PLW_CLOCK  API_ClockGateRegister (CPCHAR       pcName,
     PLW_CLOCK_GATE       pclkgate;
     PLW_CLOCK            pclk;
     INT                  iRet;
+
+    if (!pcName) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
 
     pclkgate = __SHEAP_ZALLOC(sizeof(LW_CLOCK_GATE));
     if (!pclkgate) {
@@ -128,8 +133,8 @@ PLW_CLOCK  API_ClockGateRegister (CPCHAR       pcName,
                                 pcName,
                                 &_G_clkopsGate,
                                 ulFlags,
-                                pcParentName,
-                                pcParentName ? 1 : 0);
+                                ppcParentName,
+                                ppcParentName ? 1 : 0);
     if (iRet) {
         __SHEAP_FREE(pclkgate);
         return  (LW_NULL);

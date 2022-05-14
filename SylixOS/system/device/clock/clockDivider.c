@@ -291,7 +291,7 @@ static UINT  __clockTableMaxDivGet (PLW_CLOCK_DIV_TABLE  pclkdivtable)
     return  (uiMaxDiv);
 }
 /*********************************************************************************************************
-** 函数名称: __clockTableBestdivGet
+** 函数名称: __clockTableBestDivGet
 ** 功能描述: 获得最合适的分频值
 ** 输　入  : pclk               时钟设备
 **           pclkParent         父时钟设备
@@ -302,7 +302,7 @@ static UINT  __clockTableMaxDivGet (PLW_CLOCK_DIV_TABLE  pclkdivtable)
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static UINT  __clockTableBestdivGet (PLW_CLOCK            pclk,
+static UINT  __clockTableBestDivGet (PLW_CLOCK            pclk,
                                      PLW_CLOCK            pclkParent,
                                      ULONG                ulRate,
                                      ULONG               *pulBestParentRate,
@@ -452,7 +452,7 @@ static LONG  __clockDividerRateRound (PLW_CLOCK  pclk, ULONG  ulRate, ULONG  *pu
     PLW_CLOCK          pclkParent  = pclk->CLK_clkparent;
     UINT32             uiDiv;
 
-    uiDiv = __clockTableBestdivGet(pclk,
+    uiDiv = __clockTableBestDivGet(pclk,
                                    pclkParent,
                                    ulRate,
                                    pulParentRate,
@@ -489,6 +489,11 @@ PLW_CLOCK  API_ClockDividerRegister (CPCHAR               pcName,
     PLW_CLOCK_DIVIDER   pclkdivider;
     PLW_CLOCK           pclk;
     INT                 iRet;
+
+    if (!pcName || !ppcParentName || !pclkdivtable || !pfuncValGet || !pfuncValSet) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
 
     pclkdivider = __SHEAP_ZALLOC(sizeof(LW_CLOCK_DIVIDER));
     if (!pclkdivider) {

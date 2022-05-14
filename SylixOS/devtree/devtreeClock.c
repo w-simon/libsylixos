@@ -31,7 +31,7 @@
 #include "driver/fdt/fdt.h"
 /*********************************************************************************************************
 ** 函数名称: API_DeviceTreeClockGetByName
-** 功能描述: 通过时钟名获取时钟结构
+** 功能描述: 通过时钟名获取时钟结构, 如果 pcName 为 LW_NULL, 查找首个时钟.
 ** 输　入  : pdtnDev     设备树节点
 **           pcName      时钟名称
 ** 输　出  : 时钟结构
@@ -43,18 +43,22 @@ LW_API
 PLW_CLOCK  API_DeviceTreeClockGetByName (PLW_DEVTREE_NODE  pdtnDev, CPCHAR  pcName)
 {
     PLW_CLOCK  pclk   = LW_NULL;
-    INT        iIndex = 0;
+    INT        iIndex;
 
     while (pdtnDev) {
+        iIndex = 0;                                                     /*  循环查找每次需要重置索引    */
+
         if (pcName) {
             iIndex = API_DeviceTreePropertyStringMatch(pdtnDev, "clock-names", pcName);
         }
 
         pclk = API_DeviceTreeClockGet(pdtnDev, iIndex);
-        if (!pclk) {
-            break;
-        } else if (pcName && (iIndex >= 0)) {
+        if (pclk) {
             return  (pclk);
+        }
+
+        if (pcName && (iIndex >= 0)) {
+            break;
         }
 
         pdtnDev = pdtnDev->DTN_pdtnparent;

@@ -1913,6 +1913,7 @@ SylixOS/system/device/spipe/spipeLib.c \
 SylixOS/system/device/ty/termios.c \
 SylixOS/system/device/ty/tty.c \
 SylixOS/system/device/ty/tyLib.c \
+SylixOS/system/device/regulator/regulator.c \
 SylixOS/system/distribute/distribute.c \
 SylixOS/system/epoll/epollDev.c \
 SylixOS/system/epoll/epollLib.c \

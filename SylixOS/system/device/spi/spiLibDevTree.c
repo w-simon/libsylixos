@@ -119,7 +119,7 @@ static INT  __spiGpioNumbersGet (PLW_DT_SPI_CTRL  pdtspictrl)
     iCount = API_DeviceTreeGpioNamedCountGet(pdtnDev, "cs-gpios");
     if (iCount <= 0) {
         pdtspictrl->DTSPICTRL_usChipSelNums = 0;
-        return  (iCount);
+        return  (ERROR_NONE);                                           /*  不使用 GPIO 作为片选信号    */
     }
     pdtspictrl->DTSPICTRL_usChipSelNums   = iCount;
 

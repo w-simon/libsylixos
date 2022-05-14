@@ -65,9 +65,14 @@ PLW_CLOCK  API_ClockFixedRateRegister (CPCHAR  pcName,
                                        ULONG   ulFlags,
                                        ULONG   ulFixedRate)
 {
-    PLW_CLOCK_FIXED_RATE pclkfixedrate;
-    PLW_CLOCK            pclk;
-    INT                  iRet;
+    PLW_CLOCK_FIXED_RATE    pclkfixedrate;
+    PLW_CLOCK               pclk;
+    INT                     iRet;
+
+    if (!pcName) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
 
     pclkfixedrate = __SHEAP_ZALLOC(sizeof(LW_CLOCK_FIXED_RATE));
     if (!pclkfixedrate) {
