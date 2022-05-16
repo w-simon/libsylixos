@@ -432,7 +432,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring loongarch32,$(TOOLCHAIN_PREFIX)))
 ARCH             = loongarch32
-ARCH_COMMONFLAGS = 
+ARCH_COMMONFLAGS = -mstrict-align
 
 ifneq ($(MAX_PAGE_SIZE),)
 ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
@@ -472,7 +472,7 @@ endif
 #*********************************************************************************************************
 ifneq (,$(findstring loongarch64,$(TOOLCHAIN_PREFIX)))
 ARCH             = loongarch64
-ARCH_COMMONFLAGS = 
+ARCH_COMMONFLAGS = -mstrict-align
 
 ifneq ($(MAX_PAGE_SIZE),)
 ARCH_MAX_PAGE_SIZE = -Wl,-z,max-page-size=$(MAX_PAGE_SIZE)
