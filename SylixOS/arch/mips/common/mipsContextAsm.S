@@ -53,7 +53,7 @@
 ;*********************************************************************************************************/
 
 MACRO_DEF(SET_USERLOCAL)
-#if LW_CFG_MIPS_FAST_TCB_CUR > 0
+#if LW_CFG_CPU_FAST_TLS > 0
     .set    push
     .set    noat
 

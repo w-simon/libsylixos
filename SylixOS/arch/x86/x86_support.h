@@ -101,7 +101,7 @@ PLW_STACK   archCtxStackEnd(const ARCH_REG_CTX  *pregctx);
 #if LW_CFG_CPU_FAST_TLS > 0
 #define __ARCH_FAST_TLS_TID() \
 ({ \
-    LW_OBJECT_HANDLE tid; \
+    REGISTER LW_OBJECT_HANDLE tid; \
     __asm__ __volatile__("movq %%fs:%P1, %q0" \
                          : "=r" (tid) \
                          : "i" (offsetof(LW_CLASS_TCB, TCB_ulId))); \
@@ -109,8 +109,8 @@ PLW_STACK   archCtxStackEnd(const ARCH_REG_CTX  *pregctx);
 })
 #define __ARCH_FAST_TLS_TCB() \
 ({ \
-    UINT16 index; \
-    __asm__ __volatile__("movw %%fs:%P1, %q0" \
+    REGISTER UINT16 index; \
+    __asm__ __volatile__("movw %%fs:%P1, %w0" \
                          : "=r" (index) \
                          : "i" (offsetof(LW_CLASS_TCB, TCB_usIndex))); \
     _K_ptcbTCBIdTable[index]; \

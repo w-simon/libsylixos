@@ -61,7 +61,7 @@ FUNC_DEF(archResumePc)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archTaskCtxStart)
-#if LW_CFG_X64_FAST_TCB_CUR > 0
+#if LW_CFG_CPU_FAST_TLS > 0
     MOVL    0(%RDI) , %EAX                                              ;/*  Low-order 32 bits           */
     MOVL    4(%RDI) , %EDX                                              ;/*  High-order 32 bits          */
     MOV     $X86_MSR_IA32_FS_BASE , %RCX                                ;/*  Specify FS_BASE to write    */
@@ -93,7 +93,7 @@ FUNC_DEF(archTaskCtxSwitch)
     MOV     %RDI , %R12                                                 ;/*  参数 = 当前 CPU 控制块指针  */
     CALL    _SchedSwp                                                   ;/*  _SchedSwp();                */
 
-#if LW_CFG_X64_FAST_TCB_CUR > 0
+#if LW_CFG_CPU_FAST_TLS > 0
     MOVL    0(%R12) , %EAX                                              ;/*  Low-order 32 bits           */
     MOVL    4(%R12) , %EDX                                              ;/*  High-order 32 bits          */
     MOV     $X86_MSR_IA32_FS_BASE , %RCX                                ;/*  Specify FS_BASE to write    */
@@ -132,7 +132,7 @@ FUNC_DEF(archCrtCtxSwitch)
 ;*********************************************************************************************************/
 
 FUNC_DEF(archIntCtxLoad)
-#if LW_CFG_X64_FAST_TCB_CUR > 0
+#if LW_CFG_CPU_FAST_TLS > 0
     MOVL    0(%RDI) , %EAX                                              ;/*  Low-order 32 bits           */
     MOVL    4(%RDI) , %EDX                                              ;/*  High-order 32 bits          */
     MOV     $X86_MSR_IA32_FS_BASE , %RCX                                ;/*  Specify FS_BASE to write    */
