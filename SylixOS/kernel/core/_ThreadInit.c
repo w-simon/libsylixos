@@ -378,9 +378,13 @@ VOID  _TCBBuild (UINT8                    ucPriority,
     }
 #endif                                                                  /*  LW_CFG_CPU_DSP_EN > 0       */
 
-#if LW_CFG_NET_EN > 0 && LW_CFG_NET_SAFE > 0
+#if LW_CFG_NET_EN > 0
+#if LW_CFG_NET_SAFE > 0
     ptcb->TCB_ulNetSem = LW_OBJECT_HANDLE_INVALID;
 #endif                                                                  /*  LW_CFG_NET_SAFE > 0         */
+    lib_bzero(ptcb->TCB_pvSockRef,
+              sizeof(PVOID) * LW_SOCK_REF_SIZE);
+#endif                                                                  /*  LW_CFG_NET_EN > 0           */
 
     __KERNEL_ENTER();                                                   /*  进入内核                    */
     _K_ptcbTCBIdTable[_ObjectGetIndex(ulId)] = ptcb;                    /*  保存TCB控制块               */

@@ -290,7 +290,7 @@ static VOID  __signalStkShowHandle (PLW_CLASS_TCB  ptcbCur, PLW_CLASS_SIGCTLMSG 
 *********************************************************************************************************/
 static VOID  __sigTaskCreateHook (LW_OBJECT_HANDLE  ulId)
 {
-    PLW_CLASS_TCB          ptcb    = __GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId));
+    PLW_CLASS_TCB          ptcb    = __GET_TCB_FROM_HANDLE(ulId);
     PLW_CLASS_SIGCONTEXT   psigctx = _signalGetCtx(ptcb);
     
 #if LW_CFG_MODULELOADER_EN > 0
@@ -341,7 +341,7 @@ static VOID    __sigTaskDeleteHook (LW_OBJECT_HANDLE  ulId)
 {
     REGISTER INT                    iI;
              PLW_CLASS_SIGCONTEXT   psigctx;
-             PLW_CLASS_TCB          ptcb = __GET_TCB_FROM_INDEX(_ObjectGetIndex(ulId));
+             PLW_CLASS_TCB          ptcb = __GET_TCB_FROM_HANDLE(ulId);
     REGISTER PLW_CLASS_SIGPEND      psigpend;
     
     psigctx = _signalGetCtx(ptcb);                                      /*  »ñµÃ sig context            */

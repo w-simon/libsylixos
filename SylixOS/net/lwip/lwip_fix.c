@@ -48,6 +48,7 @@
 2014.07.01  SIO 驱动所有的文件描述符为内核文件描述符操作.
 2016.07.21  使用支持带发送阻塞的消息队列, 不再需要发送同步信号量.
 2020.05.10  支持 SEM_PER_THREAD 配置模式.
+2022.05.21  支持线程退出回收当前使用的 socket 引用.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_PANIC
@@ -95,21 +96,29 @@
 #error lwip version too old!
 #endif                                                                  /*  LWIP 1.4.0 以下版本         */
 /*********************************************************************************************************
+  内部配置
+*********************************************************************************************************/
+#define LW_CFG_NET_MAX_HOSTENT  20
+#define LW_CFG_NET_SAFE_LAZY    1                                       /*  Lazy create test            */
+/*********************************************************************************************************
   全局变量
 *********************************************************************************************************/
 static LW_SPINLOCK_CA_DEFINE_CACHE_ALIGN(_G_slcaLwip);                  /*  多核自旋锁                  */
 static LW_OBJECT_HANDLE                  _G_hTcpipMbox;
 static UINT32                            _G_uiAppTryLost;
 /*********************************************************************************************************
-  net safe
+  net hooks
 *********************************************************************************************************/
 #if LW_CFG_NET_SAFE > 0
-#define LW_CFG_NET_SAFE_LAZY  1                                         /*  Lazy create test            */
 #if LW_CFG_NET_SAFE_LAZY == 0
-static void sys_thread_sem_init(LW_OBJECT_HANDLE  id);
+static void sys_thread_init(LW_OBJECT_HANDLE  id);
 #endif                                                                  /*  LW_CFG_NET_SAFE_LAZY == 0   */
-static void sys_thread_sem_fini(LW_OBJECT_HANDLE  id);
 #endif                                                                  /*  LW_CFG_NET_SAFE > 0         */
+static void sys_thread_fini(LW_OBJECT_HANDLE  id);
+/*********************************************************************************************************
+  线程退出续调用此函数解除 socket 引用
+*********************************************************************************************************/
+extern void lwip_socket_thread_down(void *sock);
 /*********************************************************************************************************
 ** 函数名称: sys_tcp_isn_key_update
 ** 功能描述: TCP ISN key 升级
@@ -142,10 +151,11 @@ void  sys_init (void)
 
 #if LW_CFG_NET_SAFE > 0
 #if LW_CFG_NET_SAFE_LAZY == 0
-    API_SystemHookAdd(sys_thread_sem_init, LW_OPTION_THREAD_CREATE_HOOK);
+    API_SystemHookAdd(sys_thread_init, LW_OPTION_THREAD_CREATE_HOOK);
 #endif                                                                  /*  LW_CFG_NET_SAFE_LAZY == 0   */
-    API_SystemHookAdd(sys_thread_sem_fini, LW_OPTION_THREAD_DELETE_HOOK);
 #endif                                                                  /*  LW_CFG_NET_SAFE > 0         */
+
+    API_SystemHookAdd(sys_thread_fini, LW_OPTION_THREAD_DELETE_HOOK);
 }
 /*********************************************************************************************************
 ** 函数名称: sys_arch_protect
@@ -870,25 +880,27 @@ void  sys_mbox_set_invalid (sys_mbox_t *pmbox)
 
 struct hostent  *sys_thread_hostent (struct hostent  *phostent)
 {
-#define __LW_MAX_HOSTENT    20
-
-    static ip_addr_t        ipaddrBuffer[__LW_MAX_HOSTENT];
-    static ip_addr_t       *pipaddrBuffer[__LW_MAX_HOSTENT];
-    static struct hostent   hostentBuffer[__LW_MAX_HOSTENT];
+    static ip_addr_t        ipaddrBuffer[LW_CFG_NET_MAX_HOSTENT];
+    static ip_addr_t       *pipaddrBuffer[LW_CFG_NET_MAX_HOSTENT];
+    static struct hostent   hostentBuffer[LW_CFG_NET_MAX_HOSTENT];
     static int              iIndex    = 0;
     static char            *pcAliases = LW_NULL;
     
-           ip_addr_t      **ppipaddrBuffer = &pipaddrBuffer[iIndex];
-           struct hostent  *phostentRet    = &hostentBuffer[iIndex];
+           ip_addr_t      **ppipaddrBuffer;
+           struct hostent  *phostentRet;
 
+    LOCK_TCPIP_CORE();                                                  /*  进入网络临界区              */
+    ppipaddrBuffer = &pipaddrBuffer[iIndex];
+    phostentRet    = &hostentBuffer[iIndex];
 
     pipaddrBuffer[iIndex] = &ipaddrBuffer[iIndex];
     ipaddrBuffer[iIndex]  = (*(ip_addr_t *)phostent->h_addr);
     
     iIndex++;
-    if (iIndex >= __LW_MAX_HOSTENT) {
+    if (iIndex >= LW_CFG_NET_MAX_HOSTENT) {
         iIndex =  0;
     }
+    UNLOCK_TCPIP_CORE();                                                /*  退出网络临界区              */
     
     phostentRet->h_name      = phostent->h_name;                        /*  h_name 不需要缓冲           */
     phostentRet->h_aliases   = &pcAliases;                              /*  LW_NULL                     */
@@ -982,18 +994,18 @@ sys_sem_t *sys_thread_sem_get (void)
     return  (&ptcbCur->TCB_ulNetSem);
 }
 /*********************************************************************************************************
-** 函数名称: sys_thread_sem_init
+** 函数名称: sys_thread_init
 ** 功能描述: 创建任务 sem
-** 输　入  : NONE
-** 输　出  : 系统时钟
+** 输　入  : id    任务 ID
+** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
 #if LW_CFG_NET_SAFE_LAZY == 0
 
-static void sys_thread_sem_init (LW_OBJECT_HANDLE  id)
+static void sys_thread_init (LW_OBJECT_HANDLE  id)
 {
-    PLW_CLASS_TCB   ptcb = __GET_TCB_FROM_INDEX(_ObjectGetIndex(id));
+    PLW_CLASS_TCB   ptcb = __GET_TCB_FROM_HANDLE(id);
 
     if (ptcb->TCB_ulNetSem == LW_OBJECT_HANDLE_INVALID) {
         ptcb->TCB_ulNetSem = API_SemaphoreCCreate("net_tsem", 0, 1,
@@ -1006,24 +1018,77 @@ static void sys_thread_sem_init (LW_OBJECT_HANDLE  id)
 }
 
 #endif                                                                  /*  LW_CFG_NET_SAFE_LAZY == 0   */
+#endif                                                                  /*  LW_CFG_NET_SAFE             */
 /*********************************************************************************************************
-** 函数名称: sys_thread_sem_fini
-** 功能描述: 释放任务 sem
-** 输　入  : NONE
+** 函数名称: sys_thread_fini
+** 功能描述: 释放任务 sem 与 sock 引用
+** 输　入  : id    任务 ID
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-static void sys_thread_sem_fini (LW_OBJECT_HANDLE  id)
+static void sys_thread_fini (LW_OBJECT_HANDLE  id)
 {
-    PLW_CLASS_TCB   ptcb = __GET_TCB_FROM_INDEX(_ObjectGetIndex(id));
+    INT             i;
+    PLW_CLASS_TCB   ptcb = __GET_TCB_FROM_HANDLE(id);
 
+#if LW_CFG_NET_SAFE > 0
     if (ptcb->TCB_ulNetSem) {
         API_SemaphoreCDelete(&ptcb->TCB_ulNetSem);
     }
-}
+#endif
 
-#endif                                                                  /*  LW_CFG_NET_SAFE             */
+    for (i = 0; i < LW_SOCK_REF_SIZE; i++) {
+        if (ptcb->TCB_pvSockRef[i]) {
+            lwip_socket_thread_down(ptcb->TCB_pvSockRef[i]);
+            ptcb->TCB_pvSockRef[i] = LW_NULL;
+        }
+    }
+}
+/*********************************************************************************************************
+** 函数名称: sys_thread_sock_ref
+** 功能描述: 当前任务引用一个 sock
+** 输　入  : sock  socket 结构
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+void sys_thread_sock_ref (void *sock)
+{
+    INT             i;
+    PLW_CLASS_TCB   ptcbCur;
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    for (i = 0; i < LW_SOCK_REF_SIZE; i++) {
+        if (ptcbCur->TCB_pvSockRef[i] == LW_NULL) {
+            ptcbCur->TCB_pvSockRef[i] =  sock;
+            break;
+        }
+    }
+}
+/*********************************************************************************************************
+** 函数名称: sys_thread_sock_unref
+** 功能描述: 当前任务解除引用一个 sock
+** 输　入  : sock  socket 结构
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+void sys_thread_sock_unref (void *sock)
+{
+    INT             i;
+    PLW_CLASS_TCB   ptcbCur;
+
+    LW_TCB_GET_CUR_SAFE(ptcbCur);
+
+    for (i = 0; i < LW_SOCK_REF_SIZE; i++) {
+        if (ptcbCur->TCB_pvSockRef[i] == sock) {
+            ptcbCur->TCB_pvSockRef[i] =  LW_NULL;
+            break;
+        }
+    }
+}
 /*********************************************************************************************************
   time
 *********************************************************************************************************/

@@ -447,6 +447,11 @@ void sys_mbox_set_invalid(sys_mbox_t *mbox);
  * @param prio priority of the new thread (may be ignored by ports) */
 sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg, int stacksize, int prio);
 
+#ifdef SYLIXOS /* SylixOS Add thread save sock ref state, when thread delete can done socket */
+void sys_thread_sock_ref(void *sock);
+void sys_thread_sock_unref(void *sock);
+#endif /* SYLIXOS */
+
 #endif /* NO_SYS */
 
 /**

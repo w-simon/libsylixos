@@ -1148,7 +1148,7 @@ INT    __tshellBgCreateEx (INT               iFd[3],
         return  (PX_ERROR);
     }
     
-    ptcbShellBg = __GET_TCB_FROM_INDEX(_ObjectGetIndex(hTShellHandle));
+    ptcbShellBg = __GET_TCB_FROM_HANDLE(hTShellHandle);
     __TTINY_SHELL_SET_OPT(ptcbShellBg, ulOption);
     __TTINY_SHELL_SET_MAGIC(ptcbShellBg, ulMagic);                      /*  ¼ÇÂ¼Ê¶±ðºÅ                  */
     

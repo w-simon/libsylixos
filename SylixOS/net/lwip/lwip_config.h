@@ -342,6 +342,10 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define TCP_SYNMAXRTX                   LW_CFG_LWIP_TCP_SYNMAXRTX
 #endif
 
+#if LW_CFG_LWIP_TCP_RTO_INIT >= 500
+#define LWIP_TCP_RTO_TIME               LW_CFG_LWIP_TCP_RTO_INIT
+#endif
+
 /*********************************************************************************************************
   transmit layer
 *********************************************************************************************************/
@@ -404,7 +408,7 @@ extern PVOID  lwip_platform_smemcpy(PVOID  pvDest, CPVOID  pvSrc, size_t  stCoun
 #define MEMP_NUM_TCP_SEG                MEMP_NUM_PBUF                   /*  Max num of tcp segments     */
 
 #define LWIP_TCP_KEEPALIVE              1
-#define LWIP_NETCONN_FULLDUPLEX         1
+#define LWIP_NETCONN_FULLDUPLEX         1                               /*  MUST BE FULLDUPLEX          */
 #define LWIP_NETBUF_RECVINFO            1
 
 #if LW_CFG_NET_SAFE > 0

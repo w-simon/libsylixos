@@ -415,7 +415,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption,
         close(iTtyFd);
     }
     
-    ptcbShell = __GET_TCB_FROM_INDEX(_ObjectGetIndex(hTShellHandle));
+    ptcbShell = __GET_TCB_FROM_HANDLE(hTShellHandle);
     __TTINY_SHELL_SET_OPT(ptcbShell, ulOption);                         /*  初始化选项                  */
     __TTINY_SHELL_SET_CALLBACK(ptcbShell, pfuncRunCallback);            /*  初始化启动回调              */
     __TTINY_SHELL_SET_CBARG(ptcbShell, pvCbArg);

@@ -276,7 +276,7 @@ static void lwip_setsockopt_callback(void *arg);
 static int lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *optlen);
 static int lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_t optlen);
 static int free_socket_locked(struct lwip_sock *sock, int is_tcp, struct netconn **conn,
-                              union lwip_sock_lastdata *lastdata);
+                              union lwip_sock_lastdata *lastdata, u8_t already_dec_used);
 static void free_socket_free_elements(int is_tcp, struct netconn *conn, union lwip_sock_lastdata *lastdata);
 
 #if LWIP_IPV4 && LWIP_IPV6
@@ -323,6 +323,7 @@ sock_inc_used(struct lwip_sock *sock)
     ret = 0;
   } else {
     ++sock->fd_used;
+    sys_thread_sock_ref(sock); /* SylixOS Add thread save sock ref state, when thread delete can done socket */
     ret = 1;
     LWIP_ASSERT("sock->fd_used != 0", sock->fd_used != 0);
   }
@@ -349,13 +350,11 @@ sock_inc_used_locked(struct lwip_sock *sock)
 }
 #endif /* !SYLIXOS */
 
-/* In full-duplex mode,sock->fd_used != 0 prevents a socket descriptor from being
- * released (and possibly reused) when used from more than one thread
- * (e.g. read-while-write or close-while-write, etc)
- * This function is called at the end of functions using (try)get_socket*().
+#ifdef SYLIXOS /* SylixOS Add thread save sock ref state, when thread delete can done socket */
+/* Done socke internal
  */
 static void
-done_socket(struct lwip_sock *sock)
+done_socket_internal(struct lwip_sock *sock, u8_t unref)
 {
   int freed = 0;
   int is_tcp = 0;
@@ -366,12 +365,15 @@ done_socket(struct lwip_sock *sock)
 
   SYS_ARCH_PROTECT(lev);
   LWIP_ASSERT("sock->fd_used > 0", sock->fd_used > 0);
-  if (--sock->fd_used == 0) {
+  --sock->fd_used;
+  if (unref) {
+    sys_thread_sock_unref(sock);
+  }
+  if (sock->fd_used == 0) {
     if (sock->fd_free_pending) {
       /* free the socket */
-      sock->fd_used = 1;
       is_tcp = sock->fd_free_pending & LWIP_SOCK_FD_FREE_TCP;
-      freed = free_socket_locked(sock, is_tcp, &conn, &lastdata);
+      freed = free_socket_locked(sock, is_tcp, &conn, &lastdata, 1);
     }
   }
   SYS_ARCH_UNPROTECT(lev);
@@ -380,6 +382,27 @@ done_socket(struct lwip_sock *sock)
     free_socket_free_elements(is_tcp, conn, &lastdata);
   }
 }
+#endif /* SYLIXOS */
+
+/* In full-duplex mode,sock->fd_used != 0 prevents a socket descriptor from being
+ * released (and possibly reused) when used from more than one thread
+ * (e.g. read-while-write or close-while-write, etc)
+ * This function is called at the end of functions using (try)get_socket*().
+ */
+static void
+done_socket(struct lwip_sock *sock)
+{
+  done_socket_internal(sock, 1);
+}
+
+#ifdef SYLIXOS /* SylixOS Add thread save sock ref state, when thread delete can done socket */
+void
+lwip_socket_thread_down(void *s)
+{
+  struct lwip_sock *sock = (struct lwip_sock *)s;
+  done_socket_internal(sock, 0);
+}
+#endif /* SYLIXOS */
 
 #else /* LWIP_NETCONN_FULLDUPLEX */
 #define sock_inc_used(sock)         1
@@ -499,6 +522,7 @@ alloc_socket(struct netconn *newconn, int accepted)
         continue;
       }
       sockets[i].fd_used    = 1;
+      sys_thread_sock_ref(&sockets[i]); /* SylixOS Add thread save sock ref state, when thread delete can done socket */
       sockets[i].fd_free_pending = 0;
 #endif
       sockets[i].conn       = newconn;
@@ -536,11 +560,14 @@ alloc_socket(struct netconn *newconn, int accepted)
  */
 static int
 free_socket_locked(struct lwip_sock *sock, int is_tcp, struct netconn **conn,
-                   union lwip_sock_lastdata *lastdata)
+                   union lwip_sock_lastdata *lastdata, u8_t already_dec_used)
 {
 #if LWIP_NETCONN_FULLDUPLEX
   LWIP_ASSERT("sock->fd_used > 0", sock->fd_used > 0);
-  sock->fd_used--;
+  if (!already_dec_used) { /* SylixOS Add thread save sock ref state, when thread delete can done socket */
+    sock->fd_used--;
+    sys_thread_sock_unref(sock);
+  }
   if (sock->fd_used > 0) {
     sock->fd_free_pending = LWIP_SOCK_FD_FREE_FREE | (is_tcp ? LWIP_SOCK_FD_FREE_TCP : 0);
     return 0;
@@ -591,7 +618,7 @@ free_socket(struct lwip_sock *sock, int is_tcp)
   /* Protect socket array */
   SYS_ARCH_PROTECT(lev);
 
-  freed = free_socket_locked(sock, is_tcp, &conn, &lastdata);
+  freed = free_socket_locked(sock, is_tcp, &conn, &lastdata, 0);
   SYS_ARCH_UNPROTECT(lev);
   /* don't use 'sock' after this line, as another task might have allocated it */
 
@@ -599,7 +626,6 @@ free_socket(struct lwip_sock *sock, int is_tcp)
     free_socket_free_elements(is_tcp, conn, &lastdata);
   }
 }
-
 
 #ifdef SYLIXOS /* SylixOS Add this functions to link with SylixOS socket */
 extern void  __socketEnotify2(void *file, UINT uiSelFlags, INT  iSoErr);
@@ -2234,7 +2260,7 @@ lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
         nready = lwip_selscan(maxfdp1, readset, writeset, exceptset, &lreadset, &lwriteset, &lexceptset);
         if (!nready) {
           /* Still none ready, just wait to be woken */
-          if (timeout == 0) {
+          if (timeout == NULL) {
             /* Wait forever */
             msectimeout = 0;
           } else {

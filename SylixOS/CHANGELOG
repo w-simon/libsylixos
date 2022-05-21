@@ -36,6 +36,9 @@ HISTORY
 
 ++ Bugfixes:
 
+    2022-05-21: han.hui
+    修正 socket 线程引用释放错误.
+
     2020-10-12: han.hui
     修正内核事件广播激活顺序.
     xtimer 可配置多种锁类型.
