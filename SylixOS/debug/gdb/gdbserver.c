@@ -291,7 +291,7 @@ static INT gdbTcpSockInit (LW_GDB_PARAM *pparam, UINT32 ui32Ip, UINT16 usPort)
     }
     
     addrServer.sin_family      = AF_INET;
-    addrServer.sin_addr.s_addr = htonl(ui32Ip);
+    addrServer.sin_addr.s_addr = ui32Ip;
     addrServer.sin_port        = htons(usPort);
     
     iSockListen = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);

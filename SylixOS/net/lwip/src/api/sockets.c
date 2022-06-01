@@ -563,8 +563,8 @@ free_socket_locked(struct lwip_sock *sock, int is_tcp, struct netconn **conn,
                    union lwip_sock_lastdata *lastdata, u8_t already_dec_used)
 {
 #if LWIP_NETCONN_FULLDUPLEX
-  LWIP_ASSERT("sock->fd_used > 0", sock->fd_used > 0);
   if (!already_dec_used) { /* SylixOS Add thread save sock ref state, when thread delete can done socket */
+    LWIP_ASSERT("sock->fd_used > 0", sock->fd_used > 0);
     sock->fd_used--;
     sys_thread_sock_unref(sock);
   }

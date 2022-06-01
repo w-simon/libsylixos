@@ -598,7 +598,7 @@ INT vprocDestroy (LW_LD_VPROC *pvproc)
     _IosEnvDelete(pvproc->VP_pioeIoEnv);                                /*  删除当前进程 IO 环境        */
 
     __KERNEL_ENTER();
-    _ThreadWjClear(pvproc);                                             /*  清除所有等待回收的 TCB      */
+    _ThreadWjClear(pvproc, pvproc->VP_pid);                             /*  清除所有等待回收的 TCB      */
     __KERNEL_EXIT();
 
     if (pvproc->VP_pcCmdline) {

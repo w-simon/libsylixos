@@ -26,9 +26,17 @@
 2013.04.01  修正 GCC 4.7.3 引发的新 warning.
 2013.07.18  使用新的获取 TCB 的方法, 确保 SMP 系统安全.
 2013.09.17  使用 POSIX 规定的取消点动作.
+2022.05.27  修正 popen 等待 shell 结束 join 操作错误.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
+/*********************************************************************************************************
+  shell
+*********************************************************************************************************/
+#if LW_CFG_SHELL_EN > 0
+#include "../SylixOS/shell/ttinyShell/ttinyShell.h"
+#include "../SylixOS/shell/ttinyShell/ttinyShellLib.h"
+#endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   s_internal.h 中也有相关定义
 *********************************************************************************************************/
@@ -42,6 +50,40 @@
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
 extern pid_t  vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
+#endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
+/*********************************************************************************************************
+** 函数名称: __threadCanJoin
+** 功能描述: 线程是否可以合并
+** 输　入  : ptcbCur   当前线程控制块
+**           ptcbJoin  要合并的线程控制块
+** 输　出  : 是否可以合并
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+#if LW_CFG_MODULELOADER_EN > 0
+
+BOOL  __threadCanJoin (PLW_CLASS_TCB  ptcbCur, PLW_CLASS_TCB  ptcbJoin)
+{
+    REGISTER pid_t   pidCur, pidJoin;
+
+    pidCur  = vprocGetPidByTcbNoLock(ptcbCur);
+    pidJoin = vprocGetPidByTcbNoLock(ptcbJoin);
+    if (pidCur == pidJoin) {
+        return  (LW_TRUE);
+    }
+
+#if LW_CFG_SHELL_EN > 0
+    if (pidCur && (pidJoin == 0)) {
+        if (__TTINY_SHELL_GET_MAGIC(ptcbJoin) == (ULONG)pidCur) {       /*  此 shell 目标为本进程创建   */
+            return  (LW_TRUE);
+        }
+    }
+#endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+
+    return  (LW_FALSE);
+}
+
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
 ** 函数名称: API_ThreadJoin
@@ -100,8 +142,7 @@ ULONG  API_ThreadJoin (LW_OBJECT_HANDLE  ulId, PVOID  *ppvRetValAddr)
         }
 
 #if LW_CFG_MODULELOADER_EN > 0
-        if (vprocGetPidByTcbNoLock(ptcb) !=
-            vprocGetPidByTcbNoLock(ptcbCur)) {                          /*  只能 join 同进程线程        */
+        if (__threadCanJoin(ptcbCur, ptcb)) {                           /*  是否可以 JOIN               */
             __KERNEL_EXIT();                                            /*  退出内核                    */
             _ErrorHandle(ERROR_THREAD_NULL);
             return  (ERROR_THREAD_NULL);
@@ -120,8 +161,7 @@ ULONG  API_ThreadJoin (LW_OBJECT_HANDLE  ulId, PVOID  *ppvRetValAddr)
         ptwj = &_K_twjTable[usIndex];
         if (ptwj->TWJ_ptcb) {
 #if LW_CFG_MODULELOADER_EN > 0
-            if (vprocGetPidByTcbNoLock(ptwj->TWJ_ptcb) !=
-                vprocGetPidByTcbNoLock(ptcbCur)) {                      /*  只能 join 同进程线程        */
+            if (__threadCanJoin(ptcbCur, ptwj->TWJ_ptcb)) {             /*  是否可以 JOIN               */
                 __KERNEL_EXIT();                                        /*  退出内核                    */
                 _ErrorHandle(ERROR_THREAD_NULL);
                 return  (ERROR_THREAD_NULL);

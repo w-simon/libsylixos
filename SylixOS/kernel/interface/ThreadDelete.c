@@ -53,6 +53,13 @@
 #include "../SylixOS/kernel/include/k_kernel.h"
 #include "../SylixOS/system/include/s_system.h"
 /*********************************************************************************************************
+  shell
+*********************************************************************************************************/
+#if LW_CFG_SHELL_EN > 0
+#include "../SylixOS/shell/ttinyShell/ttinyShell.h"
+#include "../SylixOS/shell/ttinyShell/ttinyShellLib.h"
+#endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+/*********************************************************************************************************
   进程相关
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
@@ -64,6 +71,39 @@
 #if LW_CFG_VMM_EN > 0
 extern VOID __vmmPhysicalPageFaultClear(LW_OBJECT_HANDLE  ulId);
 #endif                                                                  /*  LW_CFG_VMM_EN > 0           */
+/*********************************************************************************************************
+** 函数名称: __threadNeedJwt
+** 功能描述: 线程是否需要进入 join wait table
+** 输　入  :
+**           bDetachFlag            DETACH flag
+**           iDetachCnt             激活的 JOIN 线程数
+**           ptcbDel                被删除任务的 TCB
+** 输　出  : 是否需要进入 join wait table
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static BOOL  __threadNeedJwt (BOOL  bDetachFlag, INT  iDetachCnt, PLW_CLASS_TCB  ptcbDel)
+{
+    if (bDetachFlag || iDetachCnt) {
+        return  (LW_FALSE);
+    }
+
+    if (LW_KERN_AUTO_REC_TCB_GET()) {
+        return  (LW_FALSE);
+    }
+
+    if (ptcbDel->TCB_ulOption & LW_OPTION_THREAD_POSIX) {
+        return  (LW_TRUE);
+    }
+
+#if LW_CFG_SHELL_EN > 0
+      else if (__TTINY_SHELL_GET_OPT(ptcbDel) & LW_OPTION_TSHELL_NODETACH) {
+        return  (LW_TRUE);
+    }
+#endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+
+    return  (LW_FALSE);
+}
 /*********************************************************************************************************
 ** 函数名称: __threadDelete
 ** 功能描述: 线程删除内部函数。
@@ -210,9 +250,7 @@ ULONG  __threadDelete (PLW_CLASS_TCB  ptcbDel, BOOL  bIsInSafe,
     
     _TCBDestroy(ptcbDel);                                               /*  销毁 TCB                    */
     
-    if (!bDetachFlag && !iDetachCnt &&                                  /*  没有设置 detach 标志        */
-        !LW_KERN_AUTO_REC_TCB_GET() &&
-        (ptcbDel->TCB_ulOption & LW_OPTION_THREAD_POSIX)) {             /*  POSIX 线程                  */
+    if (__threadNeedJwt(bDetachFlag, iDetachCnt, ptcbDel)) {            /*  需要进入 JWT                */
         __KERNEL_MODE_PROC(
             _ThreadWjAdd(ptcbDel, &_K_twjTable[usIndex], pvRetVal);     /*  保留 TCB 直到 Join          */
         );

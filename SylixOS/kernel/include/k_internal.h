@@ -501,7 +501,7 @@ VOID           _ThreadDisjoin(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_TCB  ptcbDisjoin
 INT            _ThreadDetach(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_WAITJOIN  ptwj, PVOID  pvRetVal);
 
 VOID           _ThreadWjAdd(PLW_CLASS_TCB  ptcbDes, PLW_CLASS_WAITJOIN  ptwj, PVOID  pvRetVal);
-VOID           _ThreadWjClear(PVOID  pvVProc);
+VOID           _ThreadWjClear(PVOID  pvVProc, pid_t  pid);
 
 /*********************************************************************************************************
   线程 CPU 调度器锁定

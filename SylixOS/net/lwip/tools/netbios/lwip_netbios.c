@@ -451,6 +451,10 @@ netbiosns_init(void)
   LWIP_ASSERT("NetBIOS name is too long!", strlen(NETBIOS_LWIP_NAME) < NETBIOS_NAME_LEN);
 #endif
 
+  if (netbiosns_pcb) {
+    return;
+  }
+
   netbiosns_pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
   if (netbiosns_pcb != NULL) {
     /* we have to be allowed to send broadcast packets! */

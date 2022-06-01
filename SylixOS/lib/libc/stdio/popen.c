@@ -107,7 +107,9 @@ FILE *popen (const char *cmd, const char *type)
         child_closed[2] = LW_FALSE;
     }
     
-    err = API_TShellExecBg(cmd, child_std, child_closed, LW_FALSE, &childsh); /* create shell to run command */
+    /* create shell to run command and recycle manually */
+    err = API_TShellExecBgEx(cmd, child_std,
+                             child_closed, LW_FALSE, &childsh, LW_FALSE, 0);
     if (err) {
         /* here an error occur, child_closed'fd has been closed, so we only need to fclose(fp) */
         fclose(fp);
@@ -139,11 +141,6 @@ int pclose (FILE *fp)
         return  (PX_ERROR);
     }
 
-    /*
-     *  注意, 这里没有使用 waitpid 因为无法确定 popen 是否执行的是进程,
-     *  如果执行的是进程, 则必须等到当前进程结束时, 子进程资源才能被回收器回收.
-     *  这是一个折中方案, 目前没有好的解决方法.
-     */
     API_ThreadJoin(childsh, (void **)&status);
     fclose(fp);
     

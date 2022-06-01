@@ -44,6 +44,7 @@
 #define Lw_TShell_HelpAdd               API_TShellHelpAdd
 #define Lw_TShell_Exec                  API_TShellExec
 #define Lw_TShell_ExecBg                API_TShellExecBg
+#define Lw_TShell_ExecBgEx              API_TShellExecBgEx
 
 #define Lw_TShell_VarHookSet            API_TShellVarHookSet
 #define Lw_TShell_VarGetRt              API_TShellVarGetRt

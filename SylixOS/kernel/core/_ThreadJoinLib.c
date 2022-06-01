@@ -30,6 +30,13 @@
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
 /*********************************************************************************************************
+  shell
+*********************************************************************************************************/
+#if LW_CFG_SHELL_EN > 0
+#include "../SylixOS/shell/ttinyShell/ttinyShell.h"
+#include "../SylixOS/shell/ttinyShell/ttinyShellLib.h"
+#endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+/*********************************************************************************************************
 ** 函数名称: _ThreadJoinWait
 ** 功能描述: 线程合并后阻塞自己 (在进入内核并关中断后被调用)
 ** 输　入  : ptcbCur   当前任务控制块
@@ -186,17 +193,22 @@ VOID  _ThreadWjAdd (PLW_CLASS_TCB  ptcbDes, PLW_CLASS_WAITJOIN  ptwj, PVOID  pvR
 ** 函数名称: _ThreadWjClear
 ** 功能描述: 清除 Wait Join 表 (在进入内核后被调用)
 ** 输　入  : pvVProc   进程控制块
+**           pid       进程 ID
 ** 输　出  : NONE
 ** 全局变量:
 ** 调用模块:
 *********************************************************************************************************/
-VOID  _ThreadWjClear (PVOID  pvVProc)
+VOID  _ThreadWjClear (PVOID  pvVProc, pid_t  pid)
 {
     INT  i;
 
     for (i = LW_NCPUS; i < LW_CFG_MAX_THREADS; i++) {
         if (_K_twjTable[i].TWJ_ptcb) {
-            if (_K_twjTable[i].TWJ_ptcb->TCB_pvVProcessContext == pvVProc) {
+            if ((_K_twjTable[i].TWJ_ptcb->TCB_pvVProcessContext == pvVProc)
+#if LW_CFG_SHELL_EN > 0
+                || (pid && (__TTINY_SHELL_GET_MAGIC(_K_twjTable[i].TWJ_ptcb) == (ULONG)pid))
+#endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
+            ) {
                 _Free_Tcb_Object(_K_twjTable[i].TWJ_ptcb);              /*  释放 ID                     */
                 _K_twjTable[i].TWJ_ptcb = LW_NULL;
             }

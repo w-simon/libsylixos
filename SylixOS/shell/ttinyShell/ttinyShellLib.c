@@ -1051,10 +1051,11 @@ static PVOID  __tshellBackground (PVOID  pvArg)
 **           pcCommand      需要执行的命令
 **           stCommandLen   命令长度
 **           ulKeywordOpt   关键字选项
-**           bIsJoin        是否等待命令结束.
+**           bWait          是否等待命令执行结束
 **           ulMagic        识别号
 **           pulSh          背景线程句柄 (仅当 bIsJoin = LW_FALSE 时返回)
 **           piRet          命令返回值
+**           bAutoRecycle   不等待命令结束时是否需要 thread join 回收 shell 线程.
 ** 输　出  : 如果是同步执行, 则返回执行命令结果.
 ** 全局变量: 
 ** 调用模块: 
@@ -1065,10 +1066,11 @@ INT    __tshellBgCreateEx (INT               iFd[3],
                            CPCHAR            pcCommand, 
                            size_t            stCommandLen, 
                            ULONG             ulKeywordOpt,
-                           BOOL              bIsJoin,
+                           BOOL              bWait,
                            ULONG             ulMagic,
                            LW_OBJECT_HANDLE *pulSh,
-                           INT              *piRet)
+                           INT              *piRet,
+                           BOOL              bAutoRecycle)
 {
     REGISTER __PTSHELL_BACKGROUND       tsbg;
              LW_CLASS_THREADATTR        threadattrTShell;
@@ -1077,20 +1079,27 @@ INT    __tshellBgCreateEx (INT               iFd[3],
              
              PLW_CLASS_TCB              ptcbShellBg;
              PLW_CLASS_TCB              ptcbCur;
-    REGISTER ULONG                      ulOption;
+    REGISTER ULONG                      ulOption, ulPrevOpt;
              ULONG                      ulTaskOpt = LW_CFG_SHELL_THREAD_OPTION | LW_OPTION_OBJECT_GLOBAL;
              size_t                     stSize;
     
     LW_TCB_GET_CUR_SAFE(ptcbCur);
     
-    ulOption = __TTINY_SHELL_GET_OPT(ptcbCur);
+    ulOption  = 0ul;
+    ulPrevOpt = __TTINY_SHELL_GET_OPT(ptcbCur);
 
-    __KERNEL_SPACE_ENTER();
-    if (!isatty(iFd[1])) {                                              /*  内核文件描述符是否为 tty    */
-        ulOption &= ~LW_OPTION_TSHELL_VT100;
+    if (ulPrevOpt & LW_OPTION_TSHELL_VT100) {                           /*  XXX 这里是否合适有待分析    */
+        __KERNEL_SPACE_ENTER();
+        if (isatty(iFd[1])) {                                           /*  内核文件描述符是否为 tty    */
+            ulOption |= LW_OPTION_TSHELL_VT100;
+        }
+        __KERNEL_SPACE_EXIT();
     }
-    __KERNEL_SPACE_EXIT();
     
+    if (!bWait && !bAutoRecycle) {                                      /*  非自动回收                  */
+        ulOption |= LW_OPTION_TSHELL_NODETACH;                          /*  需要 join 操作              */
+    }
+
     tsbg = (__PTSHELL_BACKGROUND)__SHEAP_ALLOC(sizeof(__TSHELL_BACKGROUND) + stCommandLen);
     if (!tsbg) {
         fprintf(stderr, "system low memory, can not create background thread.\n");
@@ -1116,7 +1125,7 @@ INT    __tshellBgCreateEx (INT               iFd[3],
     tsbg->TSBG_bClosed[1] = bClosed[1];
     tsbg->TSBG_bClosed[2] = bClosed[2];
     
-    tsbg->TSBG_bIsJoin = bIsJoin;
+    tsbg->TSBG_bIsJoin = bWait;
     
     lib_strlcpy(tsbg->TSBG_cCommand, pcCommand, stCommandLen + 1);
     
@@ -1152,16 +1161,19 @@ INT    __tshellBgCreateEx (INT               iFd[3],
     __TTINY_SHELL_SET_OPT(ptcbShellBg, ulOption);
     __TTINY_SHELL_SET_MAGIC(ptcbShellBg, ulMagic);                      /*  记录识别号                  */
     
-    if (pulSh && (bIsJoin == LW_FALSE)) {
+    if (pulSh && (bWait == LW_FALSE)) {
         *pulSh = hTShellHandle;
-    
     } else if (pulSh) {
         *pulSh = LW_OBJECT_HANDLE_INVALID;
     }
     
-    API_ThreadStartEx(hTShellHandle, bIsJoin, (PVOID *)&lRetValue);     /*  启动 shell 线程             */
+    API_ThreadStartEx(hTShellHandle, bWait, (PVOID *)&lRetValue);       /*  启动 shell 线程             */
     __TTINY_SHELL_SET_ERROR(ptcbCur, (INT)lRetValue);                   /*  记录 shell 命令产生的错误   */
     
+    if (!(ulOption & LW_OPTION_TSHELL_NODETACH)) {
+        API_ThreadDetach(hTShellHandle);                                /*  结束后不需要 join 回收      */
+    }
+
     if (piRet) {
         *piRet = (INT)lRetValue;
     }
@@ -1175,7 +1187,7 @@ INT    __tshellBgCreateEx (INT               iFd[3],
 **           pcCommand      需要执行的命令
 **           stCommandLen   命令长度
 **           ulKeywordOpt   关键字选项
-**           bIsJoin        是否等待命令结束.
+**           bWait          是否等待命令执行结束
 **           ulMagic        识别号
 ** 输　出  : 如果是同步执行, 则返回执行命令结果.
 ** 全局变量: 
@@ -1185,7 +1197,7 @@ static INT    __tshellBgCreate (INT     iFd,
                                 CPCHAR  pcCommand, 
                                 size_t  stCommandLen, 
                                 ULONG   ulKeywordOpt,
-                                BOOL    bIsJoin,
+                                BOOL    bWait,
                                 ULONG   ulMagic)
 {
     INT  iError;
@@ -1198,7 +1210,7 @@ static INT    __tshellBgCreate (INT     iFd,
     iFdArry[2] = iFd;
     
     iError = __tshellBgCreateEx(iFdArry, bClosed, pcCommand, stCommandLen, 
-                                ulKeywordOpt, bIsJoin, ulMagic, LW_NULL, &iRet);
+                                ulKeywordOpt, bWait, ulMagic, LW_NULL, &iRet, LW_TRUE);
     if (iError < 0) {
         return  (iError);
     }
@@ -1347,7 +1359,7 @@ __reauthen:
     
     __TTINY_SHELL_SET_MAIN(ptcbCur);
     
-    ioctl(iTtyFd, FIOABORTARG,  API_ThreadIdSelf());                    /*  control-C 参数              */
+    ioctl(iTtyFd, FIOABORTARG, API_ThreadIdSelf());                     /*  control-C 参数              */
     ioctl(iTtyFd, FIOABORTFUNC, __tshellRestart);                       /*  control-C 行为              */
     ioctl(iTtyFd, FIOGETCC, cCtrl);                                     /*  获得控制字符                */
     

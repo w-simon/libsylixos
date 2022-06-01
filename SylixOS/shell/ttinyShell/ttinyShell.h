@@ -85,10 +85,17 @@ LW_API ULONG                API_TShellHelpAdd(CPCHAR  pcKeyword, CPCHAR  pcHelp)
                                                                         
 LW_API INT                  API_TShellExec(CPCHAR  pcCommandExec);      /*  在当前的环境中, 执行一条    */
                                                                         /*  shell 指令                  */
+/*********************************************************************************************************
+  背景执行 SHELL
+*********************************************************************************************************/
+
 LW_API INT                  API_TShellExecBg(CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3], 
-                                             BOOL  bIsJoin, LW_OBJECT_HANDLE *pulSh);
+                                             BOOL  bWait, LW_OBJECT_HANDLE *pulSh);
                                                                         /*  背景执行一条 shell 命令     */
-                                                                        
+LW_API INT                  API_TShellExecBgEx(CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
+                                               BOOL  bWait, LW_OBJECT_HANDLE  *pulSh,
+                                               BOOL  bAutoRecycle, ULONG  ulMustZero);
+                                                                        /*  背景执行一条 shell 命令     */
 /*********************************************************************************************************
   内核使用 API
 *********************************************************************************************************/
@@ -128,6 +135,7 @@ LW_API FUNCPTR              API_TShellHookSet(FUNCPTR  pfuncShellHook);
 #define tshellHelpAdd       API_TShellHelpAdd
 #define tshellExec          API_TShellExec
 #define tshellExecBg        API_TShellExecBg
+#define tshellExecBgEx      API_TShellExecBgEx
 #define tshellTermAlert     API_TShellTermAlert
 #define tshellSetTitle      API_TShellSetTitle
 #define tshellScrClear      API_TShellScrClear

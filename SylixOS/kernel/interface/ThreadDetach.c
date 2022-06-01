@@ -29,7 +29,7 @@
   loader
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
-extern pid_t  vprocGetPidByTcbNoLock(PLW_CLASS_TCB  ptcb);
+extern BOOL   __threadCanJoin(PLW_CLASS_TCB  ptcbCur, PLW_CLASS_TCB  ptcbJoin);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
 ** 函数名称: API_ThreadDetachEx
@@ -91,8 +91,7 @@ ULONG  API_ThreadDetachEx (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal)
         }
 
 #if LW_CFG_MODULELOADER_EN > 0
-        if (vprocGetPidByTcbNoLock(ptcb) !=
-            vprocGetPidByTcbNoLock(ptcbCur)) {                          /*  只能 join 同进程线程        */
+        if (__threadCanJoin(ptcbCur, ptcb)) {                           /*  是否可以 detach             */
             __KERNEL_EXIT();                                            /*  退出内核                    */
             _ErrorHandle(ERROR_THREAD_NULL);
             return  (ERROR_THREAD_NULL);
@@ -105,8 +104,7 @@ ULONG  API_ThreadDetachEx (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal)
         ptwj = &_K_twjTable[usIndex];
         if (ptwj->TWJ_ptcb) {
 #if LW_CFG_MODULELOADER_EN > 0
-            if (vprocGetPidByTcbNoLock(ptwj->TWJ_ptcb) !=
-                vprocGetPidByTcbNoLock(ptcbCur)) {                      /*  只能 join 同进程线程        */
+            if (__threadCanJoin(ptcbCur, ptwj->TWJ_ptcb)) {             /*  是否可以 detach             */
                 __KERNEL_EXIT();                                        /*  退出内核                    */
                 _ErrorHandle(ERROR_THREAD_NULL);
                 return  (ERROR_THREAD_NULL);

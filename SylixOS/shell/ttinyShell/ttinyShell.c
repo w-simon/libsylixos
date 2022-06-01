@@ -387,7 +387,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption,
     
     ulTaskOpt = LW_CFG_SHELL_THREAD_OPTION | LW_OPTION_OBJECT_GLOBAL;
     if (!(ulOption & LW_OPTION_TSHELL_NODETACH)) {
-        ulTaskOpt |= LW_OPTION_THREAD_DETACHED;
+        ulTaskOpt |= LW_OPTION_THREAD_DETACHED;                         /*  不需要进行 join 回收        */
     }
 
     API_ThreadAttrBuild(&threadattrTShell,
@@ -825,8 +825,7 @@ LW_API
 INT  API_TShellExec (CPCHAR  pcCommandExec)
 {
     if (__PROC_GET_PID_CUR() != 0) {
-        return  (API_TShellExecBg(pcCommandExec, LW_NULL, LW_NULL, LW_TRUE, LW_NULL));
-            
+        return  (API_TShellExecBgEx(pcCommandExec, LW_NULL, LW_NULL, LW_TRUE, LW_NULL, LW_TRUE, 0));
     } else {
         return  (__tshellExec(pcCommandExec, LW_NULL));
     }
@@ -834,11 +833,12 @@ INT  API_TShellExec (CPCHAR  pcCommandExec)
 /*********************************************************************************************************
 ** 函数名称: API_TShellExecBg
 ** 功能描述: ttiny shell 系统, 背景执行一条 shell 命令 (不过成功与否都会关闭需要关闭的文件)
+**           命令结束时不需要 thread join 这个线程
 ** 输　入  : pcCommandExec  命令字符串
 **           iFd[3]         标准文件
 **           bClosed[3]     执行结束后是否关闭对应标准文件
-**           bIsJoin        是否等待命令执行结束
-**           pulSh          背景线程句柄, (仅当 bIsJoin = LW_FALSE 时返回)
+**           bWait          是否等待命令执行结束
+**           pulSh          背景线程句柄, (仅当 bWait = LW_FALSE 时返回)
 ** 输　出  : 命令返回值(当发生错误时, 返回值为负值)
 ** 全局变量: 
 ** 调用模块: 
@@ -848,7 +848,30 @@ INT  API_TShellExec (CPCHAR  pcCommandExec)
 *********************************************************************************************************/
 LW_API  
 INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3], 
-                       BOOL  bIsJoin, LW_OBJECT_HANDLE  *pulSh)
+                       BOOL  bWait, LW_OBJECT_HANDLE  *pulSh)
+{
+    return  (API_TShellExecBgEx(pcCommandExec, iFd, bClosed, bWait, pulSh, LW_TRUE, 0));
+}
+/*********************************************************************************************************
+** 函数名称: API_TShellExecBgEx
+** 功能描述: ttiny shell 系统, 背景执行一条 shell 命令 (不过成功与否都会关闭需要关闭的文件)
+** 输　入  : pcCommandExec  命令字符串
+**           iFd[3]         标准文件
+**           bClosed[3]     执行结束后是否关闭对应标准文件
+**           bWait          是否等待命令执行结束
+**           pulSh          背景线程句柄, (仅当 bIsJoin = LW_FALSE 时返回)
+**           bAutoRecycle   不等待命令结束时是否需要 thread join 回收 shell 线程.
+**           ulMustZero     未来扩展, 填写 0
+** 输　出  : 命令返回值(当发生错误时, 返回值为负值)
+** 全局变量:
+** 调用模块:
+** 注  意  : 当 shell 检测出命令字符串错误时, 将会返回负值, 此值取相反数后即为错误编号.
+
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+INT  API_TShellExecBgEx (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
+                         BOOL  bWait, LW_OBJECT_HANDLE  *pulSh, BOOL  bAutoRecycle, ULONG  ulMustZero)
 {
     INT                 iRet;
     INT                 iError;
@@ -861,7 +884,9 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
     CHAR                cCommand[LW_CFG_SHELL_MAX_COMMANDLEN + 1];
     size_t              stStrLen = lib_strnlen(pcCommandExec, LW_CFG_SHELL_MAX_COMMANDLEN + 1);
     BOOL                bNeedAsyn;
-    
+    pid_t               pidCur;
+    ULONG               ulMagic;
+
     if ((stStrLen > LW_CFG_SHELL_MAX_COMMANDLEN - 1) || (stStrLen < 1)) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
@@ -869,7 +894,8 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
     
     lib_strcpy(cCommand, pcCommandExec);
     
-    if (__PROC_GET_PID_CUR() != 0) {                                    /*  进程中创建                  */
+    pidCur = __PROC_GET_PID_CUR();                                      /*  获得当前进程 PID            */
+    if (pidCur != 0) {                                                  /*  进程中创建                  */
         if (iFd == LW_NULL) {
             iFdArray[0] = dup2kernel(STD_IN);
             iFdArray[1] = dup2kernel(STD_OUT);
@@ -905,11 +931,11 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
         
         iFd     = iFdArray;
         bClosed = bClosedArray;                                         /*  文件是 dup 出来的这里必须全关*/
-    
+
         __tshellPreTreatedBg(cCommand, LW_NULL, &bNeedAsyn);            /*  预处理背景执行相关参数       */
         
         if (bNeedAsyn) {
-            bIsJoin = LW_FALSE;
+            bWait = LW_FALSE;
         }
         
         if (ERROR_NONE == __tshellStrKeyword(cCommand, cKeyword, &pcParam)) {
@@ -932,9 +958,11 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
             bClosedArray[2] = LW_FALSE;
         }
     }
-    
-    iError = __tshellBgCreateEx(iFd, bClosed, cCommand, lib_strlen(cCommand),
-                                pskwNode ? pskwNode->SK_ulOption : 0ul, bIsJoin, 0, pulSh, &iRet);
+
+    ulMagic = bAutoRecycle ? 0ul: (ULONG)pidCur;                        /*  记录创建者                   */
+    iError  = __tshellBgCreateEx(iFd, bClosed, cCommand, lib_strlen(cCommand),
+                                 pskwNode ? pskwNode->SK_ulOption : 0ul,
+                                 bWait, ulMagic, pulSh, &iRet, bAutoRecycle);
     if (iError < 0) {                                                   /*  背景创建失败                */
         /*
          *  运行失败, 则关闭内核中需要关闭的文件

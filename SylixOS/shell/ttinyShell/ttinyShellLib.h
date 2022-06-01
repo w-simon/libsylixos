@@ -145,7 +145,8 @@ INT    __tshellBgCreateEx(INT               iFd[3],
                           BOOL              bIsJoin,
                           ULONG             ulMagic,
                           LW_OBJECT_HANDLE *pulSh,
-                          INT              *piRet);
+                          INT              *piRet,
+                          BOOL              bAutoRecycle);
 
 /*********************************************************************************************************
   用户与组
