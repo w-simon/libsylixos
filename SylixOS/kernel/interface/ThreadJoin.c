@@ -75,7 +75,7 @@ BOOL  __threadCanJoin (PLW_CLASS_TCB  ptcbCur, PLW_CLASS_TCB  ptcbJoin)
 
 #if LW_CFG_SHELL_EN > 0
     if (pidCur && (pidJoin == 0)) {
-        if (__TTINY_SHELL_GET_MAGIC(ptcbJoin) == (ULONG)pidCur) {       /*  此 shell 目标为本进程创建   */
+        if (__TTINY_SHELL_GET_FATHER(ptcbJoin) == pidCur) {             /*  此 shell 目标为本进程创建   */
             return  (LW_TRUE);
         }
     }
@@ -142,7 +142,7 @@ ULONG  API_ThreadJoin (LW_OBJECT_HANDLE  ulId, PVOID  *ppvRetValAddr)
         }
 
 #if LW_CFG_MODULELOADER_EN > 0
-        if (__threadCanJoin(ptcbCur, ptcb)) {                           /*  是否可以 JOIN               */
+        if (!__threadCanJoin(ptcbCur, ptcb)) {                          /*  是否可以 JOIN               */
             __KERNEL_EXIT();                                            /*  退出内核                    */
             _ErrorHandle(ERROR_THREAD_NULL);
             return  (ERROR_THREAD_NULL);
@@ -161,7 +161,7 @@ ULONG  API_ThreadJoin (LW_OBJECT_HANDLE  ulId, PVOID  *ppvRetValAddr)
         ptwj = &_K_twjTable[usIndex];
         if (ptwj->TWJ_ptcb) {
 #if LW_CFG_MODULELOADER_EN > 0
-            if (__threadCanJoin(ptcbCur, ptwj->TWJ_ptcb)) {             /*  是否可以 JOIN               */
+            if (!__threadCanJoin(ptcbCur, ptwj->TWJ_ptcb)) {            /*  是否可以 JOIN               */
                 __KERNEL_EXIT();                                        /*  退出内核                    */
                 _ErrorHandle(ERROR_THREAD_NULL);
                 return  (ERROR_THREAD_NULL);

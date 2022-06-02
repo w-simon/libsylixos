@@ -417,6 +417,7 @@ LW_OBJECT_HANDLE  API_TShellCreateEx (INT  iTtyFd, ULONG  ulOption,
     
     ptcbShell = __GET_TCB_FROM_HANDLE(hTShellHandle);
     __TTINY_SHELL_SET_OPT(ptcbShell, ulOption);                         /*  初始化选项                  */
+    __TTINY_SHELL_SET_FATHER(ptcbShell, 0);                             /*  不记录父进程                */
     __TTINY_SHELL_SET_CALLBACK(ptcbShell, pfuncRunCallback);            /*  初始化启动回调              */
     __TTINY_SHELL_SET_CBARG(ptcbShell, pvCbArg);
     
@@ -885,7 +886,6 @@ INT  API_TShellExecBgEx (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
     size_t              stStrLen = lib_strnlen(pcCommandExec, LW_CFG_SHELL_MAX_COMMANDLEN + 1);
     BOOL                bNeedAsyn;
     pid_t               pidCur;
-    ULONG               ulMagic;
 
     if ((stStrLen > LW_CFG_SHELL_MAX_COMMANDLEN - 1) || (stStrLen < 1)) {
         _ErrorHandle(EINVAL);
@@ -925,24 +925,24 @@ INT  API_TShellExecBgEx (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
         /*
          *  由于已经 dup 到内核中, 这里必须在运行结束后关闭这些文件
          */
-        bClosedArray[0] = LW_TRUE;                                      /*  执行完毕后需要关闭这些       */
+        bClosedArray[0] = LW_TRUE;                                      /*  执行完毕后需要关闭这些      */
         bClosedArray[1] = LW_TRUE;
         bClosedArray[2] = LW_TRUE;
         
         iFd     = iFdArray;
-        bClosed = bClosedArray;                                         /*  文件是 dup 出来的这里必须全关*/
+        bClosed = bClosedArray;                                         /*  dup 出来的这里必须全关      */
 
-        __tshellPreTreatedBg(cCommand, LW_NULL, &bNeedAsyn);            /*  预处理背景执行相关参数       */
+        __tshellPreTreatedBg(cCommand, LW_NULL, &bNeedAsyn);            /*  预处理背景执行相关参数      */
         
         if (bNeedAsyn) {
             bWait = LW_FALSE;
         }
         
         if (ERROR_NONE == __tshellStrKeyword(cCommand, cKeyword, &pcParam)) {
-            __tshellKeywordFind(cKeyword, &pskwNode);                   /*  查找关键字                   */
+            __tshellKeywordFind(cKeyword, &pskwNode);                   /*  查找关键字                  */
         }
 
-    } else {                                                            /*  内核中调用                   */
+    } else {                                                            /*  内核中调用                  */
         if (iFd == LW_NULL) {
             LW_OBJECT_HANDLE  ulMe = API_ThreadIdSelf();
             iFd = iFdArray;
@@ -959,10 +959,9 @@ INT  API_TShellExecBgEx (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
         }
     }
 
-    ulMagic = bAutoRecycle ? 0ul: (ULONG)pidCur;                        /*  记录创建者                   */
-    iError  = __tshellBgCreateEx(iFd, bClosed, cCommand, lib_strlen(cCommand),
-                                 pskwNode ? pskwNode->SK_ulOption : 0ul,
-                                 bWait, ulMagic, pulSh, &iRet, bAutoRecycle);
+    iError = __tshellBgCreateEx(iFd, bClosed, cCommand, lib_strlen(cCommand),
+                                pskwNode ? pskwNode->SK_ulOption : 0ul,
+                                bWait, 0ul, pulSh, &iRet, bAutoRecycle);
     if (iError < 0) {                                                   /*  背景创建失败                */
         /*
          *  运行失败, 则关闭内核中需要关闭的文件

@@ -96,6 +96,9 @@
 *********************************************************************************************************/
 #if LW_CFG_MODULELOADER_EN > 0
 #include "../SylixOS/loader/include/loader_vppatch.h"
+#define __tcb_pid(ptcb)     vprocGetPidByTcbNoLock(ptcb)
+#else
+#define __tcb_pid(ptcb)     0
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 /*********************************************************************************************************
   背景控制 (t_shell 线程中通过接收的命令字符串末尾判断)
@@ -1087,7 +1090,6 @@ INT    __tshellBgCreateEx (INT               iFd[3],
     
     ulOption  = 0ul;
     ulPrevOpt = __TTINY_SHELL_GET_OPT(ptcbCur);
-
     if (ulPrevOpt & LW_OPTION_TSHELL_VT100) {                           /*  XXX 这里是否合适有待分析    */
         __KERNEL_SPACE_ENTER();
         if (isatty(iFd[1])) {                                           /*  内核文件描述符是否为 tty    */
@@ -1160,6 +1162,7 @@ INT    __tshellBgCreateEx (INT               iFd[3],
     ptcbShellBg = __GET_TCB_FROM_HANDLE(hTShellHandle);
     __TTINY_SHELL_SET_OPT(ptcbShellBg, ulOption);
     __TTINY_SHELL_SET_MAGIC(ptcbShellBg, ulMagic);                      /*  记录识别号                  */
+    __TTINY_SHELL_SET_FATHER(ptcbShellBg, __tcb_pid(ptcbCur));          /*  记录父进程                  */
     
     if (pulSh && (bWait == LW_FALSE)) {
         *pulSh = hTShellHandle;

@@ -447,12 +447,13 @@ typedef LW_DSP_CONTEXT   *PLW_DSP_CONTEXT;
 #if LW_CFG_SHELL_EN > 0
 typedef struct {
     ULONG                 SHC_ulShellMagic;                             /*  shell 背景识别号            */
-    ULONG                 SHC_ulShellStdFile;                           /*  shell stdfile               */
-    ULONG                 SHC_ulShellError;                             /*  shell 系统错误              */
     ULONG                 SHC_ulShellOption;                            /*  shell 设置掩码              */
+    INT                   SHC_iShellStdFile;                            /*  shell stdfile               */
+    INT                   SHC_iShellError;                              /*  shell 系统错误              */
+    pid_t                 SHC_pidFather;                                /*  shell 创建进程              */
     addr_t                SHC_ulShellHistoryCtx;                        /*  shell Input History         */
-    LW_OBJECT_HANDLE      SHC_ulShellMain;                              /*  shell 主线程                */
     addr_t                SHC_ulGetOptCtx;                              /*  getopt() 全局变量切换地址   */
+    LW_OBJECT_HANDLE      SHC_ulShellMain;                              /*  shell 主线程                */
     FUNCPTR               SHC_pfuncShellCallback;                       /*  shell 启动回调              */
     PVOID                 SHC_pvCallbackArg;                            /*  shell 回调参数              */
 } LW_SHELL_CONTEXT;

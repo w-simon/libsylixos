@@ -150,7 +150,7 @@ static VOID  __signalExitHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct sig
 {
     LW_OBJECT_HANDLE    ulId = ptcbCur->TCB_ulId;
 #if LW_CFG_MODULELOADER_EN > 0
-    pid_t               pid  = vprocGetPidByTcb(ptcbCur);
+    pid_t               pid  = vprocGetPidByTcbNoLock(ptcbCur);
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
     
     if ((iSigNo == SIGBUS)  ||
@@ -196,7 +196,7 @@ static VOID  __signalExitHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct sig
 static VOID  __signalKillHandle (PLW_CLASS_TCB  ptcbCur, INT  iSigNo, struct siginfo *psiginfo)
 {
     LW_OBJECT_HANDLE    ulId = ptcbCur->TCB_ulId;
-    pid_t               pid  = vprocGetPidByTcb(ptcbCur);
+    pid_t               pid  = vprocGetPidByTcbNoLock(ptcbCur);
 
     if (pid > 0 && vprocIsMainThread()) {
         vprocExitModeSet(pid, LW_VPROC_EXIT_FORCE);                     /*  强制进程退出                */

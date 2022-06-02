@@ -91,7 +91,7 @@ ULONG  API_ThreadDetachEx (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal)
         }
 
 #if LW_CFG_MODULELOADER_EN > 0
-        if (__threadCanJoin(ptcbCur, ptcb)) {                           /*  是否可以 detach             */
+        if (!__threadCanJoin(ptcbCur, ptcb)) {                          /*  是否可以 detach             */
             __KERNEL_EXIT();                                            /*  退出内核                    */
             _ErrorHandle(ERROR_THREAD_NULL);
             return  (ERROR_THREAD_NULL);
@@ -104,7 +104,7 @@ ULONG  API_ThreadDetachEx (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal)
         ptwj = &_K_twjTable[usIndex];
         if (ptwj->TWJ_ptcb) {
 #if LW_CFG_MODULELOADER_EN > 0
-            if (__threadCanJoin(ptcbCur, ptwj->TWJ_ptcb)) {             /*  是否可以 detach             */
+            if (!__threadCanJoin(ptcbCur, ptwj->TWJ_ptcb)) {            /*  是否可以 detach             */
                 __KERNEL_EXIT();                                        /*  退出内核                    */
                 _ErrorHandle(ERROR_THREAD_NULL);
                 return  (ERROR_THREAD_NULL);

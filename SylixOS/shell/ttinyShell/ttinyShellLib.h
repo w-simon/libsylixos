@@ -59,15 +59,22 @@ extern  LW_OBJECT_HANDLE            _G_hTShellLock;
   shell std file 操作
 *********************************************************************************************************/
 
-#define __TTINY_SHELL_SET_STDFILE(ptcb, iFd)    ptcb->TCB_shc.SHC_ulShellStdFile = iFd;
-#define __TTINY_SHELL_GET_STDFILE(ptcb)         (INT)ptcb->TCB_shc.SHC_ulShellStdFile
+#define __TTINY_SHELL_SET_STDFILE(ptcb, iFd)    ptcb->TCB_shc.SHC_iShellStdFile = iFd;
+#define __TTINY_SHELL_GET_STDFILE(ptcb)         ptcb->TCB_shc.SHC_iShellStdFile
 
 /*********************************************************************************************************
   shell 错误暂存
 *********************************************************************************************************/
 
-#define __TTINY_SHELL_SET_ERROR(ptcb, iRet)     ptcb->TCB_shc.SHC_ulShellError = (ULONG)iRet
-#define __TTINY_SHELL_GET_ERROR(ptcb)           (INT)ptcb->TCB_shc.SHC_ulShellError
+#define __TTINY_SHELL_SET_ERROR(ptcb, iRet)     ptcb->TCB_shc.SHC_iShellError = (ULONG)iRet
+#define __TTINY_SHELL_GET_ERROR(ptcb)           ptcb->TCB_shc.SHC_iShellError
+
+/*********************************************************************************************************
+  shell 父进程
+*********************************************************************************************************/
+
+#define __TTINY_SHELL_SET_FATHER(ptcb, father)  ptcb->TCB_shc.SHC_pidFather = father
+#define __TTINY_SHELL_GET_FATHER(ptcb)          ptcb->TCB_shc.SHC_pidFather
 
 /*********************************************************************************************************
   shell 选项参数

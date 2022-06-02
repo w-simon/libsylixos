@@ -206,7 +206,7 @@ VOID  _ThreadWjClear (PVOID  pvVProc, pid_t  pid)
         if (_K_twjTable[i].TWJ_ptcb) {
             if ((_K_twjTable[i].TWJ_ptcb->TCB_pvVProcessContext == pvVProc)
 #if LW_CFG_SHELL_EN > 0
-                || (pid && (__TTINY_SHELL_GET_MAGIC(_K_twjTable[i].TWJ_ptcb) == (ULONG)pid))
+                || (pid && (__TTINY_SHELL_GET_FATHER(_K_twjTable[i].TWJ_ptcb) == pid))
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
             ) {
                 _Free_Tcb_Object(_K_twjTable[i].TWJ_ptcb);              /*   Õ∑≈ ID                     */
