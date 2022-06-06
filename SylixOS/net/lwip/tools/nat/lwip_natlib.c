@@ -498,7 +498,7 @@ static VOID  __natPoolFree (__PNAT_CB  pnatcb)
     }
 }
 /*********************************************************************************************************
-** 函数名称: __natNewmap
+** 函数名称: __natMapAdd
 ** 功能描述: 创建一个 NAT 外网映射对象.
 ** 输　入  : pipaddr       本地机器 IP
 **           usIpCnt       本地 IP 数量 (负载均衡)
@@ -538,7 +538,7 @@ INT  __natMapAdd (ip4_addr_t  *pipaddr, u16_t  usIpCnt, u16_t  usPort, u16_t  As
     return  (ERROR_NONE);
 }
 /*********************************************************************************************************
-** 函数名称: __natNewmap
+** 函数名称: __natMapDelete
 ** 功能描述: 删除一个 NAT 外网映射对象.
 ** 输　入  : pipaddr       本地机器 IP
 **           usPort        本地机器 端口

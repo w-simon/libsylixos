@@ -114,7 +114,17 @@
   ATOMIC
 *********************************************************************************************************/
 
-#if __SYLIXOS_ARM_ARCH__ >= 6
+#if __SYLIXOS_ARM_ARCH__ == 6
+
+#  define LW_CFG_CPU_ATOMIC_EN      1
+#  if defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6ZK__)
+#    define LW_CFG_CPU_ATOMIC64_EN  1                                   /*  Only for ARMv6K             */
+#  else
+#    define LW_CFG_CPU_ATOMIC64_EN  0
+#  endif
+
+#elif __SYLIXOS_ARM_ARCH__ >= 7
+
 #  define LW_CFG_CPU_ATOMIC_EN      1
 #  ifndef __SYLIXOS_ARM_ARCH_M__
 #    define LW_CFG_CPU_ATOMIC64_EN  1                                   /*  Only for A, R               */

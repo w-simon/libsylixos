@@ -156,11 +156,12 @@ static ssize_t __buzzerWrite (PLW_BUZZER_FILE   pbuzfil,
     pbuzzer = pbuzfil->BUZFIL_pbuzzer;
     
     for (; iCnt > 0; iCnt--) {
-        if (API_MsgQueueSend2(pbuzzer->BUZZER_ulThread,
+        if (API_MsgQueueSend2(pbuzzer->BUZZER_ulMsgQ,
                               pbmsg, sizeof(BUZZER_MSG),
                               ulTimeout)) {
             break;
         }
+        pbmsg++;
         sstRet += sizeof(BUZZER_MSG);
     }
     

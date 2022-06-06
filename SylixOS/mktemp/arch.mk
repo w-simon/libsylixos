@@ -313,8 +313,7 @@ ARCH_COMMONFLAGS = \
     -D__extension__= -D__nothrow__= -D__SIZE_TYPE__="unsigned int" \
     -D__WINT_TYPE__="unsigned int" -D__WCHAR_TYPE__="unsigned int" \
     -D__gnuc_va_list=va_list -D__EXCLIB_STDARG --mem_model:data=far \
-    --multithread -D__TI_SHARED_DATA_SYNCHRONIZATION -D__TI_RECURSIVE_RESOURCE_MUTEXES \
-    -fno-strict-aliasing
+    --multithread -D__TI_SHARED_DATA_SYNCHRONIZATION -D__TI_RECURSIVE_RESOURCE_MUTEXES
 
 ARCH_PIC_ASFLAGS = --pic
 ARCH_PIC_CFLAGS  = --pic

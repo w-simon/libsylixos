@@ -833,7 +833,7 @@ INT  API_TShellExec (CPCHAR  pcCommandExec)
 }
 /*********************************************************************************************************
 ** 函数名称: API_TShellExecBg
-** 功能描述: ttiny shell 系统, 背景执行一条 shell 命令 (不过成功与否都会关闭需要关闭的文件)
+** 功能描述: ttiny shell 系统, 背景执行一条 shell 命令 (不管成功与否都会关闭需要关闭的文件)
 **           命令结束时不需要 thread join 这个线程
 ** 输　入  : pcCommandExec  命令字符串
 **           iFd[3]         标准文件
@@ -855,7 +855,7 @@ INT  API_TShellExecBg (CPCHAR  pcCommandExec, INT  iFd[3], BOOL  bClosed[3],
 }
 /*********************************************************************************************************
 ** 函数名称: API_TShellExecBgEx
-** 功能描述: ttiny shell 系统, 背景执行一条 shell 命令 (不过成功与否都会关闭需要关闭的文件)
+** 功能描述: ttiny shell 系统, 背景执行一条 shell 命令 (不管成功与否都会关闭需要关闭的文件)
 ** 输　入  : pcCommandExec  命令字符串
 **           iFd[3]         标准文件
 **           bClosed[3]     执行结束后是否关闭对应标准文件

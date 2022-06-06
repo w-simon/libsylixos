@@ -497,7 +497,7 @@ int  waitid (idtype_t idtype, id_t id, siginfo_t *infop, int options)
 /*********************************************************************************************************
 ** 函数名称: waitpid
 ** 功能描述: wait for a child process to stop or terminate
-** 输　入  : pid           指定的子线程
+** 输　入  : pid           指定的子进程
 **           stat_loc      返回值
 **           options       选项
 ** 输　出  : child pid 

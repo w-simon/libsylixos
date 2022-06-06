@@ -779,8 +779,8 @@ VOID  npf_netif_detach (struct netif  *pnetif)
 **           pucMac            禁止通信的 MAC 地址数组,
 **           pcAddrStart       禁止通信 IP 地址起始, 为 IP 地址字符串, 格式为: ???.???.???.???
 **           pcAddrEnd         禁止通信 IP 地址结束, 为 IP 地址字符串, 格式为: ???.???.???.???
-**           usPortStart       禁止通信的本地起始端口号(网络字节序), 仅适用与 UDP/TCP 规则
-**           usPortEnd         禁止通信的本地结束端口号(网络字节序), 仅适用与 UDP/TCP 规则
+**           usPortStart       禁止通信的本地起始端口号(网络字节序), 仅适用于 UDP/TCP 规则
+**           usPortEnd         禁止通信的本地结束端口号(网络字节序), 仅适用于 UDP/TCP 规则
 ** 输　出  : 规则句柄
 ** 全局变量:
 ** 调用模块:
@@ -808,8 +808,8 @@ PVOID  API_INetNpfRuleAdd (CPCHAR  pcIfname,
 **           pucMac            通信的 MAC 地址数组,
 **           pcAddrStart       通信 IP 地址起始, 为 IP 地址字符串, 格式为: ???.???.???.???
 **           pcAddrEnd         通信 IP 地址结束, 为 IP 地址字符串, 格式为: ???.???.???.???
-**           usPortStart       通信的本地起始端口号(网络字节序), 仅适用与 UDP/TCP 规则
-**           usPortEnd         通信的本地结束端口号(网络字节序), 仅适用与 UDP/TCP 规则
+**           usPortStart       通信的本地起始端口号(网络字节序), 仅适用于 UDP/TCP 规则
+**           usPortEnd         通信的本地结束端口号(网络字节序), 仅适用于 UDP/TCP 规则
 ** 输　出  : 规则句柄
 ** 全局变量:
 ** 调用模块:
