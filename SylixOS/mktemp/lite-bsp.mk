@@ -130,7 +130,10 @@ ifeq ($(ARCH), c6x)
 $($(target)_IMG): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(__LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) --abi=eabi -z --dynamic --trampolines=off --dsbt_size=64 -o $@ $(LOCAL_LD_SCRIPT) $(__OBJS) $(__LIBRARIES) 
+		@rm -f $(OUTPATH)/lib$(notdir $@)_temp.a 
+		@$(AR) $(TOOLCHAIN_AR_FLAGS) $(OUTPATH)/lib$(notdir $@)_temp.a $(__OBJS)
+		$(__LD) $(__CPUFLAGS) $(ARCH_KERNEL_LDFLAGS) $(__LINKFLAGS) --abi=eabi -z --dynamic --trampolines=off --dsbt_size=64 -o $@ $(LOCAL_LD_SCRIPT) -e _vector0 -i$(OUTPATH) -llib$(notdir $@)_temp.a $(__LIBRARIES) 
+		@rm -f $(OUTPATH)/lib$(notdir $@)_temp.a
 		@mv $@ $@.c6x
 		@nm $@.c6x > $@_nm.txt
 		@$(DIS) $(TOOLCHAIN_DIS_FLAGS) $@.c6x > $@_dis.txt

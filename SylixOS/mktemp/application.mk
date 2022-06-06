@@ -125,7 +125,10 @@ ifeq ($(ARCH), c6x)
 $($(target)_EXE): $($(target)_OBJS) $($(target)_DEPEND_TARGET) $($(target)_OBJS_LIST_FILE)
 		@rm -f $@
 		$(__PRE_LINK_CMD)
-		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) $(__OBJS) $(__LIBRARIES) -o $@
+		@rm -f $(OUTPATH)/lib$(notdir $@)_temp.a 
+		@$(AR) $(TOOLCHAIN_AR_FLAGS) $(OUTPATH)/lib$(notdir $@)_temp.a $(__OBJS)
+		$(__LD) $(__CPUFLAGS) $(ARCH_PIC_LDFLAGS) $(__LINKFLAGS) -e main -i$(OUTPATH) -llib$(notdir $@)_temp.a $(__LIBRARIES) -o $@
+		@rm -f $(OUTPATH)/lib$(notdir $@)_temp.a
 		@mv $@ $@.c6x
 		@nm $@.c6x > $@_nm.txt
 		@$(DIS) $(TOOLCHAIN_DIS_FLAGS) $@.c6x > $@_dis.txt

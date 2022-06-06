@@ -25,7 +25,7 @@
 CC      = c6x-cc
 CXX     = c6x-cc
 AS      = c6x-cc
-AR      = ar6x
+AR      = c6x-ar
 C_LD    = c6x-ld
 CXX_LD  = c6x-ld
 OC      = hex6x
@@ -72,7 +72,7 @@ TOOLCHAIN_COMMONFLAGS          =
 TOOLCHAIN_ASFLAGS              =
 TOOLCHAIN_NO_UNDEF_SYM_FLAGS   =
 
-TOOLCHAIN_AR_FLAGS             = rq
+TOOLCHAIN_AR_FLAGS             = -r
 TOOLCHAIN_STRIP_FLAGS          =
 TOOLCHAIN_STRIP_KO_FLAGS       =
 TOOLCHAIN_DIS_FLAGS            = --all

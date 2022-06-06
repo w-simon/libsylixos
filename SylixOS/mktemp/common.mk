@@ -151,10 +151,6 @@ endif
 #*********************************************************************************************************
 # Objects list file and objects flags
 #*********************************************************************************************************
-ifeq ($(ARCH), c6x)
-$(target)_OBJS_LIST_FILE := 
-$(target)_OBJS_FLAGS := $($(target)_OBJS)
-else
 ifeq ($($(target)_USE_SHORT_CMD), yes)
 $(target)_OBJS_LIST_FILE := $(OBJPATH)/$(target)/objects.lst
 $(call generate-list-file,$($(target)_OBJS),$($(target)_OBJS_LIST_FILE))
@@ -163,7 +159,6 @@ $(target)_OBJS_FLAGS := @$($(target)_OBJS_LIST_FILE)
 else
 $(target)_OBJS_LIST_FILE := 
 $(target)_OBJS_FLAGS := $($(target)_OBJS)
-endif
 endif
 
 #*********************************************************************************************************
