@@ -48,8 +48,11 @@ ULONG  API_CpuUp (ULONG  ulCPUId)
     
     KN_SMP_MB();
     pcpu = LW_CPU_GET(ulCPUId);
-    if (LW_CPU_IS_ACTIVE(pcpu) || 
-        (LW_CPU_GET_IPI_PEND2(pcpu) & LW_IPI_DOWN_MSK)) {
+    if (LW_CPU_IS_ACTIVE(pcpu)
+#if LW_CFG_SMP_CPU_DOWN_EN > 0
+        || (LW_CPU_GET_IPI_PEND2(pcpu) & LW_IPI_DOWN_MSK)
+#endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
+        ) {
         return  (ERROR_NONE);
     }
     

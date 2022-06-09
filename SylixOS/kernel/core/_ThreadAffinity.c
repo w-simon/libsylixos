@@ -70,7 +70,8 @@ ULONG  _ThreadSetAffinity (PLW_CLASS_TCB  ptcb, size_t  stSize, const PLW_CLASS_
         if (i >= ulNumChk) {
             ptcb->TCB_bCPULock = LW_FALSE;                              /*  关闭 CPU 锁定               */
 
-        } else {
+        } else if (!ptcbCur->TCB_bCPULock ||
+                   (ptcbCur->TCB_ulCPULock != i)) {                     /*  需要进行绑定操作            */
             iregInterLevel = KN_INT_DISABLE();
             ppcb = _GetPcb(ptcbCur);
             __DEL_FROM_READY_RING(ptcbCur, ppcb);                       /*  从就绪表中删除              */

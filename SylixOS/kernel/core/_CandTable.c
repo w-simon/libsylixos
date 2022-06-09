@@ -25,6 +25,7 @@
 2017.10.31  当 _CandTableUpdate() 从一个核中移除一个任务时, 这个任务没有绑定 CPU, 则应该在其他 CPU 上尝试
             调度.
 2018.06.06  支持强亲和度调度.
+2022.06.06  优化超线程处理器调度.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -207,6 +208,11 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
     REGISTER ULONG           i;
     REGISTER BOOL            bRotIdle;
 
+#if LW_CFG_CPU_ARCH_SMT > 0
+    REGISTER PLW_CLASS_CPU      pcpuIdle = LW_NULL;
+    REGISTER PLW_CLASS_PHYCPU   pphycpu;
+#endif                                                                  /*  超线程支持                  */
+
     if (ptcb->TCB_bCPULock) {                                           /*  任务锁定 CPU                */
         pcpu = LW_CPU_GET(ptcb->TCB_ulCPULock);
         if (!LW_CPU_IS_ACTIVE(pcpu)) {
@@ -267,12 +273,34 @@ BOOL  _CandTableTryAdd (PLW_CLASS_TCB  ptcb, PLW_CLASS_PCB  ppcb)
                 } else if (!LW_CAND_ROT(pcpu) && 
                            (LW_PRIO_IS_EQU(LW_PRIO_LOWEST, 
                                            ptcbCand->TCB_ucPriority))) {/*  运行 idle 任务且无标注      */
-                    LW_CAND_ROT(pcpu) = LW_TRUE;
-                    bRotIdle          = LW_TRUE;
-                    break;                                              /*  只标注一个 CPU 即可         */
+#if LW_CFG_CPU_ARCH_SMT > 0                                             /*  超线程 CPU 优先选空闲物理核 */
+                    if (LW_KERN_SMT_BSCHED_EN_GET()) {
+                        pphycpu = LW_PHYCPU_GET(pcpu->CPU_ulPhyId);
+                        if (pphycpu->PHYCPU_uiNonIdle == 0) {           /*  物理核心为 idle             */
+                            LW_CAND_ROT(pcpu) = LW_TRUE;
+                            bRotIdle          = LW_TRUE;
+                            break;                                      /*  只标注一个 CPU 即可         */
+
+                        } else if (!pcpuIdle) {
+                            pcpuIdle = pcpu;                            /*  记录一个 idle 核心的位置    */
+                        }
+                    } else
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+                    {
+                        LW_CAND_ROT(pcpu) = LW_TRUE;
+                        bRotIdle          = LW_TRUE;
+                        break;                                          /*  只标注一个 CPU 即可         */
+                    }
                 }
             }
             
+#if LW_CFG_CPU_ARCH_SMT > 0                                             /*  超线程是否有空闲逻辑核心    */
+            if (!bRotIdle && pcpuIdle) {
+                LW_CAND_ROT(pcpuIdle) = LW_TRUE;
+                bRotIdle              = LW_TRUE;
+            }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+
             if (!bRotIdle) {
                 LW_CPU_FOREACH_ACTIVE (i) {                             /*  CPU 必须为激活状态          */
                     pcpu = LW_CPU_GET(i);
@@ -372,6 +400,11 @@ static VOID _CandTableNotify (PLW_CLASS_CPU   pcpu, PLW_CLASS_TCB  ptcbCand)
     PLW_CLASS_TCB   ptcbOther;
     BOOL            bRotIdle;
     
+#if LW_CFG_CPU_ARCH_SMT > 0
+    REGISTER PLW_CLASS_CPU      pcpuIdle = LW_NULL;
+    REGISTER PLW_CLASS_PHYCPU   pphycpu;
+#endif                                                                  /*  超线程支持                  */
+
     bRotIdle = LW_FALSE;
     ulCPUId  = LW_CPU_GET_ID(pcpu);
     
@@ -386,12 +419,34 @@ static VOID _CandTableNotify (PLW_CLASS_CPU   pcpu, PLW_CLASS_TCB  ptcbCand)
         if (!LW_CAND_ROT(pcpuOther) && 
             (LW_PRIO_IS_EQU(LW_PRIO_LOWEST, 
                             ptcbOther->TCB_ucPriority))) {              /*  运行 idle 任务且无标注      */
-            LW_CAND_ROT(pcpuOther) = LW_TRUE;
-            bRotIdle               = LW_TRUE;
-            break;                                                      /*  只标注一个 CPU 即可         */
+#if LW_CFG_CPU_ARCH_SMT > 0                                             /*  超线程 CPU 优先选空闲物理核 */
+            if (LW_KERN_SMT_BSCHED_EN_GET()) {
+                pphycpu = LW_PHYCPU_GET(pcpuOther->CPU_ulPhyId);
+                if (pphycpu->PHYCPU_uiNonIdle == 0) {                   /*  物理核心为 idle             */
+                    LW_CAND_ROT(pcpuOther) = LW_TRUE;
+                    bRotIdle               = LW_TRUE;
+                    break;                                              /*  只标注一个 CPU 即可         */
+
+                } else if (!pcpuIdle) {
+                    pcpuIdle = pcpuOther;                               /*  记录一个 idle 核心的位置    */
+                }
+            } else
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+            {
+                LW_CAND_ROT(pcpuOther) = LW_TRUE;
+                bRotIdle               = LW_TRUE;
+                break;                                                  /*  只标注一个 CPU 即可         */
+            }
         }
     }
     
+#if LW_CFG_CPU_ARCH_SMT > 0                                             /*  超线程是否有空闲逻辑核心    */
+    if (!bRotIdle && pcpuIdle) {
+        LW_CAND_ROT(pcpuIdle) = LW_TRUE;
+        bRotIdle              = LW_TRUE;
+    }
+#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
+
     if (!bRotIdle) {
         LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUId) {                     /*  CPU 必须是激活状态          */
             pcpuOther = LW_CPU_GET(i);

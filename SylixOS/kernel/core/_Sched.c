@@ -114,8 +114,7 @@
 /*********************************************************************************************************
   scheduler 通知机制
 *********************************************************************************************************/
-static VOIDFUNCPTR                                  _K_pfuncSchedSmpNotify;
-#define __LW_SMP_NOTIFY(ulCPUIdCur)                 _K_pfuncSchedSmpNotify(ulCPUIdCur)
+#define __LW_SMP_NOTIFY(ulCPUIdCur)                 _SchedSmpNotify(ulCPUIdCur)
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 /*********************************************************************************************************
 ** 函数名称: _SchedSmpNotify
@@ -143,40 +142,6 @@ static VOID  _SchedSmpNotify (ULONG  ulCPUIdCur)
         }
     }
 }
-/*********************************************************************************************************
-** 函数名称: _SchedSmpSmtNotify
-** 功能描述: 通知需要调度的 CPU (smt balance sched)
-** 输　入  : ulCPUIdCur 当前 CPU ID
-** 输　出  : NONE
-** 全局变量: 
-** 调用模块: 
-** 注  意  : 当另一个核产生了调度器卷绕, 并且没有在处理 sched 核间中断, 
-             则优先选择物理 CPU 空闲的 CPU 发送核间中断.
-*********************************************************************************************************/
-#if LW_CFG_CPU_ARCH_SMT > 0
-
-static VOID  _SchedSmpSmtNotify (ULONG  ulCPUIdCur)
-{
-    INT                i;
-    PLW_CLASS_CPU      pcpu;
-    PLW_CLASS_PHYCPU   pphycpu;
-    
-    LW_CPU_FOREACH_ACTIVE_EXCEPT (i, ulCPUIdCur) {                      /*  遍历 CPU 检查是否需要调度   */
-        pcpu = LW_CPU_GET(i);
-        if (LW_CAND_ROT(pcpu) &&
-            ((LW_CPU_GET_IPI_PEND(i) & LW_IPI_SCHED_MSK) == 0)) {
-            pphycpu = LW_PHYCPU_GET(pcpu->CPU_ulPhyId);
-            if (pphycpu->PHYCPU_uiNonIdle == 0) {                       /*  此物理 CPU 处于 idle 任务   */
-                _SmpSendIpi(i, LW_IPI_SCHED, 0, LW_TRUE);               /*  产生核间中断                */
-                return;
-            }
-        }
-    }
-    
-    _SchedSmpNotify(ulCPUIdCur);                                        /*  尝试普通 SMP 调度通知       */
-}
-
-#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
 /*********************************************************************************************************
 ** 函数名称: _SchedCpuDown
 ** 功能描述: CPU 停止工作
@@ -245,7 +210,7 @@ VOID _SchedSwp (PLW_CLASS_CPU pcpuCur)
              BOOL               bIsIntSwitch = pcpuCur->CPU_bIsIntSwitch;
 
 #if (LW_CFG_SMP_EN > 0) && (LW_CFG_SMP_CPU_DOWN_EN > 0)
-    if (LW_CPU_GET_IPI_PEND(pcpuCur->CPU_ulCPUId) & LW_IPI_DOWN_MSK) {  /*  当前 CPU 需要停止           */
+    if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_DOWN_MSK) {              /*  当前 CPU 需要停止           */
         _SchedCpuDown(pcpuCur, bIsIntSwitch);
     }
 #endif                                                                  /*  LW_CFG_SMP_EN > 0           */
@@ -404,8 +369,7 @@ VOID  _ScheduleInt (PLW_CLASS_CPU  pcpuCur)
         }
         
 #if LW_CFG_SMP_CPU_DOWN_EN > 0
-        if (LW_CPU_GET_IPI_PEND(pcpuCur->CPU_ulCPUId) & 
-            LW_IPI_DOWN_MSK) {                                          /*  当前 CPU 需要停止           */
+        if (LW_CPU_GET_IPI_PEND2(pcpuCur) & LW_IPI_DOWN_MSK) {          /*  当前 CPU 需要停止           */
             _SchedCpuDown(pcpuCur, LW_TRUE);
         }
 #endif                                                                  /*  LW_CFG_SMP_CPU_DOWN_EN > 0  */
@@ -486,17 +450,6 @@ BOOL  _ScheduleIntCheck (PLW_CLASS_CPU  pcpuCur)
 *********************************************************************************************************/
 VOID  _ScheduleInit (VOID)
 {
-#if LW_CFG_SMP_EN > 0
-#if LW_CFG_CPU_ARCH_SMT > 0
-    if (LW_KERN_SMT_BSCHED_EN_GET()) {
-        _K_pfuncSchedSmpNotify = _SchedSmpSmtNotify;
-        
-    } else 
-#endif                                                                  /*  LW_CFG_CPU_ARCH_SMT > 0     */
-    {
-        _K_pfuncSchedSmpNotify = _SchedSmpNotify;
-    }
-#endif                                                                  /*  LW_CFG_SMP_EN > 0           */
 }
 /*********************************************************************************************************
 ** 函数名称: _SchedSetRet
