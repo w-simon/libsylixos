@@ -56,6 +56,7 @@
 2015.08.17  vprocDetach() 需要通知父进程.
 2015.11.25  加入进程内线程独立堆栈管理体系.
 2017.05.27  避免 vprocTickHook() 处理一个进程拥有多个线程, 且同时在多个 CPU 上执行时间重复计算的问题.
+2022.06.15  加入获取进程环境变量列表的接口.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_KERNEL
@@ -96,6 +97,7 @@ LW_LD_VPROC             *_G_pvprocTable[LW_CFG_MAX_THREADS];
 #define __LW_VP_PATCH_CTOR           "__vp_patch_ctor"
 #define __LW_VP_PATCH_DTOR           "__vp_patch_dtor"
 #define __LW_VP_PATCH_AERUN          "__vp_patch_aerun"
+#define __LW_VP_PATCH_ENVS           "__vp_patch_environs"
 /*********************************************************************************************************
   proc 文件系统操作
 *********************************************************************************************************/
@@ -232,6 +234,28 @@ static VOID __moduleVpPatchAerun (LW_LD_EXEC_MODULE *pmodule)
     if (funcVpAerun) {
         LW_SOFUNC_PREPARE(funcVpAerun);
         funcVpAerun(pmodule->EMOD_pvproc);
+    }
+}
+/*********************************************************************************************************
+** 函数名称: __moduleVpPatchEnvs
+** 功能描述: vp 补丁获取当前进程 环境变量列表 节点
+** 输　入  : pmodule       进程主模块句柄
+** 输　出  : 环境变量列表
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+PCHAR *__moduleVpPatchEnvs (LW_LD_EXEC_MODULE *pmodule,
+                            INT iMaxCnt, PCHAR *pcEnvBuf, INT *iEnvCnt,
+                            PVOID (*pfuncAlloc)(size_t), VOID (*pfuncFree)(PVOID))
+{
+    PCHAR   *(*funcVpEnvs)();
+
+    funcVpEnvs = (PCHAR *(*)())API_ModuleSym(pmodule, __LW_VP_PATCH_ENVS);
+    if (funcVpEnvs) {
+        LW_SOFUNC_PREPARE(funcVpEnvs);
+        return  (funcVpEnvs(iMaxCnt, pcEnvBuf, iEnvCnt, pfuncAlloc, pfuncFree));
+    } else {
+        return  (LW_NULL);
     }
 }
 /*********************************************************************************************************

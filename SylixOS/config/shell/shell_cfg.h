@@ -47,7 +47,7 @@
 
 #define LW_CFG_SHELL_MAX_COMMANDLEN             512                     /*  最长的 shell 命令长度       */
 #define LW_CFG_SHELL_MAX_KEYWORDLEN             64                      /*  最长的 shell 关键字长度     */
-#define LW_CFG_SHELL_MAX_PARAMNUM               64                      /*  最多的 shell 参数个数       */
+#define LW_CFG_SHELL_MAX_PARAMNUM               128                     /*  最多的 shell 参数个数       */
 #define LW_CFG_SHELL_KEY_HASH_SIZE              23                      /*  命令哈希表的大小, (素数)    */
 
 /*********************************************************************************************************

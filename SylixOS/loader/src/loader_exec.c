@@ -30,6 +30,7 @@
 2013.06.07  进程创建参数加入工作目录选项.
 2013.09.21  exec 在当前进程上下文中运行新的文件不再切换主线程.
 2015.07.24  修正 spawnle execle 函数对环境变量表操作错误.
+2022.06.15  不指定环境变量列表的, 需要继承当前环境变量列表.
 *********************************************************************************************************/
 #define  __SYLIXOS_STDIO
 #define  __SYLIXOS_STDARG
@@ -309,6 +310,26 @@ static VOID  __spawnSecRegion (__PSPAWN_ARG  psarg)
     ptcbCur->TCB_ucSecReg = ucSecReg;
 }
 /*********************************************************************************************************
+** 函数名称: __spawnGetEnvs
+** 功能描述: 获取当前进程环境变量
+** 输　入  : psarg     spawn args
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static VOID  __spawnGetEnvs (__PSPAWN_ARG  psarg)
+{
+    LW_LD_VPROC       *pvproc = __LW_VP_GET_CUR_PROC();
+    LW_LD_EXEC_MODULE *pmodule;
+
+    if (pvproc) {
+        pmodule = _LIST_ENTRY(pvproc->VP_ringModules, LW_LD_EXEC_MODULE, EMOD_ringModules);
+        __moduleVpPatchEnvs(pmodule, LW_CFG_SHELL_MAX_PARAMNUM,
+                            psarg->SA_pcpcEvn, &psarg->SA_iEvns,
+                            lib_malloc, lib_free);
+    }
+}
+/*********************************************************************************************************
 ** 函数名称: __execShell
 ** 功能描述: exec shell (注意, __execShell 本身就是进程主线程, 不管装载成功与否都需要通过 vprocExit 退出)
 ** 输　入  : pvArg
@@ -576,6 +597,8 @@ int spawnl (int mode, const char *path, const char *argv0, ...)
     
     va_end(valist);
     
+    __spawnGetEnvs(psarg);                                              /*  获取环境变量列表            */
+
     psarg->SA_pcPath = lib_strdup(path);
     if (!psarg->SA_pcPath) {
         __spawnArgFree(psarg);
@@ -748,6 +771,8 @@ int spawnlp (int mode, const char *file, const char *argv0, ...)
     
     va_end(valist);
     
+    __spawnGetEnvs(psarg);                                              /*  获取环境变量列表            */
+
     psarg->SA_pcPath = lib_strdup(cFilePath);
     if (!psarg->SA_pcPath) {
         __spawnArgFree(psarg);
@@ -805,6 +830,8 @@ int spawnv (int mode, const char *path, char * const *argv)
     }
     psarg->SA_iArgs = i;
     
+    __spawnGetEnvs(psarg);                                              /*  获取环境变量列表            */
+
     psarg->SA_pcPath = lib_strdup(path);
     if (!psarg->SA_pcPath) {
         __spawnArgFree(psarg);
@@ -942,6 +969,8 @@ int spawnvp (int mode, const char *file, char * const *argv)
     }
     psarg->SA_iArgs = i;
     
+    __spawnGetEnvs(psarg);                                              /*  获取环境变量列表            */
+
     psarg->SA_pcPath = lib_strdup(cFilePath);
     if (!psarg->SA_pcPath) {
         __spawnArgFree(psarg);

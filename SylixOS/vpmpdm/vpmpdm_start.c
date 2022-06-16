@@ -96,6 +96,61 @@ LW_LIB_HOOK_STATIC void __vp_patch_deinit_env (void)
 LW_DESTRUCTOR_END(__vp_patch_deinit_env)
 
 /*
+ * get environs
+ */
+char **__vp_patch_environs (int maxcnt, char **env_buf, int *env_cnt,
+                            void *(*func_alloc)(size_t), void (*func_free)(void *))
+{
+    size_t len;
+    int i, cnt, n_buf;
+
+    if (!func_alloc) {
+        func_alloc = malloc;
+        func_free = free;
+    } else if (!func_free) {
+        return NULL;
+    }
+
+    __ENV_LOCK();
+    for (cnt = 0; environ[cnt]; ++cnt)
+        continue;
+    if (env_buf) {
+        if (cnt > maxcnt) {
+            cnt = maxcnt;
+        }
+        n_buf = 0;
+    } else {
+        env_buf = func_alloc(sizeof(char *) * cnt);
+        if (!env_buf) {
+            goto    bad;
+        }
+        n_buf = 1;
+    }
+    for (i = 0; i < cnt; i++) {
+        len = strlen(environ[i]);
+        env_buf[i] = func_alloc(len + 1);
+        if (!env_buf[i]) {
+            goto    free;
+        }
+        memcpy(env_buf[i], environ[i], len + 1);
+    }
+    __ENV_UNLOCK();
+    return env_buf;
+free:
+    for (; i >= 0; i--) {
+        if (env_buf[i]) {
+            func_free(env_buf[i]);
+        }
+    }
+    if (n_buf) {
+        func_free(env_buf);
+    }
+bad:
+    __ENV_UNLOCK();
+    return NULL;
+}
+
+/*
  *  _findenv
  */
 static char *_find_env (const char *name, int *offset)

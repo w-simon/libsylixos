@@ -347,17 +347,20 @@ VOID    __ldProtect(PVOID  pvBase, size_t  stAddrOft, size_t  stLen);
 
 #define LW_LD_VMEM_MAX      64
 
-PCHAR __moduleVpPatchVersion(LW_LD_EXEC_MODULE *pmodule);               /*  获得补丁版本                */
+PCHAR  __moduleVpPatchVersion(LW_LD_EXEC_MODULE *pmodule);              /*  获得补丁版本                */
 
 #if LW_CFG_VMM_EN == 0
-PVOID __moduleVpPatchHeap(LW_LD_EXEC_MODULE *pmodule);                  /*  获得补丁独立内存堆          */
+PVOID  __moduleVpPatchHeap(LW_LD_EXEC_MODULE *pmodule);                 /*  获得补丁独立内存堆          */
 #endif                                                                  /*  LW_CFG_VMM_EN == 0          */
 
-INT   __moduleVpPatchVmem(LW_LD_EXEC_MODULE *pmodule, PVOID  ppvArea[], INT  iSize);
+INT    __moduleVpPatchVmem(LW_LD_EXEC_MODULE *pmodule, PVOID  ppvArea[], INT  iSize);
                                                                         /*  获得进程虚拟内存空间        */
-VOID  __moduleVpPatchInit(LW_LD_EXEC_MODULE *pmodule);                  /*  进程补丁构造与析构          */
-VOID  __moduleVpPatchFini(LW_LD_EXEC_MODULE *pmodule);
-
+VOID   __moduleVpPatchInit(LW_LD_EXEC_MODULE *pmodule);                 /*  进程补丁构造与析构          */
+VOID   __moduleVpPatchFini(LW_LD_EXEC_MODULE *pmodule);
+PCHAR *__moduleVpPatchEnvs(LW_LD_EXEC_MODULE *pmodule,
+                           INT iMaxCnt, PCHAR *pcEnvBuf, INT *iEnvCnt,
+                           PVOID (*pfuncAlloc)(size_t), VOID (*pfuncFree)(PVOID));
+                                                                        /*  获取进程环境变量列表        */
 /*********************************************************************************************************
   体系结构特有函数
 *********************************************************************************************************/

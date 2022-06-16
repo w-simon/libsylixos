@@ -63,7 +63,7 @@
 #include "./loader/include/loader_lib.h" /* need __eabi */
 #endif /* LW_CFG_CPU_ARCH_PPC */
 
-#define __VP_PATCH_VERSION      "2.1.7" /* vp patch version */
+#define __VP_PATCH_VERSION      "2.2.0" /* vp patch version */
 
 /*
  * fixed gcc old version.
@@ -72,6 +72,7 @@
 #if __GNUC__ < 2  || (__GNUC__ == 2 && __GNUC_MINOR__ < 5)
 #error must use GCC include "__attribute__((...))" function.
 #endif /*  __GNUC__ < 2  || ...        */
+
 /*
  * fixed qt which compiled with old version gcc.
  */
@@ -162,7 +163,6 @@ void __vp_patch_unlock (void)
     API_SemaphoreMPost(ctx.locker);
 }
 
- 
 /*
  *  libgcc support
  */

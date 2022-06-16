@@ -251,6 +251,12 @@ static VOID  loongson2SCacheInit (VOID)
     _G_SCache.CACHE_uiWaySize  = _G_SCache.CACHE_uiSize / (_G_SCache.CACHE_uiWayNr);
     _G_SCache.CACHE_uiSetNr    = _G_SCache.CACHE_uiSize / (_G_SCache.CACHE_uiLineSize * _G_SCache.CACHE_uiWayNr);
     _G_SCache.CACHE_bPresent   = LW_TRUE;
+
+    /*
+     * Loongson2F_UM_CN_V1.5 PAGE91
+     * 二级 CACHE 与数据 CACHE 和指令 CACHE 保持包含关系, 所以操作二级 CACHE 即可
+     */
+    _G_SCache.CACHE_bL2IncL1   = LW_TRUE;
 }
 /*********************************************************************************************************
 ** 函数名称: loongson3SCacheInit
@@ -290,6 +296,8 @@ static VOID  loongson3SCacheInit (VOID)
     if (_G_SCache.CACHE_uiSize) {
         _G_SCache.CACHE_bPresent = LW_TRUE;
     }
+
+    _G_SCache.CACHE_bL2IncL1 = LW_FALSE;
 }
 /*********************************************************************************************************
 ** 函数名称: jzriscSCacheInit
@@ -320,6 +328,7 @@ static VOID  jzriscSCacheInit (VOID)
     _G_SCache.CACHE_uiSize    = _G_SCache.CACHE_uiSetNr * _G_SCache.CACHE_uiWayNr *
                                 _G_SCache.CACHE_uiLineSize;
     _G_SCache.CACHE_bPresent  = LW_TRUE;
+    _G_SCache.CACHE_bL2IncL1  = LW_FALSE;
 }
 /*********************************************************************************************************
 ** 函数名称: mipsSCacheInit
@@ -371,6 +380,7 @@ static VOID  mipsSCacheInit (VOID)
     _G_SCache.CACHE_uiSize    = _G_SCache.CACHE_uiSetNr * _G_SCache.CACHE_uiWayNr *
                                 _G_SCache.CACHE_uiLineSize;
     _G_SCache.CACHE_bPresent  = LW_TRUE;
+    _G_SCache.CACHE_bL2IncL1  = LW_FALSE;
 }
 /*********************************************************************************************************
 ** 函数名称: mipsSCacheSetup

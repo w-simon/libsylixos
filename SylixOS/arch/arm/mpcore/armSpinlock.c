@@ -48,7 +48,7 @@
 *********************************************************************************************************/
 static VOID  armSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvArg)
 {
-#if __SYLIXOS_ARM_ARCH__ >= 6
+#if __SYLIXOS_ARM_ARCH__ > 6 || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6ZK__)
     UINT32          uiTemp;
     UINT32          uiNewVal;
     SPINLOCKTYPE    sldVal;
@@ -90,7 +90,7 @@ static VOID  armSpinLock (SPINLOCKTYPE *psld, VOIDFUNCPTR  pfuncPoll, PVOID  pvA
 *********************************************************************************************************/
 static UINT32  armSpinTryLock (SPINLOCKTYPE *psld)
 {
-#if __SYLIXOS_ARM_ARCH__ >= 6
+#if __SYLIXOS_ARM_ARCH__ > 6 || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6ZK__)
     UINT32  uiCont, uiRes, uiLock;
 
     ARM_PREFETCH_W(&psld->SLD_uiLock);
@@ -124,7 +124,7 @@ static UINT32  armSpinTryLock (SPINLOCKTYPE *psld)
 *********************************************************************************************************/
 static VOID  armSpinUnlock (SPINLOCKTYPE *psld)
 {
-#if __SYLIXOS_ARM_ARCH__ >= 6
+#if __SYLIXOS_ARM_ARCH__ > 6 || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6ZK__)
     psld->SLD_usSvcNow++;
     armDsb(ishst);
     __asm__ __volatile__(ARM_SEV);

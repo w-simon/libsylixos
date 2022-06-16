@@ -190,6 +190,7 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
 #define MIPS_MACHINE_LS3X   "loongson3x"
 #define MIPS_MACHINE_JZ47XX "jz47xx"
 #define MIPS_MACHINE_X1000  "x1000"
+#define MIPS_MACHINE_X1600  "x1600"
 #define MIPS_MACHINE_X2000  "x2000"
 #define MIPS_MACHINE_HR2    "hr2"
 #define MIPS_MACHINE_HR3    "hr3"
@@ -201,6 +202,7 @@ VOID    archBogoMipsLoop(ULONG  ulLoop);
 #define MIPS_MACHINE_TYPE_JZ47XX    40
 #define MIPS_MACHINE_TYPE_X1000     41
 #define MIPS_MACHINE_TYPE_X2000     42
+#define MIPS_MACHINE_TYPE_X1600     43
 #define MIPS_MACHINE_TYPE_HR2       50
 #define MIPS_MACHINE_TYPE_HR3       51
 

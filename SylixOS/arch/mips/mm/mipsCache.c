@@ -61,6 +61,7 @@ VOID  archCacheInit (CACHE_MODE  uiInstruction, CACHE_MODE  uiData, CPCHAR  pcMa
                (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
                (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0) ||
                (lib_strcmp(pcMachineName, MIPS_MACHINE_X1000)  == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_X1600)  == 0) ||
                (lib_strcmp(pcMachineName, MIPS_MACHINE_X2000)  == 0)) {
         mipsCacheR4kInit(pcacheop, uiInstruction, uiData, pcMachineName);
 
@@ -94,6 +95,7 @@ VOID  archCacheReset (CPCHAR  pcMachineName)
                (lib_strcmp(pcMachineName, MIPS_MACHINE_24KF)   == 0) ||
                (lib_strcmp(pcMachineName, MIPS_MACHINE_JZ47XX) == 0) ||
                (lib_strcmp(pcMachineName, MIPS_MACHINE_X1000)  == 0) ||
+               (lib_strcmp(pcMachineName, MIPS_MACHINE_X1600)  == 0) ||
                (lib_strcmp(pcMachineName, MIPS_MACHINE_X2000)  == 0)) {
         mipsCacheR4kReset(pcMachineName);
 

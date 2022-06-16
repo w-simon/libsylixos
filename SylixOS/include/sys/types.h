@@ -152,34 +152,6 @@ typedef uint_t     socklen_t;
 #endif
 
 /*********************************************************************************************************
-  fix newlib _default_types.h
-*********************************************************************************************************/
-
-#undef __INT8_TYPE__
-#undef __UINT8_TYPE__
-
-#undef __INT16_TYPE__
-#undef __UINT16_TYPE__
-
-#undef __INT32_TYPE__
-#undef __UINT32_TYPE__
-
-#undef __INT64_TYPE__
-#undef __UINT64_TYPE__
-
-#undef __INT_LEAST8_TYPE__
-#undef __UINT_LEAST8_TYPE__
-
-#undef __INT_LEAST16_TYPE__
-#undef __UINT_LEAST16_TYPE__
-
-#undef __INT_LEAST32_TYPE__
-#undef __UINT_LEAST32_TYPE__
-
-#undef __INT_LEAST64_TYPE__
-#undef __UINT_LEAST64_TYPE__
-
-/*********************************************************************************************************
   wint_t & mbstate_t type
 *********************************************************************************************************/
 

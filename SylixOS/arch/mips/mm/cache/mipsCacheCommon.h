@@ -27,6 +27,7 @@
 *********************************************************************************************************/
 typedef struct {
     BOOL        CACHE_bPresent;                                         /*  是否存在 CACHE              */
+    BOOL        CACHE_bL2IncL1;                                         /*  L2CACHE 操作是否包含 L1CACHE*/
     UINT32      CACHE_uiSize;                                           /*  CACHE 大小                  */
     UINT32      CACHE_uiLineSize;                                       /*  CACHE 行大小                */
     UINT32      CACHE_uiSetNr;                                          /*  组数                        */
@@ -49,6 +50,7 @@ extern UINT32       _G_uiEccValue;                                      /*  ECC 
   CACHE 特性
 *********************************************************************************************************/
 #define MIPS_CACHE_HAS_L2           _G_SCache.CACHE_bPresent            /*  是否有 L2CACHE              */
+#define MIPS_CACHE_L2_INC_L1        _G_SCache.CACHE_bL2IncL1            /*  L2CACHE 操作是否包含 L1CACHE*/
 #define MIPS_CACHE_HAS_HIT_WB_S     _G_bHaveHitWritebackS               /*  是否有 HitWritebackS 操作   */
 #define MIPS_CACHE_HAS_HIT_WB_D     _G_bHaveHitWritebackD               /*  是否有 HitWritebackD 操作   */
 #define MIPS_CACHE_HAS_FILL_I       _G_bHaveFillI                       /*  是否有 FillI 操作           */

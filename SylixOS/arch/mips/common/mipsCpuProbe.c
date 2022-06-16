@@ -109,6 +109,7 @@ static VOID  mispCpuProbeIngenic (VOID)
 {
     switch (_G_uiMipsPridImp) {
 
+    case PRID_IMP_X1600:
     case PRID_IMP_JZRISC:
     case PRID_IMP_XBURST2:
         _G_uiMipsCpuType = CPU_JZRISC;
@@ -180,6 +181,9 @@ VOID  mipsCpuProbe (CPCHAR  pcMachineName)
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_X1000) == 0)) {
         _G_uiMipsMachineType = MIPS_MACHINE_TYPE_X1000;
+
+    } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_X1600) == 0)) {
+        _G_uiMipsMachineType = MIPS_MACHINE_TYPE_X1600;
 
     } else if ((lib_strcmp(pcMachineName, MIPS_MACHINE_X2000) == 0)) {
         _G_uiMipsMachineType = MIPS_MACHINE_TYPE_X2000;

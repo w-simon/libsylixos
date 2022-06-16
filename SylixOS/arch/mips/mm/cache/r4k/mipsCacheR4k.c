@@ -380,24 +380,25 @@ static INT  mipsCacheR4kFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  
 
     if (cachetype == DATA_CACHE) {
 #if LW_CFG_MIPS_CACHE_L2 > 0
-        if (MIPS_CACHE_HAS_L2) {
-            /*
-             * Loongson2F_UM_CN_V1.5 PAGE91
-             * 二级 CACHE 与数据 CACHE 和指令 CACHE 保持包含关系, 所以回写二级 CACHE 即可, 下同
-             *
-             * TODO: 君正的 CPU 是否也这样?
-             */
+        if (MIPS_CACHE_HAS_L2 && MIPS_CACHE_L2_INC_L1) {
             return  (mipsL2R4kFlush(pvAdrs, stBytes));
         }
 #endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
         if (stBytes >= MIPS_CACHE_LOOP_OP_MAX_SIZE) {
             mipsDCacheR4kFlushAll();                                    /*  全部回写                    */
+            ulEnd = (addr_t)pvAdrs + stBytes;
 
         } else {
             MIPS_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
             mipsDCacheR4kFlush(pvAdrs, (PVOID)ulEnd,                    /*  部分回写                    */
                                _G_DCache.CACHE_uiLineSize);
         }
+
+#if LW_CFG_MIPS_CACHE_L2 > 0
+        if (MIPS_CACHE_HAS_L2) {
+            return  (mipsL2R4kFlush(pvAdrs, ulEnd - (addr_t)pvAdrs));
+        }
+#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
     }
 
     return  (ERROR_NONE);
@@ -423,18 +424,25 @@ static INT  mipsCacheR4kFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOI
 
     if (cachetype == DATA_CACHE) {
 #if LW_CFG_MIPS_CACHE_L2 > 0
-        if (MIPS_CACHE_HAS_L2) {
+        if (MIPS_CACHE_HAS_L2 && MIPS_CACHE_L2_INC_L1) {
             return  (mipsL2R4kFlush(pvAdrs, stBytes));
         }
 #endif
         if (stBytes >= MIPS_CACHE_LOOP_OP_MAX_SIZE) {
             mipsDCacheR4kFlushAll();                                    /*  全部回写                    */
-        
+            ulEnd = (addr_t)pvAdrs + stBytes;
+
         } else {
             MIPS_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
             mipsDCacheR4kFlush(pvAdrs, (PVOID)ulEnd,                    /*  部分回写                    */
                                _G_DCache.CACHE_uiLineSize);
         }
+
+#if LW_CFG_MIPS_CACHE_L2 > 0
+        if (MIPS_CACHE_HAS_L2) {
+            return  (mipsL2R4kFlush(pvAdrs, ulEnd - (addr_t)pvAdrs));
+        }
+#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
     }
     
     return  (ERROR_NONE);
@@ -468,7 +476,7 @@ static INT  mipsCacheR4kInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, siz
 
     } else {
 #if LW_CFG_MIPS_CACHE_L2 > 0
-        if (MIPS_CACHE_HAS_L2) {
+        if (MIPS_CACHE_HAS_L2 && MIPS_CACHE_L2_INC_L1) {
             return  (mipsL2R4kInvalidate(pvAdrs, stBytes));
         }
 #endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
@@ -489,6 +497,12 @@ static INT  mipsCacheR4kInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, siz
         if (ulStart < ulEnd) {                                          /*  仅无效对齐部分              */
             mipsDCacheR4kInvalidate((PVOID)ulStart, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
         }
+
+#if LW_CFG_MIPS_CACHE_L2 > 0
+        if (MIPS_CACHE_HAS_L2) {
+            return  (mipsL2R4kInvalidate(pvAdrs, stBytes));
+        }
+#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
     }
 
     return  (ERROR_NONE);
@@ -523,7 +537,7 @@ static INT  mipsCacheR4kInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, P
 
     } else {
 #if LW_CFG_MIPS_CACHE_L2 > 0
-        if (MIPS_CACHE_HAS_L2) {
+        if (MIPS_CACHE_HAS_L2 && MIPS_CACHE_L2_INC_L1) {
             return  (mipsL2R4kInvalidate(pvAdrs, stBytes));
         }
 #endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
@@ -544,6 +558,12 @@ static INT  mipsCacheR4kInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, P
         if (ulStart < ulEnd) {                                          /*  仅无效对齐部分              */
             mipsDCacheR4kInvalidate((PVOID)ulStart, (PVOID)ulEnd, _G_DCache.CACHE_uiLineSize);
         }
+
+#if LW_CFG_MIPS_CACHE_L2 > 0
+        if (MIPS_CACHE_HAS_L2) {
+            return  (mipsL2R4kInvalidate(pvAdrs, stBytes));
+        }
+#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
     }
 
     return  (ERROR_NONE);
@@ -577,18 +597,25 @@ static INT  mipsCacheR4kClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  
 
     } else {
 #if LW_CFG_MIPS_CACHE_L2 > 0
-        if (MIPS_CACHE_HAS_L2) {
+        if (MIPS_CACHE_HAS_L2 && MIPS_CACHE_L2_INC_L1) {
             return  (mipsL2R4kClear(pvAdrs, stBytes));
         }
 #endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
         if (stBytes >= MIPS_CACHE_LOOP_OP_MAX_SIZE) {
             mipsDCacheR4kClearAll();                                    /*  全部回写并无效              */
+            ulEnd = (addr_t)pvAdrs + stBytes;
 
         } else {
             MIPS_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
             mipsDCacheR4kClear(pvAdrs, (PVOID)ulEnd,
                                _G_DCache.CACHE_uiLineSize);             /*  部分回写并无效              */
         }
+
+#if LW_CFG_MIPS_CACHE_L2 > 0
+        if (MIPS_CACHE_HAS_L2) {
+            return  (mipsL2R4kClear(pvAdrs, ulEnd - (addr_t)pvAdrs));
+        }
+#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
     }
 
     return  (ERROR_NONE);
@@ -623,18 +650,25 @@ static INT  mipsCacheR4kClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID 
 
     } else {
 #if LW_CFG_MIPS_CACHE_L2 > 0
-        if (MIPS_CACHE_HAS_L2) {
+        if (MIPS_CACHE_HAS_L2 && MIPS_CACHE_L2_INC_L1) {
             return  (mipsL2R4kClear(pvAdrs, stBytes));
         }
 #endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
         if (stBytes >= MIPS_CACHE_LOOP_OP_MAX_SIZE) {
             mipsDCacheR4kClearAll();                                    /*  全部回写并无效              */
+            ulEnd = (addr_t)pvAdrs + stBytes;
 
         } else {
             MIPS_CACHE_GET_END(pvAdrs, stBytes, ulEnd, _G_DCache.CACHE_uiLineSize);
             mipsDCacheR4kClear(pvAdrs, (PVOID)ulEnd,
                                _G_DCache.CACHE_uiLineSize);             /*  部分回写并无效              */
         }
+
+#if LW_CFG_MIPS_CACHE_L2 > 0
+        if (MIPS_CACHE_HAS_L2) {
+            return  (mipsL2R4kClear(pvAdrs, ulEnd - (addr_t)pvAdrs));
+        }
+#endif                                                                  /*  LW_CFG_MIPS_CACHE_L2 > 0    */
     }
 
     return  (ERROR_NONE);

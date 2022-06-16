@@ -136,6 +136,7 @@
 #define PRID_IMP_JZRISC         0x0200
 #define PRID_IMP_XBURST         PRID_IMP_JZRISC
 #define PRID_IMP_XBURST2        0x2000
+#define PRID_IMP_X1600          0x0000
 /*********************************************************************************************************
   Particular Revision values for bits 7:0 of the PRId register.
 *********************************************************************************************************/
