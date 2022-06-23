@@ -142,7 +142,7 @@ VOID  vprocIoFileInit (LW_LD_VPROC *pvproc, ULONG ulExts)
             for (i = 0; i < iMax; i++) {                                /*  ¼Ì³ÐÎÄ¼þÃèÊö·û              */
                 pfdentry = vprocIoFileGetInherit(pvprocFather, i, &bIsCloExec);
                 if (pfdentry) {
-                    if (!bIsCloExec || !(ulExts & POSIX_SPAWN_EXT_NO_FILE_INHERIT_CLOEXEC)) {
+                    if (!bIsCloExec || (ulExts & POSIX_SPAWN_EXT_NO_FILE_INHERIT_CLOEXEC)) {
                         if (vprocIoFileDup2Ex(pvproc, pfdentry, i, bIsCloExec) >= 0) {
                             __LW_FD_CREATE_HOOK(i, pvproc->VP_pid);
                         }

@@ -730,6 +730,7 @@ static INT  __socketIoctl (SOCKET_T *psock, INT  iCmd, PVOID  pvArg)
                 break;
                 
             case FIONREAD:
+            case FIONFREE:
                 if (pvArg) {
                     *(INT *)pvArg = 0;
                 }
