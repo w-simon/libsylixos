@@ -187,7 +187,8 @@ static VOID  leon3FlushICacheAll (VOID)
 {
     UINT32  uiCCR;
 
-    __asm__ __volatile__ (" flush ");
+    __asm__ __volatile__ ("sta %%g0, [%%g0] %0\n\t" : :
+                          "i"(ASI_LEON_IFLUSH) : "memory");
 
     do {
         __asm__ __volatile__ ("lda [%%g0] 2, %0\n\t" : "=r"(uiCCR));
@@ -233,7 +234,7 @@ static INT  leon3CacheEnable (LW_CACHE_TYPE  cachetype)
         leon3FlushDCacheAll();
 
         __asm__ __volatile__ ("lda  [%%g0] 2, %%l1\n\t"
-                              "set  0x80000c, %%l2\n\t"                 /*  使能 DCACHE                 */
+                              "set  0x00000c, %%l2\n\t"                 /*  使能 DCACHE                 */
                               "or   %%l2, %%l1, %%l2\n\t"               /*  使能 DCACHE SNOOP           */
                               "sta  %%l2, [%%g0] 2\n\t" : : : "l1", "l2");
     }
@@ -253,13 +254,13 @@ static INT  leon3CacheDisable (LW_CACHE_TYPE  cachetype)
 {
     if (cachetype == INSTRUCTION_CACHE) {
         __asm__ __volatile__ ("lda  [%%g0] 2, %%l1\n\t"
-                              "set  0x000003, %%l2\n\t"                 /*  禁能 ICACHE                 */
-                              "andn %%l2, %%l1, %%l2\n\t"
+                              "set  0x010003, %%l2\n\t"                 /*  禁能 ICACHE                 */
+                              "andn %%l1, %%l2, %%l2\n\t"
                               "sta  %%l2, [%%g0] 2\n\t" : : : "l1", "l2");
     } else {
         __asm__ __volatile__ ("lda  [%%g0] 2, %%l1\n\t"
                               "set  0x00000c, %%l2\n\t"                 /*  禁能 DCACHE                 */
-                              "andn %%l2, %%l1, %%l2\n\t"
+                              "andn %%l1, %%l2, %%l2\n\t"
                               "sta  %%l2, [%%g0] 2\n\t" : : : "l1", "l2");
     }
 
@@ -516,6 +517,7 @@ static INT  sparcCacheUnlock (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  s
 *********************************************************************************************************/
 static INT  sparcCacheTextUpdate (PVOID  pvAdrs, size_t  stBytes)
 {
+    leonFlushDCacheAll();
     leonFlushICacheAll();
 
     return  (ERROR_NONE);

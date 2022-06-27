@@ -111,6 +111,11 @@ ULONG  API_ThreadDetachEx (LW_OBJECT_HANDLE  ulId, PVOID  pvRetVal)
             }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
             _ThreadDetach(LW_NULL, ptwj, pvRetVal);                     /*  在等待回收队列中            */
+
+        } else {
+            __KERNEL_EXIT();                                            /*  退出内核                    */
+            _ErrorHandle(ERROR_THREAD_NULL);
+            return  (ERROR_THREAD_NULL);
         }
 
     } else {
