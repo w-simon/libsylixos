@@ -129,6 +129,16 @@ static int norIsFormatBlock (struct yaffs_devnor *nordev, unsigned int block)
     return  (format == FORMAT_VALUE);
 }
 
+static void norAndBytes (u8 *target, const u8 *src, int nbytes)
+{
+    while (nbytes > 0) {
+        *target &= *src;
+        target++;
+        src++;
+        nbytes--;
+    }
+}
+
 /*
  * yaffs nor drv
  */
@@ -174,7 +184,8 @@ int ynorWriteChunk (struct yaffs_dev *dev,int chunk,
     
     } else if (spare) {
         /* This has to be a read-modify-write operation to handle NOR-ness */
-        lib_memcpy(&tmpspare, spare, sizeof(struct yaffs_spare));
+        nordev->nor.nor_read_fn(nordev, spare_addr, &tmpspare, sizeof(struct yaffs_spare));
+        norAndBytes((u8 *)&tmpspare, (u8 *)spare, sizeof(struct yaffs_spare));
         nordev->nor.nor_write_fn(nordev, spare_addr, &tmpspare, sizeof(struct yaffs_spare));
     
     } else {

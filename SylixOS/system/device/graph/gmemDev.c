@@ -86,6 +86,11 @@ static LONG  __gmemOpen (PLW_GM_DEVICE  pgmdev, INT  iFlag, INT  iMode)
             LW_DEV_DEC_USE_COUNT((PLW_DEV_HDR)pgmdev);
             return  (PX_ERROR);                                         /*  打开失败                    */
         }
+
+    } else if (pgmdev->GMDEV_ulOptFlags & LW_GM_DEV_OPT_EXCL) {
+        LW_DEV_DEC_USE_COUNT((PLW_DEV_HDR)pgmdev);
+        _ErrorHandle(EBUSY);                                            /*  设备忙                      */
+        return  (PX_ERROR);
     }
     
     return  ((LONG)pgmdev);
@@ -187,6 +192,20 @@ LW_API time_t  API_RootFsTime(time_t  *time);
         } else {
             _ErrorHandle(ENOSYS);
         }
+        break;
+
+    case LW_GM_GET_DEV_OPT:
+        if (lArg) {
+            *(ULONG *)lArg = pgmdev->GMDEV_ulOptFlags;
+            iError = ERROR_NONE;
+        } else {
+            _ErrorHandle(EINVAL);
+        }
+        break;
+
+    case LW_GM_SET_DEV_OPT:
+        pgmdev->GMDEV_ulOptFlags = (ULONG)lArg;
+        iError = ERROR_NONE;
         break;
     
     default:

@@ -58,6 +58,10 @@
 #if LW_CFG_SHELL_EN > 0
 #include "../SylixOS/shell/ttinyShell/ttinyShell.h"
 #include "../SylixOS/shell/ttinyShell/ttinyShellLib.h"
+/*********************************************************************************************************
+  shell options
+*********************************************************************************************************/
+#include "../SylixOS/shell/include/ttiny_shell_option.h"
 #endif                                                                  /*  LW_CFG_SHELL_EN > 0         */
 /*********************************************************************************************************
   进程相关
