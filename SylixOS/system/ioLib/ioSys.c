@@ -675,6 +675,8 @@ VOID  API_IosDevDelete (PLW_DEV_HDR    pdevhdrHdr)
     _IosUnlock();                                                       /*  退出 IO 临界区              */
     
     __SHEAP_FREE(pdevhdrHdr->DEVHDR_pcName);                            /*  释放名字空间                */
+
+    pdevhdrHdr->DEVHDR_pcName = LW_NULL;
 }
 /*********************************************************************************************************
 ** 函数名称: API_IosDevFind

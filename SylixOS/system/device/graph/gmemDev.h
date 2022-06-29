@@ -124,6 +124,15 @@ typedef LW_GM_PHYINFO  *PLW_GM_PHYINFO;
 #define LW_GM_STATUS_DETACHED   0x00000001                              /*  显示器未连接                */
 
 /*********************************************************************************************************
+  显示工作选项
+*********************************************************************************************************/
+#define LW_GM_DEV_OPT_EXCL      0x00000001                              /*  单次打开, 独占设备          */
+
+#define LW_GM_GET_DEV_CNT       LW_OSIOR('g', 206, INT)                 /*  获得设备正在被使用的数量    */
+#define LW_GM_GET_DEV_OPT       LW_OSIOR('g', 207, ULONG)               /*  获取显示设备选项            */
+#define LW_GM_SET_DEV_OPT       LW_OSIOD('g', 208, ULONG)               /*  设置显示设备选项            */
+
+/*********************************************************************************************************
   图形设备 file_operations
 *********************************************************************************************************/
 #ifdef __SYLIXOS_KERNEL
@@ -199,7 +208,8 @@ typedef struct {
     PLW_GM_FILEOPERATIONS       GMDEV_gmfileop;                         /*  设备操作函数集              */
     ULONG                       GMDEV_ulMapFlags;                       /*  内存映射选项                */
     ULONG                       GMDEV_ulOptFlags;                       /*  设备选项                    */
-    PVOID                       GMDEV_pvReserved[7];                    /*  保留配置字                  */
+    ULONG                       GMDEV_ulPeeking;                        /*  窥探性打开计数              */
+    PVOID                       GMDEV_pvReserved[6];                    /*  保留配置字                  */
     /*
      * ... (设备相关信息, 此结构体作为所有绘图函数的第一个参数)
      */
@@ -207,18 +217,12 @@ typedef struct {
 typedef LW_GM_DEVICE           *PLW_GM_DEVICE;
 
 /*********************************************************************************************************
-  显示工作选项
-*********************************************************************************************************/
-#define LW_GM_DEV_OPT_EXCL      0x00000001                              /*  单次打开, 独占设备          */
-
-#define LW_GM_GET_DEV_OPT       LW_OSIOR('g', 206, ULONG)               /*  获取显示设备选项            */
-#define LW_GM_SET_DEV_OPT       LW_OSIOD('g', 207, ULONG)               /*  设置显示设备选项            */
-
-/*********************************************************************************************************
   显示操作
 *********************************************************************************************************/
 
 LW_API INT              API_GMemDevAdd(CPCHAR  cpcName, PLW_GM_DEVICE  pgmdev);
+LW_API VOID             API_GMemDevStatus(PLW_GM_DEVICE   pgmdev, ULONG  ulStatus);
+
 LW_API PLW_GM_DEVICE    API_GMemGet2D(INT  iFd);
 LW_API INT              API_GMemSetPalette(INT      iFd,
                                            UINT     uiStart,
@@ -259,6 +263,7 @@ LW_API INT              API_GMemFillRect(PLW_GM_DEVICE   gmdev,
                                          INT             iY1);
                          
 #define gmemDevAdd                      API_GMemDevAdd
+#define gmemDevStatus                   API_GMemDevStatus
 #define gmemGet2d                       API_GMemGet2D
 #define gmemSetPalette                  API_GMemSetPalette
 #define gmemGetPalette                  API_GMemGetPalette

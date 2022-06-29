@@ -37,6 +37,18 @@
 *********************************************************************************************************/
 #if LW_CFG_GRAPH_EN > 0
 /*********************************************************************************************************
+  PEEK 设备宏
+*********************************************************************************************************/
+#define __GMEM_DEV_PEEK_OPEN(pgmdev)            ((LONG)(pgmdev) + 1l)
+#define __GMEM_DEV_IS_PEEK(pgmdev)              ((LONG)(pgmdev) & 1l)
+#define __GMEM_DEV_GET(pgmdev)                  ((PLW_GM_DEVICE)((LONG)(pgmdev) & ~1l))
+/*********************************************************************************************************
+  PEEK 计数宏
+*********************************************************************************************************/
+#define __GMEM_DEV_PEEKING_INC_COUNT(pgmdev)    (API_AtomicInc((atomic_t *)&pgmdev->GMDEV_ulPeeking))
+#define __GMEM_DEV_PEEKING_DEC_COUNT(pgmdev)    (API_AtomicDec((atomic_t *)&pgmdev->GMDEV_ulPeeking))
+#define __GMEM_DEV_PEEKING_GET_COUNT(pgmdev)    (API_AtomicGet((atomic_t *)&pgmdev->GMDEV_ulPeeking))
+/*********************************************************************************************************
   内部函数声明
 *********************************************************************************************************/
 static LONG  __gmemOpen(PLW_GM_DEVICE   pgmdev, INT  iFlag, INT  iMode);
@@ -87,13 +99,24 @@ static LONG  __gmemOpen (PLW_GM_DEVICE  pgmdev, INT  iFlag, INT  iMode)
             return  (PX_ERROR);                                         /*  打开失败                    */
         }
 
-    } else if (pgmdev->GMDEV_ulOptFlags & LW_GM_DEV_OPT_EXCL) {
+    } else if ((pgmdev->GMDEV_ulOptFlags & LW_GM_DEV_OPT_EXCL)
+               && !(iFlag & O_PEEKONLY)) {
         LW_DEV_DEC_USE_COUNT((PLW_DEV_HDR)pgmdev);
         _ErrorHandle(EBUSY);                                            /*  设备忙                      */
         return  (PX_ERROR);
     }
-    
-    return  ((LONG)pgmdev);
+
+    if (iFlag & O_PEEKONLY) {
+        __GMEM_DEV_PEEKING_INC_COUNT(pgmdev);                           /*  Peeking 计数                */
+        return  (__GMEM_DEV_PEEK_OPEN(pgmdev));
+
+    } else {
+#if LW_CFG_HOTPLUG_EN > 0
+        API_HotplugEventMessage(LW_HOTPLUG_MSG_DISPLAY_USING, LW_TRUE,
+                                pgmdev->GMDEV_devhdrHdr.DEVHDR_pcName, 0, 0, 0, 0);
+#endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
+        return  ((LONG)pgmdev);
+    }
 }
 /*********************************************************************************************************
 ** 函数名称: __gmemClose
@@ -105,12 +128,27 @@ static LONG  __gmemOpen (PLW_GM_DEVICE  pgmdev, INT  iFlag, INT  iMode)
 *********************************************************************************************************/
 static INT  __gmemClose (PLW_GM_DEVICE  pgmdev)
 {
-    if (LW_DEV_DEC_USE_COUNT((PLW_DEV_HDR)pgmdev) == 0) {
-        return  (pgmdev->GMDEV_gmfileop->GMFO_pfuncClose(pgmdev));
-    
-    } else {
-        return  (ERROR_NONE);
+    BOOL bIsPeek;
+    INT  iRet = ERROR_NONE;
+
+    bIsPeek = __GMEM_DEV_IS_PEEK(pgmdev);
+    if (bIsPeek) {
+        __GMEM_DEV_PEEKING_DEC_COUNT(pgmdev);
+        pgmdev = __GMEM_DEV_GET(pgmdev);
     }
+
+    if (LW_DEV_DEC_USE_COUNT((PLW_DEV_HDR)pgmdev) == 0) {
+        iRet = pgmdev->GMDEV_gmfileop->GMFO_pfuncClose(pgmdev);
+    }
+    
+#if LW_CFG_HOTPLUG_EN > 0
+    if (!bIsPeek) {
+        API_HotplugEventMessage(LW_HOTPLUG_MSG_DISPLAY_USING, LW_FALSE,
+                                pgmdev->GMDEV_devhdrHdr.DEVHDR_pcName, 0, 0, 0, 0);
+    }
+#endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
+
+    return  (iRet);
 }
 /*********************************************************************************************************
 ** 函数名称: __gmemIoctl
@@ -129,6 +167,8 @@ LW_API time_t  API_RootFsTime(time_t  *time);
     REGISTER INT            iError = PX_ERROR;
              LW_GM_SCRINFO  scrinfo;
              struct stat   *pstat;
+
+    pgmdev = __GMEM_DEV_GET(pgmdev);
 
     switch (iCommand) {
     
@@ -194,6 +234,16 @@ LW_API time_t  API_RootFsTime(time_t  *time);
         }
         break;
 
+    case LW_GM_GET_DEV_CNT:
+        if (lArg) {
+            *(INT *)lArg = LW_DEV_GET_USE_COUNT((PLW_DEV_HDR)pgmdev)
+                         - __GMEM_DEV_PEEKING_GET_COUNT(pgmdev);
+            iError = ERROR_NONE;
+        } else {
+            _ErrorHandle(EINVAL);
+        }
+        break;
+
     case LW_GM_GET_DEV_OPT:
         if (lArg) {
             *(ULONG *)lArg = pgmdev->GMDEV_ulOptFlags;
@@ -214,6 +264,7 @@ LW_API time_t  API_RootFsTime(time_t  *time);
         } else {
             _ErrorHandle(ENOSYS);
         }
+        break;
     }
     
     return  (iError);
@@ -233,7 +284,7 @@ static INT   __gmemMmap (PLW_GM_DEVICE  pgmdev, PLW_DEV_MMAP_AREA  pdmap)
     LW_GM_SCRINFO   scrinfo;
     addr_t          ulPhysical;
 
-    if (!pdmap) {
+    if (!pdmap || __GMEM_DEV_IS_PEEK(pgmdev)) {
         return  (PX_ERROR);
     }
     
@@ -313,12 +364,37 @@ INT   API_GMemDevAdd (CPCHAR  cpcName, PLW_GM_DEVICE  pgmdev)
         }
     }
     
+    pgmdev->GMDEV_ulOptFlags = 0ul;
+    pgmdev->GMDEV_ulPeeking  = 0ul;
+
     if (iosDevAddEx((PLW_DEV_HDR)pgmdev, cpcName, iGMemDrvNum, DT_CHR) != 
         ERROR_NONE) {                                                   /*  创建设备驱动                */
         return  (PX_ERROR);
     }
 
     return  (ERROR_NONE);
+}
+/*********************************************************************************************************
+** 函数名称: API_GMemDevStatus
+** 功能描述: 更新图形显示设备状态改变 (包括连接状态, 系统会发送热插拔信息)
+** 输　入  : pgmdev            图形设备信息
+**           ulStatus          新的状态, 此状态应该与 LW_GM_GET_VARINFO 命令状态相同
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+                                           API 函数
+*********************************************************************************************************/
+LW_API
+VOID  API_GMemDevStatus (PLW_GM_DEVICE   pgmdev, ULONG  ulStatus)
+{
+#if LW_CFG_HOTPLUG_EN > 0
+    BOOL  bAttach = !(ulStatus & LW_GM_STATUS_DETACHED);
+
+    if (pgmdev && pgmdev->GMDEV_devhdrHdr.DEVHDR_pcName) {
+        API_HotplugEventMessage(LW_HOTPLUG_MSG_DISPLAY_CHANGE, bAttach,
+                                pgmdev->GMDEV_devhdrHdr.DEVHDR_pcName, 0, 0, 0, 0);
+    }
+#endif                                                                  /*  LW_CFG_HOTPLUG_EN > 0       */
 }
 /*********************************************************************************************************
 ** 函数名称: API_GMemGet2D
