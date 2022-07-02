@@ -159,6 +159,7 @@ cat << EOF >$symbolc
 #pragma GCC diagnostic warning "-w"
 #elif __GNUC__ >= 7
 #pragma GCC diagnostic ignored "-Wbuiltin-declaration-mismatch"
+#pragma GCC diagnostic ignored "-Wattributes"
 #endif
 #endif
 

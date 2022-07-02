@@ -127,6 +127,7 @@ $(OUTPATH)/symbol.c: $($(target)_A)
 		@rm -f $@
 		cp SylixOS/hosttools/makesymbol/Makefile $(OUTDIR)
 		cp SylixOS/hosttools/makesymbol/makesymbol.bat $(OUTDIR)
+		cp SylixOS/hosttools/makesymbol/makesymbol.exe $(OUTDIR)
 		cp SylixOS/hosttools/makesymbol/makesymbol.sh $(OUTDIR)
 		cp SylixOS/hosttools/makesymbol/nm.exe $(OUTDIR)
 		make -C $(OUTDIR)

@@ -51,7 +51,7 @@
 /*********************************************************************************************************
   内部函数声明
 *********************************************************************************************************/
-static LONG  __gmemOpen(PLW_GM_DEVICE   pgmdev, INT  iFlag, INT  iMode);
+static LONG  __gmemOpen(PLW_GM_DEVICE   pgmdev, PCHAR  pcName, INT  iFlag, INT  iMode);
 static INT   __gmemClose(PLW_GM_DEVICE  pgmdev);
 static INT   __gmemIoctl(PLW_GM_DEVICE  pgmdev, INT  iCommand, LONG  lArg);
 static INT   __gmemMmap(PLW_GM_DEVICE  pgmdev, PLW_DEV_MMAP_AREA  pdmap);
@@ -82,13 +82,14 @@ struct file_operations  _G_foGMemDrv = {
 ** 函数名称: __gmemOpen
 ** 功能描述: 打开一个图形显示设备
 ** 输　入  : pgmdev        图形显示设备
-**           iFlag         
-**           iMode
+**           pcName        文件名
+**           iFlags        方式
+**           iMode         方法
 ** 输　出  : 图形显示设备
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static LONG  __gmemOpen (PLW_GM_DEVICE  pgmdev, INT  iFlag, INT  iMode)
+static LONG  __gmemOpen (PLW_GM_DEVICE  pgmdev, PCHAR  pcName, INT  iFlag, INT  iMode)
 {
     REGISTER INT    iError;
     
@@ -133,8 +134,8 @@ static INT  __gmemClose (PLW_GM_DEVICE  pgmdev)
 
     bIsPeek = __GMEM_DEV_IS_PEEK(pgmdev);
     if (bIsPeek) {
-        __GMEM_DEV_PEEKING_DEC_COUNT(pgmdev);
         pgmdev = __GMEM_DEV_GET(pgmdev);
+        __GMEM_DEV_PEEKING_DEC_COUNT(pgmdev);
     }
 
     if (LW_DEV_DEC_USE_COUNT((PLW_DEV_HDR)pgmdev) == 0) {

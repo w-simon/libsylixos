@@ -31,7 +31,7 @@ endif
 
 ifeq ($(HOST_OS), windows) 
 all:
-	makesymbol.bat
+	./makesymbol.exe
 else
 all:
 	chmod +x makesymbol.sh

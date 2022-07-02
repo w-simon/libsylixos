@@ -158,7 +158,8 @@ static INT  _doSigEventInternal (LW_OBJECT_HANDLE  ulId, PSIGNAL_EVENT_ARG   psi
     struct siginfo   *psiginfo  = &psigea->SE_event.SE_siginfo;
 
 #if LW_CFG_POSIX_EN > 0
-    if (psigevent->sigev_notify == SIGEV_THREAD_ID) {                   /*  向指定线程发送信号          */
+    if ((psigevent->sigev_notify == SIGEV_THREAD_ID) ||
+        (psigevent->sigev_notify == (SIGEV_THREAD_ID | SIGEV_SIGNAL))) {/*  向指定线程发送信号          */
         ulId    = psigevent->sigev_notify_thread_id;
         iNotify = SIGEV_SIGNAL;
     } else {
