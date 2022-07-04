@@ -335,6 +335,9 @@ static VOID  acpiLibIrqProcess (UINT8  *pucBuf, UINT8  ucSourceBusId, BOOL  bFil
     if (bFillinTable) {
         pMpApicInterruptTable = (X86_MP_INTERRUPT *)X86_MPAPIC_PHYS_TO_VIRT(_G_pAcpiMpApicData, MPAPIC_uiItLoc);
         pucMpApicLogicalTable = (UINT8            *)X86_MPAPIC_PHYS_TO_VIRT(_G_pAcpiMpApicData, MPAPIC_uiLtLoc);
+    } else {
+        pMpApicInterruptTable = LW_NULL;
+        pucMpApicLogicalTable = LW_NULL;
     }
 
     __ACPI_DEBUG_LOG("\n**** acpiLibIrqProcess(0x%x) ****\n", ucSourceBusId);
@@ -476,6 +479,8 @@ VOID  acpiLibGetIsaIrqResources (ACPI_RESOURCE  *pResourceList, BOOL  bFillinTab
 
     if (bFillinTable) {
         pMpApicInterruptTable = (X86_MP_INTERRUPT *)X86_MPAPIC_PHYS_TO_VIRT(_G_pAcpiMpApicData, MPAPIC_uiItLoc);
+    } else {
+        pMpApicInterruptTable = LW_NULL;
     }
 
     /*
@@ -855,6 +860,8 @@ static ACPI_STATUS  __acpiDeviceWalkRtn (ACPI_HANDLE  hObject,
         lib_bcopy((CHAR *)pMpLoApicIndexTableOld,
                   (CHAR *)pcHoldMpLoApicIndexTbl,
                   (UINT32)(_G_pAcpiMpApicData->MPAPIC_uiLaSize));
+    } else {
+        pcHoldMpLoApicIndexTbl = LW_NULL;
     }
 
     if (bBusFound) {

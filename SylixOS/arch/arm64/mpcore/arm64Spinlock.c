@@ -50,15 +50,16 @@ static VOID  arm64SpinLock (SPINLOCKTYPE  *psld, VOIDFUNCPTR  pfuncPoll, PVOID  
 {
     SPINLOCKTYPE    sldVal;
     UINT32          uiNewVal;
+    UINT32          uiTemp;
     
     ARM_PREFETCH_W(&psld->SLD_uiLock);
 
     __asm__ __volatile__(
-        "1: ldaxr    %w0,      %2   \n"
-        "   add      %w1, %w0, %3   \n"
-        "   stxr     %w1, %w1, %2   \n"
-        "   cbnz     %w1,      1b"
-        : "=&r" (sldVal), "=&r" (uiNewVal),  "+Q" (psld->SLD_uiLock)
+        "1: ldaxr    %w0,      %3   \n"
+        "   add      %w1, %w0, %4   \n"
+        "   stxr     %w2, %w1, %3   \n"
+        "   cbnz     %w2,      1b"
+        : "=&r" (sldVal), "=&r" (uiNewVal), "=&r" (uiTemp), "+Q" (psld->SLD_uiLock)
         : "I" (1 << LW_SPINLOCK_TICKET_SHIFT)
         : "memory");
 

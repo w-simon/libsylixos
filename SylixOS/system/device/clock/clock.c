@@ -288,7 +288,7 @@ INT  API_ClockParentSet (PLW_CLOCK  pclk, PLW_CLOCK  pclkParent)
     INT  iParentIndex;
     INT  iRet;
 
-    if (!pclk) {
+    if (!pclk || !pclkParent) {
         _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
@@ -303,11 +303,9 @@ INT  API_ClockParentSet (PLW_CLOCK  pclk, PLW_CLOCK  pclkParent)
         return  (PX_ERROR);
     }
 
-    if (pclkParent) {                                                   /*  查找父时钟的序号            */
-        iParentIndex = __clockParentIndexFetch(pclk, pclkParent);
-        if (iParentIndex < 0) {
-            return  (iParentIndex);
-        }
+    iParentIndex = __clockParentIndexFetch(pclk, pclkParent);           /*  查找父时钟的序号            */
+    if (iParentIndex < 0) {
+        return  (iParentIndex);
     }
 
     iRet = __clockParentSet(pclk, pclkParent, iParentIndex);            /*  设置父时钟                  */

@@ -109,7 +109,7 @@ PCHAR  ataDriveSerialInfoGet (ATA_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  st
     pcSerial = ataIdString((const UINT16 *)&hParam->ATAPARAM_ucSerial[0], &cSerial[0], 21);
     lib_strncpy(pcBuf, pcSerial, __MIN(stLen, lib_strlen(pcSerial) + 1));
 
-    return  (pcSerial);
+    return  (pcBuf);
 }
 /*********************************************************************************************************
 ** 函数名称: ataDriveFwRevInfoGet
@@ -136,7 +136,7 @@ PCHAR  ataDriveFwRevInfoGet (ATA_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  stL
     pcFirmware = ataIdString((const UINT16 *)&hParam->ATAPARAM_ucFwRev[0], &cFirmware[0], 9);
     lib_strncpy(pcBuf, pcFirmware, __MIN(stLen, lib_strlen(pcFirmware) + 1));
 
-    return  (pcFirmware);
+    return  (pcBuf);
 }
 /*********************************************************************************************************
 ** 函数名称: ataDriveModelInfoGet
@@ -163,7 +163,7 @@ PCHAR  ataDriveModelInfoGet (ATA_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_t  stL
     pcProduct = ataIdString((const UINT16 *)&hParam->ATAPARAM_ucModel[0], &cProduct[0], 41);
     lib_strncpy(pcBuf, pcProduct, __MIN(stLen, lib_strlen(pcProduct) + 1));
 
-    return  (pcProduct);
+    return  (pcBuf);
 }
 /*********************************************************************************************************
 ** 函数名称: ataSwapBufLe16

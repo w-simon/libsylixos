@@ -189,7 +189,7 @@ PCHAR  API_AhciDriveSerialInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size
     pcSerial = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucSerial[0], &cSerial[0], 21);
     lib_strncpy(pcBuf, pcSerial, __MIN(stLen, lib_strlen(pcSerial) + 1));
 
-    return  (pcSerial);
+    return  (pcBuf);
 }
 /*********************************************************************************************************
 ** 函数名称: API_AhciDriveFwRevInfoGet
@@ -218,7 +218,7 @@ PCHAR  API_AhciDriveFwRevInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_
     pcFirmware = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucFwRev[0], &cFirmware[0], 9);
     lib_strncpy(pcBuf, pcFirmware, __MIN(stLen, lib_strlen(pcFirmware) + 1));
 
-    return  (pcFirmware);
+    return  (pcBuf);
 }
 /*********************************************************************************************************
 ** 函数名称: API_AhciDriveModelInfoGet
@@ -247,7 +247,7 @@ PCHAR  API_AhciDriveModelInfoGet (AHCI_DRIVE_HANDLE  hDrive, PCHAR  pcBuf, size_
     pcProduct = ahciIdString((const UINT16 *)&hParam->AHCIPARAM_ucModel[0], &cProduct[0], 41);
     lib_strncpy(pcBuf, pcProduct, __MIN(stLen, lib_strlen(pcProduct) + 1));
 
-    return  (pcProduct);
+    return  (pcBuf);
 }
 /*********************************************************************************************************
 ** 函数名称: API_AhciDriveSectorCountGet

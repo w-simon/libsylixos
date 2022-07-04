@@ -215,8 +215,18 @@ typedef uint64_t    uint_fast64_t;
   sylixos must has 64bits int
 *********************************************************************************************************/
 
+#ifdef __INTMAX_TYPE__
+typedef __INTMAX_TYPE__     intmax_t;
+#else
 typedef int64_t             intmax_t;
+#endif
+
+#ifdef __UINTMAX_TYPE__
+typedef __UINTMAX_TYPE__    uintmax_t;
+#else
 typedef uint64_t            uintmax_t;
+#endif
+
 #define INTMAX_C(x)         x##LL
 #define UINTMAX_C(x)        x##ULL
 

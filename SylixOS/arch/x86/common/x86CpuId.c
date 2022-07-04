@@ -66,9 +66,6 @@ const static CHAR      *_G_pcX86CacheShortTypes[] = {                   /*  CACH
     "U",                                                                /*  3                           */
 };
 
-const static INT        _G_iX86CacheTypeNr = \
-        sizeof(_G_pcX86CacheTypes) / sizeof(CHAR *);                    /*  CACHE 类型数                */
-
 const static CHAR      *_G_x86L2CacheAssoc[] = {                        /*  L2 CACHE 相联度表           */
     "Disabled",                                                         /*  0                           */
     "Direct Mapped",                                                    /*  1                           */

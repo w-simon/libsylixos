@@ -69,8 +69,8 @@ VOID  __tshellSysVarInit (VOID)
     /*
      *  图形界面
      */
-    API_TShellExec("KEYBOARD=/dev/input/keyboard0");                    /*  HID 设备                    */
-    API_TShellExec("MOUSE=/dev/input/mouse0:/dev/input/touch0");
+    API_TShellExec("KEYBOARD=/dev/input/kbd0");                         /*  HID 设备                    */
+    API_TShellExec("MOUSE=/dev/input/mse0:/dev/input/touch0");
     
     API_TShellExec("TSLIB_TSDEVICE=/dev/input/touch0");                 /*  触摸屏校准关联设备          */
     API_TShellExec("TSLIB_CALIBFILE=/etc/pointercal");                  /*  触摸屏校准文件              */
