@@ -139,7 +139,7 @@ static INT  __gmemClose (PLW_GM_DEVICE  pgmdev)
     }
 
     if (LW_DEV_DEC_USE_COUNT((PLW_DEV_HDR)pgmdev) == 0) {
-        iRet = pgmdev->GMDEV_gmfileop->GMFO_pfuncClose(pgmdev);
+        iRet = pgmdev->GMDEV_gmfileop->GMFO_pfuncClose(pgmdev, bIsPeek ? O_PEEKONLY : 0);
     }
     
 #if LW_CFG_HOTPLUG_EN > 0

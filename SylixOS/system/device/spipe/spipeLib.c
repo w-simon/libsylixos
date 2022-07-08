@@ -319,9 +319,15 @@ INT  _SpipeClose (PLW_SPIPE_FILE  pspipefil)
             LW_SPIPE_DEC_CNT(pspipedev, pspipefil->SPIPEFIL_iFlags);
             
             if (pspipedev->SPIPEDEV_uiWriteCnt == 0) {                  /*  没有写端                    */
+                if (!(pspipefil->SPIPEFIL_iExtMode & LW_SPIPE_EXT_MODE_AUTONOMY)) {
+                    SEL_WAKE_UP_ALL(&pspipedev->SPIPEDEV_selwulList, SELREAD);
+                }
                 API_SemaphoreBPost(pspipedev->SPIPEDEV_hReadLock);
             }
             if (pspipedev->SPIPEDEV_uiReadCnt == 0) {                   /*  没有读端                    */
+                if (!(pspipefil->SPIPEFIL_iExtMode & LW_SPIPE_EXT_MODE_AUTONOMY)) {
+                    SEL_WAKE_UP_ALL(&pspipedev->SPIPEDEV_selwulList, SELWRITE);
+                }
                 API_SemaphoreBPost(pspipedev->SPIPEDEV_hWriteLock);
             }
         }
