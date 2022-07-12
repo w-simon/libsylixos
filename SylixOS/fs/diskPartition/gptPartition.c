@@ -677,7 +677,7 @@ INT  API_GptPartitionBlkLoad (PLW_BLK_DEV  pblkd, GPT_TABLE  *pgpt)
 
         if (pblkd->BLKD_pfuncBlkRd(pblkd,
                                    (UINT8 *)pgpt->GPT_entry,
-                                   (pblkd->BLKD_ulNSector - GPT_ENT_LBA_CNT - GPT_ENT_LBA_CNT),
+                                   (pblkd->BLKD_ulNSector - GPT_ENT_LBA_CNT - GPT_HEAD_LBA_CNT),
                                    GPT_ENT_LBA_CNT) != ERROR_NONE) {    /*  读取备份分区表项            */
 
             _ErrorHandle(EIO);

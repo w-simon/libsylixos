@@ -188,6 +188,18 @@ INT  API_RootFsMap (ULONG  ulFlags)
 #endif
     }
     
+    if (access("/var/cache", R_OK) < 0) {
+        mkdir("/var/cache", DEFAULT_DIR_PERM);
+    }
+
+    if (access("/var/run", R_OK) < 0) {
+        mkdir("/var/run", DEFAULT_DIR_PERM);
+    }
+
+    if (access("/var/spool", R_OK) < 0) {
+        mkdir("/var/spool", DEFAULT_DIR_PERM);
+    }
+
     if (ulFlags & LW_ROOTFS_MAP_LOAD_VAR) {
         lib_system("varload");
     }
