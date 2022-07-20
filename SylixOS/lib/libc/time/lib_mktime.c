@@ -29,113 +29,111 @@
 /*********************************************************************************************************
   函数声明
 *********************************************************************************************************/
-int __julday(int yr, /* year */ int mon, /* month */ int day /* day */);
-int  __daysSinceEpoch( int year,	/* Years since epoch */ int yday 	/* days since Jan 1  */);
+extern INT __daysSinceYear(INT year, INT month, INT mday);
+extern INT __daysSinceEpoch(INT year, INT yday);
 /*********************************************************************************************************
 ** 函数名称: __tmNormalize
 ** 功能描述: This function is used to reduce units to a range [0,base]
-** 输　入  : 
+** 输　入  : tens      tens
+**           units     units
+**           base      base
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 #if LW_CFG_RTC_EN > 0
 
-static void __tmNormalize (int * tens, /* tens */ int * units, /* units */ int   base /* base */)
+static VOID __tmNormalize (INT  *tens, INT  *units, INT  base)
 {
-    *tens += *units / base;
+    *tens  += *units / base;
     *units %= base;
 
-    if ((*units % base ) < 0) {
+    if ((*units % base) < 0) {
     	(*tens)--;
     	*units += base;
     }
 }
 /*********************************************************************************************************
 ** 函数名称: __tmValidate
-** 功能描述: validate the broken-down structure, tmptr.
-** 输　入  : 
+** 功能描述: validate the broken-down structure.
+** 输　入  : tmp  broken-down structure
 ** 输　出  : 
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-static void __tmValidate (struct tm * tmptr	/* pointer to broken-down structure */)
+static VOID  __tmValidate (struct tm  *tmp)
 {
     struct tm tmStruct;
     int       jday;
     int       mon;
 
-    /* Adjust timeptr to reflect a legal time
+    /*
+     * Adjust timeptr to reflect a legal time
      * Is it within range 1970-2038?
      */
-		   
-    tmStruct = *tmptr;
+    tmStruct = *tmp;
 
     __tmNormalize(&tmStruct.tm_min, &tmStruct.tm_sec, SECSPERMIN);
     __tmNormalize(&tmStruct.tm_hour, &tmStruct.tm_min, MINSPERHOUR);
     __tmNormalize(&tmStruct.tm_mday, &tmStruct.tm_hour, HOURSPERDAY);
     __tmNormalize(&tmStruct.tm_year, &tmStruct.tm_mon, MONSPERYEAR);
 
-    /* tm_mday may not be in the correct range - check */
-
-    jday = __julday(tmStruct.tm_year, tmStruct.tm_mon , tmStruct.tm_mday);
+    /*
+     * tm_mday may not be in the correct range - check
+     */
+    jday = __daysSinceYear(tmStruct.tm_year, tmStruct.tm_mon , tmStruct.tm_mday);
     if (jday < 0) {
     	tmStruct.tm_year--;
     	jday += DAYSPERYEAR;
     }
 
-    /* Calulate month and day */
     for (mon = 0; 
-         (jday > __julday(tmStruct.tm_year, mon+1, 0)) && (mon < 11); 
-         mon++)
-	;
+         (jday > __daysSinceYear(tmStruct.tm_year, mon+1, 0)) && (mon < 11);
+         mon++);                                                        /*  Calulate month and day      */
 
     tmStruct.tm_mon  = mon;
-    tmStruct.tm_mday = jday - __julday(tmStruct.tm_year, mon, 0);
+    tmStruct.tm_mday = jday - __daysSinceYear(tmStruct.tm_year, mon, 0);
     tmStruct.tm_wday = 0;
     tmStruct.tm_yday = 0;
 
-    *tmptr = tmStruct;
+    *tmp = tmStruct;
 }
 /*********************************************************************************************************
 ** 函数名称: lib_timegm
-** 功能描述: 
-** 输　入  : timeptr       UTC time
+** 功能描述: 生成一个 time_t 类型时间
+** 输　入  : tmp       UTC time
 ** 输　出  : UTC time_t
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-time_t  lib_timegm (struct tm  *timeptr)
+time_t  lib_timegm (struct tm  *tmp)
 {
     time_t timeIs = 0;
     int    days   = 0;
 
-    if (!timeptr) {
-        return  (0);
+    if (!tmp) {
+        _ErrorHandle(EINVAL);
+        return  ((time_t)PX_ERROR);
     }
 
-    /* Validate tm structure */
-    __tmValidate(timeptr);
+    __tmValidate(tmp);                                                  /*  Validate tm structure       */
 
-    /* Calulate time_t value */
-    /* time */
-    timeIs += (timeptr->tm_sec +
-    	      (time_t)(timeptr->tm_min * SECSPERMIN) +
-    	      (time_t)(timeptr->tm_hour * SECSPERHOUR));
+    timeIs += (tmp->tm_sec +
+    	      (time_t)(tmp->tm_min * SECSPERMIN) +
+    	      (time_t)(tmp->tm_hour * SECSPERHOUR));                    /*  Calulate time_t value       */
+    days   += __daysSinceYear(tmp->tm_year, tmp->tm_mon, tmp->tm_mday);
 
-    /* date */
-    days += __julday(timeptr->tm_year, timeptr->tm_mon, timeptr->tm_mday);
+    tmp->tm_yday = (days - 1);
 
-    timeptr->tm_yday = (days - 1);
-
-    if ((timeptr->tm_year + TM_YEAR_BASE) < EPOCH_YEAR)
+    if ((tmp->tm_year + TM_YEAR_BASE) < EPOCH_YEAR) {
+        _ErrorHandle(ENOTSUP);
     	return  ((time_t)PX_ERROR);
+    }
 
-    /* days in previous years */
-    days = __daysSinceEpoch(timeptr->tm_year - (EPOCH_YEAR - TM_YEAR_BASE),
-    		                timeptr->tm_yday);
+    days = __daysSinceEpoch(tmp->tm_year - (EPOCH_YEAR - TM_YEAR_BASE),
+                            tmp->tm_yday);                              /*  days in previous years      */
 
-    timeptr->tm_wday = (days + EPOCH_WDAY) % DAYSPERWEEK;
+    tmp->tm_wday = (days + EPOCH_WDAY) % DAYSPERWEEK;
 
     timeIs += (days * SECSPERDAY);
 
@@ -143,43 +141,40 @@ time_t  lib_timegm (struct tm  *timeptr)
 }
 /*********************************************************************************************************
 ** 函数名称: lib_mktime
-** 功能描述: 
-** 输　入  : timeptr       local time
+** 功能描述: 生成一个 time_t 类型时间
+** 输　入  : tmp       local time
 ** 输　出  : UTC time_t
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-time_t  lib_mktime (struct tm  *timeptr)
+time_t  lib_mktime (struct tm  *tmp)
 {
     time_t timeIs = 0;
     int    days   = 0;
 
-    if (!timeptr) {
-        return  (0);
+    if (!tmp) {
+        _ErrorHandle(EINVAL);
+        return  ((time_t)PX_ERROR);
     }
 
-    /* Validate tm structure */
-    __tmValidate(timeptr);
+    __tmValidate(tmp);                                                  /*  Validate tm structure       */
 
-    /* Calulate time_t value */
-    /* time */
-    timeIs += (timeptr->tm_sec +
-    	      (time_t)(timeptr->tm_min * SECSPERMIN) +
-    	      (time_t)(timeptr->tm_hour * SECSPERHOUR));
+    timeIs += (tmp->tm_sec +
+    	      (time_t)(tmp->tm_min * SECSPERMIN) +
+    	      (time_t)(tmp->tm_hour * SECSPERHOUR));                    /*  Calulate time_t value       */
+    days   += __daysSinceYear(tmp->tm_year, tmp->tm_mon, tmp->tm_mday);
 
-    /* date */
-    days += __julday(timeptr->tm_year, timeptr->tm_mon, timeptr->tm_mday);
+    tmp->tm_yday = (days - 1);
 
-    timeptr->tm_yday = (days - 1);
-
-    if ((timeptr->tm_year + TM_YEAR_BASE) < EPOCH_YEAR)
+    if ((tmp->tm_year + TM_YEAR_BASE) < EPOCH_YEAR) {
+        _ErrorHandle(EINVAL);
     	return  ((time_t)PX_ERROR);
+    }
 
-    /* days in previous years */
-    days = __daysSinceEpoch(timeptr->tm_year - (EPOCH_YEAR - TM_YEAR_BASE),
-    		                timeptr->tm_yday );
+    days = __daysSinceEpoch(tmp->tm_year - (EPOCH_YEAR - TM_YEAR_BASE),
+                            tmp->tm_yday );                             /*  days in previous years      */
 
-    timeptr->tm_wday = (days + EPOCH_WDAY) % DAYSPERWEEK;
+    tmp->tm_wday = (days + EPOCH_WDAY) % DAYSPERWEEK;
 
     timeIs += (days * SECSPERDAY);
     timeIs  = LOCAL2UTC(timeIs);

@@ -27,144 +27,143 @@ BUG:
 #include "../SylixOS/system/include/s_system.h"
 #include "lib_local.h"
 /*********************************************************************************************************
-** 函数名称: __gettime
-** 功能描述: 
-** 输　入  : 
-** 输　出  : 
+** 函数名称: __daysSinceYear
+** 功能描述: 一年中第几天 (days since Jan 1)
+** 输　入  : year  年 (1900 以来)
+**           month 月
+**           mday  月中的日
+** 输　出  : 一年中的第几天
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
 #if LW_CFG_RTC_EN > 0
 
-int __julday (int yr, /* year */ int mon, /* month */ int day /* day */)
+INT  __daysSinceYear (INT  year, INT  month, INT  mday)
 {
-    static int jdays[13] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
-    int leap = 0;
+    static INT  days[13] = {
+        0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
+    };
 
-    if (isleap(yr + TM_YEAR_BASE)) {
-        /*
-         * If it is a leap year, leap only gets set if the day is
-         * after beginning of March (SPR #4251).
-         */
-    	if (mon > 1)
-    	    leap = 1;
-	}
+    INT  leap;
 
-    return  (jdays [mon] + day + leap);
+    if (month > 1 && isleap(year + TM_YEAR_BASE)) {
+        leap = 1;
+    } else {
+        leap = 0;
+    }
+
+    return  (days[month] + mday + leap);
 }
 /*********************************************************************************************************
-** 函数名称: __gettime
-** 功能描述: 
-** 输　入  : 
-** 输　出  : 
+** 函数名称: __daysSinceEpoch
+** 功能描述: 计算新纪元以来的天数
+** 输　入  : year  新纪元以来的年数
+**           yday  一年中第几天
+** 输　出  : 新纪元以来的天数
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
-int  __daysSinceEpoch ( int year,	/* Years since epoch */ int yday 	/* days since Jan 1  */)
+INT  __daysSinceEpoch (INT  year, INT  yday)
 {
-    int adjust;
+    INT  adjust;
 
-    if (year >= 0) /* 1970 + */ {
+    if (year >= 0) {                                                    /*  1970 +                      */
         adjust = ((year + 69) / 100 - (year + 369) / 400);
-        return ((365 * year) + (year + 1) / 4 - adjust + yday);
-    } else {       /* 1969 - */
+        return ((DAYSPERYEAR * year) + (year + 1) / 4 - adjust + yday);
+
+    } else {                                                            /*  1969 -                      */
         adjust = ((year - 30) / 100 - (year - 30) / 400);
-        return ((365 * year) + (year - 2) / 4 - adjust + yday);
+        return ((DAYSPERYEAR * year) + (year - 2) / 4 - adjust + yday);
     }
 }
 /*********************************************************************************************************
-** 函数名称: __gettime
-** 功能描述: 
-** 输　入  : 
-** 输　出  : 
-** 全局变量: 
-** 调用模块: 
+** 函数名称: gmtime_r
+** 功能描述:
+** 输　入  :
+** 输　出  :
+** 全局变量:
+** 调用模块:
 *********************************************************************************************************/
-int  __gettime (const time_t timer, struct tm *tmp)
+struct tm *lib_gmtime_r (const time_t *timerp, struct tm *tmp)
 {
-    INT64	    days;
-    INT64	    timeOfDay;
-    INT64	    year;
-    INT64	    mon;
-    lib_lldiv_t	result; 
+    time_t      timer;
+    INT64       days;
+    INT64       timeOfDay;
+    INT64       year;
+    INT64       mon;
+    lib_lldiv_t result;
 
-    /* Calulate number of days since epoch */
+    if (!timerp || !tmp) {
+        return  (LW_NULL);
+    }
 
-    days = timer / SECSPERDAY;
+    timer = *timerp;
+
+    /*
+     * Calulate number of days since epoch
+     */
+    days      = timer / SECSPERDAY;
     timeOfDay = timer % SECSPERDAY;
 
-    /* If time of day is negative, subtract one day, and add SECSPERDAY
+    /*
+     * If time of day is negative, subtract one day, and add SECSPERDAY
      * to make it positive.
      */
-
     if (timeOfDay < 0) {
         timeOfDay += SECSPERDAY;
         days -= 1;
     }
 
-    /* Calulate number of years since epoch */
-
+    /*
+     * Calulate number of years since epoch
+     */
     year = days / DAYSPERYEAR;
-    while (__daysSinceEpoch((int)year, 0) > days)
-    	year--;
+    while (__daysSinceEpoch((INT)year, 0) > days) {
+        year--;
+    }
 
-    /* Calulate the day of the week */
-    tmp->tm_wday = (int)((days + EPOCH_WDAY) % DAYSPERWEEK);
+    /*
+     * Calulate the day of the week
+     */
+    tmp->tm_wday = (INT)((days + EPOCH_WDAY) % DAYSPERWEEK);
 
-	/*
-	 * If there is a negative weekday, add DAYSPERWEEK to make it positive
-	 */
-	if (tmp->tm_wday < 0)
-		tmp->tm_wday += DAYSPERWEEK;
+    /*
+     * If there is a negative weekday, add DAYSPERWEEK to make it positive
+     */
+    if (tmp->tm_wday < 0) {
+        tmp->tm_wday += DAYSPERWEEK;
+    }
 
-    /* Find year and remaining days */
-
-    days -= __daysSinceEpoch((int)year, 0);
+    /*
+     * Find year and remaining days
+     */
+    days -= __daysSinceEpoch((INT)year, 0);
     year += EPOCH_YEAR;
 
-    /* Find month */
-    /* __jullday needs years since TM_YEAR_BASE (SPR 4251) */
-
+    /*
+     * Find month
+     */
     for (mon = 0;
-         (mon < 11) && (days >= __julday((int)(year - TM_YEAR_BASE), (int)(mon + 1), 0));
-         mon++)
-	;
+         (mon < 11) && (days >= __daysSinceYear((INT)(year - TM_YEAR_BASE), (INT)(mon + 1), 0));
+         mon++);
 
-    /* Initialise tm structure */
-    tmp->tm_year = (int)(year - TM_YEAR_BASE); /* years since 1900 */
-    tmp->tm_mon  = (int)mon;
-    tmp->tm_mday = (int)(days - __julday(tmp->tm_year, (int)mon, 0)) + 1;
-    tmp->tm_yday = (int)__julday(tmp->tm_year, (int)mon, tmp->tm_mday) - 1;
-    tmp->tm_hour = (int)(timeOfDay / SECSPERHOUR);
+    /*
+     * Initialize tm structure
+     */
+    tmp->tm_year = (INT)(year - TM_YEAR_BASE); /* years since 1900 */
+    tmp->tm_mon  = (INT)mon;
+    tmp->tm_mday = (INT)(days - __daysSinceYear(tmp->tm_year, (INT)mon, 0)) + 1;
+    tmp->tm_yday = (INT)__daysSinceYear(tmp->tm_year, (INT)mon, tmp->tm_mday) - 1;
+    tmp->tm_hour = (INT)(timeOfDay / SECSPERHOUR);
 
     timeOfDay %= SECSPERHOUR;
-    {
-        result = lib_lldiv(timeOfDay, SECSPERMIN);
-    }
-    
+    result     = lib_lldiv(timeOfDay, SECSPERMIN);
+
     tmp->tm_min   = (int)result.quot;
     tmp->tm_sec   = (int)result.rem;
     tmp->tm_isdst = 0;
 
-    return  (ERROR_NONE);
-}
-/*********************************************************************************************************
-** 函数名称: gmtime_r
-** 功能描述: 
-** 输　入  : 
-** 输　出  : 
-** 全局变量: 
-** 调用模块: 
-*********************************************************************************************************/
-struct tm *lib_gmtime_r (const time_t *timer, struct tm *timeBuffer)
-{
-    if (!timer || !timeBuffer) {
-        return  (LW_NULL);
-    }
-    
-    __gettime(*timer, timeBuffer);
-
-    return (timeBuffer);
+    return  (tmp);
 }
 /*********************************************************************************************************
 ** 函数名称: lib_gmtime

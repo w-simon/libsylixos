@@ -5081,6 +5081,7 @@ FRESULT f_mkdir (
 					mem_set(dir + DIR_Name, ' ', 11);	/* Create "." entry */
 					dir[DIR_Name] = '.';
 					dir[DIR_Attr] = AM_DIR;
+					st_dword(dir + DIR_CrtTime, tm);
 					st_dword(dir + DIR_ModTime, tm);
 					st_clust(fs, dir, dcl);
 					mem_cpy(dir + SZDIRE, dir, SZDIRE); 	/* Create ".." entry */
@@ -5100,7 +5101,10 @@ FRESULT f_mkdir (
 			if (res == FR_OK) {
 #if _FS_EXFAT
 				if (fs->fs_type == FS_EXFAT) {	/* Initialize directory entry block */
+					st_dword(fs->dirbuf + XDIR_CrtTime, tm);    /* Created time */
+					fs->dirbuf[XDIR_CrtTime10] = 0;
 					st_dword(fs->dirbuf + XDIR_ModTime, tm);	/* Created time */
+					fs->dirbuf[XDIR_ModTime10] = 0;
 					st_dword(fs->dirbuf + XDIR_FstClus, dcl);	/* Table start cluster */
 					st_dword(fs->dirbuf + XDIR_FileSize, (DWORD)dj.obj.objsize);	/* File size needs to be valid */
 					st_dword(fs->dirbuf + XDIR_ValidFileSize, (DWORD)dj.obj.objsize);
@@ -5111,7 +5115,8 @@ FRESULT f_mkdir (
 #endif
 				{
 					dir = dj.dir;
-					st_dword(dir + DIR_ModTime, tm);	/* Created time */
+					st_dword(dir + DIR_CrtTime, tm);    /* Created time */
+					st_dword(dir + DIR_ModTime, tm);	/* Modified time */
 					st_clust(fs, dir, dcl);				/* Table start cluster */
 					dir[DIR_Attr] = AM_DIR;				/* Attribute */
 					fs->wflag = 1;
@@ -5173,6 +5178,7 @@ FRESULT f_mkdir_ex (
 					mem_set(dir + DIR_Name, ' ', 11);	/* Create "." entry */
 					dir[DIR_Name] = '.';
 					dir[DIR_Attr] = AM_DIR;
+					st_dword(dir + DIR_CrtTime, tm);
 					st_dword(dir + DIR_ModTime, tm);
 					st_clust(fs, dir, dcl);
 					mem_cpy(dir + SZDIRE, dir, SZDIRE); 	/* Create ".." entry */
@@ -5192,7 +5198,10 @@ FRESULT f_mkdir_ex (
 			if (res == FR_OK) {
 #if _FS_EXFAT
 				if (fs->fs_type == FS_EXFAT) {	/* Initialize directory entry block */
-					st_dword(fs->dirbuf + XDIR_ModTime, tm);	/* Created time */
+					st_dword(fs->dirbuf + XDIR_CrtTime, tm);    /* Created time */
+					fs->dirbuf[XDIR_CrtTime10] = 0;
+					st_dword(fs->dirbuf + XDIR_ModTime, tm);	/* Modified time */
+					fs->dirbuf[XDIR_ModTime10] = 0;
 					st_dword(fs->dirbuf + XDIR_FstClus, dcl);	/* Table start cluster */
 					st_dword(fs->dirbuf + XDIR_FileSize, (DWORD)dj.obj.objsize);	/* File size needs to be valid */
 					st_dword(fs->dirbuf + XDIR_ValidFileSize, (DWORD)dj.obj.objsize);
@@ -5203,7 +5212,8 @@ FRESULT f_mkdir_ex (
 #endif
 				{
 					dir = dj.dir;
-					st_dword(dir + DIR_ModTime, tm);	/* Created time */
+					st_dword(dir + DIR_CrtTime, tm);    /* Created time */
+					st_dword(dir + DIR_ModTime, tm);	/* Modified time */
 					st_clust(fs, dir, dcl);				/* Table start cluster */
 					dir[DIR_Attr] = AM_DIR;				/* Attribute */
 					fs->wflag = 1;
@@ -5548,6 +5558,7 @@ FRESULT f_utime (
 #if _FS_EXFAT
 			if (fs->fs_type == FS_EXFAT) {
 				st_dword(fs->dirbuf + XDIR_ModTime, (DWORD)fno->fdate << 16 | fno->ftime);
+				fs->dirbuf[XDIR_ModTime10] = 0;
 				res = store_xdir(&dj);
 			} else
 #endif
@@ -5589,6 +5600,7 @@ FRESULT f_utime_ex (
 #if _FS_EXFAT
 			if (fs->fs_type == FS_EXFAT) {
 				st_dword(fs->dirbuf + XDIR_ModTime, (DWORD)fno->fdate << 16 | fno->ftime);
+				fs->dirbuf[XDIR_ModTime10] = 0;
 				res = store_xdir(&dj);
 			} else
 #endif

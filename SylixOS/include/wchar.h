@@ -225,10 +225,12 @@ __END_DECLS
 #define putwc(wc, f) fputwc((wc), (f))
 #define putwchar(wc) putwc((wc), stdout)
 #else
+__BEGIN_DECLS
 wint_t  getwc(FILE *stream);
 wint_t  getwchar(void);
 wint_t  putwc(wchar_t wc, FILE *stream);
 wint_t  putwchar(wchar_t wc);
+__END_DECLS
 #endif /* SYLIXOS */
 
 #endif /* !_WCHAR_H_ */
