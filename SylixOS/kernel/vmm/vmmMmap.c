@@ -51,10 +51,10 @@ static LW_LIST_LINE_HEADER  _K_plineMapnVHeader;                        /*  排序
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN > 0  */
 static LW_LIST_LINE_HEADER  _K_plineMapnMHeader;                        /*  统一管理链表                */
 /*********************************************************************************************************
-** 函数名称: __vmmMapnVHeader
-** 功能描述: 获得当前进程 MAP NODE 控制块表头地址.
+** 函数名称: __vmmMapInit
+** 功能描述: 初始化映射管理库.
 ** 输　入  : NONE
-** 输　出  : MAP NODE 控制块进程表头地址
+** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 
 *********************************************************************************************************/
@@ -350,9 +350,10 @@ static VOID  __vmmMapnUnlink (PLW_VMM_MAP_NODE  pmapn)
     _List_Line_Del(&pmapn->MAPN_lineManage, &_K_plineMapnMHeader);      /*  从管理链表中删除            */
 }
 /*********************************************************************************************************
-** 函数名称: __vmmMapnUnlink
-** 功能描述: 将 MAP NODE 从管理空间卸载
+** 函数名称: __vmmMapnReclaim
+** 功能描述: 将 MAP NODE 从进程空间卸载
 ** 输　入  : pmapn         mmap node
+**           pvproc        进程控制块
 ** 输　出  : NONE
 ** 全局变量: 
 ** 调用模块: 

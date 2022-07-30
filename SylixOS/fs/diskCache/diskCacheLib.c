@@ -1032,7 +1032,7 @@ INT  __diskCacheWriteMeta (PLW_DISKCACHE_CB   pdiskcDiskCache,
              INT                    iError = ERROR_NONE;
     REGISTER PLW_DISKCACHE_NODE     pdiskn;
              PCHAR                  pcData = (PCHAR)pvBuffer;
-             PLW_BLK_RANGE          pblkrange;
+             LW_BLK_RANGE           blkrange;
     REGISTER PLW_DISKCACHE_WP       pwp = &pdiskcDiskCache->DISKC_wpWrite;
 
     if (!pwp->DISKCWP_bParallel) {
@@ -1048,9 +1048,9 @@ INT  __diskCacheWriteMeta (PLW_DISKCACHE_CB   pdiskcDiskCache,
         return  (PX_ERROR);
     }
 
-    pblkrange->BLKR_ulStartSector = ulStartSector;
-    pblkrange->BLKR_ulEndSector   = ulStartSector + ulSectorCount - 1;
-    __LW_DISKCACHE_DISK_IOCTL(pdiskcDiskCache)(pdiskcDiskCache->DISKC_pblkdDisk, FIOSYNCMETA, &pblkrange);
+    blkrange.BLKR_ulStartSector = ulStartSector;
+    blkrange.BLKR_ulEndSector   = ulStartSector + ulSectorCount - 1;
+    __LW_DISKCACHE_DISK_IOCTL(pdiskcDiskCache)(pdiskcDiskCache->DISKC_pblkdDisk, FIOSYNCMETA, &blkrange);
 
     if (!pwp->DISKCWP_bParallel) {                                      /*  并行处理这里可以释放锁      */
         __LW_DISKCACHE_PL_UNLOCK(pwp);

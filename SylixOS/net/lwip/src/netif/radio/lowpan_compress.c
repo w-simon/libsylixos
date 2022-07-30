@@ -594,7 +594,7 @@ lowpan_header_create (struct pbuf *p, u8_t *head, u16_t *len)
  * @param p The pbuf which is ready for uncompressing, it's not include the mac 
  *          frame header.
  * @param ethhdr The ethernet header of the frame.
- * @return NULL Prase failure,
+ * @return NULL Parse failure,
  *         p  The uncompressed packet, include the link layer header.
  */
 struct pbuf *
@@ -868,7 +868,10 @@ lowpan_header_prase (struct pbuf *p, struct eth_hdr *ethhdr)
   
   pbuf_header(pfw, IP6_HLEN);
   MEMCPY(pfw->payload, &ip6hdr, IP6_HLEN);
-  
+#else   /* LWIP_IPV6 */
+  LWIP_DEBUGF(NETIF_DEBUG, ("lowpan_header_prase: lowpan lack IPv6 support!\n"));
+  pbuf_free(p);
+  return NULL;
 #endif  /* LWIP_IPV6 */ 
 prase_done:
   pbuf_header(pfw, (s16_t)SIZEOF_ETH_HDR);

@@ -252,6 +252,7 @@ void yaffs_mtd_drv_install(struct yaffs_dev *dev)
 
 struct mtd_info * yaffs_get_mtd_device(dev_t sdev)
 {
+#ifndef SYLIXOS
 	struct mtd_info *mtd;
 
 	mtd = yaffs_get_mtd_device(sdev);
@@ -278,6 +279,9 @@ struct mtd_info * yaffs_get_mtd_device(dev_t sdev)
 #endif
 
 	return mtd;
+#else
+    return NULL; /* No implement */
+#endif
 }
 
 int yaffs_verify_mtd(struct mtd_info *mtd, int yaffs_version, int inband_tags)
