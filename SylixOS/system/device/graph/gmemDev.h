@@ -209,7 +209,8 @@ typedef struct {
     ULONG                       GMDEV_ulMapFlags;                       /*  内存映射选项                */
     ULONG                       GMDEV_ulOptFlags;                       /*  设备选项                    */
     ULONG                       GMDEV_ulPeeking;                        /*  窥探性打开计数              */
-    PVOID                       GMDEV_pvReserved[6];                    /*  保留配置字                  */
+    LONG                        GMDEV_lOwner;                           /*  设备 OWNER                  */
+    PVOID                       GMDEV_pvReserved[5];                    /*  保留配置字                  */
     /*
      * ... (设备相关信息, 此结构体作为所有绘图函数的第一个参数)
      */

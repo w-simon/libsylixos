@@ -112,6 +112,8 @@ static LONG  __gmemOpen (PLW_GM_DEVICE  pgmdev, PCHAR  pcName, INT  iFlag, INT  
         return  (__GMEM_DEV_PEEK_OPEN(pgmdev));
 
     } else {
+        pgmdev->GMDEV_lOwner = (LONG)__PROC_GET_PID_CUR();              /*  记录占用者                  */
+
 #if LW_CFG_HOTPLUG_EN > 0
         API_HotplugEventMessage(LW_HOTPLUG_MSG_DISPLAY_USING, LW_TRUE,
                                 pgmdev->GMDEV_devhdrHdr.DEVHDR_pcName, 0, 0, 0, 0);
@@ -136,6 +138,8 @@ static INT  __gmemClose (PLW_GM_DEVICE  pgmdev)
     if (bIsPeek) {
         pgmdev = __GMEM_DEV_GET(pgmdev);
         __GMEM_DEV_PEEKING_DEC_COUNT(pgmdev);
+    } else {
+        pgmdev->GMDEV_lOwner = -1l;
     }
 
     if (LW_DEV_DEC_USE_COUNT((PLW_DEV_HDR)pgmdev) == 0) {
@@ -191,6 +195,14 @@ LW_API time_t  API_RootFsTime(time_t  *time);
             pstat->st_ctime   = API_RootFsTime(LW_NULL);
             
             iError = ERROR_NONE;
+        }
+        break;
+
+    case FIOGETOWN:
+        if (lArg) {
+            *(pid_t *)lArg = (pid_t)pgmdev->GMDEV_lOwner;
+        } else {
+            _ErrorHandle(EINVAL);
         }
         break;
 
@@ -367,6 +379,7 @@ INT   API_GMemDevAdd (CPCHAR  cpcName, PLW_GM_DEVICE  pgmdev)
     
     pgmdev->GMDEV_ulOptFlags = 0ul;
     pgmdev->GMDEV_ulPeeking  = 0ul;
+    pgmdev->GMDEV_lOwner     = -1l;
 
     if (iosDevAddEx((PLW_DEV_HDR)pgmdev, cpcName, iGMemDrvNum, DT_CHR) != 
         ERROR_NONE) {                                                   /*  创建设备驱动                */
