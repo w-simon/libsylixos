@@ -802,6 +802,8 @@ INT  __ram_move (PRAM_NODE  pramn, PCHAR  pcNewName)
             _List_Line_Add_Ahead(&pramn->RAMN_lineBrother, 
                                  &pramfs->RAMFS_plineSon);
         }
+
+        pramn->RAMN_pramnFather = pramnNewFather;                       /*  更新父系节点                */
     }
     
     __SHEAP_FREE(pramn->RAMN_pcName);                                   /*  释放老名字                  */
