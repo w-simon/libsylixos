@@ -104,7 +104,7 @@ static void
 svctcp_rendezvous_abort (void)
 {
   abort ();
-};
+}
 
 static const struct xp_ops svctcp_rendezvous_op =
 {

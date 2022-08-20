@@ -451,12 +451,12 @@ VOID  __tshellNetstatRaw (INT  iNetType)
 
 static PCHAR  __ProtoAddrBuild (ip_addr_t  *addr, u8_t idx, u16_t usPort, PCHAR  pcBuffer, size_t  stSize)
 {
-    CHAR    cBuffer[INET6_ADDRSTRLEN];
+    CHAR    cBuffer[INET6_ADDRSTRLEN] = "";
 
     if (idx != NETIF_NO_INDEX) {
         bnprintf(pcBuffer, stSize, 0, "Ifidx_%d:%d", idx, usPort);
 
-    } else {
+    } else if (addr) {
         if (IP_IS_V4(addr)) {
             bnprintf(pcBuffer, stSize, 0, "%s:%d",
                      (ip_2_ip4(addr)->addr == IPADDR_ANY) ?

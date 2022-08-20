@@ -435,7 +435,8 @@ static INT  __ftpdDatasocket (__PFTPD_SESSION  pftpds)
 ** 函数名称: __ftpdCmdList
 ** 功能描述: 命令: 文件列表
 ** 输　入  : pftpds        会话控制块
-**           pcDir         设置目录
+**           pcFileName    文件名称
+**           iWide         是否发送完整信息
 ** 输　出  : ERROR
 ** 全局变量: 
 ** 调用模块: 

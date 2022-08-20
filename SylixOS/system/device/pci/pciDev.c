@@ -1396,7 +1396,7 @@ PVOID  API_PciDevIoRemap2 (phys_addr_t  paPhysicalAddr, size_t  stSize)
 LW_API
 VOID  API_PciDevIoUnmap (PVOID  pvVirtualAddr)
 {
-    return  (API_VmmIoUnmap(pvVirtualAddr));
+    API_VmmIoUnmap(pvVirtualAddr);
 }
 /*********************************************************************************************************
 ** º¯ÊýÃû³Æ: API_PciDevDrvDel

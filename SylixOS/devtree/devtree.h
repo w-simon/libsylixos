@@ -340,6 +340,9 @@ LW_API INT                   API_DeviceTreeIsCompatible(PLW_DEVTREE_NODE  pdtnDe
 
 LW_API PVOID                 API_DeviceTreeDevGetMatchData(PLW_DEV_INSTANCE  pdevinstance);
 
+LW_API PLW_DEVTREE_TABLE     API_DeviceTreeDevGetMatchTable(PLW_DEVTREE_TABLE  pdttMatches,
+                                                            PLW_DEVTREE_NODE   pdtnDev);
+
 /*********************************************************************************************************
   中断相关接口
 *********************************************************************************************************/

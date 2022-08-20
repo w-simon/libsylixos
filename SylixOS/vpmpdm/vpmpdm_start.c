@@ -323,7 +323,7 @@ out:
  */
 int setenv (const char *name, const char *value, int rewrite)
 {
-    static char **saveenv;    /* copy of previously allocated space */
+    static char **saveenv = LW_NULL;    /* copy of previously allocated space */
     char *c, **newenv;
     const char *cc;
     size_t l_value, size;

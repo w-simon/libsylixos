@@ -381,6 +381,27 @@ PVOID  API_DeviceTreeDevGetMatchData (PLW_DEV_INSTANCE  pdevInstance)
 
     return  ((PVOID)pdttMatch->DTITEM_pvData);
 }
+/*********************************************************************************************************
+** 函数名称: API_DeviceTreeDevGetMatchTable
+** 功能描述: 判断设备树节点在指定的匹配表格组中是否有匹配项
+** 输　入  : pdttMatches     匹配表格组
+**           pdtnDev         指定的节点
+** 输　出  : 若有匹配项，返回最合适的表项；若没有匹配项，返回 LW_NULL。
+** 全局变量:
+** 调用模块:
+**                                            API 函数
+*********************************************************************************************************/
+LW_API
+PLW_DEVTREE_TABLE  API_DeviceTreeDevGetMatchTable (PLW_DEVTREE_TABLE  pdttMatches,
+                                                   PLW_DEVTREE_NODE   pdtnDev)
+{
+    if (!pdtnDev || !pdttMatches) {
+        _ErrorHandle(EINVAL);
+        return  (LW_NULL);
+    }
+
+    return  (__deviceTreeNodeMatch(pdtnDev, pdttMatches));
+}
 
 #endif                                                                  /*  LW_CFG_DEVTREE_EN > 0       */
 /*********************************************************************************************************

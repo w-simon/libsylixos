@@ -89,6 +89,19 @@ static LW_INLINE  VOID  __deviceTreeNodeFlagSet (PLW_DEVTREE_NODE  pdtnDev, ULON
     __set_bit(ulFlag, &(pdtnDev->DTN_ulFlags));
 }
 /*********************************************************************************************************
+** 函数名称: __deviceTreeNodeFlagClear
+** 功能描述: 清除设备树节点的标志
+** 输　入  : pdtnDev     设备树节点
+**           ulFlag      清除的设备树节点标志
+** 输　出  : NONE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+static LW_INLINE  VOID  __deviceTreeNodeFlagClear (PLW_DEVTREE_NODE  pdtnDev, ULONG  ulFlag)
+{
+    __clear_bit(ulFlag, &(pdtnDev->DTN_ulFlags));
+}
+/*********************************************************************************************************
 ** 函数名称: __deviceTreeNodeFlagCheck
 ** 功能描述: 检查设备树节点的某个标志是否设置
 ** 输　入  : pdtnDev    设备树节点

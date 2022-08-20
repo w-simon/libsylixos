@@ -1309,16 +1309,15 @@ INT API_SdCoreDevSetBusWidth (PLW_SDCORE_DEVICE psdcoredevice, INT iBusWidth)
     INT             iError = ERROR_NONE;
     LW_SD_COMMAND   sdcmd;
 
-    iError = API_SdCoreDevSelect(psdcoredevice);
-    if (iError != ERROR_NONE) {
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "select device failed.\r\n");
+    if (!psdcoredevice) {
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
+        _ErrorHandle(EINVAL);
         return  (PX_ERROR);
     }
 
-    if (!psdcoredevice) {
-        API_SdCoreDevDeSelect(psdcoredevice);
-        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
-        _ErrorHandle(EINVAL);
+    iError = API_SdCoreDevSelect(psdcoredevice);
+    if (iError != ERROR_NONE) {
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "select device failed.\r\n");
         return  (PX_ERROR);
     }
 
@@ -1362,6 +1361,12 @@ INT API_SdCoreDevSetBlkLen (PLW_SDCORE_DEVICE psdcoredevice, INT iBlkLen)
 {
     INT             iError;
     LW_SD_COMMAND   sdcmd;
+
+    if (!psdcoredevice) {
+        SDCARD_DEBUG_MSG(__ERRORMESSAGE_LEVEL, "parameter error.\r\n");
+        _ErrorHandle(EINVAL);
+        return  (PX_ERROR);
+    }
 
     sdcmd.SDCMD_uiOpcode = SD_SET_BLOCKLEN;
     sdcmd.SDCMD_uiArg    = iBlkLen;
