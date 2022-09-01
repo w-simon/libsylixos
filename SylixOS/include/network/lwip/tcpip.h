@@ -107,6 +107,8 @@ int tcpip_thread_poll_one(void);
 #ifdef SYLIXOS /* SylixOS Add QoS support */
 void  tcpip_qos_set(u8_t en);
 u8_t  tcpip_qos_get(void);
+u8_t *tcpip_qos_ptr(void);
+u8_t  tcpip_qos_dscp(u8_t tos, u8_t *dont_drop);
 u32_t tcpip_qos_stat(u8_t ipv, u8_t prio);
 u32_t tcpip_qos_dontdrop_stat(u8_t ipv);
 

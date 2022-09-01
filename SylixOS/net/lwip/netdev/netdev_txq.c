@@ -55,6 +55,14 @@
 #define LW_CFG_NET_DEV_TXQ_MAX  LW_CFG_LWIP_NUM_NETBUF
 #endif
 
+#if LW_CFG_LWIP_IPQOS
+/*
+ * QoS support
+ */
+#include "lwip/tcpip.h"
+static u8_t *netdev_txq_qos_en = NULL;
+#endif
+
 /*
  * netdev_txq_lock
  */
@@ -157,9 +165,73 @@ netdev_txq_can_ref (struct pbuf *p)
   return (1);
 }
 
+#if LW_CFG_LWIP_IPQOS
+/* QoS prio get */
+static u8_t  netdev_txq_qos_prio (netdev_t *netdev, struct pbuf *p, u8_t *dont_drop)
+{
+  u8_t prio = 0;
+  u16_t iphdr_offset, type;
+  struct eth_hdr *ethhdr;
+
+#if LWIP_IPV4
+  struct ip_hdr *iphdr;
+#endif /* LWIP_IPV4 */
+#if LWIP_IPV6
+  struct ip6_hdr *ip6hdr;
+#endif /* LWIP_IPV6 */
+
+  if (netdev->net_type == NETDEV_TYPE_ETHERNET) {
+    ethhdr = (struct eth_hdr *)p->payload;
+    if (LW_UNLIKELY(p->len < sizeof(struct eth_hdr) + 8)) {
+      return (prio);
+    }
+
+    type = ethhdr->type;
+    if (type == PP_HTONS(ETHTYPE_VLAN)) {
+      struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((char *)ethhdr) + SIZEOF_ETH_HDR);
+      iphdr_offset = SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR;
+      type = vlan->tpid;
+    } else {
+      iphdr_offset = SIZEOF_ETH_HDR;
+    }
+
+    if (type != PP_HTONS(ETHTYPE_IP)) {
+      return (prio);
+    }
+
+  } else if (netdev->net_type == NETDEV_TYPE_RAW) {
+    iphdr_offset = 0;
+    if (LW_UNLIKELY(p->len < iphdr_offset + 4)) {
+      return (prio);
+    }
+
+  } else {
+    return (prio);
+  }
+
+#if LWIP_IPV4
+  iphdr = (struct ip_hdr *)((char *)p->payload + iphdr_offset);
+  if (IPH_V(iphdr) == 4) {
+    prio = tcpip_qos_dscp(IPH_TOS(iphdr), dont_drop);
+  } else
+#endif /* LWIP_IPV4 */
+  {
+#if LWIP_IPV6
+    ip6hdr = (struct ip6_hdr *)((char *)p->payload + iphdr_offset);
+    if (IP6H_V(ip6hdr) == 6) {
+      prio = tcpip_qos_dscp(IP6H_TC(ip6hdr), dont_drop);
+    }
+#endif /* LWIP_IPV6 */
+  }
+
+  return (prio);
+}
+#endif /* LW_CFG_LWIP_IPQOS */
+
 /* netdev txqueue transmit */
 err_t  netdev_txq_transmit (netdev_t *netdev, struct pbuf *p)
 {
+  u8_t prio = 0, dont_drop = 0;
   struct netdev_txq_ctl *txq_ctl = (struct netdev_txq_ctl *)netdev->kern_txq;
   union netdev_txq_desc *desc;
   
@@ -185,11 +257,17 @@ err_t  netdev_txq_transmit (netdev_t *netdev, struct pbuf *p)
     }
   }
   
-  if (txq_ctl->txq_block) {
-    sys_mbox_post(&txq_ctl->txq_mbox, desc);
+#if LW_CFG_LWIP_IPQOS
+  if (netdev_txq_qos_en && *netdev_txq_qos_en) {
+    prio = netdev_txq_qos_prio(netdev, desc->p, &dont_drop);
+  }
+#endif
+
+  if (txq_ctl->txq_block || dont_drop) {
+    sys_mbox_post_prio(&txq_ctl->txq_mbox, desc, prio);
   
   } else {
-    if (sys_mbox_trypost(&txq_ctl->txq_mbox, desc)) {
+    if (sys_mbox_trypost_prio(&txq_ctl->txq_mbox, desc, prio)) {
       pbuf_free(desc->p);
       netdev_txq_desc_free(txq_ctl, desc);
       netdev_linkinfo_err_inc(netdev);
@@ -207,6 +285,12 @@ int  netdev_txq_enable (netdev_t *netdev, struct netdev_txq *txq)
   UINT32 len;
   struct netdev_txq_ctl *txq_ctl;
   union netdev_txq_desc *desc;
+
+#if LW_CFG_LWIP_IPQOS
+  if (!netdev_txq_qos_en) {
+    netdev_txq_qos_en = tcpip_qos_ptr();
+  }
+#endif
 
   if (netdev->kern_txq) {
     return (0); /* already enabled */

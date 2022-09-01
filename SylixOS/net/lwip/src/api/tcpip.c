@@ -36,6 +36,7 @@
  *
  */
 
+#define  __SYLIXOS_KERNEL
 #include "lwip/opt.h"
 
 #if !NO_SYS /* don't build if not configured for use in lwipopts.h */
@@ -82,6 +83,7 @@ void
 tcpip_qos_set(u8_t en)
 {
   tcpip_qos_on = en;
+  KN_SMP_MB();
 }
 
 /**
@@ -92,6 +94,16 @@ u8_t
 tcpip_qos_get(void)
 {
   return tcpip_qos_on;
+}
+
+/**
+ * Get IP QoS support pointer
+ * @return switch flag pointer
+ */
+u8_t *
+tcpip_qos_ptr(void)
+{
+  return &tcpip_qos_on;
 }
 
 /**
@@ -168,13 +180,13 @@ tcpip_qos_hook(struct netif *inp, struct pbuf *p, u8_t ipver,
     }
   }
   
-  return (prio);
+  return prio;
 }
 
 /**
  * Get DSCP to set priority & dd
  */
-static u8_t
+u8_t
 tcpip_qos_dscp(u8_t tos, u8_t *dont_drop)
 {
   u8_t dscp = tos  >> 2;
@@ -189,7 +201,7 @@ tcpip_qos_dscp(u8_t tos, u8_t *dont_drop)
       *dont_drop = 0;
   }
 
-  return (prio);
+  return prio;
 }
 
 /**
@@ -207,30 +219,31 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
 #if LWIP_IPV4
   struct ip_hdr *iphdr;
 #endif /* LWIP_IPV4 */
+#if LWIP_IPV6
+  struct ip6_hdr *ip6hdr;
+#endif /* LWIP_IPV6 */
 
 #if LWIP_ETHERNET
   struct eth_hdr *ethhdr;
   u16_t type;
 
   if (inp->flags & (NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET)) {
-    iphdr_offset = SIZEOF_ETH_HDR;
-    if (LW_UNLIKELY(p->len < iphdr_offset + 4)) {
+    ethhdr = (struct eth_hdr *)p->payload;
+    if (LW_UNLIKELY(p->len < sizeof(struct eth_hdr) + 8)) {
       return 0;
     }
     
-    ethhdr = (struct eth_hdr *)p->payload;
     type = ethhdr->type;
     if (type == PP_HTONS(ETHTYPE_VLAN)) {
       struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr *)(((char *)ethhdr) + SIZEOF_ETH_HDR);
       iphdr_offset = SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR;
-      if (LW_UNLIKELY(p->len < iphdr_offset + 4)) {
-        return 0;
-      }
       type = vlan->tpid;
+    } else {
+      iphdr_offset = SIZEOF_ETH_HDR;
     }
     
     if (type != PP_HTONS(ETHTYPE_IP)) {
-      return (0);
+      return 0;
     }
   
   } else 
@@ -251,13 +264,13 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
       tcpip_ip_dontdrop++;
     }
     tcpip_ip_qos[prio]++;
-    return (prio);
+    return prio;
   
   } else 
 #endif /* LWIP_IPV4 */
   {
 #if LWIP_IPV6
-    struct ip6_hdr *ip6hdr = (struct ip6_hdr *)((char *)p->payload + iphdr_offset);
+    ip6hdr = (struct ip6_hdr *)((char *)p->payload + iphdr_offset);
     if (IP6H_V(ip6hdr) == 6) {
       prio = tcpip_qos_dscp(IP6H_TC(ip6hdr), dont_drop);
       prio = tcpip_qos_hook(inp, p, 6, prio, iphdr_offset, dont_drop);
@@ -265,12 +278,12 @@ tcpip_qos_prio(struct pbuf *p, struct netif *inp, u8_t *dont_drop)
         tcpip_ip6_dontdrop++;
       }
       tcpip_ip6_qos[prio]++;
-      return (prio);
+      return prio;
     }
 #endif /* LWIP_IPV6 */
   }
   
-  return (0);
+  return 0;
 }
 #endif /* SYLIXOS && LW_CFG_LWIP_IPQOS */
 
