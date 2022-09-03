@@ -380,6 +380,8 @@ static INT  pciSioExarProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
 {
     INT                     i, iTtyNum;
     INT                     iPortCnt;
+    INT                     iRet;
+    BOOL                    bMsix = TRUE, bMsi = TRUE;
     
     PCI_SIO_EXAR           *pciexar;
     PCI_SIO_EXAR_CFG       *psiocfg;
@@ -392,6 +394,7 @@ static INT  pciSioExarProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     phys_addr_t             paBaseAddr;                                 /*  起始地址                    */
     addr_t                  ulBaseAddr;                                 /*  起始地址                    */
     size_t                  stBaseSize;                                 /*  资源大小                    */
+    PCI_MSI_DESC            pciMsiDesc;
 
     if ((!hPciDevHandle) || (!hIdEntry)) {
         _ErrorHandle(EINVAL);
@@ -414,8 +417,50 @@ static INT  pciSioExarProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HAND
     pciexar  = &pciSioExarCard[hIdEntry->PCIDEVID_ulData];
     iPortCnt = pciexar->EXAR_uiPorts;
 
-    hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IRQ, 0);
-    ulVector  = (ULONG)PCI_RESOURCE_START(hResource);
+    iRet = API_PciDevMasterEnable(hPciDevHandle, LW_TRUE);              /*  使能 Master 模式            */
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
+
+    iRet = API_PciDevMsixEnableSet(hPciDevHandle, LW_TRUE);             /*  使能 MSI-X 中断             */
+    if (iRet != ERROR_NONE) {
+        bMsix = FALSE;
+    }
+
+    if (bMsix == TRUE) {
+        iRet = API_PciDevMsixRangeEnable(hPciDevHandle, &pciMsiDesc, 1, 1);
+        if (iRet != ERROR_NONE) {
+            bMsix = FALSE;
+        }
+
+        if (bMsix == TRUE) {
+            ulVector = pciMsiDesc.PCIMSI_ulDevIrqVector;
+        }
+    }
+
+    if (bMsix == FALSE) {
+        API_PciDevMsixEnableSet(hPciDevHandle, LW_FALSE);
+        iRet = API_PciDevMsiEnableSet(hPciDevHandle, LW_TRUE);
+        if (iRet != ERROR_NONE) {
+            bMsi = FALSE;
+        }
+
+        if (bMsi == TRUE) {
+            iRet = API_PciDevMsiRangeEnable(hPciDevHandle, 1, 1);
+            if (iRet != ERROR_NONE) {
+                bMsi = FALSE;
+            }
+
+            if (bMsi == TRUE) {
+                ulVector = hPciDevHandle->PCIDEV_ulDevIrqVector;
+            }
+        }
+
+        if (bMsi == FALSE) {
+            hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IRQ, 0);
+            ulVector  = (ULONG)PCI_RESOURCE_START(hResource);
+        }
+    }
 
     /*
      *  创建串口通道

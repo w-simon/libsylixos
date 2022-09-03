@@ -278,6 +278,8 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
     PCI_SIO_NETMOS_CFG     *pcisiocfg;
     SIO16C550_CHAN         *psiochan;
     SIO_CHAN               *psio;
+    INT                     iRet;
+    BOOL                    bMsix = TRUE, bMsi = TRUE;
     
     ULONG                   ulVector;
     CHAR                    cDevName[64];
@@ -285,6 +287,7 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
     phys_addr_t             paBaseAddr;                                 /*  起始地址                    */
     addr_t                  ulBaseAddr;                                 /*  起始地址                    */
     size_t                  stBaseSize;                                 /*  资源大小                    */
+    PCI_MSI_DESC            pciMsiDesc;
     
     if ((!hPciDevHandle) || (!hIdEntry)) {
         _ErrorHandle(EINVAL);
@@ -307,10 +310,50 @@ static INT  pciSioNetmosProbe (PCI_DEV_HANDLE hPciDevHandle, const PCI_DEV_ID_HA
     pcisio    = &pciSioNetmosCard[hIdEntry->PCIDEVID_ulData];
     iChanNum  = pcisio->NETMOS_uiPorts;                                 /*  获得设备通道数              */
 
-    hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IRQ, 0);
-    ulVector  = (ULONG)PCI_RESOURCE_START(hResource);
+    iRet = API_PciDevMasterEnable(hPciDevHandle, LW_TRUE);              /*  使能 Master 模式            */
+    if (iRet != ERROR_NONE) {
+        return  (PX_ERROR);
+    }
 
-    API_PciDevMasterEnable(hPciDevHandle, LW_TRUE);
+    iRet = API_PciDevMsixEnableSet(hPciDevHandle, LW_TRUE);             /*  使能 MSI-X 中断             */
+    if (iRet != ERROR_NONE) {
+        bMsix = FALSE;
+    }
+
+    if (bMsix == TRUE) {
+        iRet = API_PciDevMsixRangeEnable(hPciDevHandle, &pciMsiDesc, 1, 1);
+        if (iRet != ERROR_NONE) {
+            bMsix = FALSE;
+        }
+
+        if (bMsix == TRUE) {
+            ulVector = pciMsiDesc.PCIMSI_ulDevIrqVector;
+        }
+    }
+
+    if (bMsix == FALSE) {
+        API_PciDevMsixEnableSet(hPciDevHandle, LW_FALSE);
+        iRet = API_PciDevMsiEnableSet(hPciDevHandle, LW_TRUE);
+        if (iRet != ERROR_NONE) {
+            bMsi = FALSE;
+        }
+
+        if (bMsi == TRUE) {
+            iRet = API_PciDevMsiRangeEnable(hPciDevHandle, 1, 1);
+            if (iRet != ERROR_NONE) {
+                bMsi = FALSE;
+            }
+
+            if (bMsi == TRUE) {
+                ulVector = hPciDevHandle->PCIDEV_ulDevIrqVector;
+            }
+        }
+
+        if (bMsi == FALSE) {
+            hResource = API_PciDevResourceGet(hPciDevHandle, PCI_IORESOURCE_IRQ, 0);
+            ulVector  = (ULONG)PCI_RESOURCE_START(hResource);
+        }
+    }
 
     write32(0, ulBaseAddr + 0x3fc);
 
