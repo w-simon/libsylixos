@@ -3955,8 +3955,8 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
               done_socket(sock);
               return EINVAL;
             }
-            if (lingersec > 0xFFFF) {
-              lingersec = 0xFFFF;
+            if (lingersec > 0x7fff) { /* SylixOS Fixed here from 0xffff to 0x7fff */
+              lingersec = 0x7fff;
             }
             sock->conn->linger = (s16_t)lingersec;
           } else {

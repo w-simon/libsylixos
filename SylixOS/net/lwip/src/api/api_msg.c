@@ -1031,14 +1031,14 @@ lwip_netconn_do_close_internal(struct netconn *conn  WRITE_DELAYED_PARAM)
     /* check linger possibilities before calling tcp_close */
     err = ERR_OK;
     /* linger enabled/required at all? (i.e. is there untransmitted data left?) */
-    /* SylixOS Fixed listen conn do not need check linger */
-    if ((conn->linger >= 0) &&
-        (conn->pcb.tcp->state != LISTEN) && (conn->pcb.tcp->unsent || conn->pcb.tcp->unacked)) {
+    /* SylixOS Fixed listen netconn do not need check linger
+     * and `conn->linger == 0` do not check `unsent` and `unacked` send reset immediately */
+    if ((conn->linger >= 0) && (conn->pcb.tcp->state != LISTEN)) {
       if ((conn->linger == 0)) {
         /* data left but linger prevents waiting */
         tcp_abort(tpcb);
         tpcb = NULL;
-      } else if (conn->linger > 0) {
+      } else if ((conn->linger > 0) && (conn->pcb.tcp->unsent || conn->pcb.tcp->unacked)) {
         /* data left and linger says we should wait */
         if (netconn_is_nonblocking(conn)) {
           /* data left on a nonblocking netconn -> cannot linger */

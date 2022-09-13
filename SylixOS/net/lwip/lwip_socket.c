@@ -964,23 +964,36 @@ static INT  __socketUnmap (SOCKET_T *psock, PLW_DEV_MMAP_AREA  pdmap)
 *********************************************************************************************************/
 VOID  __socketReset (PLW_FD_ENTRY  pfdentry)
 {
-    struct linger   lingerReset = {1, 0};
+    struct linger   lingerReset = { 1, 0 };
     SOCKET_T       *psock       = (SOCKET_T *)pfdentry->FDENTRY_lValue;
-    
-    if (psock && 
-        ((psock->SOCK_iFamily == AF_INET) || 
-        ((psock->SOCK_iFamily == AF_INET6)))) {
-        INT         iAccept = 1, iType = SOCK_DGRAM;                    /*  仅处理非 LISTEN 类型的 TCP  */
-        socklen_t   socklen = sizeof(INT);
-        
+    INT             iAccept     = 1, iType = SOCK_DGRAM;                /*  仅处理非 LISTEN 类型的 TCP  */
+    socklen_t       socklen     = sizeof(INT);
+
+    if (!psock) {
+        return;
+    }
+
+    if ((psock->SOCK_iFamily == AF_INET) || (psock->SOCK_iFamily == AF_INET6)) {
         lwip_getsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_ACCEPTCONN, &iAccept, &socklen);
         lwip_getsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_TYPE,       &iType,   &socklen);
-        
-        if (!iAccept && (iType == SOCK_STREAM)) {
-            lwip_setsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_LINGER, 
+
+        if (!iAccept && (iType == SOCK_STREAM || iType == SOCK_SEQPACKET)) {
+            lwip_setsockopt(psock->SOCK_iLwipFd, SOL_SOCKET, SO_LINGER,
                             &lingerReset, sizeof(struct linger));
         }
     }
+
+#if LW_CFG_NET_SCTP_EN > 0
+      else if (psock->SOCK_iFamily == AF_SCTP) {
+        kmsctp_getsockopt(psock->SOCK_pafsctp, SOL_SOCKET, SO_ACCEPTCONN, &iAccept, &socklen);
+        kmsctp_getsockopt(psock->SOCK_pafsctp, SOL_SOCKET, SO_TYPE,       &iType,   &socklen);
+
+        if (!iAccept && (iType == SOCK_STREAM || iType == SOCK_SEQPACKET)) {
+            kmsctp_setsockopt(psock->SOCK_pafsctp, SOL_SOCKET, SO_LINGER,
+                              &lingerReset, sizeof(struct linger));
+        }
+    }
+#endif                                                                  /*  LW_CFG_NET_SCTP_EN > 0      */
 }
 /*********************************************************************************************************
 ** 函数名称: __socketEnotify
