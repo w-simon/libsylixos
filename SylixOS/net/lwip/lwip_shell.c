@@ -1729,8 +1729,8 @@ VOID  __tshellNetInit (VOID)
 
 #if LW_CFG_LWIP_SEC_REGION > 0
     API_TShellKeywordAdd("ifsec", __tshellIfSec);
-    API_TShellFormatAdd("iftsec", " [ifname] [security region]");
-    API_TShellHelpAdd("iftsec", "Set interface security region.\n");
+    API_TShellFormatAdd("ifsec", " [ifname] [security region]");
+    API_TShellHelpAdd("ifsec", "Set interface security region.\n");
 #endif                                                                  /*  LW_CFG_LWIP_SEC_REGION      */
 }
 

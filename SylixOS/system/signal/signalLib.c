@@ -65,6 +65,7 @@
 2016.08.11  新建线程集成主线程信号掩码.
 2017.08.17  __sigCtlCreate() 需要处理堆栈对齐.
 2017.08.18  修正 __sigReturn() 调度器返回值可能出错的错误.
+2022.09.09  SIGURG, SIGCHLD, SIGWINCH 初始化为忽略句柄.
 *********************************************************************************************************/
 #define  __SYLIXOS_KERNEL
 #include "../SylixOS/kernel/include/k_kernel.h"
@@ -290,32 +291,39 @@ static VOID  __signalStkShowHandle (PLW_CLASS_TCB  ptcbCur, PLW_CLASS_SIGCTLMSG 
 *********************************************************************************************************/
 static VOID  __sigTaskCreateHook (LW_OBJECT_HANDLE  ulId)
 {
-    PLW_CLASS_TCB          ptcb    = __GET_TCB_FROM_HANDLE(ulId);
-    PLW_CLASS_SIGCONTEXT   psigctx = _signalGetCtx(ptcb);
+    PLW_CLASS_TCB          ptcb        = __GET_TCB_FROM_HANDLE(ulId);
+    PLW_CLASS_SIGCONTEXT   psigctx     = _signalGetCtx(ptcb);
+    struct sigaction      *psigactions = psigctx->SIGCTX_sigaction;
     
 #if LW_CFG_MODULELOADER_EN > 0
-    INT                    i;
     PLW_CLASS_TCB          ptcbCur;
     PLW_CLASS_SIGCONTEXT   psigctxCur;
+    LW_LD_VPROC           *vprocCur, *vprocNew;
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
     
     lib_bzero(psigctx, sizeof(LW_CLASS_SIGCONTEXT));                    /*  所有信号 DEFAULT 处理       */
 
+    psigctx->SIGCTX_stack.ss_flags = SS_DISABLE;                        /*  不使用自定义堆栈            */
+
+    psigactions[__sigindex(SIGURG)].sa_handler   = SIG_IGN;             /*  忽略这些信号                */
+    psigactions[__sigindex(SIGCHLD)].sa_handler  = SIG_IGN;
+    psigactions[__sigindex(SIGWINCH)].sa_handler = SIG_IGN;
+
 #if LW_CFG_MODULELOADER_EN > 0
     if (LW_SYS_STATUS_IS_RUNNING()) {                                   /*  操作系统正在运行            */
         LW_TCB_GET_CUR_SAFE(ptcbCur);                                   /*  同一个进程                  */
-        if (__LW_VP_GET_TCB_PROC(ptcb) == __LW_VP_GET_TCB_PROC(ptcbCur)) {
+        vprocNew = __LW_VP_GET_TCB_PROC(ptcb);
+        vprocCur = __LW_VP_GET_TCB_PROC(ptcbCur);
+        if ((vprocNew == vprocCur) &&
+            (vprocCur || !(ptcb->TCB_ulOption & LW_OPTION_THREAD_STK_MAIN))) {
             psigctxCur = _signalGetCtx(ptcbCur);
             psigctx->SIGCTX_sigsetMask = psigctxCur->SIGCTX_sigsetMask; /*  继承信号掩码                */
-            
-            for (i = 0; i < NSIG; i++) {
-                psigctx->SIGCTX_sigaction[i] = psigctxCur->SIGCTX_sigaction[i];
-            }
+            lib_memcpy(psigactions,
+                       psigctxCur->SIGCTX_sigaction,
+                       sizeof(struct sigaction) * NSIG);                /*  继承信号 actions            */
         }
     }
 #endif                                                                  /*  LW_CFG_MODULELOADER_EN      */
-
-    psigctx->SIGCTX_stack.ss_flags = SS_DISABLE;                        /*  不使用自定义堆栈            */
     
 #if LW_CFG_SIGNALFD_EN > 0
     if (_K_hSigfdSelMutex == LW_OBJECT_HANDLE_INVALID) {

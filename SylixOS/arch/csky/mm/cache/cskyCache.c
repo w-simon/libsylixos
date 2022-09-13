@@ -31,6 +31,7 @@
 #include "cskyCache.h"
 #include "arch/csky/inc/cskyregs.h"
 #include "arch/csky/arch_mmu.h"
+#include "arch/csky/param/cskyParam.h"
 /*********************************************************************************************************
   L2 CACHE 支持
 *********************************************************************************************************/
@@ -121,6 +122,22 @@ static CSKY_CACHE _G_DCacheInfo = {
             pvAdrs = (PVOID)((addr_t)pvAdrs & ~((addr_t)uiLineSize - 1));   \
         } while (0)
 /*********************************************************************************************************
+** 函数名称: cskyL2CacheIsEnable
+** 功能描述: 判断 L2 CACHE 是否使能
+** 输　入  : NONE
+** 输　出  : LW_TRUE or LW_FALSE
+** 全局变量:
+** 调用模块:
+*********************************************************************************************************/
+#if LW_CFG_CSKY_CACHE_L2 > 0
+
+static BOOL  cskyL2CacheIsEnable (VOID)
+{
+    return  ((cskyMpuGetCCR2() & M_L2CACHE_CFG_L2EN) ? LW_TRUE : LW_FALSE);
+}
+
+#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
+/*********************************************************************************************************
 ** 函数名称: cskyCacheEnable
 ** 功能描述: C-SKY 使能 CACHE
 ** 输　入  : cachetype      INSTRUCTION_CACHE / DATA_CACHE
@@ -130,9 +147,13 @@ static CSKY_CACHE _G_DCacheInfo = {
 *********************************************************************************************************/
 static INT  cskyCacheEnable (LW_CACHE_TYPE  cachetype)
 {
+#if LW_CFG_CSKY_CACHE_L2 > 0
+    ULONG  ulBootCpuId = archKernelParamGet()->CP_ulBootCpuId;
+#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
+
     if (cachetype == INSTRUCTION_CACHE) {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        if (LW_CPU_GET_CUR_ID() == 0) {
+        if (LW_CPU_GET_CUR_ID() == ulBootCpuId) {
             iCacheStatus |= L1_CACHE_I_EN;
         }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -142,7 +163,7 @@ static INT  cskyCacheEnable (LW_CACHE_TYPE  cachetype)
 
     } else {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        if (LW_CPU_GET_CUR_ID() == 0) {
+        if (LW_CPU_GET_CUR_ID() == ulBootCpuId) {
             iCacheStatus |= L1_CACHE_D_EN;
         }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -150,9 +171,10 @@ static INT  cskyCacheEnable (LW_CACHE_TYPE  cachetype)
     }
 
 #if LW_CFG_CSKY_CACHE_L2 > 0
-    if ((LW_CPU_GET_CUR_ID() == 0) &&
-        (iCacheStatus == L1_CACHE_EN)) {
-        cskyL2Enable();
+    if (LW_CPU_GET_CUR_ID() == ulBootCpuId) {
+        if ((iCacheStatus == L1_CACHE_EN) && !cskyL2CacheIsEnable()) {
+            cskyL2Enable();
+        }
         iCacheStatus |= L2_CACHE_EN;
     }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -170,9 +192,13 @@ static INT  cskyCacheEnable (LW_CACHE_TYPE  cachetype)
 *********************************************************************************************************/
 static INT  cskyCacheDisable (LW_CACHE_TYPE  cachetype)
 {
+#if LW_CFG_CSKY_CACHE_L2 > 0
+    ULONG  ulBootCpuId = archKernelParamGet()->CP_ulBootCpuId;
+#endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
+
     if (cachetype == INSTRUCTION_CACHE) {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        if (LW_CPU_GET_CUR_ID() == 0) {
+        if (LW_CPU_GET_CUR_ID() == ulBootCpuId) {
             iCacheStatus &= ~L1_CACHE_I_EN;
         }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -182,7 +208,7 @@ static INT  cskyCacheDisable (LW_CACHE_TYPE  cachetype)
 
     } else {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        if (LW_CPU_GET_CUR_ID() == 0) {
+        if (LW_CPU_GET_CUR_ID() == ulBootCpuId) {
             iCacheStatus &= ~L1_CACHE_D_EN;
         }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -190,10 +216,13 @@ static INT  cskyCacheDisable (LW_CACHE_TYPE  cachetype)
     }
 
 #if LW_CFG_CSKY_CACHE_L2 > 0
-    if ((LW_CPU_GET_CUR_ID() == 0) &&
-        ((iCacheStatus & L1_CACHE_EN) == 0)) {
-        cskyL2Disable();
-        iCacheStatus &= ~L2_CACHE_EN;
+    if (LW_CPU_GET_CUR_ID() == ulBootCpuId) {
+        if (iCacheStatus == L2_CACHE_EN) {
+            iCacheStatus &= ~L2_CACHE_EN;
+            if (cskyL2CacheIsEnable()) {
+                cskyL2Disable();
+            }
+        }
     }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
 
@@ -340,7 +369,7 @@ INT  cskyCacheFlush (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stBytes)
 
     if (cachetype == DATA_CACHE) {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        if (iCacheStatus & L2_CACHE_EN) {
+        if (cskyL2CacheIsEnable()) {
             return  (cskyL2Flush(pvAdrs, stBytes));                     /*  L2 包含了 L1                */
         }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -374,7 +403,7 @@ static INT  cskyCacheFlushPage (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, PVOID  
 
     if (cachetype == DATA_CACHE) {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        if (iCacheStatus & L2_CACHE_EN) {
+        if (cskyL2CacheIsEnable()) {
             return  (cskyL2Flush(pvAdrs, stBytes));                     /*  L2 包含了 L1                */
         }
 #endif
@@ -417,7 +446,7 @@ static INT  cskyCacheInvalidate (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
 #if LW_CFG_CSKY_CACHE_L2 > 0
-            if (iCacheStatus & L2_CACHE_EN) {
+            if (cskyL2CacheIsEnable()) {
                 return  (cskyL2Invalidate(pvAdrs, stBytes));            /*  虚拟与物理地址必须相同      */
             }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -473,7 +502,7 @@ static INT  cskyCacheInvalidatePage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOI
     } else {
         if (stBytes > 0) {                                              /*  必须 > 0                    */
 #if LW_CFG_CSKY_CACHE_L2 > 0
-            if (iCacheStatus & L2_CACHE_EN) {
+            if (cskyL2CacheIsEnable()) {
                 return  (cskyL2Invalidate(pvAdrs, stBytes));            /*  虚拟与物理地址必须相同      */
             }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -528,7 +557,7 @@ static INT  cskyCacheClear (LW_CACHE_TYPE  cachetype, PVOID  pvAdrs, size_t  stB
 
     } else {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        if (iCacheStatus & L2_CACHE_EN) {
+        if (cskyL2CacheIsEnable()) {
             return  (cskyL2Clear(pvAdrs, stBytes));
         }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */
@@ -570,7 +599,7 @@ static INT  cskyCacheClearPage (LW_CACHE_TYPE cachetype, PVOID pvAdrs, PVOID pvP
 
     } else {
 #if LW_CFG_CSKY_CACHE_L2 > 0
-        if (iCacheStatus & L2_CACHE_EN) {
+        if (cskyL2CacheIsEnable()) {
             return  (cskyL2Clear(pvAdrs, stBytes));
         }
 #endif                                                                  /*  LW_CFG_CSKY_CACHE_L2 > 0    */

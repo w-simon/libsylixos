@@ -47,6 +47,7 @@
     EXPORT_LABEL(sigsetjmp)
     EXPORT_LABEL(longjmp)
     EXPORT_LABEL(siglongjmp)
+    EXPORT_LABEL(cskyWaitForInterrupt)
 
     WEAK(archIntDisable)
     WEAK(archIntEnable)
@@ -294,6 +295,15 @@ FUNC_DEF(archBogoMipsLoop)
     BNEZ        A0 , archBogoMipsLoop
     RTS
     FUNC_END(archBogoMipsLoop)
+
+;/*********************************************************************************************************
+;  C-SKY 进入节能状态，等待中断
+;*********************************************************************************************************/
+
+FUNC_DEF(cskyWaitForInterrupt)
+    STOP
+    RTS
+    FUNC_END(cskyWaitForInterrupt)
 
     FILE_END()
 

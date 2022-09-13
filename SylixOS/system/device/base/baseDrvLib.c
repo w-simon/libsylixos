@@ -416,7 +416,7 @@ static VOID  __drvDetach (PLW_DRV_INSTANCE  pdrvinstance)
     for (plineNode  = pdrvinstance->DRVHD_plineDevList;                 /*  遍历驱动上关联的设备        */
          plineNode != NULL;) {
 
-        pdevinstance  = _LIST_ENTRY(plineNode, LW_DEV_INSTANCE, DEVHD_lineBus);
+        pdevinstance  = _LIST_ENTRY(plineNode, LW_DEV_INSTANCE, DEVHD_lineDrv);
         plineNode     = _list_line_get_next(plineNode);
 
         __DEV_HD_LOCK(pdevinstance);

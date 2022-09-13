@@ -243,6 +243,22 @@ static inline void cskyMpuSetCCR(uint32_t ccr)
                     : : "r"(ccr));
 }
 
+static inline uint32_t cskyMpuGetCCR2(void)
+{
+    register uint32_t result;
+
+    __asm__ __volatile__("mfcr %0, cr<23, 0>\n"
+                    : "=r"(result));
+
+    return (result);
+}
+
+static inline void cskyMpuSetCCR2(uint32_t ccr2)
+{
+    __asm__ __volatile__("mtcr %0, cr<23, 0>\n"
+                    : : "r"(ccr2));
+}
+
 static inline uint32_t cskyMpuGetCAPR(void)
 {
     register uint32_t result;
